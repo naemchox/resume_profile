@@ -1,0 +1,37 @@
+rules_version = '2';
+
+// Security rules for the Arthid Cloud Storage bucket.
+//
+// Paste this entire file into the Firebase Console:
+//   Build → Storage → Rules tab → replace contents → Publish
+//
+// Local copy is kept in the repo so the rules version-control alongside
+// the schema they protect.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ============== CHAT ATTACHMENTS ==============
+    // Layout: chats/{chatId}/{senderUid}/{filename}
+    // - {chatId}    is `sortedUidA_sortedUidB` for DMs (matches Firestore).
+    // - {senderUid} is the uploader's uid; baking it into the path lets us
+    //   verify ownership at write time without a Firestore lookup.
+    match /chats/{chatId}/{senderUid}/{filename=**} {
+      // Any signed-in user can read. Download URLs are unguessable in
+      // practice; tightening to a Firestore membership check would add
+      // latency to every fetch and isn't worth it for this use case.
+      allow read: if request.auth != null;
+
+      // Uploads: the path's senderUid must match the authenticated user,
+      // and we cap the file size at 25 MB (matches CHAT_ATTACH_MAX_BYTES
+      // in the client).
+      allow create: if request.auth != null
+                    && request.auth.uid == senderUid
+                    && request.resource.size < 25 * 1024 * 1024;
+
+      // No edits or deletes from the client. If we add per-message delete
+      // later it should also delete the storage object via a Cloud Function.
+      allow update, delete: if false;
+    }
+  }
+}
