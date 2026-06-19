@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<!-- Allow plain HTTP to localhost / .local / private-network hosts so the
+		     app can reach the local yt-dlp server (serve.py) for YouTube fetches. -->
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Find da Note connects to a local yt-dlp server on your computer to fetch YouTube audio.</string>
+</dict>
+</plist>
