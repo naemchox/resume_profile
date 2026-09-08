@@ -1,0 +1,112 @@
+<!-- ===================== VARIANT A =====================
+     Prompt: "feel so จืด ... can u add more animation or graphic
+     to the website too, to make it creative"  (ตามตัวอักษร)
+     = เติมชั้นตกแต่งและ motion เข้าไป ไม่แตะ palette / ไม่แตะ motif
+     ==================================================== -->
+<style>
+/* A1 — blueprint grid + drifting light pools in the hero */
+.hero::after{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:
+    linear-gradient(to right,  oklch(.44 .10 255 / .085) 1px, transparent 1px) 0 0/58px 58px,
+    linear-gradient(to bottom, oklch(.44 .10 255 / .085) 1px, transparent 1px) 0 0/58px 58px;
+  -webkit-mask-image:radial-gradient(120% 95% at 18% 8%, #000 28%, transparent 78%);
+          mask-image:radial-gradient(120% 95% at 18% 8%, #000 28%, transparent 78%);
+}
+.hero > .wrap{position:relative;z-index:2}
+.pool{position:absolute;border-radius:50%;filter:blur(70px);pointer-events:none;z-index:1;
+  will-change:transform,opacity;opacity:.55}
+.pool-1{width:46vw;height:46vw;left:-8vw;top:-14vw;background:oklch(.76 .155 72 / .40)}
+.pool-2{width:38vw;height:38vw;right:-6vw;top:6vw; background:oklch(.64 .098 255 / .34)}
+.pool-3{width:30vw;height:30vw;left:38%;bottom:-16vw;background:oklch(.82 .13 75 / .34)}
+@keyframes poolDrift{0%{transform:translate3d(0,0,0) scale(1)}
+  50%{transform:translate3d(4vw,-3vw,0) scale(1.12)}100%{transform:translate3d(0,0,0) scale(1)}}
+.pool-1{animation:poolDrift 23s ease-in-out infinite}
+.pool-2{animation:poolDrift 31s ease-in-out infinite reverse}
+.pool-3{animation:poolDrift 27s ease-in-out infinite}
+
+/* A2 — motes turned up: they were there and invisible */
+.motes .mote{opacity:.55!important;background:oklch(.66 .145 66)!important;
+  box-shadow:0 0 8px oklch(.76 .155 72 / .8)}
+
+/* A3 — running ticker of what he builds */
+.ticker{overflow:hidden;background:var(--surface-inv,oklch(.225 .048 255));
+  color:oklch(.97 .012 255);padding-block:.7rem;border-block:1px solid oklch(.36 .085 255)}
+.ticker-track{display:flex;gap:2.5rem;width:max-content;animation:tick 32s linear infinite;
+  font-family:var(--font-display);font-size:.95rem;letter-spacing:.02em;white-space:nowrap}
+.ticker-track span{display:flex;align-items:center;gap:2.5rem}
+.ticker-track i{font-style:normal;color:oklch(.76 .155 72)}
+@keyframes tick{to{transform:translate3d(-50%,0,0)}}
+.ticker:hover .ticker-track{animation-play-state:paused}
+
+/* A4 — cursor spotlight on the service cards */
+.svc{position:relative;overflow:hidden}
+.svc::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;
+  transition:opacity .35s ease;
+  background:radial-gradient(220px circle at var(--mx,50%) var(--my,50%),
+    oklch(.82 .13 75 / .28), transparent 62%)}
+.svc:hover::after{opacity:1}
+.svc:hover{transform:translateY(-6px)}
+
+/* A5 — gallery: survey brackets + zoom */
+.gal-grid > *{position:relative;overflow:hidden}
+.gal-grid img{transition:transform .8s cubic-bezier(.2,.7,.3,1)}
+.gal-grid > *:hover img{transform:scale(1.07)}
+.gal-grid > *::before,.gal-grid > *::after{content:"";position:absolute;width:22px;height:22px;
+  border:2px solid oklch(.76 .155 72);opacity:0;transition:all .4s ease;z-index:2}
+.gal-grid > *::before{top:10px;left:10px;border-right:0;border-bottom:0;transform:translate(6px,6px)}
+.gal-grid > *::after{bottom:10px;right:10px;border-left:0;border-top:0;transform:translate(-6px,-6px)}
+.gal-grid > *:hover::before,.gal-grid > *:hover::after{opacity:1;transform:none}
+
+/* A6 — shimmer sweep across the primary buttons */
+.btn-primary,.btn-line{position:relative;overflow:hidden}
+.btn-primary::after,.btn-line::after{content:"";position:absolute;top:0;left:-140%;width:60%;height:100%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.42),transparent);
+  transform:skewX(-18deg);animation:sweep 4.6s ease-in-out infinite}
+@keyframes sweep{0%,62%{left:-140%}86%,100%{left:160%}}
+
+/* A7 — the kicker rule draws itself in */
+.sec-head .kicker::before{width:0;animation:kickGrow .7s .1s ease forwards}
+@keyframes kickGrow{to{width:42px}}
+
+/* A8 — step cards lift and glow */
+.step{transition:transform .3s ease,box-shadow .3s ease}
+.step:hover{transform:translateY(-5px);box-shadow:0 14px 34px oklch(.44 .10 255 / .16)}
+
+@media (prefers-reduced-motion:reduce){
+  .pool,.ticker-track,.btn-primary::after,.btn-line::after,.sec-head .kicker::before{animation:none!important}
+  .sec-head .kicker::before{width:26px}
+}
+</style>
+<script>
+(function(){
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* light pools */
+  var hero = document.querySelector('.hero');
+  if(hero) [1,2,3].forEach(function(n){
+    var d=document.createElement('div'); d.className='pool pool-'+n; d.setAttribute('aria-hidden','true');
+    hero.insertBefore(d, hero.firstChild);
+  });
+
+  /* ticker */
+  var trust=document.querySelector('.trust');
+  if(trust){
+    var items=['รับเหมาก่อสร้าง','รีโนเวทบ้าน','ต่อเติมที่พักอาศัย','งานประตู','ฝ้าเพดาน','ปูกระเบื้อง',
+               'หลังคาเมทัลชีท','รั้วกำแพง','โครงสร้างเหล็ก','ซ่อมแซมบ้าน'];
+    var row=items.map(function(t){return t+' <i>◆</i> ';}).join('');
+    var d=document.createElement('div'); d.className='ticker'; d.setAttribute('aria-hidden','true');
+    d.innerHTML='<div class="ticker-track"><span>'+row+'</span><span>'+row+'</span></div>';
+    trust.insertAdjacentElement('afterend', d);
+  }
+
+  /* cursor spotlight */
+  if(!reduce) document.querySelectorAll('.svc').forEach(function(c){
+    c.addEventListener('pointermove',function(e){
+      var r=c.getBoundingClientRect();
+      c.style.setProperty('--mx',(e.clientX-r.left)+'px');
+      c.style.setProperty('--my',(e.clientY-r.top)+'px');
+    });
+  });
+})();
+</script>

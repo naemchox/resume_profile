@@ -1,0 +1,94 @@
+/* บล็อกที่เขียนมือ — freeze-tailwind.mjs จะต่อท้าย css/tailwind.css ให้เองทุกครั้งที่สร้างใหม่
+   แก้ที่ไฟล์นี้ ห้ามแก้ใน tailwind.css (ของที่แปะมือในนั้นจะหายตอนสร้างใหม่)
+   ย้ายออกมาเมื่อ 24/8/26 — เดิมแปะไว้ท้าย tailwind.css ทั้งที่หัวไฟล์เขียนว่าห้ามแก้มือ */
+
+/* ---- §11 ข้อ 5: หัวเว็บหดตอนเลื่อน + ไฮไลต์หัวข้อที่กำลังอ่าน ----------------
+   คลาส .small / a.on สลับโดย js/nav-response.js (ไฟล์เดียวกันทุกเดโม)
+   ตัวเลขความสูงต่างกันได้ตามหัวเว็บเดิมของแต่ละงาน แต่กลไกต้องเป็นตัวเดียวกัน */
+/* 23/8/26 — ใบนี้ยังค้างกลไกเก่า `header.small { height: 56px !important }` ซึ่งถูก
+   เลิกไปแล้วเมื่อ 22/8 (เหตุผลอยู่ในหัวบล็อกเดียวกันของ work/the-bed) และมันสร้าง
+   อาการเกยคนละแบบ: แถบถูกบังคับสูง 56px แต่แถวเนื้อหาข้างในเหลือ 42.5px และไปกอง
+   อยู่ "ขอบบน" ไม่ใช่กลางแถบ เพชรโลโก้จึงล้นขอบบน 4.2px ทั้งที่แถบสูงพอ
+   ย้ายมาใช้กลไก padding ตัวเดียวกับ the-bed = หดแล้วยังอยู่กลางแถบเสมอ */
+/* 24/8/26 เอา `transition: padding` ออกจากกฎนี้ (เดิมไล่ 260ms)
+   เหตุผลเต็มอยู่ท้ายไฟล์ — ย่อ: padding เป็น layout property (ผิด DEMO-SPEC S2.3)
+   และแถบที่ถูกย่อคือแถบเดียวกับที่มี backdrop-filter blur(14px) → ทุกเฟรมต้องคำนวณผังใหม่
+   แล้วเบลอพื้นหลังใหม่ทั้งแถบ · ปล่อยให้ความสูงสลับทันที ส่วนสี/ขอบยังไล่ 400ms ตามเดิม */
+/* เพชรของโลโก้เป็นสี่เหลี่ยม 36px หมุน 45° = กล่องที่ตาเห็นสูง 50.9px แต่ผังจองให้แค่ 36px
+   ถ้าหดจนไม่เหลือ padding เพชรจะโผล่พ้นขอบแถบ (jek ทักไว้ 23/8/26) จึงมีพื้น 10px
+   ด่านตรวจ: node playbook/audit-overflow.mjs */
+header, .site-header { --nav-pad-small: 10px; }
+
+/* >>> nav-shrink · กลไกกลาง "หัวเว็บหดตอนเลื่อน" — แหล่งเดียวของทั้งกอง
+   แก้ที่ playbook/snippets/nav-shrink.css แล้วรัน: node playbook/sync-nav-shrink.mjs
+   ห้ามแก้ก้อนนี้ในไฟล์ปลายทาง — สคริปต์เขียนทับทุกครั้ง
+
+   กติกา (LOG-DEMO §15 · ด่าน playbook/audit-nav.mjs):
+   คลาสสวิตช์ = .small เท่านั้น · หดด้วย "padding ของลูก" เท่านั้น — ห้ามสั่ง height
+   ทำไมห้าม height: แถบหัวสูงเป็น auto เบราว์เซอร์ไล่ auto→เลขคงที่ไม่ได้ มันกระโดด
+   และลูกที่ตั้ง height ตายตัวจะไม่หดตาม แถบเตี้ยกว่าลูก = เกยทันที (summit เกย 20px อยู่เป็นเดือน)
+
+   ใบไหนต้องมีพื้นความสูงขั้นต่ำตอนหด (เช่น The Bed มีเพชรหมุน 45° ที่กินที่เกินผัง)
+   ให้ตั้งค่า --nav-pad-small ของใบนั้นเหนือก้อนนี้ ไม่ใช่เขียนกฎใหม่
+   ไม่ใส่ transition ให้ padding โดยตั้งใจ (24/8/26): padding เป็น layout property
+   ผิด DEMO-SPEC S2.3 และแถบที่หดคือแถบเดียวกับที่มี backdrop-filter = คิดผังใหม่+เบลอใหม่ทุกเฟรม */
+header.small > *, .site-header.small > * {
+  padding-top: var(--nav-pad-small, 0px) !important;
+  padding-bottom: var(--nav-pad-small, 0px) !important;
+  min-height: 0 !important;
+}
+header.small > * > *, .site-header.small > * > * {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  min-height: 0 !important;
+}
+@media (prefers-reduced-motion: reduce) { header, .site-header { transition: none !important; } }
+/* <<< nav-shrink */
+header a.on { border-bottom-color: #C9A961 !important; color: #C9A961 !important; }
+@media (prefers-reduced-motion: reduce) { header { transition: none !important; } }
+
+/* ---- 24/8/26 หัวเว็บหด: เลิกอนิเมต padding -------------------------------------
+   เจ้าของทักว่า "เลื่อนลงนิดหน่อยแล้วหัวข้อกระตุก ก่อนจะเปลี่ยนเป็นเวอร์ชันที่ 2"
+   วัดแล้วในหัวเว็บไม่มีโลโก้สองเวอร์ชันใน DOM เลย ตัวหนังสือชุดเดิมตลอด — สิ่งที่เปลี่ยนคือ
+   แถบเตี้ยลง 84→64px ด้วยการ transition `padding` ของสองชั้นซ้อนกัน (nav 20→0 · shell 0→10)
+   ปัญหา: padding เป็น layout property (ผิด DEMO-SPEC S2.3) และตัวที่ถูกย่อคือแถบเดียวกับ
+   ที่มี `backdrop-filter: blur(14px)` อยู่ → ทุกเฟรมใน 260ms เบราว์เซอร์ต้องคำนวณผังใหม่
+   **แล้วเบลอพื้นหลังใหม่ทั้งแถบ** ซ้อนกันสองงานหนักบนของที่ทับรูปฮีโร่
+   ท่าแก้: ให้แถบเปลี่ยนความสูง**ทันที** ไม่ไล่ทีละเฟรม — 20px คือระยะที่สั้นพอที่การสลับทันที
+   อ่านว่าเด็ดขาด ไม่ใช่กระตุก · ส่วน background/border ยังไล่ 400ms เหมือนเดิม (สีเปลี่ยนได้
+   บน compositor ไม่ต้องคำนวณผัง) จึงยังรู้สึกว่าแถบ "ค่อยๆ ทึบขึ้น" ไม่ได้กระโดดทั้งแถบ */
+
+/* ---- 24/8/26 (แก้รอบสอง) คืน animation ให้แถบหด แต่ย้ายเบลอออกจากตัวที่ย่อ ----------
+   รอบแรกผมตัด transition ทิ้งเลย = แถบสลับทันที เจ้าของทักว่า "ไม่มี animation ให้มัน smooth"
+   ถูกต้อง — โจทย์คือ "ให้ลื่น" ไม่ใช่ "ให้หยุดขยับ"
+   ต้นเหตุที่มันหนักไม่ใช่การไล่ padding เอง แต่คือ **ตัวที่ถูกย่อเป็นตัวเดียวกับที่ใส่
+   backdrop-filter: blur(14px)** → ทุกเฟรมต้องคำนวณผังใหม่ *แล้วเบลอพื้นหลังใหม่ทั้งแถบ*
+   ทับรูปฮีโร่ · ท่าแก้: ให้เบลออยู่บนชั้นของตัวเองที่ **ความสูงคงที่ ไม่ย่อตาม** แล้ว
+   เปลี่ยนเฉพาะ opacity (วิ่งบน compositor) ส่วนกล่องแถบไล่ padding ได้ตามปกติเพราะไม่มีเบลอ
+   ความสูงตอนหด: 64px จอ ≥641px · 58px จอเล็ก (วัดจากของจริงทั้งสามขนาดจอ) */
+header, .site-header,
+header > *, header > * > * {
+  transition: padding 240ms cubic-bezier(.33,0,.3,1);
+}
+.nav-shell { position: relative; }
+.nav-shell::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+  /* 26/8/26 เดิมเป็น height:64px = ความสูงของ "แถบตอนหด" สมัย 24/8/26
+     25/8/26 แถบเลิกหดแล้ว ความสูงจริงกลายเป็น 92px ตลอดเวลา แต่ชั้นพื้นนี้
+     ยังค้างที่ 64px → 28px ล่างของแถบไม่มีพื้นหลัง เนื้อหาข้างหลังทะลุขึ้นมา
+     = "แถบขาวใต้เมนู" ที่เจ้าของส่งภาพมา (วัดแล้ว: shell สูง 92 · ::before สูง 64)
+     ใช้ bottom:0 แทนตัวเลข = พื้นเท่ากับแถบเสมอ ไม่ต้องไล่แก้ตามอีกทุกครั้ง
+     เหตุผลเดิมที่ตรึงความสูงไว้คือกัน backdrop-filter คำนวณใหม่ตอนแถบย่อ —
+     ตอนนี้แถบไม่ย่อแล้ว ความสูงจึงคงที่อยู่ดี ไม่มี transition ผูกกับมัน */
+  background-color: rgba(10, 9, 8, 0.78);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  opacity: 0; transition: opacity 300ms ease; pointer-events: none;
+}
+.nav-shell.scrolled::before { opacity: 1; }
+/* พื้นทึบเดิมย้ายไปอยู่บนชั้น ::before แล้ว ตัวแถบเองต้องใส เดี๋ยวจะทึบซ้อนสองชั้น */
+.nav-shell.scrolled { background-color: transparent !important; }
+/* 26/8/26 ตัดค่า 58px ของจอเล็กทิ้ง — bottom:0 ครอบทุกขนาดจอเองอยู่แล้ว */
+@media (prefers-reduced-motion: reduce) {
+  header, .site-header, header > *, header > * > * { transition: none !important; }
+  .nav-shell::before { transition: none !important; }
+}

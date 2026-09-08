@@ -1,0 +1,15 @@
+# ปล่อยเว็บจากเครื่องไหนก็ต้องได้ไฟล์ชุดเดียวกัน
+# ด่าน "แก้ไฟล์แล้วลืมบวกเลขรุ่น" ใน deploy.mjs เทียบ md5 ของไฟล์จริงกับ
+# playbook/asset-versions.json ถ้าเครื่องหนึ่งเช็คเอาต์เป็น CRLF (autocrlf=true ของวินโดวส์)
+# hash จะไม่มีวันตรงกับที่อีกเครื่องบันทึกไว้ — 24/8/26 ตกด่านนี้ทั้ง css/ js/ ทุกไฟล์
+# ทั้งที่ไม่มีใครแตะ (css/tokens.css: LF ef11785c9cfa · CRLF 071090ad9e5c)
+* text=auto eol=lf
+
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.webp binary
+*.ico  binary
+*.mp4  binary
+*.webm binary
+*.woff2 binary

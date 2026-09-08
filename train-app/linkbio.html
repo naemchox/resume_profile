@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>โค้ดคนเดียว — ทำแอปแก้ปัญหาชีวิต</title>
+<meta name="description" content="ทำแอปแก้ปัญหาชีวิตคนเดียว ใช้ฟรีได้เลย">
+<!-- ===== แก้ลิงก์/แอป ตรงนี้ที่เดียว ===== -->
+<script>
+  const HANDLE = "@โค้ดคนเดียว";
+  const TIKTOK = "https://www.tiktok.com/@your_handle"; // TODO: ใส่ @ช่องจริงหลังเปิด TikTok
+  // featured = true → ปุ่มเด่น (ไฮไลต์อันที่กำลังดันในคลิปสัปดาห์นั้น)
+  // live=false → แสดงเป็น "เร็วๆ นี้" กดไม่ได้ (รอ deploy/สเปก)
+  const APPS = [
+    { id:"ijek",  emoji:"🦊", name:"Ijek",        tag:"แข่งกับตัวเองในเวอร์ชันที่ทำตามแผน", color:"251,191,36",  url:"./train.html", live:true, featured:true },
+    { id:"chat",  emoji:"💬", name:"คุยงาน",       tag:"วางแผนงานแบบแชท · react สถานะ",       color:"139,124,246", url:"https://kuygan.monmon7735.workers.dev", live:true },
+    { id:"takk",  emoji:"📦", name:"Takk",         tag:"เร็วๆ นี้",                          color:"94,234,212",  url:"#", live:false },
+    { id:"score", emoji:"📈", name:"Score Up",     tag:"เร็วๆ นี้",                          color:"248,113,113", url:"#", live:false },
+    { id:"mey",   emoji:"✨", name:"Meymour",      tag:"เร็วๆ นี้",                          color:"244,114,182", url:"#", live:false },
+  ];
+</script>
+<style>
+  :root{
+    --bg:#0e0f14; --card:#181b22; --line:#272b34;
+    --accent:#8b7cf6; --accent-rgb:139,124,246;
+    --text:#f3f4f6; --muted:#9aa3b2;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{
+    font-family:-apple-system,"Segoe UI",system-ui,"Noto Sans Thai",sans-serif;
+    background:
+      radial-gradient(120% 80% at 50% -10%, rgba(var(--accent-rgb),.16), transparent 60%),
+      var(--bg);
+    color:var(--text); min-height:100dvh;
+    display:flex; align-items:flex-start; justify-content:center;
+    padding:40px 20px calc(40px + env(safe-area-inset-bottom));
+  }
+  .wrap{width:100%; max-width:420px; text-align:center}
+  .ava{
+    width:88px; height:88px; margin:0 auto 14px; border-radius:24px;
+    display:grid; place-items:center; font-size:40px;
+    background:linear-gradient(160deg,#222631,#13151a);
+    border:1px solid var(--line);
+    box-shadow:0 0 0 4px rgba(var(--accent-rgb),.12), 0 12px 30px rgba(0,0,0,.5);
+  }
+  h1{font-size:24px; font-weight:800; letter-spacing:-.5px}
+  .tag{color:var(--muted); font-size:15px; margin-top:6px; line-height:1.5}
+  .tag b{color:var(--text); font-weight:700}
+  .pill{
+    display:inline-block; margin-top:12px; padding:5px 12px; border-radius:999px;
+    font-size:12px; font-weight:700; color:var(--accent);
+    background:rgba(var(--accent-rgb),.10); border:1px solid rgba(var(--accent-rgb),.25);
+  }
+  .sec{margin-top:26px; text-align:left; font-size:12px; font-weight:700;
+    color:var(--muted); letter-spacing:.4px; text-transform:uppercase; padding-left:4px}
+  .links{margin-top:12px; display:flex; flex-direction:column; gap:12px}
+  a.btn{
+    display:flex; align-items:center; gap:14px;
+    padding:14px 16px; border-radius:16px; text-decoration:none;
+    background:var(--card); border:1px solid var(--line);
+    color:var(--text); transition:transform .12s ease, border-color .12s ease;
+  }
+  a.btn:active{transform:scale(.98)}
+  a.btn .ic{
+    width:44px; height:44px; flex:none; border-radius:13px; font-size:24px;
+    display:grid; place-items:center;
+    background:rgba(var(--c),.12); border:1px solid rgba(var(--c),.28);
+  }
+  a.btn .txt{flex:1; min-width:0}
+  a.btn .nm{font-size:16px; font-weight:700; line-height:1.2}
+  a.btn .ds{font-size:13px; color:var(--muted); margin-top:2px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  a.btn .ar{color:var(--muted); font-size:18px; flex:none}
+  a.btn.featured{
+    border-color:rgba(var(--c),.55);
+    box-shadow:0 8px 24px rgba(var(--c),.18);
+    background:linear-gradient(135deg, rgba(var(--c),.14), var(--card));
+  }
+  a.btn.soon{opacity:.5; pointer-events:none}
+  a.btn.soon .ds{color:var(--accent)}
+  a.btn:hover{border-color:rgba(var(--c),.5)}
+  a.tt{
+    margin-top:14px; display:flex; align-items:center; justify-content:center; gap:10px;
+    padding:13px; border-radius:16px; text-decoration:none; font-weight:700; font-size:15px;
+    background:var(--card); border:1px solid var(--line); color:var(--text);
+  }
+  a.tt:active{transform:scale(.98)}
+  .foot{margin-top:26px; font-size:12px; color:var(--muted)}
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="ava">🛠️</div>
+    <h1 id="handle">@โค้ดคนเดียว</h1>
+    <p class="tag">ทำแอป<b>แก้ปัญหาชีวิตคนเดียว</b><br>ไม่มีทีม ไม่มีทุน · ใช้ฟรีได้เลย</p>
+    <div class="pill">indie dev 🇹🇭</div>
+
+    <div class="sec">แอปที่ทำ</div>
+    <nav class="links" id="apps"></nav>
+
+    <a class="tt" id="tt" href="#"><span>🎬</span> ดูเบื้องหลังบน TikTok</a>
+
+    <p class="foot">© by Patipan</p>
+  </main>
+  <script>
+    document.getElementById('handle').textContent = HANDLE;
+    document.getElementById('tt').href = TIKTOK;
+    const wrap = document.getElementById('apps');
+    APPS.forEach(a=>{
+      const el = document.createElement('a');
+      el.className = 'btn' + (a.featured?' featured':'') + (a.live?'':' soon');
+      el.href = a.live ? a.url : '#';
+      if(a.live && a.url.startsWith('http')){ el.target='_blank'; el.rel='noopener'; }
+      el.style.setProperty('--c', a.color);
+      el.innerHTML =
+        '<span class="ic">'+a.emoji+'</span>'+
+        '<span class="txt"><span class="nm">'+a.name+'</span>'+
+        '<span class="ds">'+a.tag+'</span></span>'+
+        '<span class="ar">'+(a.live?'→':'·')+'</span>';
+      wrap.appendChild(el);
+    });
+  </script>
+</body>
+</html>

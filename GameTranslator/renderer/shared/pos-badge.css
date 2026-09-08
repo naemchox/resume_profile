@@ -1,0 +1,43 @@
+/* The part-of-speech chip, in the one form every Gloss window uses. See shared/pos-badge.js for why
+   there is only one; the short version is that the hover bubble's chip was the only one you could
+   read without stopping, and the card, the Type peek, the word bubble and both word lists were each
+   saying the same thing a different way.
+
+   Layout note: inline-flex, not flex — most callers sit the chip INSIDE a line of text (the card's
+   meta row, a vocabulary row, the word bubble's heading) and a block-level flex box there would
+   break the line. The one caller that wants it on its own line under the meaning (the hover bubble)
+   says so itself. */
+.badges {
+  display: inline-flex;
+  gap: 4px;
+  vertical-align: middle;
+}
+.pos-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+/* One hue per family, all at the same low saturation so no single kind of word shouts louder than
+   the meaning it is labelling. */
+.pos-badge.n     { background: rgba(52, 199, 123, 0.18); color: #4ade80; }
+.pos-badge.v     { background: rgba(96, 165, 250, 0.18); color: #7cb6ff; }
+/* NOT amber — that is the colour a KEPT word wears (.src-word.on, and the ★ itself). An Adj. chip in
+   the same amber, sitting inside the very line where kept words are highlighted, read as "this word is
+   saved" (jek, 2026-08-15). Violet is the one hue not already spoken for here: n green, v blue,
+   adv pink, other grey. */
+.pos-badge.adj   { background: rgba(192, 132, 252, 0.18); color: #c9a2fd; }
+.pos-badge.adv   { background: rgba(244, 114, 182, 0.18); color: #f472b6; }
+.pos-badge.other { background: rgba(161, 161, 170, 0.18); color: #c4c4cc; }
+/* Not a part of speech — a warning that the text beside it is an English definition standing in for
+   a translation we don't have. Outlined instead of filled so it never reads as another word class. */
+.pos-badge.en {
+  background: transparent;
+  color: #a1a1aa;
+  border: 1px solid rgba(161, 161, 170, 0.4);
+  padding: 0 5px;
+}

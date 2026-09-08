@@ -1,0 +1,141 @@
+<!-- ===================== VARIANT B2 =====================
+     ฮีโร่ = การ์ดรูปแบบเดิม แต่เป็น **หลายใบ** (bento 3 ใบ) บนพื้นสีเหล็กของ B
+     ใบใหญ่ = รูปเดิม (LCP ไม่เปลี่ยน) + ป้ายคำบรรยายเหมือนเดิม
+     ใบเล็ก 2 ใบ = ช่างกำลังทำงาน / งานภายใน — ให้เห็นว่ารับหลายแบบตั้งแต่ฮีโร่
+
+     เก็บของที่ audit รอบก่อนไว้: รูปช่าง + ชื่อ + ป้าย "ปรึกษา สอบถามฟรี" = แถวเดียว
+     ==================================================== -->
+<style>
+/* --- แถวตัวตน --- */
+.hero-id{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:var(--s-4)}
+.hero-name{font-family:var(--font-display);font-size:1.1rem;font-weight:700;
+  color:oklch(.98 .008 250);letter-spacing:.01em}
+.hero .hero-id .eyebrow{margin:0}
+
+/* --- รูปเดียว เต็มขอบ ฝั่งขวา (jek 2026-08-06) ---
+   รอบก่อนยังอ่านเป็น "การ์ด" เพราะมุมมน + เงาลอย + กล่องที่มีขอบครบ 4 ด้าน
+   → คราวนี้ให้รูปกินเต็มความสูงฮีโร่และชนขอบขวาจอ ไม่มีมุมมน ไม่มีเงา
+     แล้วไล่จางขอบซ้ายให้กลืนกับพื้นเหล็ก จะได้ไม่มีเส้นตัดตรงๆ ให้ตาจับ */
+/* --- เดสก์ท็อป: ไม่มี "แผงรูป" อีกต่อไป ---
+   ตราบใดที่รูปเป็น element หนึ่งวางทับ มันจะมีขอบของตัวเองเสมอ
+   ไล่จางแค่ไหนก็ถูกตัดที่ขอบนั้น (เห็นเป็นเส้นตรงทุกครั้ง)
+   → ย้ายรูปไปเป็น "พื้นหลังของฮีโร่ทั้งผืน" แล้วทาบม่านไล่จากซ้าย
+     ไม่มีขอบ element ให้ตัด เหลือแค่ค่าความทึบที่เปลี่ยนอย่างต่อเนื่อง */
+@media (min-width:900px){
+  .hero{position:relative;
+    /* รูปกลับมาขนาดเท่าเดิม (กว้าง 62vw ≈ เท่าแผงเก่า) ไม่ซูม
+       วางชิดขวา แล้วให้ม่าน "ทึบสนิท" คลุมตรงขอบซ้ายของรูปพอดี (0–40%)
+       ขอบรูปจึงถูกซ่อนอยู่ใต้ม่านทึบ ไม่มีเส้นให้เห็น
+       แล้วค่อยไล่จางลงเรื่อยๆ จนใสที่ขอบขวา = ภาพค่อยๆ โผล่ ไม่ใช่โผล่ทั้งแผ่น */
+    background-image:
+      linear-gradient(90deg,
+        oklch(.170 .030 250) 0%,
+        oklch(.170 .030 250) 40%,
+        oklch(.170 .030 250 / .97) 46%,
+        oklch(.170 .030 250 / .88) 52%,
+        oklch(.170 .030 250 / .72) 60%,
+        oklch(.170 .030 250 / .52) 68%,
+        oklch(.170 .030 250 / .32) 76%,
+        oklch(.170 .030 250 / .16) 84%,
+        oklch(.170 .030 250 / .06) 92%,
+        transparent 100%),
+      linear-gradient(180deg, oklch(.16 .03 250 / .35) 0%, transparent 18%,
+                              transparent 80%, oklch(.16 .03 250 / .42) 100%),
+      url("assets/work-exterior-corner@2x.webp") !important;   /* 2x Lanczos + unsharp */
+    background-size:auto, auto, 62vw auto !important;
+    background-position:center, center, right 42% !important;
+    background-repeat:no-repeat !important}
+  .hero-in{grid-template-columns:1fr !important;position:relative;z-index:2}
+  .hero-in > *:first-child{max-width:min(600px,50%);padding-right:var(--s-5)}
+  .hero-media{display:none !important}   /* การ์ดรูปเดิมไม่ใช้แล้ว รูปอยู่ที่พื้นหลังฮีโร่ */
+}
+.pframe .pf-edge{display:none !important}
+@media (max-width:899px){
+  /* มือถือ: รวมข้อความ+รูปเป็นชิ้นเดียว และไล่จาง "แนวนอน" เหมือนเดสก์ท็อป
+     ซ้ายทึบให้อ่านออก ขวาใสให้เห็นงานจริง — ฮีโร่จึงไม่ยาวเป็น 2 ท่อนอีก */
+  .hero-media{display:none !important}
+  .hero{
+    background-image:
+      linear-gradient(90deg,
+        oklch(.170 .030 250) 0%,
+        oklch(.170 .030 250) 54%,
+        oklch(.170 .030 250 / .94) 62%,
+        oklch(.170 .030 250 / .82) 69%,
+        oklch(.170 .030 250 / .64) 76%,
+        oklch(.170 .030 250 / .44) 80%,
+        oklch(.170 .030 250 / .28) 87%,
+        oklch(.170 .030 250 / .16) 94%,
+        oklch(.170 .030 250 / .10) 100%),
+      url("assets/work-exterior-corner@2x.webp") !important;
+    background-size:auto, cover !important;
+    background-position:center, 62% 45% !important;
+    background-repeat:no-repeat !important}
+}
+@media (max-width:600px){ .hero-note .meta-sep{display:none} }
+
+/* --- จังหวะเข้าของรูปฮีโร่ (jek): ไม่เอาแบบขยาย/เลื่อนขึ้น เอาแบบจางแล้วชัด ---
+   รูปอยู่ที่ "พื้นหลัง" ของฮีโร่ ซึ่ง fade ตรงๆ ไม่ได้
+   จึงใช้ม่านสีพื้นทับไว้แล้วให้ม่านจางหายไป = เห็นรูปค่อยๆ ชัดขึ้น */
+.hero-veil{position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:oklch(.170 .030 250);opacity:0}
+.js .hero-veil{opacity:1;animation:heroVeilOut 1200ms cubic-bezier(.2,.7,.3,1) 80ms forwards}
+@keyframes heroVeilOut{from{opacity:1}to{opacity:0}}
+@media (prefers-reduced-motion:reduce){
+  .js .hero-veil{opacity:0;animation:none}
+}
+</style>
+<script>
+(function(){
+  /* ถอด [data-hero="card"] ออก เพื่อไม่ให้ timeline เดิมมาขยาย/เลื่อนรูป
+     (กฎ .js [data-hero="card"]{transform:translateY(26px) scale(.94)} จะไม่แมตช์อีก)
+     แล้วใส่ fade ของเราแทน */
+  /* การ์ดรูปเดิมเลิกใช้: รูปย้ายไปเป็นพื้นหลังฮีโร่แล้ว
+     ถอด [data-hero="card"] ออกด้วย เพื่อไม่ให้ timeline เดิมไปขยับของที่ซ่อนอยู่ */
+  var card = document.querySelector('[data-hero="card"]');
+  if(card){ card.removeAttribute('data-hero'); }
+
+  /* ม่าน fade-in ของรูปพื้นหลัง */
+  var hero = document.querySelector('.hero');
+  if(hero){
+    var veil = document.createElement('div');
+    veil.className = 'hero-veil';
+    veil.setAttribute('aria-hidden','true');
+    hero.insertBefore(veil, hero.firstChild);
+    veil.addEventListener('animationend', function(){ veil.remove(); });
+    setTimeout(function(){ if(veil.isConnected) veil.remove(); }, 2200);
+  }
+
+  var eyebrow = document.querySelector('.hero .eyebrow');
+  var badge   = document.querySelector('.hero-badge');
+
+  /* 1) รูปช่าง + ชื่อ + ป้ายปรึกษาฟรี → แถวเดียว */
+  if(eyebrow){
+    var row = document.createElement('div');
+    row.className = 'hero-id';
+    /* รูปโปรไฟล์วงกลมถูกถอดออก (jek 2026-08-06): ต้นฉบับ 320px มีตัวหนังสือ+เบอร์
+       อบมาในรูป ย่อแล้วอ่านไม่ออก กลายเป็นรอยเปื้อน และซ้ำกับโลโก้บนหัวเว็บ */
+    row.innerHTML = '<b class="hero-name">ช่างเจมส์</b>';
+    eyebrow.parentNode.insertBefore(row, eyebrow);
+    row.appendChild(eyebrow);
+  }
+
+  /* การ์ดใบเล็ก 2 ใบถูกถอดออก (jek): ฮีโร่โชว์รูปเดียวใหญ่ๆ */
+
+  /* 2.5) เปลี่ยนรูปใบใหญ่ (jek) — ใบเดิมมีคนนั่งอยู่ฉากหลังและมุมตรงๆ
+          ใบใหม่เป็นมุมอาคาร เห็นโครงหลังคา ห้องเปิดโล่ง และรั้วเหล็กสีส้มที่เข้ากับธีม
+          ⚠ ตอนย้ายเข้า index.html จริง ต้องแก้ <link rel="preload"> กับ og:image ให้ตรงด้วย */
+  /* 3) เนื้อความบนป้าย → ต่อท้ายบรรทัดพิกัด */
+  var note = document.querySelector('.hero-note');
+  if(note){
+    /* ที่มา: ปกหน้าเพจ FB — "บ้าน / อาคาร / หอพัก" (ดู FACTS.md)
+       เดิมดึงจากป้ายบนการ์ดรูป แต่การ์ดถูกถอดออกแล้ว จึงเก็บข้อความไว้ตรงนี้ */
+    var types = badge ? badge.textContent.split('—').pop().trim() : 'บ้าน อาคาร หอพัก';
+    if(types){
+      var sep = document.createElement('span');
+      sep.className='meta-sep'; sep.setAttribute('aria-hidden','true'); sep.textContent='·';
+      var t = document.createElement('span'); t.textContent = types.replace(/\s+/g,' / ');
+      note.appendChild(sep); note.appendChild(t);
+    }
+  }
+})();
+</script>

@@ -1,0 +1,523 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    /* theme(), not a literal: these have to follow whichever palette is built
+       (see tailwind.config.js), or the page keeps the old background under a
+       rethemed everything-else. */
+    background-color: theme('colors.night.DEFAULT');
+    color: theme('colors.cream');
+    font-family: Jost, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Visible, on-brand focus ring for keyboard users only. */
+  :focus-visible {
+    outline: 2px solid theme('colors.gold.DEFAULT');
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Leaf-ish texture on the visit band. The three dots were at .035, .030 and
+     .025 over #04100B, which is between one and two levels of an 8-bit channel —
+     a texture nobody could see on any display. Same three dots, far enough above
+     the background to register as a surface without becoming a pattern. */
+  .leaf-texture {
+    background-image:
+      radial-gradient(circle at 12% 20%, rgba(239, 199, 94, 0.04) 0 5px, transparent 12px),
+      radial-gradient(circle at 62% 55%, rgba(255, 255, 255, 0.028) 0 4px, transparent 11px),
+      radial-gradient(circle at 85% 15%, rgba(57, 217, 138, 0.03) 0 6px, transparent 14px);
+    background-size: 320px 320px;
+  }
+
+  .btn-gold {
+    @apply inline-flex items-center justify-center rounded-full bg-gold px-8 py-3 text-xs font-medium uppercase tracking-widest text-forest-dark transition-all duration-300 hover:-translate-y-0.5 hover:bg-gold-dark hover:shadow-lg hover:shadow-black/25 active:translate-y-0;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center rounded-full border border-cream/40 px-8 py-3 text-xs font-medium uppercase tracking-widest text-cream transition-all duration-300 hover:-translate-y-0.5 hover:border-cream hover:bg-cream/10 active:translate-y-0;
+  }
+
+  .eyebrow {
+    @apply text-[10px] uppercase tracking-[0.35em] text-gold;
+  }
+
+  /* Scroll-reveal starting state, and nothing else — the travel, the curve and
+     the trigger all live in Reveal.tsx now, on Anime.js's scroll observer. This
+     rule exists so a block is not painted at full opacity for the one frame
+     before its effect runs. */
+  .reveal {
+    opacity: 0;
+  }
+
+  /* Slow zoom on the image inside a hovered card. */
+  .img-zoom img {
+    transition: transform 900ms cubic-bezier(0.33, 0, 0.3, 1);
+  }
+
+  .group:hover .img-zoom img,
+  .img-zoom:hover img {
+    transform: scale(1.06);
+  }
+
+  /* Nav underline that grows from the left on hover / when active. */
+  .nav-link {
+    position: relative;
+  }
+
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -6px;
+    height: 1px;
+    width: 100%;
+    background-color: theme('colors.gold.DEFAULT');
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 500ms cubic-bezier(0.33, 0, 0.3, 1);
+  }
+
+  .nav-link:hover::after,
+  .nav-link.is-active::after {
+    transform: scaleX(1);
+  }
+
+  /* Hero heading rule that draws itself in on load. */
+  .underline-grow {
+    position: relative;
+    display: inline-block;
+    padding-bottom: 0.15em;
+  }
+
+  .underline-grow::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 1px;
+    width: 100%;
+    background-color: rgba(239, 199, 94, 0.6);
+    transform-origin: left;
+    animation: draw-line 1.4s cubic-bezier(0.33, 0, 0.3, 1) 0.4s both;
+  }
+}
+
+@layer utilities {
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes draw-line {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  @keyframes pop {
+    0% {
+      transform: scale(1);
+    }
+    45% {
+      transform: scale(1.35);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-pop {
+    animation: pop 0.35s ease-out;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Neon, grain and editorial layers.
+
+   Everything below is decoration, and all of it is CSS: no library, no canvas,
+   nothing that runs a frame loop. The reduced-motion rule at the top of this
+   file already collapses every animation here to a single static frame, so the
+   drifting haze and the price highlight stop dead for anyone who asks.
+   --------------------------------------------------------------------------- */
+
+@layer components {
+  /* Film grain over the whole page. Fixed, so it doesn't scroll with content —
+     a moving grain reads as a video artefact rather than a print texture. */
+  .grain {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  }
+
+  /* `.haze` lived here: two pools of light on a ::before/::after pair. It is now
+     the `.aurora` block further down — three pools, brighter, as real elements
+     rather than pseudo-elements, so a section can carry it and a photograph at
+     the same time without the two fighting over the same two slots. */
+
+  /* Neon rim, as on the shop's own leaf sign: a tight bright edge plus a wide
+     soft bloom. One shadow can't do both. */
+  .neon-edge {
+    box-shadow:
+      0 0 0 1px rgba(239, 199, 94, 0.35),
+      0 0 18px -2px rgba(124, 58, 237, 0.55),
+      0 0 60px -10px rgba(57, 217, 138, 0.35);
+  }
+
+  .neon-text {
+    text-shadow:
+      0 0 12px rgba(239, 199, 94, 0.45),
+      0 0 42px rgba(124, 58, 237, 0.35);
+  }
+
+  /* Oversized word sitting behind a section, drawn as an outline so it reads as
+     texture rather than as something you're meant to read. */
+  .ghost-type {
+    -webkit-text-stroke: 1px rgba(243, 239, 228, 0.09);
+    color: transparent;
+    letter-spacing: 0.08em;
+    user-select: none;
+  }
+
+  .ghost-type--ink {
+    -webkit-text-stroke: 1px rgba(18, 37, 27, 0.12);
+  }
+
+  /* One pass, on arrival. The version of this that looped every 4.5s read as a
+     flash-sale badge sitting on the one number that never changes; fired once as
+     the slab scrolls into view, the same gradient reads as light catching a gilt
+     sign. The reduced-motion rule collapses it to its end state, which is the
+     gradient parked off the box — i.e. nothing. */
+  .shimmer-once {
+    background-image: linear-gradient(
+      110deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.55) 45%,
+      transparent 70%
+    );
+    background-size: 250% 100%;
+    background-repeat: no-repeat;
+    /* Every value here is the looping version's, unchanged: 4.5s over the same
+       340% of travel is ~75% a second, and the retuned one-shot was running at
+       207% — the difference jek felt. What changed is the iteration count. */
+    animation: sweep-once 4.5s cubic-bezier(0.55, 0, 0.45, 1) 0.15s both;
+  }
+
+  /* `.rule-fade` lived here — a 1px gradient under every section title. It is
+     now VineRule, which draws itself and ends on the shop's mark. */
+}
+
+/* ---------------------------------------------------------------------------
+   Signature layer.
+
+   The page had a decoration vocabulary already — haze, grain, ghost type, a
+   neon rim — and every item in it was set so faint it did not survive its own
+   blur. The rules below are that same vocabulary at a strength you can see,
+   plus the three things it never had: a mark used large, motion that belongs to
+   this shop rather than to any shop, and numbers that arrive rather than sit.
+
+   Still no library and no frame loop: everything here is CSS, driven either by
+   the page load or by a class the reveal observer toggles. The reduced-motion
+   rule at the top of the file collapses all of it.
+   --------------------------------------------------------------------------- */
+
+@layer components {
+  /* ---- Aurora ------------------------------------------------------------
+     .haze was the right idea at the wrong exposure: two pools at .30 and .16
+     alpha, spread across 60px of blur, over #04100B. By the time the blur had
+     finished with them they sat within a couple of levels of the background —
+     present in the stylesheet, absent on screen. Same two lights, plus the gold
+     of the sign, at a strength that survives the spread. */
+  .aurora {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .aurora span {
+    position: absolute;
+    display: block;
+    border-radius: 9999px;
+    filter: blur(64px);
+  }
+
+  .aurora .pool-violet {
+    top: -26vmax;
+    right: -14vmax;
+    width: 62vmax;
+    height: 62vmax;
+    background: radial-gradient(
+      circle,
+      rgba(124, 58, 237, 0.55),
+      rgba(124, 58, 237, 0.16) 44%,
+      transparent 68%
+    );
+    animation: drift-a 42s ease-in-out infinite alternate;
+  }
+
+  .aurora .pool-green {
+    bottom: -28vmax;
+    left: -18vmax;
+    width: 58vmax;
+    height: 58vmax;
+    background: radial-gradient(
+      circle,
+      rgba(57, 217, 138, 0.34),
+      rgba(57, 217, 138, 0.1) 44%,
+      transparent 66%
+    );
+    animation: drift-b 55s ease-in-out infinite alternate;
+  }
+
+  .aurora .pool-gold {
+    top: 14%;
+    left: 34%;
+    width: 42vmax;
+    height: 42vmax;
+    background: radial-gradient(circle, rgba(239, 199, 94, 0.2), transparent 62%);
+    animation: drift-c 71s ease-in-out infinite alternate;
+  }
+
+  /* ---- Neon leaf ---------------------------------------------------------
+     The shop's sign is a gold leaf in neon, and neon does not fade up. It
+     stutters two or three times on the transformer and then holds. The flicker
+     runs once on arrival; the breathing glow underneath it is a separate
+     animation on the wrapper so the two never fight over one property. */
+  .neon-strike {
+    animation: neon-strike 2.4s steps(1, end) 0.25s both;
+  }
+
+  .neon-glow {
+    animation: neon-breathe 7s ease-in-out 2.7s infinite;
+  }
+
+  /* ---- Drifting motes ----------------------------------------------------
+     Specks of light in the air of a dark room. Each one gets its own duration,
+     delay and drift from inline custom properties, so twelve spans never fall
+     into step with each other. */
+  .mote {
+    position: absolute;
+    border-radius: 9999px;
+    background: rgba(239, 199, 94, 0.7);
+    box-shadow: 0 0 7px rgba(239, 199, 94, 0.65);
+    opacity: 0;
+    animation: mote-rise var(--dur, 22s) linear var(--wait, 0s) infinite;
+  }
+
+  /* ---- Masked word reveal ------------------------------------------------
+     A headline that rises out of its own baseline reads as set type arriving,
+     where a fade reads as a slide deck. The padding/margin pair gives descenders
+     and glow somewhere to live: a bare overflow:hidden clips the tail of every
+     'g' in the heading. */
+  /* clip-path rather than overflow:hidden. overflow clips the box on all four
+     sides, which eats the descender of every 'g' and — on the one heading that
+     also carries `neon-text` — squares the glow off at the word's own edges.
+     An inset with negative top/left/right expands the visible region outward
+     while still cutting exactly at the bottom edge, which is the only edge the
+     effect actually needs. */
+  .word-mask {
+    display: inline-block;
+    vertical-align: bottom;
+    clip-path: inset(-0.7em -0.7em 0 -0.7em);
+  }
+
+  /* Starting position only. The stagger and the curve are in WordReveal.tsx. */
+  .word-mask > span {
+    display: inline-block;
+    transform: translateY(112%);
+  }
+
+  /* ---- Cursor spotlight --------------------------------------------------
+     A pool of gold that follows the pointer inside a card. The card writes --mx
+     and --my on pointer move; with no pointer the gradient sits centred and
+     invisible, which is the whole of the touch behaviour. */
+  .spot::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 450ms ease-out;
+    background: radial-gradient(
+      240px circle at var(--mx, 50%) var(--my, 50%),
+      rgba(239, 199, 94, 0.16),
+      transparent 68%
+    );
+  }
+
+  .group:hover .spot::before {
+    opacity: 1;
+  }
+
+  /* ---- Corner brackets ---------------------------------------------------
+     Two gold rules that draw themselves around a photograph on arrival, the way
+     a frame is set rather than printed. Each edge is a single-pixel span scaled
+     from its own corner; the running order is a timeline in PhotoFrame.tsx. */
+  .bracket {
+    position: absolute;
+    background-color: rgba(239, 199, 94, 0.75);
+  }
+
+  .bracket-h {
+    height: 1px;
+    width: 5rem;
+    transform: scaleX(0);
+  }
+
+  .bracket-v {
+    width: 1px;
+    height: 5rem;
+    transform: scaleY(0);
+  }
+}
+
+@layer utilities {
+  @keyframes neon-strike {
+    0% {
+      opacity: 0;
+    }
+    5% {
+      opacity: 0.85;
+    }
+    8% {
+      opacity: 0.08;
+    }
+    13% {
+      opacity: 0.9;
+    }
+    16% {
+      opacity: 0.12;
+    }
+    21% {
+      opacity: 1;
+    }
+    26% {
+      opacity: 0.3;
+    }
+    31% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes neon-breathe {
+    0%,
+    100% {
+      filter: drop-shadow(0 0 12px rgba(239, 199, 94, 0.5))
+        drop-shadow(0 0 46px rgba(124, 58, 237, 0.45));
+    }
+    50% {
+      filter: drop-shadow(0 0 20px rgba(239, 199, 94, 0.75))
+        drop-shadow(0 0 70px rgba(124, 58, 237, 0.6));
+    }
+  }
+
+  @keyframes mote-rise {
+    0% {
+      transform: translate3d(0, 0, 0);
+      opacity: 0;
+    }
+    12% {
+      opacity: var(--peak, 0.8);
+    }
+    82% {
+      opacity: var(--peak, 0.8);
+    }
+    100% {
+      transform: translate3d(var(--dx, 20px), -110px, 0);
+      opacity: 0;
+    }
+  }
+
+  @keyframes sweep-once {
+    from {
+      background-position: 220% 0;
+    }
+    to {
+      background-position: -120% 0;
+    }
+  }
+
+  @keyframes drift-c {
+    from {
+      transform: translate3d(0, 0, 0) scale(0.94);
+    }
+    to {
+      transform: translate3d(6vmax, 8vmax, 0) scale(1.1);
+    }
+  }
+
+  @keyframes drift-a {
+    from {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    to {
+      transform: translate3d(-8vmax, 6vmax, 0) scale(1.12);
+    }
+  }
+
+  @keyframes drift-b {
+    from {
+      transform: translate3d(0, 0, 0) scale(1.08);
+    }
+    to {
+      transform: translate3d(7vmax, -5vmax, 0) scale(1);
+    }
+  }
+}

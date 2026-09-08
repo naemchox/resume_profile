@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="robots" content="noindex,nofollow">
+<meta charset="UTF-8" />
+<!-- คืนตำแหน่งที่อ่านค้างไว้เอง ไม่รอเบราว์เซอร์ (ที่มา: work/_JANK-REFRESH.md)
+     Safari คืนตำแหน่ง scroll หลังอีเวนต์ load เท่านั้น — วัดแล้ว DCL/load ยังอยู่ที่ y=0
+     ทั้งคู่ คนที่รีเฟรชกลางหน้าจึงเห็น "ฮีโร่แวบ" ตั้งแต่เฟรมแรกจนกว่าไฟล์สุดท้ายจะโหลดจบ
+     (เน็ตช้า = ค้างนานเป็นวินาที) สคริปต์นี้เก็บตำแหน่งไว้เองใน sessionStorage แล้ววาง
+     กลับตั้งแต่เฟรมแรกที่ความสูงหน้าพอ — เร็วกว่ารอ load หลายเท่าและไม่ต้องรอรูป
+     หยุดทันทีถ้าผู้ใช้ขยับเอง (wheel/touch/key/pointer) จะได้ไม่แย่งมือกับคนอ่าน -->
+<script>
+(function () {
+  try {
+    if (!("scrollRestoration" in history)) return;
+    history.scrollRestoration = "manual";
+    var key = "ts:y:" + location.pathname;
+    var want = parseInt(sessionStorage.getItem(key) || "0", 10) || 0;
+    var timer = 0;
+    var save = function () { try { sessionStorage.setItem(key, String(Math.round(window.scrollY))); } catch (e) {} };
+    addEventListener("scroll", function () {
+      if (timer) return;
+      timer = setTimeout(function () { timer = 0; save(); }, 200);
+    }, { passive: true });
+    addEventListener("pagehide", save);
+    /* แถบเมนูต้องไม่ "โผล่" ตอนหน้าเปิดมากลางหน้าอยู่แล้ว (jek 25/8/26 · the-bed)
+       แถบมีสองชั้นที่ไล่เข้าเอง — พื้นทึบบน .nav-shell::before (opacity 300ms) กับเส้นทอง
+       บน border-color (400ms) — พอคืนตำแหน่ง scroll ปุ๊บ สคริปต์แถบเมนูใส่คลาส scrolled
+       ทั้งสองชั้นจึงไล่ให้เห็นทุกครั้งที่รีเฟรช ทั้งที่ผู้ใช้ไม่ได้เลื่อนอะไรเลย
+       ระหว่างช่วงคืนตำแหน่ง จึงปิดทรานซิชันของหัวเว็บไว้ = แถบอยู่ในสถานะสุดท้ายตั้งแต่
+       เฟรมแรก · เปิดคืนทันทีที่ผู้ใช้ขยับเอง (หรืออย่างช้า 900ms) การเลื่อนของจริงจึงยังลื่น */
+    if (want) {
+      var root = document.documentElement;
+      root.className += " nav-instant";
+      var st = document.createElement("style");
+      st.textContent = "html.nav-instant .nav-shell,html.nav-instant .nav-shell::before," +
+        "html.nav-instant .site-header,html.nav-instant header,html.nav-instant header > *," +
+        "html.nav-instant header > * > *{transition:none !important}";
+      (document.head || document.documentElement).appendChild(st);
+      var unlock = function () { root.className = root.className.replace(/\s*nav-instant/, ""); };
+      ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+        addEventListener(ev, unlock, { passive: true, once: true });
+      });
+      setTimeout(unlock, 900);
+    }
+    if (!want || location.hash) return;
+    var stop = false;
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+      addEventListener(ev, function () { stop = true; }, { passive: true, once: true });
+    });
+    var t0 = (performance.now ? performance.now() : 0);
+    var now = function () { return performance.now ? performance.now() : t0; };
+    var done = false;
+    var put = function () {
+      if (stop || done) return true;
+      var el = document.scrollingElement || document.documentElement;
+      if (!el || el.scrollHeight - window.innerHeight < want) return false;   /* หน้ายังสูงไม่พอ ค่อยลองใหม่ */
+      if (Math.round(window.scrollY) !== want) {
+        var prev = el.style.scrollBehavior;      /* html { scroll-behavior: smooth } จะทำให้การวางกลับกลายเป็นการไถ */
+        el.style.scrollBehavior = "auto";
+        window.scrollTo(0, want);
+        el.style.scrollBehavior = prev;
+      }
+      done = Math.round(window.scrollY) === want;
+      /* ใส่สถานะ "เลื่อนแล้ว" ให้หัวเว็บทันทีในจังหวะเดียวกับที่คืนตำแหน่ง — ไม่ต้องรอสคริปต์
+         ของหน้ามันเองซึ่งอยู่ท้าย <body> (วัดแล้วช้ากว่ากันราว 20ms = เห็นแถบเปล่าได้ 1 เฟรม)
+         เกณฑ์คนละค่าเพราะแต่ละที่ตั้งไว้ไม่เท่ากัน: .site-header > 8px · .nav-shell > 40px
+         (ดู js/main.js กับสคริปต์ท้ายหน้าเดโม) สคริปต์ของหน้าจะคำนวณซ้ำเองอยู่แล้ว ค่าจึงตรงกัน */
+      if (done) {
+        var mark = function (sel, cls, min) {
+          if (want <= min) return;
+          var n = document.querySelectorAll(sel);
+          for (var i = 0; i < n.length; i++) n[i].classList.add(cls);
+        };
+        /* หัวเว็บของแต่ละใบใช้คนละคลาสคนละเกณฑ์ (ของเดิมเป็นแบบนั้นมาก่อนแล้ว):
+           .site-header.scrolled >8px (เว็บเรา) · .nav-shell.scrolled >40px (the-bed)
+           .site-header.stuck (the-terrace ใช้ sentinel ไม่ใช่ตัวเลข — 80px คือค่าประมาณ)
+           header.small >120px (homecraft/lumen/glow-clinic ผ่าน js/nav-response.js)
+           เดาพลาดไม่เป็นไร สคริปต์ของหน้าคำนวณทับให้ในเฟรมถัดไป และช่วงนี้ทรานซิชันถูกปิดอยู่
+           การแก้จึงเป็นการสลับทันที ไม่ใช่การไล่สีให้เห็น */
+        mark(".site-header", "scrolled", 8);
+        mark(".nav-shell", "scrolled", 40);
+        mark(".site-header, header[data-header]", "stuck", 80);
+        mark("header, .site-header", "small", 120);
+      }
+      return done;
+    };
+    /* ลองทุกทางที่มาถึงก่อน: setTimeout(0) มักได้ก่อนเฟรมแรกด้วยซ้ำ · rAF ทำงานก่อนวาด
+       · readystatechange/DOMContentLoaded คือจุดที่ body ครบแล้วแน่ๆ
+       เหตุที่ไม่พอถ้าใช้ rAF อย่างเดียว: วัดแล้วบางหน้า (หน้าแรกของเว็บเรา) เฟรมแรก
+       มาก่อนที่ความสูงจะพอ ทำให้เลื่อนไม่ได้ แล้วต้องรอ rAF รอบถัดไป = เห็นหัวเว็บ 1 เฟรม */
+    /* สองสายแยกกัน สายละหนึ่งนัด — ถ้าให้สายเดียวนัดทั้ง setTimeout และ rAF
+       จำนวนนัดจะเพิ่มเป็นสองเท่าทุกรอบ (2^n) ภายในไม่กี่ร้อยมิลลิวินาที */
+    var tick = function () { if (put() || stop) return; if (now() - t0 < 3000) setTimeout(tick, 0); };
+    var frame = function () { if (put() || stop) return; if (now() - t0 < 3000) requestAnimationFrame(frame); };
+    tick();
+    frame();
+    document.addEventListener("readystatechange", put);
+    addEventListener("DOMContentLoaded", put);
+    addEventListener("load", put);
+  } catch (e) {}
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>{{TITLE}}</title>
+<meta name="description" content="{{DESC}}" />
+<link rel="canonical" href="{{BASE}}{{URL}}" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="{{TITLE}}" />
+<meta property="og:description" content="{{DESC}}" />
+<meta property="og:image" content="{{BASE}}img/{{OG}}" />
+<meta property="og:url" content="{{BASE}}{{URL}}" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<!-- preload ฟอนต์หัวเรื่อง (Cinzel) — คู่กับ display=optional ข้างล่าง
+     optional เฉยๆ แปลว่าคนที่เข้าครั้งแรกได้ฟอนต์สำรองทั้งหน้า preload ทำให้ไฟล์
+     มาทันช่วงต้นเกือบทุกครั้ง · มีสองไฟล์เพราะ Google เสิร์ฟ Chrome กับ Safari คนละตัว
+     (เติมอัตโนมัติด้วย playbook/fix-font-flash.mjs) -->
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/cinzel/v26/8vIJ7ww63mVu7gt79mT7.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/cinzel/v26/8vIJ7ww63mVu7gt79mT7PkRXMw.woff2" />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Josefin+Sans:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&display=optional" rel="stylesheet" />
+<link rel="stylesheet" href="{{R}}css/tailwind.css?v=4" />
+<link rel="stylesheet" href="{{R}}css/multi.css?v=2" />
+{{INLINE}}
+</head>
+<body class="overflow-x-hidden">
+<header class="fixed top-0 left-0 right-0 z-50">
+  <div id="navShell" class="nav-shell border-b border-transparent">
+    <nav class="max-w-[1500px] mx-auto px-6 lg:px-12 py-5 flex items-center justify-between text-cream">
+      <a href="{{HOME}}" class="flex items-center gap-3 cursor-pointer" aria-label="The Bed Phatthanakan xx home">
+        <span class="ornament"><span></span></span>
+        <div class="leading-tight">
+          <div class="display text-base tracking-[0.2em]">THE&nbsp;BED</div>
+          <div class="text-[10px] tracking-[0.35em] text-gold/90">PHATTHANAKAN&nbsp;·&nbsp;20</div>
+        </div>
+      </a>
+
+      <ul class="hidden lg:flex items-center gap-10 text-[12px] tracking-[0.32em] uppercase font-light">
+{{NAV}}
+      </ul>
+
+      <a href="{{R}}contact/" class="hidden md:inline-flex items-center gap-3 text-[11px] tracking-[0.32em] uppercase border border-gold/60 text-gold px-5 py-3 hover:bg-gold hover:text-ink transition-colors duration-300 cursor-pointer">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
+          Reserve a Viewing
+      </a>
+
+      <button id="navToggle" class="lg:hidden text-cream cursor-pointer" aria-label="Open menu">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" /></svg>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Mobile menu -->
+  <div id="mobileMenu" class="lg:hidden hidden bg-ink/95 backdrop-blur-md border-b border-gold/20">
+    <ul class="px-6 py-6 flex flex-col gap-5 text-cream text-[12px] tracking-[0.32em] uppercase">
+{{NAVM}}
+    </ul>
+  </div>
+</header>
+
+<!-- แถบเมนูหน้าเว็บ: เมนูบนหัวซ่อนต่ำกว่าจอ lg และเปิดผ่านปุ่มเบอร์เกอร์ ซึ่งพอรับได้
+     ตอนเป็นหน้าเดียว แต่พอเป็นห้าหน้า การจะรู้ว่า "มีหน้าอื่นอยู่" ไม่ควรต้องกดหาก่อน
+     แถบนี้จึงบอกไว้ตลอดว่าอยู่หน้าไหนและมีหน้าอะไรบ้าง เลื่อนแนวนอน ไม่พึ่ง JS -->
+<nav class="pagenav" aria-label="Page menu">
+  <div class="pagenav-in">
+{{NAVF}}
+  </div>
+</nav>
+<main id="main">
+{{HERO}}{{CRUMB}}{{BODY}}</main>
+<footer class="bg-ink text-cream border-t border-gold/20">
+  <div class="max-w-[1500px] mx-auto px-6 lg:px-12 py-16 grid md:grid-cols-12 gap-10">
+    <div class="md:col-span-5">
+      <div class="flex items-center gap-3 mb-6">
+        <span class="ornament"><span></span></span>
+        <div class="leading-tight">
+          <div class="display text-base tracking-[0.2em]">THE&nbsp;BED</div>
+          <div class="text-[10px] tracking-[0.35em] text-gold/90">PHATTHANAKAN&nbsp;·&nbsp;20</div>
+        </div>
+      </div>
+      <p class="editorial text-cream/65 leading-relaxed max-w-sm">
+        A small residence kept with care, on a quiet lane in Suan Luang. We hope to keep your name in our ledger soon.
+      </p>
+    </div>
+
+    <div class="md:col-span-3">
+      <div class="hairline text-gold mb-5">Visit</div>
+      <ul class="space-y-3 editorial text-cream/75">
+        <li>xx Soi Phatthanakan xx</li>
+        <li>Suan Luang, Bangkok 10250</li>
+        <li>PJH5+8M Bangkok</li>
+        <li class="pt-2 display text-gold">From 10:00 daily</li>
+      </ul>
+    </div>
+
+    <div class="md:col-span-2">
+      <div class="hairline text-gold mb-5">Sections</div>
+      <ul class="space-y-3 text-sm">
+        <li><a href="{{HOME}}" class="hover:text-gold transition-colors">Residence</a></li>
+        <li><a href="{{R}}suites/" class="hover:text-gold transition-colors">Suites</a></li>
+        <li><a href="{{R}}amenities/" class="hover:text-gold transition-colors">Amenities</a></li>
+        <li><a href="{{R}}amenities/" class="hover:text-gold transition-colors">Gallery</a></li>
+        <li><a href="{{R}}contact/" class="hover:text-gold transition-colors">Location</a></li>
+      </ul>
+    </div>
+
+    <div class="md:col-span-2">
+      <div class="hairline text-gold mb-5">Reach</div>
+      <ul class="space-y-3 text-sm">
+        <li><a href="tel:0986548848" class="display text-gold hover:underline">098 654 8848</a></li>
+        <li><a href="#" class="hover:text-gold transition-colors">LINE Official</a></li>
+        <li><a href="#" class="hover:text-gold transition-colors">Instagram</a></li>
+        <li><a href="#" class="hover:text-gold transition-colors">Facebook</a></li>
+      </ul>
+    </div>
+  </div>
+  <!-- The mark at architectural scale, once, at the end. Outlined rather than
+       filled so it closes the page without competing with the gold type above it. -->
+  <div class="max-w-[1500px] mx-auto px-6 lg:px-12 pb-10">
+    <div class="foot-mark" aria-hidden="true"><span>THE BED</span></div>
+  </div>
+
+  <div class="border-t border-cream/10">
+    <div class="max-w-[1500px] mx-auto px-6 lg:px-12 py-6 flex flex-col md:flex-row justify-between gap-3 text-[10px] tracking-[0.3em] uppercase text-cream/45">
+      <span>© The Bed Phatthanakan xx — All Quiet Reserved</span>
+      <span>An independent residence · Bangkok, Thailand</span>
+    </div>
+  </div>
+</footer>
+<script>
+  // Navbar background + hero parallax (rAF-throttled, transform-only = compositor path)
+  const nav = document.getElementById('navShell');
+  const heroLayer = document.getElementById('heroLayer');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let chromeTicking = false;
+  const onScroll = () => {
+    if (chromeTicking) return;
+    chromeTicking = true;
+    requestAnimationFrame(() => {
+      const y = window.scrollY;
+      if (y > 40) nav.classList.add('scrolled');
+      else nav.classList.remove('scrolled');
+      if (heroLayer && !reduceMotion && y < window.innerHeight * 1.2) {
+        // Move bg ~30% of scroll — subtle, jank-free (no background-attachment:fixed)
+        heroLayer.style.transform = `translate3d(0, ${(y * 0.30).toFixed(2)}px, 0)`;
+      }
+      chromeTicking = false;
+    });
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // Mobile menu
+  const toggle = document.getElementById('navToggle');
+  const menu = document.getElementById('mobileMenu');
+  toggle?.addEventListener('click', () => menu.classList.toggle('hidden'));
+  menu?.querySelectorAll('a').forEach(a => a.addEventListener('click', () => menu.classList.add('hidden')));
+
+  // ---- Words rise out of a mask -------------------------------------------
+  // Only text nodes are wrapped, and the whitespace between words is left as
+  // real text, so <br>, the italic spans, and copy-paste all survive intact.
+  const splitWords = (root) => {
+    let n = 0;
+    const walk = (node) => {
+      [...node.childNodes].forEach(child => {
+        if (child.nodeType === 3) {
+          const parts = child.textContent.split(/(\s+)/);
+          if (parts.length === 1 && !parts[0].trim()) return;
+          const frag = document.createDocumentFragment();
+          parts.forEach(part => {
+            if (!part) return;
+            if (!part.trim()) { frag.appendChild(document.createTextNode(part)); return; }
+            const outer = document.createElement('span');
+            outer.className = 'w';
+            const inner = document.createElement('span');
+            inner.className = 'wi';
+            /* หยุดสะสมคิวที่คำที่ 7: หัวข้อ 9 คำเคยลากคิวไปถึง 8 ช่วง ทำให้ทั้งบรรทัด
+               จบช้ากว่าที่ตาเลื่อนผ่าน — cap ไว้ให้หัวข้อทุกความยาวจบในเวลาเท่ากัน */
+            inner.style.setProperty('--wi', Math.min(n++, 6));
+            inner.textContent = part;
+            outer.appendChild(inner);
+            frag.appendChild(outer);
+          });
+          child.replaceWith(frag);
+        } else if (child.nodeType === 1 && !child.classList.contains('w')) {
+          walk(child);
+        }
+      });
+    };
+    walk(root);
+  };
+  document.querySelectorAll('.split').forEach(splitWords);
+
+  // ---- Numbers arrive ------------------------------------------------------
+  const countUp = (el) => {
+    const target   = parseFloat(el.dataset.count);
+    const decimals = parseInt(el.dataset.decimals || '0', 10);
+    const pad      = parseInt(el.dataset.pad || '0', 10);
+    const suffix   = el.dataset.suffix || '';
+    const render = (v) => {
+      let out = v.toFixed(decimals);
+      if (pad) out = out.padStart(pad, '0');
+      el.textContent = out + suffix;
+    };
+    // Reduced motion still needs the final value written, since the tween that
+    // would have produced it never runs.
+    if (reduceMotion || !Number.isFinite(target)) { render(target); return; }
+    const DUR = 1400, t0 = performance.now();
+    const step = (now) => {
+      const p = Math.min(1, (now - t0) / DUR);
+      render(target * (1 - Math.pow(1 - p, 3)));   // ease-out, so it settles rather than stops
+      if (p < 1) requestAnimationFrame(step);
+    };
+    render(0);
+    requestAnimationFrame(step);
+  };
+
+  // ---- One observer for everything that arrives ----------------------------
+  // rootMargin is POSITIVE at the bottom: an element starts moving while it is
+  // still a quarter-viewport below the fold, so the motion has finished by the
+  // time the eye reaches it. A negative margin is what reads as "not smooth".
+  const arrive = (el) => {
+    el.classList.add('in');
+    if (el.dataset.count !== undefined) countUp(el);   // every counter is observed in its own right
+  };
+  const animated = document.querySelectorAll('.reveal, .curtain, .rule, .split, .rate, .bar, .foot-mark, [data-count]');
+
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        arrive(e.target);
+        io.unobserve(e.target);      // one direction only; nothing re-hides on the way back up
+      });
+    }, {
+      // threshold 0 ไม่ใช่ 0.12: ของที่สูงกว่าจอ (หรือถูก clip ไว้) ต้องรอให้ "12% ของตัวเอง"
+      // โผล่ก่อน ซึ่งสำหรับรูปแกลเลอรีสูง 332px แปลว่ามันเข้ามาในจอไปแล้วหลายร้อย px
+      // ถึงค่อยเริ่มเผย ผู้ใช้เห็นเป็นภาพพรวดขึ้นมากลางจอ (วัดแล้ว: ช้าสุด 628px)
+      // 0 = ยิงตั้งแต่พิกเซลแรก แล้วปล่อยให้ rootMargin ด้านล่างเป็นตัวเริ่มก่อนเข้าจอ
+      threshold: 0, rootMargin: '0px 0px 0px 0px' });
+
+    const onScreen = [];
+    animated.forEach(el => {
+      // Anything already on screen at load is measured, not waited for:
+      // IntersectionObserver does not fire in a prerendered or background tab,
+      // which is exactly how a shared link is usually opened.
+      const r = el.getBoundingClientRect();
+      if (r.top < window.innerHeight && r.bottom > 0) onScreen.push(el);
+      else io.observe(el);
+    });
+    // Two frames, not zero: the words above were only just created, so the browser
+    // has not resolved their start style yet. Flipping the class in the same tick
+    // would make the hero snap into place with no transition at all.
+    requestAnimationFrame(() => requestAnimationFrame(() => onScreen.forEach(arrive)));
+
+    /* ตาข่ายกันของหาย: ถ้าเลื่อนเร็วกว่าที่ observer ยิงทัน (หรือ observer ไม่ยิงเลย
+       เพราะ tab ถูกซ่อนตอนโหลด) จะมีของที่ "อยู่ในจอแล้วแต่ยังมองไม่เห็น" ค้างอยู่
+       ผู้ใช้เห็นเป็นภาพพรวดขึ้นมากลางจอ — วัดแล้วก่อนแก้มีมากสุด 5 ชิ้นพร้อมกัน
+       กติกาที่ยึด: ของที่ยังไม่มีคิวจะเผย ต้องโชว์ไปเลย ห้ามค้างว่าง
+       เช็คตอนเลื่อนเท่านั้นและตัดตัวเองทิ้งเมื่อไม่เหลือใคร จึงไม่กินแรงหลังจากนั้น */
+    let pending = [...animated];
+    const sweep = () => {
+      if (!pending.length) { removeEventListener('scroll', onScroll); return; }
+      const h = innerHeight;
+      pending = pending.filter((el) => {
+        if (el.classList.contains('in')) return false;
+        const r = el.getBoundingClientRect();
+        if (r.top < h * 0.85 && r.bottom > 0) { arrive(el); io.unobserve(el); return false; }
+        return true;
+      });
+    };
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => { ticking = false; sweep(); });
+    };
+    addEventListener('scroll', onScroll, { passive: true });
+    sweep();
+  } else {
+    animated.forEach(arrive);
+  }
+
+</script>
+
+<!-- ปิดการเคลื่อนไหวได้จริง (เพิ่ม 21/8/26 หลัง audit) ---------------------------
+     วัดด้วยเบราว์เซอร์จริง ไม่ใช่อ่านโค้ด: หน้านี้ยังมี animation วิ่งอยู่แม้ผู้ใช้ตั้ง
+     prefers-reduced-motion: reduce ไว้ในระบบ (velvet-leaf 18 ตัว · homecraft 24 ตัว)
+     และ ?reduce=1 ซึ่งเป็นสวิตช์ที่สคริปต์ถ่ายภาพของ playbook ใช้ ก็ไม่มีผลกับหน้าเก่า
+     สี่หน้านี้ กฎกวาดข้างล่างจึงคุมทั้งสองทางในที่เดียว วางไว้ท้าย <body> เพื่อให้
+     ชนะกฎที่ประกาศไว้ก่อนหน้าโดยไม่ต้องไปไล่แก้ทีละอนิเมชันในไฟล์ที่เป็นบันเดิล -->
+<style>
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 1ms !important; animation-delay: 0ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important; transition-delay: 0ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+  html.still *, html.still *::before, html.still *::after {
+    animation-duration: 1ms !important; animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important; transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* พื้นที่กดของปุ่มเมนู — วัดได้ 24x24 บนมือถือ (audit 21/8/26) ซึ่งต่ำกว่าเกณฑ์
+     นิ้วโป้งของทั้ง Apple (44) และ Google (48) ปุ่มเปิดเมนูคือทางเดียวที่คนบนมือถือ
+     ไปหน้าอื่นได้ กดพลาดคือจบตรงนั้น
+     ขยายด้วย ::after ไม่ใช่ padding: ไอคอนต้องคงขนาดเดิมเป๊ะและหัวเว็บต้องไม่ขยับ
+     — สิ่งที่ใหญ่ขึ้นคือพื้นที่ที่นิ้วแตะโดน ไม่ใช่สิ่งที่ตาเห็น */
+  #navToggle { position: relative; }
+  #navToggle::after {
+    content: ""; position: absolute; top: 50%; left: 50%;
+    width: 44px; height: 44px; transform: translate(-50%, -50%);
+  }
+</style>
+<script>if (new URLSearchParams(location.search).get("reduce") === "1") document.documentElement.classList.add("still");</script>
+<!-- กลไกกลางของ playbook: หัวเว็บหดตอนเลื่อน + ไฮไลต์หัวข้อที่กำลังอ่าน (website.md §11 ข้อ 5)
+     ไฟล์เดียวกันเป๊ะทุกเดโม ห้ามแก้รายชิ้น — เดโม 5 หน้าถูกตัดออกมาจากต้นฉบับก่อนที่
+     กลไกนี้จะถูกเพิ่ม จึงตกข้อ 5 ทั้งที่ต้นฉบับผ่านแล้ว -->
+<script src="{{R}}js/nav-response.js"></script>
+{{SCRIPTS}}
+<script src="/work/_demo-badge.js" defer></script>
+</body>
+</html>

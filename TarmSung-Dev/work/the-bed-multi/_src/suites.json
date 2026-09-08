@@ -1,0 +1,137 @@
+[
+ {
+  "slug": "the-atelier",
+  "name": "The Atelier",
+  "img": "studio.jpg",
+  "tier": "Suite · I",
+  "size": "28 SQM",
+  "rate": "From ฿ 12,500",
+  "alt": "Studio suite with bed, desk, and natural light",
+  "lead": "A single volume where the desk faces the window and the bed sits behind a low oak screen — built for the resident who works where they sleep and refuses to feel it.",
+  "body": [
+   "The desk is 140 cm of solid oak with a dedicated circuit, so a monitor, a laptop dock and a lamp run without a single extension lead crossing the floor.",
+   "Storage is vertical rather than wide: a full-height wardrobe and a shallow shelf run above the bed, which keeps the floor clear and the room reading larger than its 28 square metres.",
+   "North-facing glazing means indirect light all day and no afternoon heat load on the desk."
+  ],
+  "spec": [
+   [
+    "Tier",
+    "Suite · I"
+   ],
+   [
+    "Size",
+    "28 sqm"
+   ],
+   [
+    "Rate",
+    "From ฿ 12,500 / month"
+   ],
+   [
+    "Bed",
+    "Queen, pocket-spring"
+   ],
+   [
+    "Desk",
+    "140 cm oak, dedicated circuit"
+   ],
+   [
+    "Aspect",
+    "North, indirect light"
+   ],
+   [
+    "Kitchen",
+    "Induction two-plate, extractor"
+   ]
+  ]
+ },
+ {
+  "slug": "the-reader",
+  "name": "The Reader",
+  "img": "suite-classic.jpg",
+  "tier": "Suite · II",
+  "size": "42 SQM",
+  "rate": "From ฿ 17,800",
+  "alt": "One-bedroom suite with separate sitting area and tall windows",
+  "lead": "A separate bedroom behind a solid door, and a sitting room with a wall built for shelves — the plan for a resident who wants the day and the night to be different rooms.",
+  "body": [
+   "The bedroom door is a solid core, not a hollow panel: measured at the door line, the sitting room television at normal volume drops to a level you can sleep through.",
+   "The long wall carries a continuous shelf run at 2.4 m — the only wall in the building specified without electrical boxes so it can be filled end to end.",
+   "The sitting room takes a two-metre sofa and a dining table for four at the same time without either blocking the window."
+  ],
+  "spec": [
+   [
+    "Tier",
+    "Suite · II"
+   ],
+   [
+    "Size",
+    "42 sqm"
+   ],
+   [
+    "Rate",
+    "From ฿ 17,800 / month"
+   ],
+   [
+    "Bedroom",
+    "Separate, solid-core door"
+   ],
+   [
+    "Shelving",
+    "2.4 m continuous run"
+   ],
+   [
+    "Aspect",
+    "East, morning light"
+   ],
+   [
+    "Kitchen",
+    "Full, four-plate induction"
+   ]
+  ]
+ },
+ {
+  "slug": "the-salon",
+  "name": "The Salon",
+  "img": "lounge.jpg",
+  "tier": "Suite · III",
+  "size": "58 SQM",
+  "rate": "From ฿ 24,500",
+  "alt": "Corner suite with lounge seating and double-aspect windows",
+  "lead": "The corner plan — double aspect, a dining table that seats six, and the only suite in the building where you can have people over without moving the furniture first.",
+  "body": [
+   "Two exposures mean cross-ventilation: with both windows open the room turns over its air without the air-conditioning running, which matters most in the hours after sunset.",
+   "The kitchen is open to the dining end rather than shut in a galley, so cooking for six is a conversation rather than an exile.",
+   "The corner column is boxed into joinery, not left proud — the plan reads as one room, not a rectangle with a bite taken out of it."
+  ],
+  "spec": [
+   [
+    "Tier",
+    "Suite · III"
+   ],
+   [
+    "Size",
+    "58 sqm"
+   ],
+   [
+    "Rate",
+    "From ฿ 24,500 / month"
+   ],
+   [
+    "Aspect",
+    "Double, corner"
+   ],
+   [
+    "Dining",
+    "Seats six"
+   ],
+   [
+    "Kitchen",
+    "Open plan, full height"
+   ],
+   [
+    "Ventilation",
+    "Cross-flow, both exposures"
+   ]
+  ]
+ }
+]

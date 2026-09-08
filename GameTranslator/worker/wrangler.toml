@@ -1,0 +1,62 @@
+name = "gloss-api"
+main = "src/index.js"
+compatibility_date = "2026-08-01"
+
+[vars]
+# The AI reads that come with a Gloss Pro licence: bought once, counted for the life of the licence,
+# never refilled. 500 reads cost THB 29 at the MEASURED average and THB 113 at the provable per-card
+# ceiling (PRICING.md §1.6 — measured 2026-09-08, not the THB 0.20 estimate every earlier number here
+# was sized on), against THB 149 taken. PromptPay takes no cut, so the price is the revenue, and the
+# worst possible margin is THB 36. There is no launch price and no second tier to return to.
+# Was 1,500/month, which is a subscription in disguise, and before that 500 against a THB 290 two-tier
+# plan whose upper tier its own top-up undercut — see PRICING-AI.md §11 and §15 before changing this.
+# Buying again adds to this rather than issuing a second key: scripts/mint-key.mjs --topup.
+#
+# 🔒 LOCKED ONCE THE FIRST REAL SALE EXISTS. This is a GLOBAL base — the Worker computes every
+# licence's allowance as PRO_CREDITS + that key's own top-ups (see /v1/quota), so LOWERING it takes
+# reads away from people who already paid for them, silently, with no record that it happened.
+# Raising it hands out reads no sale ever paid for and that spend:cap never rose to cover. After the
+# first customer, the only safe lever is --topup, which is per key. Only the dev key exists today.
+#
+# 500 with THB 149 (2026-09-08), replacing 1,000 with THB 390. Both numbers came from a ceiling of
+# THB 0.20/read that had never been measured; the measurement is now in PRICING.md §1.6 — THB 0.058
+# average, THB 0.225 the provable worst case per card. 500 reads therefore cost THB 29 typical and
+# THB 113 at the absolute ceiling, against THB 149 taken. mint-key.mjs reads this same line, so the
+# two can never disagree about what a sale was worth.
+PRO_CREDITS = "500"
+# The free trial, counted for the life of the install rather than per month. Its whole job is to let
+# someone who was handed a copy find out whether the app reads THEIR screen before they are asked for
+# money — NOT a usable free tier, because normal translation is already free and unlimited.
+# Kept at 10 even though the download is no longer public (§15): a copy passed to a friend is the
+# cheapest advertising there is, and ฿2 of AI is what it costs to let that friend see it work.
+# 10, not 100. The trial is the only line item paid for by people who never pay us back, so its size
+# decides whether the whole product profits — more than the price does. At ฿0.20/read worst case and
+# a 3% conversion (3,333 downloads per 100 buyers), a 100-read trial costs ฿66,600 against ฿25,500 of
+# revenue: selling 100 copies would LOSE ฿50,400. At 10 reads it costs ฿6,700 and the same 100 sales
+# clear about ฿9,500. See PRICING-AI.md §11.2 before raising this.
+FREE_LIMIT = "10"
+# The ceiling on the FREE TRIAL per day, in the same units. A licence is not subject to it: those
+# reads are already bought and paid for, and a buyer in a ten-hour session should not be rationed by
+# a number other people's trials are also spending. What this bounds is the one shape nobody paid
+# for — many fresh device ids arriving at once, which is what a free launch looks like. Sized on the
+# MEASURED ceiling in PRICING.md §1 (THB 0.169-0.20 per read, not the THB 0.054 typical figure):
+# 600 units ~ THB 120 worst case per day, ~THB 32 on a normal one. Past it a trial gets 402 and falls
+# back to Google translate — the product degrades, it does not stop. SPEND_CAP_UNITS below is what
+# bounds the bill itself.
+DAILY_UNIT_CAP = "600"
+# The TOTAL, which is the number jek actually asked for: "never more than THB 2,000 down in the worst
+# case". The daily cap above bounds a bad day; it does not bound a bill that keeps arriving. This one
+# never resets — when it is reached, every caller falls back to Google translate until this number is
+# raised by hand. 10,000 units x THB 0.20 (the MEASURED worst case in PRICING.md §1) = THB 2,000.
+# Read what has been spent at any time: curl https://<worker>/v1/spend
+SPEND_CAP_UNITS = "10000"
+
+# Quota counters and the licence-validation cache. Create with:
+#   npx wrangler kv namespace create GLOSS_KV
+# then paste the printed id below.
+[[kv_namespaces]]
+binding = "GLOSS_KV"
+id = "ab9c561dad3f4203b43a15c7f5c2e07d"
+
+# ANTHROPIC_API_KEY is a secret, never a var — do not add it to this file.
+#   npx wrangler secret put ANTHROPIC_API_KEY

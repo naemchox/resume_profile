@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:;" />
+    <title>Gloss</title>
+    <link rel="stylesheet" href="../shared/pos-badge.css" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="wrap" id="wrap">
+      <!-- Panel + card share ONE container so they can never sit on top of each other, and the stack
+           only ever grows UP from the pill. Before this they were positioned independently and could
+           land on the same spot, so the code closed the panel whenever a card arrived — that is what
+           made the Type bar vanish on every Enter (jek). Height is capped by updateDropRoom(). -->
+      <div class="drop" id="drop">
+      <!-- FIRST RUN, once ever. Someone arriving from a download link opens this app and sees a small
+           capsule and nothing else — the gesture that IS the product (hold ⌃⌥, drag over text) is
+           written down only inside a panel they have no reason to open. This is the one thing worth
+           saying unprompted, so it says that and nothing else, and it leaves the moment they do it. -->
+      <section class="coach" id="coach" hidden>
+        <p class="coach-do"><b>⌃</b><b>⌥</b> <span data-i18n="coach.hold">hold, then drag over any text</span></p>
+        <p class="coach-why" data-i18n="coach.why">The translation appears right where you dragged — over a game, a manga page, anything on screen.</p>
+        <!-- The guess, stated. Reading the OS locale is right most of the time and invisible when it
+             is; this line is what makes the other times survivable, without spending a first-run
+             screen on a question. Same seven options as Settings' To — one list, two places, and the
+             change goes through the same setSettings call the <select> below uses. -->
+        <p class="coach-lang">
+          <span data-i18n="coach.into">Translating into</span>
+          <select id="coachLang">
+            <option value="th">ไทย</option>
+            <option value="en">English</option>
+            <option value="ja">日本語</option>
+            <option value="zh-CN">中文</option>
+            <option value="ko">한국어</option>
+            <option value="es">Español</option>
+            <option value="vi">Tiếng Việt</option>
+          </select>
+        </p>
+        <button class="coach-ok" id="coachOk" data-i18n="coach.ok">Got it</button>
+      </section>
+      <section class="panel" id="panel" hidden>
+        <!-- One banner, several reasons. The text was a bare node when Screen Recording was the only
+             thing that could raise it; it is a span now so the speech/mic refusals can say their own
+             piece and point the same button at their own pane. -->
+        <!-- The second line is markup rather than something each raiser passes in because it is the
+             same sentence for every macOS PERMISSION: each one is stored by the OS against the exact
+             build that asked for it, so each can show as already granted while denying us after an
+             update. It is not, however, true of every reason the banner speaks for — a missing
+             Windows OCR pack is not an entry in any list, and telling someone to toggle it off and on
+             again sends them hunting for a row that does not exist. showBanner() in index.js hides
+             this line and the reveal button for those, which is why they carry ids. -->
+        <div class="banner" id="permBanner" hidden>
+          <div class="banner__text">
+            <span id="permMsg">Screen Recording is off — the app can't see the screen.</span>
+            <!-- Three numbered steps, not a paragraph. The paragraph that used to sit here said all
+                 of this and was read by nobody: it described two different situations at once (never
+                 asked / asked and stale) and left out the one step macOS itself insists on, which is
+                 reopening the app. Step 2 is rewritten per status in index.js — the app is TOLD which
+                 of the two situations it is in and used to throw that away. Hidden unless the raiser
+                 supplies a step 2, because a Windows OCR pack is not a row in any Settings list and
+                 "Press Open Settings" would be a step the reader cannot take. -->
+            <!-- Two steps, not three, and two buttons, not three. jek, mid-task and blocked: "so
+                 confused man". The old list said "press Open Settings below" while Open Settings sat
+                 LAST in a row of three, so the sentence and the buttons disagreed about where to
+                 look; and "Find the app" was never a step of its own, it is the rescue for step 1's
+                 rare case, which is where it lives now. -->
+            <ol class="banner__steps" id="permSteps" hidden>
+              <!-- No data-i18n-html here on purpose: this line has two readings (never asked / stale
+                   entry) and index.js picks between them from the status macOS reports. An i18n pass
+                   over it would put the generic one back on top of the specific one — the same trap
+                   the ⇄ tooltip fell into on 2026-08-19. -->
+              <li id="permStep2">Press <b>Open Settings</b>, then switch <b>Gloss</b> on.</li>
+              <li data-i18n-html="perm.step2">Come back here and press <b>Reopen Gloss</b>.</li>
+            </ol>
+            <!-- The stale note says what step 2 already says whenever the steps are shown, so it is
+                 for the banners that have none. Kept because it is one sentence true of every macOS
+                 permission, steps or not. -->
+            <span class="banner__stale" id="permStale">Already switched on in that list? That entry is from an older
+              version of Gloss. Switch it off and on again — or remove it with −, then add it back with
+              + using “Show me the app”.</span>
+            <!-- The steps line. Same dim treatment as the stale note above, but its text comes from
+                 the raiser: what you click after "Open Settings" differs per reason, while the stale
+                 note is one sentence true of every macOS permission. Empty and hidden unless the
+                 payload carries a `detail`. -->
+            <span class="banner__stale" id="permDetail" hidden></span>
+          </div>
+          <button id="permBtn" class="banner__go" data-i18n="perm.open">Open Settings</button>
+          <button id="permRestartBtn" data-i18n="perm.reopen">Reopen Gloss</button>
+          <!-- Only for the case where the list has no Gloss row to switch on. Off to the side, and
+               named for what it does rather than for a step number it does not have. -->
+          <button id="permRevealBtn" class="banner__aside" data-i18n="perm.find">Show me the app</button>
+        </div>
+        <div class="panel-view" id="historyView" hidden>
+        <!-- Two destinations, one panel: Type (look a word up) and History (everything you have read).
+             Learn used to sit here as a third icon; it moved to the PILL (2026-08-12), where it also
+             carries the day's count — so this bar is back to being only the pages it actually
+             switches between, and Learn is reachable without opening the panel at all. One way in,
+             not two: a second entry point to the same window is a thing to keep in sync for no gain.
+             Vocab USED to be a tab of its own, on the reasoning that a collection is not a filter.
+             It is back to being a lens (the ★ in the strip below) because from where you sit it was
+             never a different place: you tap a word inside a history line, and the collection is
+             those same lines' words. Two STORES still — vocab.json outlives history.json and feeds
+             the review deck — one surface. (jek, 2026-08-09) -->
+        <!-- ONE control row, not two stacked. Two rows cost ~124px of game screen before a single word
+             of content, and they ranked the panel backwards: the tabs (which only swap a page) were big
+             filled pills while the input modes (the thing you reach for mid-game) were small and faint.
+             Side by side, the tab can be quiet — a page you are ON needs a mark, not a shout. -->
+        <div class="ctrl-row">
+          <div class="hist-tabs">
+            <button id="tabType" class="hist-tab active" data-i18n="tab.type">Type</button>
+            <button id="tabHist" class="hist-tab" data-i18n="tab.history">History</button>
+          </div>
+        <!-- ── The modes that have nowhere else to live ──
+             This started as all five input modes, and four of them left again the same day, each
+             because it already had a button somewhere you were looking anyway (jek, 2026-08-14):
+               Type  — the tab is right there, two places to the left
+               Snip  — ⧉ on the pill, which is on screen even when this panel is not
+               Speak — the mic in the Type bar below, beside the field it writes into
+             CC is the one with no home: the pill has no button for it, and before this the only ways
+             in were ⌥C and a row in Settings. Point (Windows only) is in the same position.
+             Same glyphs the History rows use (SRC_MARKS), on purpose: the mark that tells you "this
+             line came from live subtitles" is the button that starts them, so the icon is learned
+             once and read in both places. Calls the same IPC as the switch on the Shortcuts page, so
+             the two surfaces can never disagree about what "on" means. -->
+          <div class="mode-strip" id="modeStrip"></div>
+          <!-- Taller panel: the list caps at ~3 rows so it stays small over a game, which is wrong when
+               you're actually reading your saved words. Sticks until toggled back. -->
+          <button id="tallBtn" class="hist-tab icon-tab" data-i18n-title="tip.tall" title="Taller list">⤢</button>
+          <!-- Lock, next to the other panel-level switch. It was reachable from Settings › Controls and
+               the tray only, which is two surfaces you are not in when the thing you want is "stop
+               reacting to my mouse, I am about to play" (jek, 2026-08-19).
+
+               ONE-WAY ON PURPOSE. Locking makes the whole overlay click-through, so this button is
+               unclickable the instant it works — there is no version of it that unlocks. That is why it
+               is not a toggle and does not try to look like one: the way back is ⌘⇧L, which the pill
+               spends ten seconds saying the moment you press this, and the tray says forever.
+
+               Same padlock the pill wears while locked, for the reason the mode strip above gives for
+               its glyphs: the mark that says "this is the state" is the control that enters it. -->
+          <button id="lockTab" class="hist-tab icon-tab" data-i18n-title="tip.lockTab" title="Lock the overlay so clicks pass through to the game (⌘⇧L to unlock)"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button>
+        </div>
+
+        <!-- ── Type page: type a word, see the meaning as you type, Enter for the full card ── -->
+        <div class="tab-page" id="typePage">
+          <div class="typebar" id="typebar">
+            <input type="text" id="typeInput" data-i18n-ph="ph.type" placeholder="Type a word or sentence…" />
+            <!-- Speaking IS typing: the words land in the field above as you say them, the quick-look
+                 answers them live, and finishing runs the same full card Enter would. It sits next to ↵
+                 rather than on the pill because that is where the field it writes into lives.
+                 (Removed for half an hour on 2026-08-14 as a duplicate of the Speak chip, put back by
+                 jek: the chip went, this stayed — one mic, and it is the one beside the field.) -->
+            <button id="typeMicBtn" class="mic-btn" data-i18n-title="tip.micType" title="Speak instead of typing · ⌘⇧M"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11z"/></svg></button>
+            <button id="typeBtn" data-i18n-title="tip.typeGo" title="Translate (Enter)">↵</button>
+          </div>
+          <!-- Live meaning: fills in as you type (free Google lookup, debounced). Enter still runs
+               the full Claude card. Hidden whenever the field is empty. -->
+          <div class="peek" id="typePeek" hidden>
+            <div class="peek-th" id="peekTh"></div>
+            <div class="peek-sub" id="peekSub"></div>
+            <!-- "[V.] วิ่ง · [N.] การวิ่ง" — the word's other classes, when Settings › "Other meanings"
+                 asks for them. The lookup always returned them and this bar always dropped them. -->
+            <div class="peek-senses" id="peekSenses" hidden></div>
+          </div>
+          <div class="type-tip" id="typeTip" data-i18n-html="tip.type">
+            No OCR here — type anything and the meaning shows straight away.<br />
+            <small>Press <b>Enter</b> for the full card — this bar stays open, so keep typing. <b>Esc</b> closes it · <b>⌘⇧T</b> opens it from anywhere.</small>
+          </div>
+        </div>
+
+        <!-- ── Dictionary page: every word you've looked up, searchable, ★-filterable ── -->
+        <div class="tab-page" id="dictPage" hidden>
+          <div class="typebar">
+            <input type="text" id="dictSearch" data-i18n-ph="ph.search" placeholder="Search…" />
+          </div>
+          <!-- ONE lens group, not two stacked strips (jek, 2026-08-12: "มันดูล้นๆ เอา…มาอยู่ในบรรทัด
+               เดียวกันกับ this section"). They were a chip on its own line above a row of chips, which
+               read as two separate pieces of chrome eating the top of the list — and the row had just
+               gone 11px over its 322px (measured) when Pointed joined it, so it was clipping too.
+               Now every lens is a sibling in one wrapping flex row: it fills a line before it takes a
+               second one, and nothing is ever cut off. #histSrcFilter is display:contents so the chips
+               it builds land in THIS row rather than in a box of their own. -->
+          <div class="hist-lens" id="histLens">
+            <!-- TOP ROW — the two lenses that are not sources. "This session" narrows WHEN, ★ Words
+                 switches WHAT the list is made of; neither answers "which kind of line is this", which
+                 is the only question the row below asks. Letting the seven wrap freely put the split
+                 in an arbitrary place (All/Snip/CC/Typed up, Pointed/Words down); this puts it where
+                 the meaning already was. (jek, 2026-08-12) -->
+            <div class="hist-lens__top" id="histLensTop">
+              <!-- Scope the list to just the words looked up in the current play session (a burst of
+                   lookups, ended by a gap). The words all live in History already — this is only a lens
+                   over them, not a second store. -->
+              <button class="hist-scope" id="scopeSession" data-i18n="btn.scope" data-i18n-title="tip.scope" title="" hidden>คำรอบนี้</button>
+              <!-- ★ Words is appended HERE by buildSrcFilter, not into the strip below. -->
+            </div>
+            <!-- Where each line CAME from. History is one pile of snips, subtitles and typed lookups,
+                 and by the time you go looking for a word you remember which of those you were doing —
+                 so that is the lens. Built in index.js (buildSrcFilter) so the marks stay in one place
+                 with the row marks they have to match. -->
+            <div class="hist-src" id="histSrcFilter" hidden></div>
+          </div>
+          <!-- No review UI here at all: SRS lives in the Learn window (M4), and the "N due" link that
+               used to sit above the log was cut (jek, 2026-07-22) — the 🎓 button already opens Learn,
+               so a full-width banner repeating it just ate the top of the vocab list. -->
+          <div class="log" id="log">
+            <div class="empty" id="emptyState" data-i18n-html="empty.state">
+              Hold <b>⌃⌥</b> and drag a box over the game text (or <b>⌘⇧S</b>).<br />
+              A translation card pops up right where the text is.<br />
+              <!-- Named where the gesture itself is taught. It is one extra tap of the same two keys
+                   and it was invisible: nothing on screen said the second tap did anything. -->
+              <small>Tap <b>⌃⌥</b> again right after, and a one-word snip is kept to ★.</small><br />
+              <small>Card size: <b>⌘⇧↑</b> / <b>⌘⇧↓</b> · works over fullscreen games.</small>
+            </div>
+          </div>
+        </div>
+        </div>
+        <div class="panel-view" id="settingsView" hidden>
+        <!-- Personal build: Pro is unlocked for the owner (see isPro() in index.js), so this
+             upsell card is hidden. Kept in the DOM so a future sellable build can un-hide it. -->
+        <div class="pro-box" id="proBox" hidden>
+          <div class="pro-head"><span class="pro-title">✦ Pro</span><span class="pro-status" id="proStatus" data-i18n="pro.free">Free</span></div>
+          <div class="pro-perks" data-i18n="pro.perks">Rich AI cards · ★ Vocab collection · Unlimited history · Custom keys</div>
+          <button id="upgradeBtn" class="pro-btn" data-i18n="btn.upgrade">Upgrade to Pro</button>
+        </div>
+        <!-- Settings reads like a GAME options menu (jek, 2026-07-31): four familiar pages, and every
+             row is the same shape — LABEL … VALUE. Grouped by what you're changing, not by widget type. -->
+        <div class="hist-tabs set-tabs">
+          <button id="setTabGameplay" class="hist-tab active" data-page="setPageGameplay" data-i18n="tab.gameplay">Gameplay</button>
+          <button id="setTabDisplay" class="hist-tab" data-page="setPageDisplay" data-i18n="tab.display">Display</button>
+          <button id="setTabControls" class="hist-tab" data-page="setPageControls" data-i18n="tab.controls">Controls</button>
+          <button id="setTabSystem" class="hist-tab" data-page="setPageSystem" data-i18n="tab.system">System</button>
+        </div>
+        <!-- Gameplay is the page Settings opens on, and its description bar was blank until you
+             hovered a row — 37px of nothing, on the first thing you see. Controls already carried a
+             default; this gives the landing page one too, and it names the feature people miss. -->
+        <div class="set-page" id="setPageGameplay" data-desc-default="note.liveCc">
+        <!-- .gs-step on a <select> = render it as a game-style ‹ value › stepper instead of a dropdown
+             (see enhanceSelect in index.js). The <select> itself, its id and its change event are
+             untouched — only the thing you look at and click changes. -->
+        <!-- The language bar. Everyone who has ever used Google Translate already knows this shape:
+             the two languages side by side with the swap between them, each one a button that says
+             which language it is. It replaced a From row and a To row (jek, 2026-08-19: "มีแพทเทิร์น
+             อื่นให้เหมือนกับ Google Translate ไหม") — those were two ‹ › steppers you had to read and
+             join up yourself, and the direction was never drawn anywhere. Here the arrow between them
+             IS the direction, and swapping is the same gesture it is everywhere else.
+
+             No .gs-step class on either select on purpose: without it enhanceSelect() gives them the
+             custom dropdown (a labelled button + a menu), which is what a language chip has to be —
+             a stepper makes you click ‹ › through seven languages to reach the one you want. -->
+        <div class="gs-sub" data-i18n="grp.langs">Languages</div>
+        <div class="gs-langbar">
+          <div class="gs-langbar__side">
+            <span class="gs-langbar__cap" data-i18n="lbl.from">From</span>
+            <select id="sourceLang">
+              <option value="eng">English</option>
+              <option value="jpn">日本語</option>
+              <option value="chi_sim">中文</option>
+              <option value="kor">한국어</option>
+              <!-- macOS only: Vision reads th-TH, and it is the only engine here that does (see
+                   capabilities.js › THAI_SOURCE). Removed from the list at boot everywhere else, so the
+                   picker never offers a language the machine cannot read. -->
+              <option value="tha" data-needs="thai">ไทย</option>
+            </select>
+          </div>
+          <!-- The swap the pill's arrow used to do, in the place it belongs: BETWEEN the two languages
+               it exchanges. Goes dim (never disappears) when the target is not a language the OCR can
+               read — es/vi are not in the source list, ไทย needs macOS Vision — and its tooltip says
+               which of the two it is, because a control that silently does nothing teaches nothing. -->
+          <!-- No data-i18n-title here on purpose: renderLangPair() writes this title itself, because it
+               is two different sentences (what the button does / why it can't). applyI18n would put the
+               plain one back over the reason — measured 2026-08-19, the ⇄ was dim while its tooltip
+               still read "Swap the two languages". The key it uses is tip.langSwap either way. -->
+          <button id="langSwapBtn" class="gs-langswap" title="Swap the two languages" aria-label="Swap the two languages">⇄</button>
+          <div class="gs-langbar__side">
+            <span class="gs-langbar__cap" data-i18n="lbl.to">To</span>
+            <select id="targetLang">
+              <option value="th">ไทย</option>
+              <option value="en">English</option>
+              <option value="ja">日本語</option>
+              <option value="zh-CN">中文</option>
+              <option value="ko">한국어</option>
+              <option value="es">Español</option>
+              <option value="vi">Tiếng Việt</option>
+            </select>
+          </div>
+        </div>
+        <div class="gs-sub" data-i18n="grp.liveCc">Live captions</div>
+        <div class="subbar gs-row gs-row--action">
+          <button id="liveBtn" data-i18n="btn.live" data-i18n-title="tip.live" title="Live subtitles — position the strip once, then every change in that area is auto-translated. Click again to stop.">CC · Live subtitles</button>
+        </div>
+        <!-- Separate from the toggle on purpose: where the subtitles are is a question you answer once
+             per game, and whether you want them on is one you answer mid-fight. Merging the two is what
+             made the shortcut open a drag-a-box overlay every time it was asked to switch CC on. -->
+        <div class="subbar gs-row gs-row--action">
+          <button id="liveAreaBtn" data-i18n="btn.ccArea" data-i18n-title="tip.ccArea" title="Draw the strip CC watches. Once per game — turning CC on and off never asks again.">Choose subtitle area…</button>
+        </div>
+        <div class="subbar slide-row gs-row" data-desc="desc.ccSpeed">
+          <label class="slide-lbl gs-row__label" for="ccIntervalInput" data-i18n="lbl.ccSpeed">CC speed</label>
+          <input type="range" id="ccIntervalInput" min="600" max="3000" step="100" value="1200" />
+          <span class="slide-val" id="ccIntervalLabel">1.2s</span>
+        </div>
+        <div class="gs-sub" data-i18n="grp.voice">Pronounce</div>
+        <!-- 100 = the utterance's own default, so the slider starts where the app has always been and
+             every step from here is quieter. There is no louder to offer — see setVolume in tts.js. -->
+        <div class="subbar slide-row gs-row" data-desc="desc.speakVol">
+          <label class="slide-lbl gs-row__label" for="speakVolInput" data-i18n="lbl.speakVol">Voice volume</label>
+          <input type="range" id="speakVolInput" min="0" max="100" step="5" value="100" />
+          <span class="slide-val" id="speakVolLabel">100%</span>
+        </div>
+        </div>
+        <div class="set-page" id="setPageDisplay" hidden>
+        <!-- FOUR HEADINGS THAT SAY WHAT IS UNDER THEM. This page used to run eleven rows under one
+             called "What disappears on its own", which described three of them — so "Hide from screen
+             capture" sat under a heading about vanishing, and the only way jek found it was to be told
+             the line number (2026-08-19). A heading that does not predict its contents is worse than
+             no heading: it sends you to the wrong place confidently. Each group below is named for the
+             question it answers, and a row belongs to exactly one of them. -->
+        <div class="gs-sub" data-i18n="grp.pillCard">The pill and the card</div>
+<div class="subbar gs-row" data-desc="desc.pillStyle">
+          <span class="gs-row__label" data-i18n="lbl.pillStyle">Pill style</span>
+          <select id="pillStyleSel" class="gs-step">
+            <option value="visible" data-i18n="opt.pill.visible">Visible</option>
+            <option value="dim" data-i18n="opt.pill.dim">Faded</option>
+            <option value="ghost" data-i18n="opt.pill.ghost">Tucked</option>
+            <option value="ghostdim" data-i18n="opt.pill.ghostdim">Tucked + Faded</option>
+            <!-- The only style that does not fight for the top of the stack. Listed last because it is the
+                 biggest change in what the pill IS — the other four are still an overlay, this one is a
+                 window. The stored VALUE stays 'behind' on purpose: it is what settings.json already
+                 carries, and renaming a label must never invalidate a choice someone already made. -->
+            <option value="behind" data-i18n="opt.pill.behind">Window</option>
+          </select>
+        </div>
+<div class="gs-preview" id="pillPreview" data-style="visible" aria-hidden="true">
+          <div class="gs-preview__pill">
+            <span class="gs-preview__dot"></span>
+            <span class="gs-preview__brand">EN&nbsp;→&nbsp;TH</span>
+            <span class="gs-preview__hint">⌘⇧S</span>
+          </div>
+          <!-- Tucked right, what stays on screen is the pill's LEFT edge — which is where the status
+               dot lives. That dot IS the "the app is still running" sign, so the picture shows it. -->
+          <div class="gs-preview__tab"><span class="gs-preview__dot"></span></div>
+        </div>
+<div class="subbar gs-row" data-desc="desc.autoHide">
+          <label class="toggle wide gs-toggle"><input type="checkbox" id="autoHideBtn" /> <span class="gs-row__label" data-i18n="toggle.autoHide">Auto-hide panel</span> <span class="gs-toggle__pill"><span class="gs-toggle__dot"></span></span></label>
+        </div>
+
+        <!-- ONE group for "what an answer carries", asked once and honoured by every surface that
+             answers: the snip card, the Alt+G bubble and the Type bar's quick look. They used to each
+             decide for themselves, so the same word answered differently depending on how you asked
+             for it (jek, 2026-08-12). A surface honours the switches it has DATA for — a quick look
+             has no reading to show — which is why they live together rather than one per surface. -->
+        <div class="gs-sub" data-i18n="grp.showsWhat">What the answer shows</div>
+        <div class="subbar gs-row" data-desc="desc.src">
+          <label class="toggle wide gs-toggle"><input type="checkbox" id="showEnBtn" checked /> <span class="gs-row__label" data-i18n="toggle.src">Show source text</span> <span class="gs-toggle__pill"><span class="gs-toggle__dot"></span></span></label>
+        </div>
+
+        <!-- The two rows that spend from the AI allowance. Together, because the question a reader has
+             is "how much does this thing call Claude?" and it is answered in one place. -->
+        <!-- Multi-monitor. Does nothing on a single display, so it sits quietly at the bottom. -->
+        <!-- Off = a snip is a free Google translation and the full AI card is one tap away on the card
+             itself. On = every snip builds the AI card, which is how the app behaved before. -->
+        <div class="subbar gs-row" data-desc="desc.aiCards">
+          <label class="toggle wide gs-toggle"><input type="checkbox" id="aiCardsBtn" /> <span class="gs-row__label" data-i18n="toggle.aiCards">Full AI card on every translation</span> <span class="gs-toggle__pill"><span class="gs-toggle__dot"></span></span></label>
+        </div>
+
+        <!-- How the app reads the screen, rather than what it does with what it read. -->
+
+        <!-- …the three that can turn an answer back into a dictionary page, so they sit apart. -->
+
+        <!-- ONE disclosure for everything you set once and never open again. The page had twelve
+             rows of identical weight and five headings, which is what "ยังดูเยอะและ overwhelm"
+             was (jek, 2026-08-19): grouping does not reduce scanning, it only labels it. What is
+             left above is what people actually reach for — how present the pill is, whether the
+             panel gets out of the way, what the card says, and whether AI runs on every read.
+             Everything below is still one click away and still carries its description bar; it just
+             stops competing for the eye. Same pattern as the API key and the shortcut list. -->
+        <button class="adv-toggle" id="dispMoreBtn" data-i18n="btn.moreDisplay" aria-expanded="false">More settings ▾</button>
+        <div id="dispMoreBody" hidden>
+        <div class="gs-sub" data-i18n="grp.fullDict">What else the card may show</div>
+        <!-- A MOCK card, one fixed example, redrawn by renderCardPreview() every time one of the four
+             switches below changes. It answers the question the labels cannot: "Reading" and "Other
+             meanings" mean nothing until you see the line they add. Dashed border, same as the pill
+             preview, so it reads as a picture of the card rather than a card that just arrived. -->
+        <div class="gs-cardprev" id="cardPrev" aria-hidden="true">
+          <div class="gs-cardprev__src" id="cpSrc">久しぶり<span class="gs-cardprev__read" id="cpRead"> ひさしぶり</span></div>
+          <div class="gs-cardprev__th">ไม่ได้เจอกันนาน</div>
+          <div class="gs-cardprev__meta"><span class="gs-cardprev__pos" id="cpPos">N.</span><span class="gs-cardprev__en" id="cpEn">long time no see</span></div>
+          <div class="gs-cardprev__senses" id="cpSenses">คิดถึงนะ · ไม่เจอกันตั้งนาน</div>
+        </div>
+        <div class="subbar gs-row" data-desc="desc.showPos">
+          <label class="toggle wide gs-toggle"><input type="checkbox" id="showPosBtn" checked /> <span class="gs-row__label" data-i18n="toggle.showPos">Word type</span> <span class="gs-toggle__pill"><span class="gs-toggle__dot"></span></span></label>
+        </div>
+        <div class="subbar gs-row" data-desc="desc.showEnMeaning">
+          <label class="toggle wide gs-toggle"><input type="checkbox" id="showEnMeanBtn" checked /> <span class="gs-row__label" data-i18n="toggle.showEnMeaning">English meaning</span> <span class="gs-toggle__pill"><span class="gs-toggle__dot"></span></span></label>
+        </div>
+        <div class="subbar gs-row" data-desc="desc.showReading">
+          <label class="toggle wide gs-toggle"><input type="checkbox" id="showReadingBtn" /> <span class="gs-row__label" data-i18n="toggle.showReading">Reading</span> <span class="gs-toggle__pill"><span class="gs-toggle__dot"></span></span></label>
+        </div>
+        <div class="subbar gs-row" data-desc="desc.showSenses">
+          <label class="toggle wide gs-toggle"><input type="checkbox" id="showSensesBtn" checked /> <span class="gs-row__label" data-i18n="toggle.showSenses">Other meanings</span> <span class="gs-toggle__pill"><span class="gs-toggle__dot"></span></span></label>
+        </div>
+        <div class="gs-sub" data-i18n="grp.reading">Reading the screen</div>
+        <!-- The one thing local OCR cannot do at all: every engine reads ONE language, so a line that
+             mixes alphabets comes back with the other half mangled or missing and nothing notices —
+             the half the engine was set for reads fine and scores well. This sends exactly those lines
+             to Claude, which reads a picture with no language setting. Next to the AI-cards row because
+             both spend from the same allowance. -->
+        <div class="subbar gs-row" data-desc="desc.aiMixedRead">
+          <label class="toggle wide gs-toggle"><input type="checkbox" id="aiMixedReadBtn" /> <span class="gs-row__label" data-i18n="toggle.aiMixedRead">Let AI read lines that mix languages</span> <span class="gs-toggle__pill"><span class="gs-toggle__dot"></span></span></label>
+        </div>
+        <!-- Point-at-a-word's second way in. The key (⌥K) has always been the only one, and it is the
+             hand you are not holding the mouse with — which mid-game is the hand on the movement
+             keys. Holding the cursor still is the one gesture this mode already has the input for
+             (the bubble is click-through, so a click belongs to the game, not to us). -->
+        <div class="subbar gs-row" data-desc="desc.hoverDwellSave">
+          <label class="toggle wide gs-toggle"><input type="checkbox" id="hoverDwellSaveBtn" /> <span class="gs-row__label" data-i18n="toggle.hoverDwellSave">Keep a word by holding the cursor on it</span> <span class="gs-toggle__pill"><span class="gs-toggle__dot"></span></span></label>
+        </div>
+        <div class="subbar gs-row" data-desc="desc.followMonitor">
+          <label class="toggle wide gs-toggle"><input type="checkbox" id="followMonitorBtn" /> <span class="gs-row__label" data-i18n="toggle.followMonitor">Follow the monitor I snip on</span> <span class="gs-toggle__pill"><span class="gs-toggle__dot"></span></span></label>
+        </div>
+        <!-- "Keep the word on the pill" was a row here until 2026-08-19. The BEHAVIOUR is unchanged —
+             the pill still parks the last source word once the card fades, which is the free recall rep
+             it exists for — but it is no longer a question the settings page asks. jek called the switch
+             unimportant, and he is right: nobody opens Settings to decide whether a word may appear.
+             The stored key still works (main.js DEFAULT_SETTINGS.pillKeyword), so nothing had to migrate. -->
+        <div class="gs-sub" data-i18n="grp.capture">Streaming &amp; capture</div>
+        <!-- Streaming/recording: it's about what the card LOOKS like to a capture, so it lives here. -->
+        <!-- Windows only, and hidden everywhere else: on macOS the drag box is already visible to a
+             screen recorder, so the switch would be a control that does nothing. -->
+        <div class="subbar gs-row win-only" id="recSnipRow" data-desc="desc.recSnip" hidden>
+          <label class="toggle wide gs-toggle"><input type="checkbox" id="recSnipBtn" /> <span class="gs-row__label" data-i18n="toggle.recSnip">Let recordings show the snip box</span> <span class="gs-toggle__pill"><span class="gs-toggle__dot"></span></span></label>
+        </div>
+        <div class="subbar gs-row" data-desc="desc.hideCap">
+          <label class="toggle wide gs-toggle"><input type="checkbox" id="hideCapBtn" /> <span class="gs-row__label" data-i18n="toggle.hideCap">Hide from screen capture</span> <span class="gs-toggle__pill"><span class="gs-toggle__dot"></span></span></label>
+        </div>
+        </div>
+        </div>
+        <!-- Page default was note.snipHoldDrag — "one key for snipping, how it behaves is the setting
+             above". That sentence existed only because the key and the setting were in different
+             places; the key chip is in the row now, so the page can spend its default line on what the
+             setting actually means instead of on directions to it. -->
+        <div class="set-page" id="setPageControls" hidden data-desc-default="desc.snipStyle">
+        <!-- Everything about HOW you drive the app: how you select, the click-through lock, and the
+             keybind list. This is the page a gamer opens first, so it's its own tab now. -->
+        <!-- The snip style has no row of its own. It is not a setting ABOUT the app, it is a property
+             OF the snip key — "what does this key do" — so it rides on that key's row in the list
+             below (renderShortcuts builds the toggle). A separate row meant the page needed a note
+             whose only job was to point from the key to the setting and back.
+             The <select> stays as the state + change source, exactly like every other settings
+             control here (see enhanceSelect / enhanceStepper); it just has no widget of its own. -->
+        <select id="snipStyleSel" hidden>
+          <!-- Named for the gesture, not for a temperament. "Normally / Casually" told nobody what
+               either one did — the same complaint that retired the sentence-stepper before it — and
+               the label "Normally" had ended up on tap-move-tap, which is the one thing jek never
+               called normal. Order matters too: the first option is what the key does out of the box. -->
+          <!-- One style on offer, on purpose (jek, 2026-08-29). "Drag a box" needed a mouse button
+               held down through the whole sweep, and a Unity game (Restory) reads the mouse through
+               Raw Input — which no low-level hook can filter — so that press landed IN the game and
+               advanced the dialogue out from under the box being drawn. Holding the trigger touches
+               no mouse button at all, so there is nothing for the game to see. 'drag' stays alive in
+               main.js purely as the automatic fallback for a trigger that cannot be held
+               (effectiveSnipStyle) — it is no longer something to pick. -->
+          <option value="hold" data-i18n="opt.snip.hold">Hold and sweep</option>
+        </select>
+        <div class="subbar gs-row gs-row--action">
+          <button id="lockBtn" data-i18n="btn.lock" title="Make the pill click-through so you can't hit it while gaming (⌘⇧L)">Lock overlay · ⌘⇧L</button>
+        </div>
+        <div class="shortcuts-block">
+          <!-- OPEN by default, showing the three keys the app is actually driven by — and it has to
+               be, because the snip-mode toggle now rides on the Snip row and a control behind a
+               closed disclosure is a control nobody finds. The other five (clear, lock, card size,
+               monitor) are set once and never touched, so they sit behind "Show all" instead: the
+               block stays short without hiding anything you were looking for. Collapsing the whole
+               thing still works — same ▾ disclosure idiom as Advanced below. -->
+          <div class="shortcuts-head">
+            <button id="shortcutsToggle" class="sc-toggle" aria-expanded="true" data-i18n="btn.shortcutsOpen">Shortcuts ▴</button>
+            <button id="shortcutsResetBtn" class="sc-reset" title="Reset all shortcuts to defaults" data-i18n="btn.scReset">↺ Defaults</button>
+          </div>
+          <div id="shortcutsBody">
+            <!-- Rows injected by index.js (renderShortcuts): label · key chip · Change/Reset -->
+            <div id="shortcutsList" class="shortcuts-list"></div>
+            <div class="setting-note" id="shortcutsHint" data-i18n="note.scHint">Click a key, then press the new combo. Esc cancels.</div>
+            <!-- Only speaks up when the chosen snip style can't be honoured by the trigger that's
+                 bound (see updateHoldNote); empty and hidden otherwise. -->
+            <div class="shortcuts-holddrag" id="holdDragInfo" hidden></div>
+          </div>
+        </div>
+        </div>
+        <div class="set-page" id="setPageSystem" hidden>
+        <!-- The app had no way to report anything at all until 2026-08-27 — no button, no mailto, no
+             contact page. The card's ⚑ covers a bad read; this covers everything that never produces
+             a card: a shortcut that does nothing, a window that vanished, an app that will not open. -->
+        <div class="subbar gs-row">
+          <span class="gs-row__label" data-i18n="lbl.report">Report a problem</span>
+          <button id="reportOpen" class="gs-step" data-i18n="btn.report">Write…</button>
+        </div>
+        <div class="subbar" id="reportRow" hidden>
+          <input type="text" id="reportInput" data-i18n-ph="ph.report" placeholder="What went wrong? Leave a contact here if you want a reply." />
+          <button id="reportSend" data-i18n="btn.reportSend">Send</button>
+        </div>
+        <div class="setting-note" id="reportOk" hidden data-i18n="note.reportOk">Sent — thank you. Your app version, system and language pair went with it; nothing else did.</div>
+        <div class="setting-note" id="reportErr" hidden data-i18n="note.reportErr">Could not send. Check the connection and try again — nothing was lost.</div>
+        <!-- App-chrome language (the translated content is already in the To-language). Auto = follow OS. -->
+        <div class="subbar gs-row">
+          <span class="gs-row__label" data-i18n="lbl.uiLang">App language</span>
+          <select id="uiLangSel" class="gs-step">
+            <option value="auto" data-i18n="opt.lang.auto">Auto</option>
+            <option value="en" data-i18n="opt.lang.en">English</option>
+            <option value="th" data-i18n="opt.lang.th">ไทย</option>
+          </select>
+        </div>
+        <!-- Start with the computer. An overlay you have to remember to launch is one you use on the
+             days you remember it — and this app has no tray, so a Gloss you closed comes back at the
+             next login instead of not at all. -->
+        <div class="subbar gs-row" data-desc="desc.openAtLogin">
+          <label class="toggle wide gs-toggle"><input type="checkbox" id="openAtLoginBtn" /> <span class="gs-row__label" data-i18n="toggle.openAtLogin">Open Gloss when I log in</span> <span class="gs-toggle__pill"><span class="gs-toggle__dot"></span></span></label>
+        </div>
+        <div class="subbar gs-row gs-row--action">
+          <button id="exportBtn" data-i18n="btn.export" title="Export history to CSV">⤓ Export CSV</button>
+        </div>
+        <!-- Licence sits above Advanced and the API key sits inside it, because that is the order of
+             how many people each one is for: everyone who buys has a licence, almost nobody has an
+             Anthropic key. Burying the licence under "Advanced" would hide the thing a paying
+             customer is looking for the moment the app opens. -->
+        <!-- ACTIVATION. It was a bare field and a Save button that accepted anything, so a typo and a
+             real key produced the same sentence and the difference only showed up later as an AI call
+             that failed for no stated reason. Now the state comes first (what you have right now),
+             then the field, and Activate ASKS the server before it claims anything — with three
+             possible answers, because "we could not reach the server" is not "your key is wrong". -->
+        <div class="lic-box" id="licBox">
+          <div class="lic-state" id="licState">
+            <span class="lic-dot" id="licDot"></span>
+            <span class="lic-title" id="licTitle">Free</span>
+            <span class="lic-sub" id="licSub"></span>
+          </div>
+          <!-- The app has had a field for a licence key since the day the proxy was written and no
+               way to GET one. A key field with no purchase behind it reads as a feature for other
+               people. Shown only to a reader who has neither a licence nor their own key — for the
+               other two it is an offer to buy what they already have. -->
+          <!-- No data-i18n: paintLicence() sets this label, because it differs for someone who has
+               already bought (top up) and someone who has not (buy), which the markup cannot know.
+               A data-i18n here would let a standalone applyI18n() overwrite it with the buy text. -->
+          <button class="lic-buy" id="licBuyBtn" hidden>Get Gloss — ฿149 once</button>
+          <div class="subbar" id="licRow">
+            <input type="text" id="licInput" data-i18n-ph="ph.licence" placeholder="Gloss Pro licence key" />
+            <button id="licSaveBtn" data-i18n="btn.licActivate" title="Check this key and turn Pro on">Activate</button>
+          </div>
+          <div class="lic-msg" id="licMsg" hidden></div>
+          <div class="setting-note" id="quotaNote" hidden></div>
+        </div>
+        <button class="adv-toggle" id="advBtn" data-i18n="btn.advanced">Advanced ▾</button>
+        <div class="subbar" id="keyRow" hidden>
+          <input type="password" id="keyInput" data-i18n-ph="ph.key" placeholder="Claude API key (sk-ant-…) — richer cards" />
+          <button id="keySaveBtn" title="Save the key" data-i18n="btn.keySave">Save</button>
+        </div>
+        <!-- Without this there was nothing anywhere in the app saying where a key even comes from. -->
+        <div class="setting-note" id="keyHelp" hidden>No key yet? Create one at <a href="#" id="keyLink">console.anthropic.com</a> → API keys.</div>
+        </div>
+        <!-- The description bar every console options screen has: ONE fixed strip that swaps its text
+             for whichever row you're on. It replaced a per-row line that expanded in place — that
+             pushed every row below it down as the cursor moved, so scanning the list made the list
+             move (jek, 2026-07-31). Fixed height, so the panel never resizes on hover. -->
+        <div class="gs-desc-bar" id="gsDescBar"></div>
+        <!-- Persistent footer: reset is shown under EVERY settings tab (Gameplay/Display/Controls/System)
+             so "put it back to the very first settings" is always one tap away. -->
+        <div class="subbar set-footer">
+          <button id="resetBtn" class="reset-btn" title="Reset every setting on all tabs to its default (your saved Claude key is kept)" data-i18n="btn.reset">↺ Reset all to defaults</button>
+        </div>
+        </div>
+      </section>
+
+      <!-- The pill expands to show this when a translation lands, then collapses. -->
+      <section class="result" id="result" hidden>
+        <button class="r-close" id="rClose" title="Close"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        <!-- ★ save this word/translation to Vocab (favorite), right from the card — no need to find it in
+             History first. Same collection the History ★ writes to. -->
+        <button class="r-fav" id="rFav" title="Save to Vocab">☆</button>
+        <!-- Hear the source word/phrase aloud. Voice + language are guessed from the script by GTTts
+             (already loaded for the pill) — a learning app should let you check pronunciation. -->
+        <button class="r-speak" id="rSpeak" title="Pronounce"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4.03v8.06A4.5 4.5 0 0 0 16.5 12zM14 3.23v2.06a7 7 0 0 1 0 13.42v2.06a9 9 0 0 0 0-17.54z"/></svg></button>
+        <!-- Ask Claude for the full card (pronunciation, word forms, an example) for a line Google
+             already translated. Hidden once the card has them. -->
+        <button class="r-ai" id="rAi" title="Full card — pronunciation, word forms, example" hidden><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M12 2.6l1.9 6.1 6.1 1.9-6.1 1.9L12 18.6l-1.9-6.1L4 10.6l6.1-1.9z"/></svg></button>
+        <!-- ⚑ Report this read. Fifth slot in the same top-right cluster (8/32/56/80/104). It lives ON
+             THE CARD rather than only in Settings because the moment a line reads wrong is the moment
+             the person is looking at the wrong line — a menu item asks them to describe from memory,
+             later, what is on screen right now. The misread text goes with it; they type nothing. -->
+        <button class="r-report" id="rReport" data-i18n-title="tip.report" title="Tell us this read wrong"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4"/><path d="M6 5h10l-1.6 3.2L16 11.4H6z" fill="currentColor" stroke="none"/></svg></button>
+        <div class="r-th" id="rTh"></div>
+        <!-- Double-click this line to correct it. No button: one click on a word here keeps it, two
+             open the line for typing — the same rule the ★ list and History use, so there is one
+             gesture to learn instead of three controls to find (jek, 2026-08-15). -->
+        <div class="r-en" id="rEn"></div>
+        <!-- A whole-panel snip reads back as a wall of text; the source line is the longest part of it
+             and the least re-read once the translation is there, so it clamps to two lines with this
+             toggle (jek, 2026-07-30). Expanding restores word-tapping over the full line. -->
+        <button class="r-en-more" id="rEnMore" hidden></button>
+        <!-- How the source line is actually SPELLED, when what we read wasn't. A typo or an OCR
+             misread still translates correctly (Google forgives one silently), so the card used to
+             answer the meaning while leaving the wrong word standing as the thing you read back and
+             saved to Vocab. Only ever present when there IS a correction — see spellFix()/aiSpell()
+             in main.js. (jek, 2026-08-12) -->
+        <div class="r-fix" id="rFix" hidden></div>
+        <!-- How the source line READS, in the target script. The card has fetched this since the AI
+             card existed (▶ and the vocab row both use it) and never showed it; Settings › "Reading"
+             is what puts it on screen, off by default. Under the source line, because it is about
+             that line and not about the translation. -->
+        <div class="r-read" id="rRead" hidden></div>
+        <!-- Word bubble: tapping a word in the line above already had to translate it in order to save
+             it, but the reading was thrown away and never shown (jek, 2026-07-30). Now it lands here,
+             with the ★ that keeps it — so a tap can be "what does this mean?" and not only "keep it". -->
+        <div class="r-word" id="rWord" hidden>
+          <div class="rw-body">
+            <div class="rw-word" id="rwWord"></div>
+            <div class="rw-meaning" id="rwMeaning"></div>
+            <!-- Every part of speech the lookup returned, when there is more than one (jek: "some word
+                 is n. or v."). One sense stays silent — the pos chip next to the word already says it. -->
+            <div class="rw-senses" id="rwSenses" hidden></div>
+          </div>
+          <!-- Speaks just this word. The card's own ▶ reads the whole line, so hearing one word's accent
+               meant sitting through the sentence first (jek, 2026-07-30). -->
+          <button class="rw-speak" id="rwSpeak" title="Pronounce this word">▶︎</button>
+          <button class="rw-fav" id="rwFav" title="Remove from Vocab">★</button>
+        </div>
+        <div class="r-meta" id="rMeta" hidden>
+          <span class="r-badge" id="rPos"></span>
+          <span class="r-meaning" id="rMeaning"></span>
+        </div>
+        <!-- Other forms of a single word (verb V1·V2·V3, irregular plural, comparatives) — the part a
+             learner has to memorise, which the translation alone never shows. -->
+        <!-- The other word classes this word has. The card fetched them from the first lookup and threw
+             them away, so snipping a word answered with one class while TYPING the same word answered
+             with three (jek, 2026-08-15). Same row, same chips and same switch as the Type bar and the
+             tapped-word bubble — the primary is skipped here because #rPos above has already said it. -->
+        <div class="r-senses" id="rSenses" hidden></div>
+        <div class="r-forms" id="rForms" hidden></div>
+        <div class="r-ex" id="rEx" hidden>
+          <div class="r-ex-en" id="rExEn"></div>
+          <div class="r-ex-th" id="rExTh"></div>
+        </div>
+      </section>
+      </div><!-- /.drop -->
+
+      <!-- 8-bit black-cat mascot. Hidden for now (core not validated yet); remove
+           the `hidden` attribute to bring it back — all its code still works. -->
+      <div class="mascot" id="mascot" title="Hi!" hidden>
+        <svg viewBox="0 0 16 16" width="44" height="44" shape-rendering="crispEdges">
+          <g fill="#20212a">
+            <!-- left ear: blocky stair-step pixels -->
+            <rect x="3" y="1" width="1" height="1"/>
+            <rect x="3" y="2" width="2" height="1"/>
+            <rect x="3" y="3" width="3" height="1"/>
+            <!-- right ear (mirror) -->
+            <rect x="12" y="1" width="1" height="1"/>
+            <rect x="11" y="2" width="2" height="1"/>
+            <rect x="10" y="3" width="3" height="1"/>
+            <!-- head -->
+            <rect x="3" y="4" width="10" height="5"/>
+            <!-- body (sitting) -->
+            <rect x="4" y="9" width="8" height="5"/>
+            <rect x="5" y="14" width="6" height="1"/>
+            <!-- curled tail on the right -->
+            <rect x="12" y="10" width="2" height="1"/>
+            <rect x="13" y="8" width="1" height="3"/>
+          </g>
+          <!-- inner ear (pink pixel) -->
+          <rect x="4" y="3" width="1" height="1" fill="#f472b6"/>
+          <rect x="11" y="3" width="1" height="1" fill="#f472b6"/>
+          <!-- glowing eyes -->
+          <rect class="m-eye" x="5" y="6" width="2" height="2" fill="#fbbf24"/>
+          <rect class="m-eye" x="9" y="6" width="2" height="2" fill="#fbbf24"/>
+          <!-- pink nose -->
+          <rect x="7" y="8" width="2" height="1" fill="#f472b6"/>
+        </svg>
+      </div>
+
+      <div class="pill" id="pill">
+        <span class="dot" id="dot" data-i18n-tip="tip.hidePill" data-tip="Hide / show the pill"></span>
+        <!-- Locked, said outside the right-hand slot. That slot holds ONE thing, and while locked it
+             was spending the whole session on the unlock key — which meant the parked word, the
+             reason the slot exists, was gone for as long as you played. The key still takes the slot
+             for a few seconds at the moment you lock (that is when you need it); after that the word
+             comes back and this padlock keeps saying the state. -->
+        <!-- SVG, not 🔒: every other icon on this pill is a monochrome SVG for the reason written above
+             the controls row — a colour emoji renders differently per OS and font, and this badge sits
+             directly beside the status dot whose colour the app controls exactly. -->
+        <span class="pill-lock" id="pillLock" hidden aria-label="Locked"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
+        <!-- The wrapper exists only so the PRO tag can be positioned against the label's own width:
+             .brand itself is overflow:hidden (ellipsis guard), which would clip an absolute child.
+             The wrapper hugs the label, so the tag follows a longer/shorter language pair by itself —
+             and being absolute it can never move the dot, the buttons or the hint slot. -->
+        <span class="brand-wrap">
+          <!-- Three pieces, not one string: the two language tags are written separately (renderSettings
+               repaints each), and the arrow between them is its own element only so the PRO tag can be
+               centred on it (positionProTag). NOTHING here is a control any more — the arrow used to be
+               a swap button, and a control living inside the hide zone meant every mis-hit either hid
+               the pill or silently reversed the languages mid-game. Changing the pair is a Settings
+               job now (jek, 2026-08-19); the whole left cap is one hide target again. -->
+          <span class="brand" id="brand" data-i18n-tip="tip.hidePill" data-tip="Hide / show the pill"><span
+            id="brandSrc">EN</span><span class="brand-arrow" id="brandArrow" aria-hidden="true">&rarr;</span><span
+            id="brandTgt">TH</span></span>
+          <i class="pro-tag" id="proTag" aria-hidden="true" hidden>PRO</i>
+        </span>
+        <div class="controls" id="controls">
+          <!-- All five controls are drawn icons now, for the same reason as ☰ below: text glyphs are
+               centred by their line box, and ⧉ ⚙ ✕ each carry different ink offsets in the system
+               symbol font, so the row never lined up. One 24-viewBox / 13px system throughout. -->
+          <button id="snipBtn" data-i18n-tip="tip.snip" data-tip="Snip · ⌘⇧S"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3.5" y="3.5" width="12" height="12" rx="2.5"/><rect x="8.5" y="8.5" width="12" height="12" rx="2.5"/></svg></button>
+          <!-- Learn Mode took the mic's slot (jek, 2026-08-12). The mic moved into the Type bar, where
+               speaking and typing are now the SAME action against the same field; what the pill owed a
+               slot to instead was the thing you do every session and could only reach two clicks deep.
+               The counter is the point: it answers "how much did I actually keep today?" without
+               opening anything, and it is the affordance that makes the button worth pressing. -->
+          <button id="learnPillBtn" data-i18n-tip="tip.learnPill" data-tip="Learn Mode · nothing kept yet today"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M12 3 1 8l11 5 9-4.09V15h2V8L12 3zM5 12.18V16c0 1.66 3.13 3 7 3s7-1.34 7-3v-3.82l-7 3.18-7-3.18z"/></svg><i class="learn-n" id="learnBadge" aria-hidden="true" hidden>0</i></button>
+          <!-- Not "History" any more: this opens the Type page first (⌘⇧T's home), with Dictionary one
+               tab away — the label has to say that, or nobody finds typing without knowing the
+               shortcut. Learn dropped off this label with the tab: it is the button to the left. -->
+          <!-- SVG, not the ☰ character: U+2630 is a CJK trigram whose glyph sits high in its em box
+               with fat side bearings, so it rendered visibly above the centre line next to ⧉/⚙/✕ no
+               matter what the flex centring did — a text glyph is centred by its LINE BOX, not by its
+               ink. Drawn bars are centred by construction. Matches the mic's 13px/24-viewBox setup. -->
+          <button id="logBtn" data-i18n-tip="tip.log" data-tip="Type · History"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><rect x="4" y="6" width="16" height="2" rx="1"/><rect x="4" y="11" width="16" height="2" rx="1"/><rect x="4" y="16" width="16" height="2" rx="1"/></svg></button>
+          <!-- Gear built from a ring + 8 radial teeth rather than a single traced path: at 13px a
+               detailed gear turns to mud, and this stays legible while sitting dead centre. -->
+          <button id="settingsBtn" data-i18n-tip="tip.settings" data-tip="Settings"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" stroke-width="1.6"/><g stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="2.6" x2="12" y2="5"/><line x1="12" y1="2.6" x2="12" y2="5" transform="rotate(45 12 12)"/><line x1="12" y1="2.6" x2="12" y2="5" transform="rotate(90 12 12)"/><line x1="12" y1="2.6" x2="12" y2="5" transform="rotate(135 12 12)"/><line x1="12" y1="2.6" x2="12" y2="5" transform="rotate(180 12 12)"/><line x1="12" y1="2.6" x2="12" y2="5" transform="rotate(225 12 12)"/><line x1="12" y1="2.6" x2="12" y2="5" transform="rotate(270 12 12)"/><line x1="12" y1="2.6" x2="12" y2="5" transform="rotate(315 12 12)"/></g></svg></button>
+          <button id="quitBtn" data-i18n-tip="tip.quit" data-tip="Quit"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+        </div>
+        <!-- Invisible flex filler: eats the leftover width so the slot below stays pinned right. -->
+        <span class="spacer" id="spacer" aria-hidden="true"></span>
+        <!-- ONE slot for everything sliding on the right: ⌘⇧S at idle, the parked translation
+             (vocab) once a card fades, or a transient status (Reading…/errors) — never two at
+             once (see refreshXlate in index.js). Marquees if the current text is too long. -->
+        <!-- The equaliser sits in the same slot as the hint, ahead of the text, and only while the mic
+             is open. Sibling of #hintText on purpose: setHint() only ever writes #hintText, so the
+             bars cannot be clobbered by a status landing mid-sentence. -->
+        <span class="hint" id="hint" data-i18n-tip="tip.hint" data-tip="Shortcut to snip &amp; translate"><span class="mic-bars" id="micBars" aria-hidden="true" hidden><i></i><i></i><i></i></span><span id="hintText">⌘⇧S</span></span>
+      </div>
+    </div>
+    <!-- Instant label for the pill buttons. OUTSIDE .wrap: .wrap is transformed (drag/tuck),
+         which would shift this fixed-position chip off-target. -->
+    <span id="btnTip" hidden></span>
+    <script src="i18n.js"></script>
+    <script src="../shared/pos-badge.js"></script>
+    <script src="../shared/vocab-model.js"></script>
+    <script src="../shared/srs.js"></script>
+    <script src="../shared/tts.js"></script>
+    <script src="index.js"></script>
+  </body>
+</html>

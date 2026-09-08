@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="th" class="no-js">
+<head>
+  <meta name="robots" content="noindex,nofollow">
+<meta charset="utf-8">
+<!-- คืนตำแหน่งที่อ่านค้างไว้เอง ไม่รอเบราว์เซอร์ (ที่มา: work/_JANK-REFRESH.md)
+     Safari คืนตำแหน่ง scroll หลังอีเวนต์ load เท่านั้น — วัดแล้ว DCL/load ยังอยู่ที่ y=0
+     ทั้งคู่ คนที่รีเฟรชกลางหน้าจึงเห็น "ฮีโร่แวบ" ตั้งแต่เฟรมแรกจนกว่าไฟล์สุดท้ายจะโหลดจบ
+     (เน็ตช้า = ค้างนานเป็นวินาที) สคริปต์นี้เก็บตำแหน่งไว้เองใน sessionStorage แล้ววาง
+     กลับตั้งแต่เฟรมแรกที่ความสูงหน้าพอ — เร็วกว่ารอ load หลายเท่าและไม่ต้องรอรูป
+     หยุดทันทีถ้าผู้ใช้ขยับเอง (wheel/touch/key/pointer) จะได้ไม่แย่งมือกับคนอ่าน -->
+<script>
+(function () {
+  try {
+    if (!("scrollRestoration" in history)) return;
+    history.scrollRestoration = "manual";
+    var key = "ts:y:" + location.pathname;
+    var want = parseInt(sessionStorage.getItem(key) || "0", 10) || 0;
+    var timer = 0;
+    var save = function () { try { sessionStorage.setItem(key, String(Math.round(window.scrollY))); } catch (e) {} };
+    addEventListener("scroll", function () {
+      if (timer) return;
+      timer = setTimeout(function () { timer = 0; save(); }, 200);
+    }, { passive: true });
+    addEventListener("pagehide", save);
+    /* แถบเมนูต้องไม่ "โผล่" ตอนหน้าเปิดมากลางหน้าอยู่แล้ว (jek 25/8/26 · the-bed)
+       แถบมีสองชั้นที่ไล่เข้าเอง — พื้นทึบบน .nav-shell::before (opacity 300ms) กับเส้นทอง
+       บน border-color (400ms) — พอคืนตำแหน่ง scroll ปุ๊บ สคริปต์แถบเมนูใส่คลาส scrolled
+       ทั้งสองชั้นจึงไล่ให้เห็นทุกครั้งที่รีเฟรช ทั้งที่ผู้ใช้ไม่ได้เลื่อนอะไรเลย
+       ระหว่างช่วงคืนตำแหน่ง จึงปิดทรานซิชันของหัวเว็บไว้ = แถบอยู่ในสถานะสุดท้ายตั้งแต่
+       เฟรมแรก · เปิดคืนทันทีที่ผู้ใช้ขยับเอง (หรืออย่างช้า 900ms) การเลื่อนของจริงจึงยังลื่น */
+    if (want) {
+      var root = document.documentElement;
+      root.className += " nav-instant";
+      var st = document.createElement("style");
+      st.textContent = "html.nav-instant .nav-shell,html.nav-instant .nav-shell::before," +
+        "html.nav-instant .site-header,html.nav-instant header,html.nav-instant header > *," +
+        "html.nav-instant header > * > *{transition:none !important}";
+      (document.head || document.documentElement).appendChild(st);
+      var unlock = function () { root.className = root.className.replace(/\s*nav-instant/, ""); };
+      ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+        addEventListener(ev, unlock, { passive: true, once: true });
+      });
+      setTimeout(unlock, 900);
+    }
+    if (!want || location.hash) return;
+    var stop = false;
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+      addEventListener(ev, function () { stop = true; }, { passive: true, once: true });
+    });
+    var t0 = (performance.now ? performance.now() : 0);
+    var now = function () { return performance.now ? performance.now() : t0; };
+    var done = false;
+    var put = function () {
+      if (stop || done) return true;
+      var el = document.scrollingElement || document.documentElement;
+      if (!el || el.scrollHeight - window.innerHeight < want) return false;   /* หน้ายังสูงไม่พอ ค่อยลองใหม่ */
+      if (Math.round(window.scrollY) !== want) {
+        var prev = el.style.scrollBehavior;      /* html { scroll-behavior: smooth } จะทำให้การวางกลับกลายเป็นการไถ */
+        el.style.scrollBehavior = "auto";
+        window.scrollTo(0, want);
+        el.style.scrollBehavior = prev;
+      }
+      done = Math.round(window.scrollY) === want;
+      /* ใส่สถานะ "เลื่อนแล้ว" ให้หัวเว็บทันทีในจังหวะเดียวกับที่คืนตำแหน่ง — ไม่ต้องรอสคริปต์
+         ของหน้ามันเองซึ่งอยู่ท้าย <body> (วัดแล้วช้ากว่ากันราว 20ms = เห็นแถบเปล่าได้ 1 เฟรม)
+         เกณฑ์คนละค่าเพราะแต่ละที่ตั้งไว้ไม่เท่ากัน: .site-header > 8px · .nav-shell > 40px
+         (ดู js/main.js กับสคริปต์ท้ายหน้าเดโม) สคริปต์ของหน้าจะคำนวณซ้ำเองอยู่แล้ว ค่าจึงตรงกัน */
+      if (done) {
+        var mark = function (sel, cls, min) {
+          if (want <= min) return;
+          var n = document.querySelectorAll(sel);
+          for (var i = 0; i < n.length; i++) n[i].classList.add(cls);
+        };
+        /* หัวเว็บของแต่ละใบใช้คนละคลาสคนละเกณฑ์ (ของเดิมเป็นแบบนั้นมาก่อนแล้ว):
+           .site-header.scrolled >8px (เว็บเรา) · .nav-shell.scrolled >40px (the-bed)
+           .site-header.stuck (the-terrace ใช้ sentinel ไม่ใช่ตัวเลข — 80px คือค่าประมาณ)
+           header.small >120px (homecraft/lumen/glow-clinic ผ่าน js/nav-response.js)
+           เดาพลาดไม่เป็นไร สคริปต์ของหน้าคำนวณทับให้ในเฟรมถัดไป และช่วงนี้ทรานซิชันถูกปิดอยู่
+           การแก้จึงเป็นการสลับทันที ไม่ใช่การไล่สีให้เห็น */
+        mark(".site-header", "scrolled", 8);
+        mark(".nav-shell", "scrolled", 40);
+        mark(".site-header, header[data-header]", "stuck", 80);
+        mark("header, .site-header", "small", 120);
+      }
+      return done;
+    };
+    /* ลองทุกทางที่มาถึงก่อน: setTimeout(0) มักได้ก่อนเฟรมแรกด้วยซ้ำ · rAF ทำงานก่อนวาด
+       · readystatechange/DOMContentLoaded คือจุดที่ body ครบแล้วแน่ๆ
+       เหตุที่ไม่พอถ้าใช้ rAF อย่างเดียว: วัดแล้วบางหน้า (หน้าแรกของเว็บเรา) เฟรมแรก
+       มาก่อนที่ความสูงจะพอ ทำให้เลื่อนไม่ได้ แล้วต้องรอ rAF รอบถัดไป = เห็นหัวเว็บ 1 เฟรม */
+    /* สองสายแยกกัน สายละหนึ่งนัด — ถ้าให้สายเดียวนัดทั้ง setTimeout และ rAF
+       จำนวนนัดจะเพิ่มเป็นสองเท่าทุกรอบ (2^n) ภายในไม่กี่ร้อยมิลลิวินาที */
+    var tick = function () { if (put() || stop) return; if (now() - t0 < 3000) setTimeout(tick, 0); };
+    var frame = function () { if (put() || stop) return; if (now() - t0 < 3000) requestAnimationFrame(frame); };
+    tick();
+    frame();
+    document.addEventListener("readystatechange", put);
+    addEventListener("DOMContentLoaded", put);
+    addEventListener("load", put);
+  } catch (e) {}
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<meta name="description" content="{{DESC}}">
+<link rel="canonical" href="{{BASE}}{{URL}}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{TITLE}}">
+<meta property="og:description" content="{{DESC}}">
+<meta property="og:image" content="{{BASE}}img/{{OG}}">
+<meta property="og:url" content="{{BASE}}{{URL}}">
+<meta name="twitter:card" content="summary_large_image">
+<script>document.documentElement.classList.replace("no-js","js");</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- preload ฟอนต์หัวเรื่อง (Anuphan) — คู่กับ display=optional ข้างล่าง
+     optional เฉยๆ แปลว่าคนที่เข้าครั้งแรกได้ฟอนต์สำรองทั้งหน้า preload ทำให้ไฟล์
+     มาทันช่วงต้นเกือบทุกครั้ง · มีสองไฟล์เพราะ Google เสิร์ฟ Chrome กับ Safari คนละตัว
+     (เติมอัตโนมัติด้วย playbook/fix-font-flash.mjs) -->
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/anuphan/v6/2sDeZGxYgY7LkLT0mX4Dan29.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/anuphan/v6/2sDeZGxYgY7LkLT0mWoDag.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/anuphan/v6/2sDeZGxYgY7LkLT0mX4Dam--C70lZQ.woff2" />
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600&family=Noto+Sans+Thai:wght@600;700;800&family=Cormorant+Garamond:wght@500;600&display=optional" rel="stylesheet">
+<link rel="stylesheet" href="{{R}}css/tokens.css">
+<link rel="stylesheet" href="{{R}}css/styles.css">
+<link rel="stylesheet" href="{{R}}css/multi.css">
+{{INLINE}}
+</head>
+<body>
+<a class="skip" href="#main">ข้ามไปเนื้อหา</a>
+
+<header class="site-header" data-header>
+  <div class="wrap">
+    <a class="brand" href="{{HOME}}">
+      <b>ถึงเช้า</b><span>โรงพยาบาลสัตว์ · เปิด 24 ชม.</span>
+    </a>
+    <nav class="nav-links" aria-label="เมนูหลัก">
+{{NAV}}
+    </nav>
+    <span class="nav-right">
+      <a class="btn btn--outline btn--sm" href="tel:021184499">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 4.5h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4.5 6.7 2 2 0 0 1 6.5 4.5z"/></svg>
+        038-xxx-xxx</a>
+      <a class="btn btn--brass btn--sm" href="{{R}}now/">ควรพามาเลยไหม
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6.5 18.5 12 13 17.5"/></svg></a>
+    </span>
+  </div>
+</header>
+
+<!-- เมนูมือถือ: .nav-links ของเว็บเดิมเป็น display:none ต่ำกว่าจอ 900px ซึ่งพอรับได้
+     ตอนเป็นหน้าเดียว (ทุกอย่างอยู่ข้างล่างให้เลื่อนหา) แต่พอเป็น 5 หน้า มันแปลว่า
+     คนใช้มือถือไปหน้าอื่นไม่ได้เลยสักหน้า — แถบนี้จึงเป็นของที่ "หลายหน้า" บังคับให้มี
+     ทำเป็นแถบเลื่อนแนวนอน ไม่ใช่เบอร์เกอร์ เพราะมี 5 ปลายทาง ไม่ต้องซ่อน และ
+     ไม่ต้องพึ่ง JS — เมนูที่พังตอน JS ไม่โหลด คือเว็บที่ไปไหนไม่ได้ -->
+<nav class="pagenav" aria-label="เมนูหน้าเว็บ (มือถือ)">
+  <div class="wrap">
+{{NAVM}}
+  </div>
+</nav>
+<main id="main">
+{{HERO}}{{CRUMB}}{{BODY}}
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <nav class="foot-nav" aria-label="เมนูท้ายหน้า">
+{{NAVF}}
+    </nav>
+    <p><strong>โรงพยาบาลสัตว์ถึงเช้า</strong> · 198/xx ถ.วัดมาบตาพุด ต.มาบตาพุด อ.เมือง จ.ระยอง 21150 · 038-xxx-xxx</p>
+    <p><strong>เปิดทุกวัน 24 ชั่วโมง</strong> — มีสัตวแพทย์อยู่เวรตลอดคืน ไม่ใช่แค่รับสาย</p>
+    <p>หน้านี้เป็นงานตัวอย่างของ ตามสั่ง (TarmSung) — โรงพยาบาลในภาพเป็นแบรนด์สมมติ</p>
+  </div>
+</footer>
+
+<script src="{{R}}js/main.js"></script>
+<!-- กลไกกลางของ playbook: หัวเว็บหดตอนเลื่อน + ไฮไลต์หัวข้อที่กำลังอ่าน (website.md §11 ข้อ 5)
+     ไฟล์เดียวกันเป๊ะทุกเดโม ห้ามแก้รายชิ้น — ก่อนหน้านี้เดโม 5 หน้าไม่มีไฟล์นี้เพราะถูกตัด
+     ออกมาจากต้นฉบับก่อนที่กลไกนี้จะถูกเพิ่ม = ของชนิดเดียวกันแต่ได้กลไกไม่เท่ากัน -->
+<script src="{{R}}js/nav-response.js"></script>
+{{SCRIPTS}}
+<script src="/work/_demo-badge.js" defer></script>
+</body>
+</html>

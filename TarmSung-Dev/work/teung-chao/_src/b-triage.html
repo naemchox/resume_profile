@@ -1,0 +1,59 @@
+  <!-- เครื่องมือประจำใบนี้ — ป้อนออกเป็น "ความเร่งด่วน + เวลา" ไม่ใช่ตัวเลขเงิน
+       ต่างจาก chang-chat/glow-clinic ที่ป้อนออกเป็นช่วงราคา (เหตุผลเต็มใน BRIEF §S2)
+       ทำงานได้โดยไม่ต้องมี JS: ไม่มีสคริปต์ = เห็นทั้งสามระดับพร้อมอาการครบ -->
+  <section class="section" aria-labelledby="tri-h" id="tri">
+    <div class="wrap">
+      <div class="section-head reveal" data-ghost="TRIAGE">
+        <h2 id="tri-h">เลือกสิ่งที่คุณ<em>เห็นอยู่ตอนนี้</em></h2>
+        <p>เลือกได้หลายข้อ · เราจะตอบตามอาการที่หนักที่สุดที่คุณเลือก</p>
+      </div>
+
+      <form class="tri" id="triage" novalidate>
+        <fieldset class="tri-set reveal">
+          <legend>การหายใจและการรู้สึกตัว</legend>
+          <label class="chip"><input type="checkbox" data-lv="3" value="หายใจลำบาก หอบ ลิ้นม่วง"><span>หายใจลำบาก หอบ ลิ้นม่วง</span></label>
+          <label class="chip"><input type="checkbox" data-lv="3" value="ชัก เกร็ง หมดสติ"><span>ชัก เกร็ง หมดสติ</span></label>
+          <label class="chip"><input type="checkbox" data-lv="3" value="เรียกไม่ตอบสนอง"><span>เรียกไม่ตอบสนอง</span></label>
+          <label class="chip"><input type="checkbox" data-lv="2" value="ซึมกว่าปกติ แต่ยังลุกเดินได้"><span>ซึมกว่าปกติ แต่ยังลุกเดินได้</span></label>
+        </fieldset>
+
+        <fieldset class="tri-set reveal d1">
+          <legend>ท้อง การกิน การขับถ่าย</legend>
+          <label class="chip"><input type="checkbox" data-lv="3" value="ท้องบวมแข็ง กระวนกระวาย"><span>ท้องบวมแข็ง กระวนกระวาย</span></label>
+          <label class="chip"><input type="checkbox" data-lv="3" value="เบ่งปัสสาวะไม่ออก (โดยเฉพาะแมวเพศผู้)"><span>เบ่งปัสสาวะไม่ออก <b>(แมวเพศผู้)</b></span></label>
+          <label class="chip"><input type="checkbox" data-lv="3" value="กินสารพิษ ยา หรือของแปลกปลอม"><span>กินสารพิษ ยา ของแปลกปลอม</span></label>
+          <label class="chip"><input type="checkbox" data-lv="2" value="อาเจียน 1-2 ครั้ง แต่ยังร่าเริง"><span>อาเจียน 1-2 ครั้ง แต่ยังร่าเริง</span></label>
+          <label class="chip"><input type="checkbox" data-lv="2" value="ไม่กินข้าวมื้อเดียว"><span>ไม่กินข้าวมื้อเดียว</span></label>
+        </fieldset>
+
+        <fieldset class="tri-set reveal d2">
+          <legend>บาดแผล การเดิน ผิวหนัง</legend>
+          <label class="chip"><input type="checkbox" data-lv="3" value="เลือดออกไม่หยุด"><span>เลือดออกไม่หยุด</span></label>
+          <label class="chip"><input type="checkbox" data-lv="3" value="โดนรถชน ตกที่สูง"><span>โดนรถชน ตกที่สูง</span></label>
+          <label class="chip"><input type="checkbox" data-lv="2" value="เดินกะเผลก แต่ยังลงน้ำหนักได้"><span>เดินกะเผลก แต่ลงน้ำหนักได้</span></label>
+          <label class="chip"><input type="checkbox" data-lv="1" value="คันผิวหนัง ขี้หูเยอะ"><span>คันผิวหนัง ขี้หูเยอะ</span></label>
+          <label class="chip"><input type="checkbox" data-lv="1" value="ถึงรอบวัคซีน หรืออยากตรวจสุขภาพ"><span>ถึงรอบวัคซีน · ตรวจสุขภาพ</span></label>
+        </fieldset>
+      </form>
+
+      <output class="tri-out" id="tri-out" for="triage" aria-live="polite"></output>
+
+      <div class="tri-all">
+        <article class="tri-lv lv--now reveal" id="u-now">
+          <h3><span class="lv-badge" aria-hidden="true">1</span>มาเดี๋ยวนี้ ไม่ต้องรอ</h3>
+          <p>อาการกลุ่มนี้เป็นนาทีต่อนาที — <b>โทรระหว่างทางได้เลย</b> เราจะเตรียมห้องรอไว้ก่อนคุณถึง ไม่ต้องนั่งรอคิว</p>
+        </article>
+        <article class="tri-lv lv--watch reveal d1" id="u-watch">
+          <h3><span class="lv-badge" aria-hidden="true">2</span>ดูอาการ 2 ชม. แล้วโทรบอกเรา</h3>
+          <p>ยังไม่ต้องรีบออกจากบ้าน แต่ <b>อย่าเพิ่งนอน</b> — ถ้าอาการเพิ่มขึ้นภายในสองชั่วโมง ให้ถือเป็นระดับ 1 ทันที</p>
+        </article>
+        <article class="tri-lv lv--morning reveal d2" id="u-morning">
+          <h3><span class="lv-badge" aria-hidden="true">3</span>รอเช้าได้ นอนพักก่อน</h3>
+          <p>พรุ่งนี้เดินเข้ามาได้เลยไม่ต้องนัด · มาก่อน 10:00 จะได้คิวเร็วที่สุด</p>
+        </article>
+      </div>
+
+      <p class="set-note reveal d3 mt5"><b>เครื่องมือนี้ไม่ใช่การวินิจฉัย</b> — มันช่วยตอบแค่ว่า "ควรออกจากบ้านตอนนี้ไหม"
+      ถ้าคุณไม่แน่ใจ ให้ถือว่าเป็นระดับ 1 แล้วโทรมา เราไม่คิดค่าโทรถาม</p>
+    </div>
+  </section>

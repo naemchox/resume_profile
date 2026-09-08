@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ช่างเจมส์ — ลองรูป hero</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;height:100vh;display:flex;flex-direction:column;background:#0f1115;color:#e8eaee;
+       font:13px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  header{flex:0 0 auto;background:#171a21;border-bottom:1px solid #262b36;padding:.55rem .8rem}
+  .row{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap}
+  .thumbs{display:flex;gap:.4rem;overflow-x:auto;padding:.5rem 0 .2rem}
+  .thumbs button{flex:0 0 auto;width:82px;height:58px;padding:0;border:2px solid #333a4a;border-radius:6px;
+    overflow:hidden;background:#000;cursor:pointer;position:relative}
+  .thumbs button.on{border-color:#e07b28;box-shadow:0 0 0 2px rgba(224,123,40,.35)}
+  .thumbs img{width:100%;height:100%;object-fit:cover;display:block}
+  label{display:flex;align-items:center;gap:.4rem;color:#9aa3b2;white-space:nowrap}
+  input[type=range]{width:150px}
+  code{background:#222735;padding:.15rem .4rem;border-radius:4px;color:#ffb877;user-select:all}
+  iframe{flex:1;width:100%;border:0;background:#fff}
+</style>
+</head>
+<body>
+<header>
+  <div class="row">
+    <b>ลองรูป hero</b>
+    <label>สูง-ต่ำ <input type="range" id="posY" min="0" max="100" value="34"><span id="vY">34%</span></label>
+    <label>ซ้าย-ขวา <input type="range" id="posX" min="0" max="100" value="50"><span id="vX">50%</span></label>
+    <label>ความมืด <input type="range" id="dark" min="0" max="100" value="90"><span id="vD">90%</span></label>
+    <span>ที่เลือก: <code id="pick">work-steel-frame.webp</code></span>
+  </div>
+  <div class="thumbs" id="thumbs"></div>
+</header>
+<iframe id="f" src="index.html"></iframe>
+<script>
+const IMGS = ['work-steel-frame','work-metal-roof-crew','work-exterior-front','work-exterior-open',
+  'work-exterior-corner','work-stall-finished','work-roof-soffit','work-ceiling-partition',
+  'work-blue-room','work-blue-room-door','work-room-1','work-bathroom-1'];
+let cur = IMGS[0];
+
+const th = document.getElementById('thumbs');
+IMGS.forEach((n,i)=>{
+  const b=document.createElement('button');
+  b.className = i===0?'on':''; b.title=n;
+  b.innerHTML=`<img src="assets/${n}.webp" alt="${n}">`;
+  b.onclick=()=>{ cur=n; [...th.children].forEach(c=>c.className=''); b.className='on';
+                  document.getElementById('pick').textContent=n+'.webp'; apply(); };
+  th.appendChild(b);
+});
+
+function apply(){
+  const doc = document.getElementById('f').contentDocument;
+  if(!doc) return;
+  const hero = doc.querySelector('.hero');
+  if(!hero) return;
+  const y = posY.value, x = posX.value, d = dark.value/100;
+  vY.textContent=y+'%'; vX.textContent=x+'%'; vD.textContent=dark.value+'%';
+  hero.style.setProperty('background-image', `
+    linear-gradient(92deg,
+      oklch(.145 .028 250 / ${(.96*d).toFixed(2)}) 0%,
+      oklch(.160 .030 250 / ${(.90*d).toFixed(2)}) 34%,
+      oklch(.170 .032 250 / ${(.58*d).toFixed(2)}) 58%,
+      oklch(.180 .034 250 / ${(.30*d).toFixed(2)}) 100%),
+    linear-gradient(180deg, oklch(.15 .03 250 / ${(.55*d).toFixed(2)}) 0%, transparent 22%,
+                            transparent 68%, oklch(.15 .03 250 / ${(.72*d).toFixed(2)}) 100%),
+    url("assets/${cur}.webp")`, 'important');
+  hero.style.setProperty('background-position', `${x}% ${y}%`, 'important');
+  hero.style.setProperty('background-size','cover','important');
+}
+['posY','posX','dark'].forEach(id=>document.getElementById(id).addEventListener('input',apply));
+document.getElementById('f').addEventListener('load',apply);
+</script>
+</body>
+</html>

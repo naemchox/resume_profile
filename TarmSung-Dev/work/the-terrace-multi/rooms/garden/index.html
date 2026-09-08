@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="th" class="no-js">
+<head>
+  <meta name="robots" content="noindex,nofollow">
+<meta charset="utf-8">
+<!-- คืนตำแหน่งที่อ่านค้างไว้เอง ไม่รอเบราว์เซอร์ (ที่มา: work/_JANK-REFRESH.md)
+     Safari คืนตำแหน่ง scroll หลังอีเวนต์ load เท่านั้น — วัดแล้ว DCL/load ยังอยู่ที่ y=0
+     ทั้งคู่ คนที่รีเฟรชกลางหน้าจึงเห็น "ฮีโร่แวบ" ตั้งแต่เฟรมแรกจนกว่าไฟล์สุดท้ายจะโหลดจบ
+     (เน็ตช้า = ค้างนานเป็นวินาที) สคริปต์นี้เก็บตำแหน่งไว้เองใน sessionStorage แล้ววาง
+     กลับตั้งแต่เฟรมแรกที่ความสูงหน้าพอ — เร็วกว่ารอ load หลายเท่าและไม่ต้องรอรูป
+     หยุดทันทีถ้าผู้ใช้ขยับเอง (wheel/touch/key/pointer) จะได้ไม่แย่งมือกับคนอ่าน -->
+<script>
+(function () {
+  try {
+    if (!("scrollRestoration" in history)) return;
+    history.scrollRestoration = "manual";
+    var key = "ts:y:" + location.pathname;
+    var want = parseInt(sessionStorage.getItem(key) || "0", 10) || 0;
+    var timer = 0;
+    var save = function () { try { sessionStorage.setItem(key, String(Math.round(window.scrollY))); } catch (e) {} };
+    addEventListener("scroll", function () {
+      if (timer) return;
+      timer = setTimeout(function () { timer = 0; save(); }, 200);
+    }, { passive: true });
+    addEventListener("pagehide", save);
+    /* แถบเมนูต้องไม่ "โผล่" ตอนหน้าเปิดมากลางหน้าอยู่แล้ว (jek 25/8/26 · the-bed)
+       แถบมีสองชั้นที่ไล่เข้าเอง — พื้นทึบบน .nav-shell::before (opacity 300ms) กับเส้นทอง
+       บน border-color (400ms) — พอคืนตำแหน่ง scroll ปุ๊บ สคริปต์แถบเมนูใส่คลาส scrolled
+       ทั้งสองชั้นจึงไล่ให้เห็นทุกครั้งที่รีเฟรช ทั้งที่ผู้ใช้ไม่ได้เลื่อนอะไรเลย
+       ระหว่างช่วงคืนตำแหน่ง จึงปิดทรานซิชันของหัวเว็บไว้ = แถบอยู่ในสถานะสุดท้ายตั้งแต่
+       เฟรมแรก · เปิดคืนทันทีที่ผู้ใช้ขยับเอง (หรืออย่างช้า 900ms) การเลื่อนของจริงจึงยังลื่น */
+    if (want) {
+      var root = document.documentElement;
+      root.className += " nav-instant";
+      var st = document.createElement("style");
+      st.textContent = "html.nav-instant .nav-shell,html.nav-instant .nav-shell::before," +
+        "html.nav-instant .site-header,html.nav-instant header,html.nav-instant header > *," +
+        "html.nav-instant header > * > *{transition:none !important}";
+      (document.head || document.documentElement).appendChild(st);
+      var unlock = function () { root.className = root.className.replace(/\s*nav-instant/, ""); };
+      ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+        addEventListener(ev, unlock, { passive: true, once: true });
+      });
+      setTimeout(unlock, 900);
+    }
+    if (!want || location.hash) return;
+    var stop = false;
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+      addEventListener(ev, function () { stop = true; }, { passive: true, once: true });
+    });
+    var t0 = (performance.now ? performance.now() : 0);
+    var now = function () { return performance.now ? performance.now() : t0; };
+    var done = false;
+    var put = function () {
+      if (stop || done) return true;
+      var el = document.scrollingElement || document.documentElement;
+      if (!el || el.scrollHeight - window.innerHeight < want) return false;   /* หน้ายังสูงไม่พอ ค่อยลองใหม่ */
+      if (Math.round(window.scrollY) !== want) {
+        var prev = el.style.scrollBehavior;      /* html { scroll-behavior: smooth } จะทำให้การวางกลับกลายเป็นการไถ */
+        el.style.scrollBehavior = "auto";
+        window.scrollTo(0, want);
+        el.style.scrollBehavior = prev;
+      }
+      done = Math.round(window.scrollY) === want;
+      /* ใส่สถานะ "เลื่อนแล้ว" ให้หัวเว็บทันทีในจังหวะเดียวกับที่คืนตำแหน่ง — ไม่ต้องรอสคริปต์
+         ของหน้ามันเองซึ่งอยู่ท้าย <body> (วัดแล้วช้ากว่ากันราว 20ms = เห็นแถบเปล่าได้ 1 เฟรม)
+         เกณฑ์คนละค่าเพราะแต่ละที่ตั้งไว้ไม่เท่ากัน: .site-header > 8px · .nav-shell > 40px
+         (ดู js/main.js กับสคริปต์ท้ายหน้าเดโม) สคริปต์ของหน้าจะคำนวณซ้ำเองอยู่แล้ว ค่าจึงตรงกัน */
+      if (done) {
+        var mark = function (sel, cls, min) {
+          if (want <= min) return;
+          var n = document.querySelectorAll(sel);
+          for (var i = 0; i < n.length; i++) n[i].classList.add(cls);
+        };
+        /* หัวเว็บของแต่ละใบใช้คนละคลาสคนละเกณฑ์ (ของเดิมเป็นแบบนั้นมาก่อนแล้ว):
+           .site-header.scrolled >8px (เว็บเรา) · .nav-shell.scrolled >40px (the-bed)
+           .site-header.stuck (the-terrace ใช้ sentinel ไม่ใช่ตัวเลข — 80px คือค่าประมาณ)
+           header.small >120px (homecraft/lumen/glow-clinic ผ่าน js/nav-response.js)
+           เดาพลาดไม่เป็นไร สคริปต์ของหน้าคำนวณทับให้ในเฟรมถัดไป และช่วงนี้ทรานซิชันถูกปิดอยู่
+           การแก้จึงเป็นการสลับทันที ไม่ใช่การไล่สีให้เห็น */
+        mark(".site-header", "scrolled", 8);
+        mark(".nav-shell", "scrolled", 40);
+        mark(".site-header, header[data-header]", "stuck", 80);
+        mark("header, .site-header", "small", 120);
+      }
+      return done;
+    };
+    /* ลองทุกทางที่มาถึงก่อน: setTimeout(0) มักได้ก่อนเฟรมแรกด้วยซ้ำ · rAF ทำงานก่อนวาด
+       · readystatechange/DOMContentLoaded คือจุดที่ body ครบแล้วแน่ๆ
+       เหตุที่ไม่พอถ้าใช้ rAF อย่างเดียว: วัดแล้วบางหน้า (หน้าแรกของเว็บเรา) เฟรมแรก
+       มาก่อนที่ความสูงจะพอ ทำให้เลื่อนไม่ได้ แล้วต้องรอ rAF รอบถัดไป = เห็นหัวเว็บ 1 เฟรม */
+    /* สองสายแยกกัน สายละหนึ่งนัด — ถ้าให้สายเดียวนัดทั้ง setTimeout และ rAF
+       จำนวนนัดจะเพิ่มเป็นสองเท่าทุกรอบ (2^n) ภายในไม่กี่ร้อยมิลลิวินาที */
+    var tick = function () { if (put() || stop) return; if (now() - t0 < 3000) setTimeout(tick, 0); };
+    var frame = function () { if (put() || stop) return; if (now() - t0 < 3000) requestAnimationFrame(frame); };
+    tick();
+    frame();
+    document.addEventListener("readystatechange", put);
+    addEventListener("DOMContentLoaded", put);
+    addEventListener("load", put);
+  } catch (e) {}
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ลานซุ้มริมน้ำ — 60–150 ที่นั่ง | เดอะ เทอเรส</title>
+<meta name="description" content="ลานกลางแจ้งติดน้ำ ใช้สำหรับพิธีช่วงเช้าและงานค็อกเทลตอนหัวค่ำ ซุ้มพิธีทรงโดมเป็นโครงถาวร ตกแต่งดอกไม้ได้ตามธีมของแต่ละงาน">
+<link rel="canonical" href="https://tarmsung.pages.dev/work/the-terrace-multi/rooms/garden/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="ลานซุ้มริมน้ำ — 60–150 ที่นั่ง | เดอะ เทอเรส">
+<meta property="og:description" content="ลานกลางแจ้งติดน้ำ ใช้สำหรับพิธีช่วงเช้าและงานค็อกเทลตอนหัวค่ำ ซุ้มพิธีทรงโดมเป็นโครงถาวร ตกแต่งดอกไม้ได้ตามธีมของแต่ละงาน">
+<meta property="og:image" content="https://tarmsung.pages.dev/work/the-terrace-multi/img/garden.jpg">
+<meta property="og:url" content="https://tarmsung.pages.dev/work/the-terrace-multi/rooms/garden/">
+<meta name="twitter:card" content="summary_large_image">
+<script>document.documentElement.classList.replace("no-js","js");</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- preload ฟอนต์หัวเรื่อง (Anuphan) — คู่กับ display=optional ข้างล่าง
+     optional เฉยๆ แปลว่าคนที่เข้าครั้งแรกได้ฟอนต์สำรองทั้งหน้า preload ทำให้ไฟล์
+     มาทันช่วงต้นเกือบทุกครั้ง · มีสองไฟล์เพราะ Google เสิร์ฟ Chrome กับ Safari คนละตัว
+     (เติมอัตโนมัติด้วย playbook/fix-font-flash.mjs) -->
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/anuphan/v6/2sDeZGxYgY7LkLT0mX4Dan29.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/anuphan/v6/2sDeZGxYgY7LkLT0mWoDag.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/anuphan/v6/2sDeZGxYgY7LkLT0mX4Dam--C70lZQ.woff2" />
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600&family=Noto+Sans+Thai:wght@600;700;800&family=Cormorant+Garamond:wght@500;600&display=optional" rel="stylesheet">
+<link rel="stylesheet" href="../../css/tokens.css">
+<link rel="stylesheet" href="../../css/styles.css">
+<link rel="stylesheet" href="../../css/multi.css">
+<style>
+/* =============================================================================
+   รอบ "แก้จืด" ครั้งที่ 2 — 22/8/26 (playbook/PROMPT-JUED.md)
+   ===========================================================================
+   AUDIT ก่อนแก้: ไล่ css/styles.css + tokens.css ซ้ำอีกรอบ (grep rgba alpha ต่ำ,
+   blur, opacity ต่ำ) เจอแค่ .hero-grain (opacity .10, blur 6px บน .slots) ซึ่ง
+   ทั้งคู่จงใจให้จางตามคอมเมนต์เดิมในไฟล์ ไม่ใช่บั๊ก — ไม่แตะ ตรงกับที่ jek วัดมา
+   ว่าความจืดของหน้านี้คือ "นิ่ง" (@keyframes 1 อัน) ไม่ใช่ "ของจาง"
+
+   งานรอบนี้จึงเป็นชั้น 3 ล้วนๆ — หยิบภาษาของเวนิวจัดงานที่ยังไม่ได้ใช้: ไฟอุ่น
+   เหนือรูปฮีโร่ (ของชนิดเดียวกับไฟที่ #story ใช้ keyframe tt-warm เดิม ไม่เขียน
+   กลไกที่สอง), ผ้าม่านเปิดบนรูปห้อง, และการจัดโต๊ะ (เมนูทยอยวางทีละจาน) —
+   ไม่มี fade ทั่วไปเพิ่มสักตัว
+   -------------------------------------------------------------------------- */
+
+/* ---- 1) ไฟอุ่นเหนือรูปฮีโร่ --------------------------------------------------
+   จุดสนใจของภาพฮีโร่คือโคมไฟกับหน้าต่างริมน้ำที่ถูกจัดให้อยู่ขวาของหัวเรื่อง
+   (ดูคอมเมนต์ .hero-media img ด้านบน) ไฟดวงนี้หายใจช้าตรงตำแหน่งนั้น ใช้
+   keyframe เดียวกับไฟที่แถบมืด #story (tt-warm) เพราะเป็นของชนิดเดียวกัน:
+   ไฟอุ่นของเวนิวตอนค่ำ ไม่ใช่ไฟดิสโก้ที่กะพริบเร็ว */
+.hero-glow {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(55% 60% at 72% 38%,
+    color-mix(in oklch, var(--brass-400) 30%, transparent) 0%, transparent 68%);
+}
+.js .hero-glow { animation: tt-warm 11s ease-in-out infinite; }
+
+/* ---- 2) ผ้าม่านเปิดบนรูปห้อง -------------------------------------------------
+   #rooms เดิมรูปสามห้องโผล่มาพร้อมการ์ด (fade+เลื่อนขึ้นเฉยๆ) ตอนนี้มีแผ่นผ้า
+   สีเข้มปิดรูปอยู่ก่อน แล้วเลื่อนเปิดออกทางขวาเหมือนม่านเปิดพื้นที่จัดงาน —
+   ภาษาของเวนิวจัดงานที่ใช้ผ้าม่านจริงในพิธีและซุ้ม ไม่ใช่ fade ทั่วไป */
+.room-media { position: relative; display: block; overflow: hidden; }
+.room-curtain {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(100deg, var(--forest-950) 46%,
+    color-mix(in oklch, var(--forest-950) 55%, transparent) 100%);
+  transform-origin: right; transform: scaleX(1);
+}
+.js .room-curtain { transition: transform 900ms var(--ease); }
+.js .room.in .room-curtain { transform: scaleX(0); }
+.js .room:nth-child(1).in .room-curtain { transition-delay: 650ms; }
+.js .room:nth-child(2).in .room-curtain { transition-delay: 800ms; }
+.js .room:nth-child(3).in .room-curtain { transition-delay: 950ms; }
+
+/* ---- 3) เมนูทยอยวางทีละจาน --------------------------------------------------
+   รายการอาหารในแต่ละชุด (.set li) เดิมโผล่มาพร้อมกันทั้งลิสต์ตอนการ์ดเข้าจอ
+   ตอนนี้ทยอยขึ้นทีละบรรทัดเหมือนพนักงานจัดโต๊ะวางจานทีละจาน — ใช้ตัวเลข
+   ลำดับจานเดิม (counter(dish)) เป็นตัวบอกจังหวะอยู่แล้ว จึงให้ทยอยตามลำดับนั้น */
+.js .set li { opacity: 0; transform: translateY(10px); transition: opacity 420ms var(--ease), transform 420ms var(--ease); }
+.js .set.in li { opacity: 1; transform: none; }
+.js .set.in li:nth-child(1)  { transition-delay: 80ms; }
+.js .set.in li:nth-child(2)  { transition-delay: 130ms; }
+.js .set.in li:nth-child(3)  { transition-delay: 180ms; }
+.js .set.in li:nth-child(4)  { transition-delay: 230ms; }
+.js .set.in li:nth-child(5)  { transition-delay: 280ms; }
+.js .set.in li:nth-child(6)  { transition-delay: 330ms; }
+.js .set.in li:nth-child(7)  { transition-delay: 380ms; }
+.js .set.in li:nth-child(8)  { transition-delay: 430ms; }
+.js .set.in li:nth-child(9)  { transition-delay: 480ms; }
+.js .set.in li:nth-child(10) { transition-delay: 530ms; }
+.js .set.in li:nth-child(11) { transition-delay: 580ms; }
+.js .set.in li:nth-child(12) { transition-delay: 630ms; }
+
+/* ---- 4) ป้าย "จองมากที่สุด" คลี่ออกเหมือนริบบิ้น ----------------------------
+   ป้ายบนการ์ดแพ็กเกจที่ขายดีที่สุดเดิมโผล่มาพร้อมการ์ด ตอนนี้คลี่ออกจากกึ่งกลาง
+   หลังการ์ดตั้งตัวแล้ว เหมือนริบบิ้น/แถบผูกโบว์ในงานเลี้ยง ไม่ใช่ป้ายกระพริบ */
+.js .card .tag { transform: scaleX(0); transition: transform 380ms var(--ease) 520ms; }
+.js .card.in .tag { transform: scaleX(1); }
+
+/* ---- ปิดได้จริงสองทาง: media query ของระบบ และ .still ที่ main.js ติดให้เมื่อ
+   เปิดด้วย ?reduce=1 (ทางที่สคริปต์ถ่ายภาพใช้) ------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .js .hero-glow { animation: none !important; opacity: .8; }
+  .js .room-curtain { transition: none !important; transform: scaleX(0) !important; }
+  .js .set li { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .js .card .tag { transform: scaleX(1) !important; transition: none !important; }
+}
+.still .hero-glow { animation: none !important; opacity: .8; }
+.still .room-curtain { transition: none !important; transform: scaleX(0) !important; }
+.still .set li { opacity: 1 !important; transform: none !important; }
+.still .card .tag { transform: scaleX(1) !important; }
+</style>
+
+<style>
+  @view-transition { navigation: auto; }
+  ::view-transition-old(root) { animation: pg-out 240ms cubic-bezier(.33,0,.3,1) both; }
+  ::view-transition-new(root) { animation: pg-in  380ms cubic-bezier(.33,0,.3,1) both; }
+  @keyframes pg-out { to   { opacity: 0; transform: translateY(-8px); } }
+  @keyframes pg-in  { from { opacity: 0; transform: translateY(10px); } }
+  /* ตัวสำรองของเบราว์เซอร์ที่ไม่มี view transition — เฟดด้วยคลาส */
+  body.is-leaving {
+    opacity: 0; transform: translateY(-8px);
+    transition: opacity 240ms cubic-bezier(.33,0,.3,1), transform 240ms cubic-bezier(.33,0,.3,1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+    body.is-leaving { opacity: 1; transform: none; transition: none; }
+  }
+</style>
+<script>
+(function () {
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce || "startViewTransition" in document) return;   /* เบราว์เซอร์ทำเองแล้ว */
+  /* แคบไว้ก่อน: เฉพาะคลิกซ้ายเปล่าๆ ลิงก์โดเมนเดียวกัน ไม่ใช่แท็บใหม่ ไม่ใช่ดาวน์โหลด
+     ไม่ใช่จุดยึดในหน้าเดียวกัน — cmd-click / กลางคลิก ต้องเปิดแท็บหลังได้ตามปกติ */
+  document.addEventListener("click", function (e) {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var a = e.target.closest && e.target.closest("a[href]");
+    if (!a || a.target === "_blank" || a.hasAttribute("download")) return;
+    var url = new URL(a.href, location.href);
+    if (url.origin !== location.origin) return;
+    if (url.pathname === location.pathname && url.hash) return;
+    e.preventDefault();
+    document.body.classList.add("is-leaving");
+    /* ตั้งเวลาสำรองไว้ด้วย: แท็บที่ถูกซ่อนอยู่จะไม่ยิง transitionend เลย */
+    var gone = false, go = function () { if (!gone) { gone = true; location.href = a.href; } };
+    document.body.addEventListener("transitionend", go, { once: true });
+    setTimeout(go, 300);
+  });
+  /* กลับด้วยปุ่ม Back แล้วเจอหน้าจาง = หน้าถูกคืนจากแคช ทั้งที่ยังใส่คลาสค้างไว้ */
+  addEventListener("pageshow", function () { document.body.classList.remove("is-leaving"); });
+})();
+</script>
+
+</head>
+<body>
+<!-- ไอคอนชุดเดียวของทุกหน้า (คัดจาก work/the-terrace/index.html) — ตัวประกอบหลายหน้า
+     ไม่ฉีดสไปรท์ให้ ทุกหน้าจึงอ้าง #i-icon1..3 ที่ไม่มีตัวจริง 11 จุดต่อหน้า -->
+<svg class="sr-only" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0"><defs>
+  <symbol id="i-icon1" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-icon2" viewBox="0 0 132 8"><path pathLength="1" d="M1 5c22-4 44-4 66 0s44 4 65-1" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-icon3" viewBox="0 0 24 24"><path d="M5 12h13M13 6.5 18.5 12 13 17.5"/></symbol>
+</defs></svg>
+<a class="skip" href="#main">ข้ามไปเนื้อหา</a>
+
+<header class="site-header" data-header>
+  <div class="wrap">
+    <a class="brand" href="../../">
+      <b>เดอะ เทอเรส</b><span>The Terrace</span>
+    </a>
+    <nav class="nav-links" aria-label="เมนูหลัก">
+      <a href="../../">หน้าแรก</a>
+      <a href="../../venue/">สถานที่</a>
+      <a href="../../packages/">แพ็กเกจ & เมนู</a>
+      <a href="../../story/">รีวิว & วิธีทำงาน</a>
+      <a href="../../contact/">ติดต่อ & นัดชม</a>
+    </nav>
+    <span class="nav-right">
+      <a class="btn btn--outline btn--sm" href="tel:021184499">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 4.5h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4.5 6.7 2 2 0 0 1 6.5 4.5z"/></svg>
+        02-xxx-xxxx</a>
+      <a class="btn btn--brass btn--sm" href="../../packages/">ขอใบเสนอราคา
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6.5 18.5 12 13 17.5"/></svg></a>
+    </span>
+  </div>
+</header>
+
+<!-- เมนูมือถือ: .nav-links ของเว็บเดิมเป็น display:none ต่ำกว่าจอ 900px ซึ่งพอรับได้
+     ตอนเป็นหน้าเดียว (ทุกอย่างอยู่ข้างล่างให้เลื่อนหา) แต่พอเป็น 5 หน้า มันแปลว่า
+     คนใช้มือถือไปหน้าอื่นไม่ได้เลยสักหน้า — แถบนี้จึงเป็นของที่ "หลายหน้า" บังคับให้มี
+     ทำเป็นแถบเลื่อนแนวนอน ไม่ใช่เบอร์เกอร์ เพราะมี 5 ปลายทาง ไม่ต้องซ่อน และ
+     ไม่ต้องพึ่ง JS — เมนูที่พังตอน JS ไม่โหลด คือเว็บที่ไปไหนไม่ได้ -->
+<nav class="pagenav" aria-label="เมนูหน้าเว็บ (มือถือ)">
+  <div class="wrap">
+    <a href="../../">หน้าแรก</a>
+    <a href="../../venue/">สถานที่</a>
+    <a href="../../packages/">แพ็กเกจ & เมนู</a>
+    <a href="../../story/">รีวิว & วิธีทำงาน</a>
+    <a href="../../contact/">ติดต่อ & นัดชม</a>
+  </div>
+</nav>
+<main id="main">
+
+  <section class="hero hero--page" aria-labelledby="page-title">
+    <div class="wrap">
+      <span class="kicker"><i aria-hidden="true"></i>ห้องจัดงาน</span>
+      <h1 id="page-title">ลานซุ้มริมน้ำ</h1>
+      <p>ลานกลางแจ้งติดน้ำ ใช้สำหรับพิธีช่วงเช้าและงานค็อกเทลตอนหัวค่ำ ซุ้มพิธีทรงโดมเป็นโครงถาวร ตกแต่งดอกไม้ได้ตามธีมของแต่ละงาน</p>
+    </div>
+  </section>
+
+<nav class="crumb" aria-label="เส้นทางหน้าเว็บ">
+  <div class="wrap">
+    <ol>
+      <li><a href="../../">หน้าแรก</a></li>
+      <li><a href="../../venue/">สถานที่</a></li>
+      <li aria-current="page">ลานซุ้มริมน้ำ</li>
+    </ol>
+  </div>
+</nav>
+
+  <section class="section">
+    <div class="wrap detail">
+      <div class="reveal">
+        <img src="../../img/garden.jpg" alt="ซุ้มพิธีทรงโดมกลางสวนประดับดอกไม้" width="1200" height="900">
+        <p style="margin-top:var(--s4)">มีผ้าใบกันฝนขึงสำรองไว้ทุกงานโดยไม่คิดเพิ่ม ตัดสินใจกางได้ถึง 2 ชั่วโมงก่อนเริ่มพิธี</p>
+        <p style="margin-top:var(--s4)">พัดลมไอเย็น 12 ตัวรอบลาน เปิดอัตโนมัติเมื่ออุณหภูมิเกิน 32 องศา</p>
+        <p style="margin-top:var(--s4)">เดินจากลานถึงห้องแกรนด์ใช้เวลา 2 นาที แขกย้ายจากพิธีเช้าไปงานเลี้ยงเย็นได้โดยไม่ต้องขึ้นรถ</p>
+      </div>
+      <div class="reveal d1">
+        <h2 style="font-family:var(--font-d);font-size:var(--t-xl);margin-bottom:var(--s3)">รายละเอียดห้อง</h2>
+        <ul class="spec">
+          <li><b>จำนวนที่นั่ง</b><span>60–150 ที่นั่ง</span></li>
+          <li><b>ประเภท</b><span>กลางแจ้ง ติดน้ำ</span></li>
+          <li><b>แผนสำรองฝน</b><span>ผ้าใบขึงถาวร รวมในทุกแพ็กเกจ</span></li>
+          <li><b>ซุ้มพิธี</b><span>โครงโดมถาวร ตกแต่งได้ตามธีม</span></li>
+          <li><b>ช่วงเวลาแนะนำ</b><span>07:00–10:30 และ 17:00–19:30</span></li>
+          <li><b>ระยะถึงห้องแกรนด์</b><span>เดิน 2 นาที</span></li>
+        </ul>
+        <p style="margin-top:var(--s5)"><a class="btn btn--brass btn--lg" href="../../packages/">ดูราคาแพ็กเกจ</a></p>
+        <p style="margin-top:var(--s3)"><a class="btn btn--dark btn--lg" href="tel:021184499">โทรนัดชมห้องนี้</a></p>
+        <div class="roomnav">
+          <a class="btn btn--dark btn--sm" href="../../rooms/grand-hall/">เทอเรส แกรนด์ →</a>
+          <a class="btn btn--dark btn--sm" href="../../rooms/meeting/">ห้องประชุมชั้น 2 →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <nav class="foot-nav" aria-label="เมนูท้ายหน้า">
+      <a href="../../">หน้าแรก</a>
+      <a href="../../venue/">สถานที่</a>
+      <a href="../../packages/">แพ็กเกจ & เมนู</a>
+      <a href="../../story/">รีวิว & วิธีทำงาน</a>
+      <a href="../../contact/">ติดต่อ & นัดชม</a>
+    </nav>
+    <p><strong>เดอะ เทอเรส</strong> · 55/xx ซอยสุขุมวิท xx คลองตันเหนือ วัฒนา กรุงเทพฯ 10110 · 02-xxx-xxxx</p>
+    <p>หน้านี้เป็นงานตัวอย่างของ ตามสั่ง (TarmSung) — เวนิวในภาพเป็นแบรนด์สมมติ</p>
+  </div>
+</footer>
+
+<script src="../../js/main.js"></script>
+<!-- กลไกกลางของ playbook: หัวเว็บหดตอนเลื่อน + ไฮไลต์หัวข้อที่กำลังอ่าน (website.md §11 ข้อ 5)
+     ไฟล์เดียวกันเป๊ะทุกเดโม ห้ามแก้รายชิ้น — ก่อนหน้านี้เดโม 5 หน้าไม่มีไฟล์นี้เพราะถูกตัด
+     ออกมาจากต้นฉบับก่อนที่กลไกนี้จะถูกเพิ่ม = ของชนิดเดียวกันแต่ได้กลไกไม่เท่ากัน -->
+<script src="../../js/nav-response.js"></script>
+
+<script src="/work/_demo-badge.js" defer></script>
+</body>
+</html>

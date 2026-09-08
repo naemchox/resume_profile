@@ -1,0 +1,133 @@
+{
+  "name": "gametranslator",
+  "version": "1.3.1",
+  "description": "Gloss — always-on-top overlay that reads any game and translates it in real time (EN/JP/CN/KR → many).",
+  "main": "main.js",
+  "author": "Gloss",
+  "_artifactNameNote": "build.artifactName: Windows builds one arch, so ${os} is a unique filename there. macOS builds two, and both were writing Gloss-mac.dmg — the second overwrote the first and then collided on hdiutil detach, which is why dist:mac failed and why only arm64 was ever released. Intel Macs have had nothing to download. build.mac qualifies its name with ${arch}; do not 'simplify' it back. (Kept outside the build block: electron-builder 25 rejects unknown keys inside it.)",
+  "scripts": {
+    "start": "electron .",
+    "build:vision": "swiftc -O native/visionocr.swift -o native/visionocr",
+    "build:hook": "swiftc -O native/mousehook.swift -o native/mousehook",
+    "build:speak": "swiftc -O native/speak.swift -o native/Speak.app/Contents/MacOS/speak",
+    "pack": "electron-builder --dir",
+    "pack:dev": "GLOSS_SIGN_IDENTITY='Gloss Dev' electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.111.0",
+    "koffi": "^3.1.1",
+    "tesseract.js": "^5.1.1",
+    "uiohook-napi": "^1.5.5"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.2.0",
+    "electron": "^32.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "afterPack": "scripts/adhoc-sign.js",
+    "appId": "com.gloss.app",
+    "productName": "Gloss",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "npmRebuild": false,
+    "artifactName": "Gloss-${os}.${ext}",
+    "files": [
+      "main.js",
+      "capabilities.js",
+      "winhook.js",
+      "winhook-ll.js",
+      "winkeyhook.js",
+      "winmousehook.js",
+      "wincapture.js",
+      "hover-dict.js",
+      "dict/**/*",
+      "!dict/jmdict.json",
+      "build/icon.png",
+      "build/tray.png",
+      "build/tray@2x.png",
+      "native/**/*",
+      "preload-*.js",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "native/**",
+      "node_modules/tesseract.js/**",
+      "node_modules/tesseract.js-core/**",
+      "node_modules/uiohook-napi/**",
+      "node_modules/koffi/**"
+    ],
+    "extraResources": [
+      "eng.traineddata"
+    ],
+    "mac": {
+      "artifactName": "Gloss-mac-${arch}.${ext}",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.utilities",
+      "identity": null
+    },
+    "dmg": {
+      "title": "${productName} ${version}"
+    },
+    "win": {
+      "files": [
+        "!native/visionocr",
+        "!native/visionocr.swift",
+        "!native/mousehook",
+        "!native/mousehook.swift",
+        "!native/speak.swift",
+        "!native/Speak.app/**/*"
+      ],
+      "icon": "build/icon.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Gloss"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Utility"
+    }
+  }
+}

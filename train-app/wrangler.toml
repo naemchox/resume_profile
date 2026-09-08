@@ -1,0 +1,6 @@
+name = "withered-block-4669"
+compatibility_date = "2026-06-08"
+
+# Static-assets Worker: serves the files in ./dist (index.html at "/").
+[assets]
+directory = "./dist"

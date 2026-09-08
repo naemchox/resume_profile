@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ต้นลม · TON LOM — ร้านกัญชา กรุงเทพฯ</title>
+<style>
+/* ============================================================
+   TON LOM v4 — ถอดภาษาภาพจากพิน "Cannas Reserve"
+   เขียวมะกอก + ทอง + ดำ · ตัวอักษรผสมน้ำหนักในบรรทัดเดียว
+   ตราความน่าเชื่อถือทรงกลม · การ์ดสินค้ามีโลโก้ลอยคร่อมขอบ
+   ตัวหนังสือใหญ่จางเป็นพื้นหลัง · แถบไล่สีเขียวคั่นหมวด
+   ตัดออกจากต้นฉบับ: ตะกร้าสินค้า และคำกล่าวอ้างสรรพคุณ
+   (ทั้งสองอย่างผิดกฎหมายไทย)
+   ============================================================ */
+:root{
+  --paper:#ffffff;
+  --paper-2:#f4f4ef;
+  --olive:#80a861;
+  --olive-2:#a08e3a;
+  --olive-d:#5c7a42;
+  --olive-dd:#403d0e;
+  --gold:#be9a30;
+  --gold-2:#a8841c;
+  --gold-l:#e0c15e;
+  --ink:#1e2417;
+  --ink-2:#5a6350;
+  --ink-3:#8d9483;
+  --line:#e3e3da;
+  --dark:#292908;
+  --sh:0 2px 6px rgba(30,36,23,.06), 0 20px 40px -24px rgba(30,36,23,.3);
+  --sh-2:0 4px 10px rgba(30,36,23,.08), 0 30px 60px -28px rgba(30,36,23,.42);
+  --ease:cubic-bezier(.22,.72,.24,1);
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Thai",system-ui,sans-serif;
+  --disp:"DIN Condensed","Arial Narrow","Helvetica Neue Condensed","Noto Sans Thai",var(--sans);
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#141a10; --paper-2:#101509;
+    --ink:#eef0e6; --ink-2:#b3bda6; --ink-3:#7f8a72;
+    --line:#2a331f;
+    --olive:#9cbb52; --olive-2:#aac457; --olive-d:#5d7d2f; --olive-dd:#243610;
+    --gold:#d9b448; --gold-2:#c19a2b; --gold-l:#eed79a;
+    --sh:0 2px 6px rgba(0,0,0,.4), 0 20px 40px -24px rgba(0,0,0,.9);
+    --sh-2:0 4px 10px rgba(0,0,0,.5), 0 30px 60px -28px rgba(0,0,0,.95);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#141a10; --paper-2:#101509;
+  --ink:#eef0e6; --ink-2:#b3bda6; --ink-3:#7f8a72;
+  --line:#2a331f;
+  --olive:#9cbb52; --olive-2:#aac457; --olive-d:#5d7d2f; --olive-dd:#243610;
+  --gold:#d9b448; --gold-2:#c19a2b;
+}
+:root[data-theme="light"]{
+  --paper:#ffffff; --paper-2:#f4f4ef;
+  --ink:#1e2417; --ink-2:#5a6350; --ink-3:#8d9483;
+  --line:#e3e3da;
+  --olive:#80a861; --olive-2:#a08e3a; --olive-d:#5c7a42; --olive-dd:#403d0e;
+  --gold:#be9a30; --gold-2:#a8841c;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0; background:var(--paper); color:var(--ink); overflow-x:hidden;
+  font:400 16px/1.75 var(--sans); -webkit-font-smoothing:antialiased}
+.w{max-width:1160px; margin:0 auto; padding:0 24px}
+.band{padding:clamp(56px,7.5vw,92px) 0; position:relative}
+.mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+
+/* ตัวอักษรผสมน้ำหนัก — ลายเซ็นของแนวนี้ */
+.mix{font-family:var(--disp); font-weight:700; letter-spacing:.01em}
+.mix span{font-weight:300; color:var(--ink-2)}
+
+/* ตัวหนังสือใหญ่จางเป็นพื้นหลัง */
+.ghost{position:absolute; left:50%; top:46%; transform:translate(-50%,-50%);
+  font:700 clamp(60px,14vw,168px)/1 var(--disp); letter-spacing:.02em; white-space:nowrap;
+  color:currentColor; opacity:.05; pointer-events:none; user-select:none; z-index:0}
+
+/* ---------- ด่านอายุ ---------- */
+#gate{position:fixed; inset:0; z-index:100; display:grid; place-items:center; padding:24px;
+  background:var(--dark); transition:opacity .6s var(--ease), visibility .6s}
+#gate.go{opacity:0; visibility:hidden; pointer-events:none}
+.gate-card{max-width:430px; text-align:center; color:#eef0e6}
+.gate-card h2{margin:20px 0 12px; font-size:clamp(23px,4.6vw,30px); line-height:1.34; font-weight:900; letter-spacing:-.02em}
+.gate-card h2 span{font-weight:300; color:#a9b79a}
+.gate-card p{margin:0 0 28px; color:#a9b79a; font-size:15px; line-height:1.75}
+.gate-logo{display:inline-flex; align-items:center; gap:9px; font:900 15px/1 var(--sans); letter-spacing:.24em; color:var(--gold)}
+.gate-btns{display:flex; gap:10px; justify-content:center; flex-wrap:wrap}
+
+/* ---------- ปุ่ม ---------- */
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:9px; cursor:pointer;
+  padding:15px 30px; border:none; text-decoration:none; font:800 13.5px/1 var(--sans);
+  letter-spacing:.11em; text-transform:uppercase;
+  transition:transform .2s var(--ease), background .2s, color .2s, box-shadow .2s}
+.btn.gold{background:var(--gold); color:#fff; box-shadow:0 5px 18px -6px rgba(193,154,43,.7)}
+.btn.gold:hover{transform:translateY(-2px); background:var(--gold-2)}
+.btn.line{background:transparent; color:var(--ink); border:2px solid var(--line)}
+.btn.line:hover{transform:translateY(-2px); border-color:var(--gold); color:var(--gold)}
+.btn.on-dark{color:#fff; border-color:rgba(255,255,255,.34)}
+.btn.on-dark:hover{border-color:var(--gold-l); color:var(--gold-l)}
+.btn:focus-visible{outline:2px solid var(--gold); outline-offset:3px}
+
+/* ---------- หัวเว็บ ---------- */
+.top{position:sticky; top:0; z-index:50; background:color-mix(in srgb,var(--paper) 94%,transparent);
+  backdrop-filter:blur(12px); border-bottom:1px solid var(--line)}
+.top-in{display:flex; align-items:center; gap:18px; padding:11px 0}
+.brand{display:flex; align-items:center; gap:9px; font:900 17px/1 var(--sans); letter-spacing:.16em; color:var(--ink)}
+.brand svg{width:32px; height:32px; flex-shrink:0}
+.top nav{display:flex; gap:24px; margin:0 auto; font:800 12px/1 var(--sans); letter-spacing:.11em; text-transform:uppercase}
+.top nav a{color:var(--ink-2); text-decoration:none; transition:color .2s}
+.top nav a:hover{color:var(--olive)}
+.tel{display:inline-flex; align-items:center; gap:8px; font:800 13px/1 var(--sans); color:var(--ink)}
+.tel .ic{width:30px; height:30px; border-radius:50%; background:var(--olive); display:grid; place-items:center; flex-shrink:0}
+.tel .ic svg{width:15px; height:15px; color:#fff}
+@media (max-width:900px){ .top nav{display:none} .tel span{display:none} }
+
+/* ---------- หน้าเปิด ---------- */
+.hero{position:relative; min-height:clamp(440px,62vh,580px); display:grid; align-items:center;
+  background:linear-gradient(115deg, var(--olive-dd) 0%, var(--olive-d) 48%, var(--olive) 100%);
+  overflow:hidden; color:#fff}
+.hero::after{content:""; position:absolute; inset:0;
+  background:radial-gradient(80% 100% at 12% 50%, rgba(0,0,0,.5), transparent 62%)}
+.hero .ghost{color:#fff; opacity:.07; left:auto; right:-2%; transform:translateY(-50%)}
+.arrow{position:absolute; top:50%; transform:translateY(-50%); z-index:3; width:44px; height:44px;
+  display:grid; place-items:center; color:rgba(255,255,255,.55); border:1px solid rgba(255,255,255,.28);
+  transform-origin:center; rotate:45deg; cursor:default}
+.arrow svg{width:17px; height:17px; rotate:-45deg}
+.arrow.l{left:18px} .arrow.r{right:18px}
+@media (max-width:900px){ .arrow{display:none} }
+.hero-in{position:relative; z-index:2; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,.82fr);
+  gap:34px; align-items:center; padding:56px 0}
+@media (max-width:860px){ .hero-in{grid-template-columns:1fr; text-align:center; padding:46px 0} }
+.eyebrow{font:800 12px/1 var(--sans); letter-spacing:.28em; text-transform:uppercase; color:var(--gold-l); margin-bottom:20px}
+.hero h1{margin:0; font-family:var(--disp); font-size:clamp(42px,8vw,84px); line-height:1.0; font-weight:700; letter-spacing:.005em}
+.hero h1 span{font-weight:300; color:rgba(255,255,255,.82)}
+.hero .tag{margin:18px 0 0; font:600 14px/1.6 var(--sans); letter-spacing:.13em; text-transform:uppercase; color:rgba(255,255,255,.72)}
+.hero .cta{margin-top:30px; display:flex; gap:11px; flex-wrap:wrap}
+@media (max-width:860px){ .hero .cta{justify-content:center} }
+.hero-art{position:relative; display:grid; place-items:center}
+.hero-art .halo{position:absolute; width:88%; max-width:330px; aspect-ratio:1; opacity:.16}
+.hero-art .jar{position:relative; z-index:2; width:100%; max-width:250px}
+
+/* ---------- ตราความน่าเชื่อถือ ---------- */
+.about{display:grid; grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr); gap:44px; align-items:center; position:relative; z-index:1}
+@media (max-width:880px){ .about{grid-template-columns:1fr; gap:30px} }
+.stackart{position:relative; min-height:300px}
+.stackart .sq{position:absolute; border-radius:18px; box-shadow:var(--sh)}
+.stackart .s1{width:52%; height:56%; left:0; top:2%;
+  background:linear-gradient(150deg,var(--olive-2),var(--olive-d))}
+.stackart .s2{width:60%; height:62%; left:16%; top:20%; overflow:hidden;
+  background:linear-gradient(160deg,#d9dfae,#9fb562); display:grid; place-items:center}
+.stackart .s2 svg{width:62%; height:auto}
+.stackart .badge-more{position:absolute; left:2%; bottom:6%; width:76px; height:76px; border-radius:50%;
+  background:var(--paper); box-shadow:var(--sh); display:grid; place-items:center; text-align:center;
+  font:800 10.5px/1.3 var(--sans); letter-spacing:.06em; color:var(--olive-d); z-index:3;
+  border:1px solid var(--olive); transition:transform .25s var(--ease)}
+.stackart:hover .badge-more{transform:scale(1.06)}
+.trust{display:flex; gap:16px; flex-wrap:wrap; margin-bottom:26px}
+.tbadge{width:104px; text-align:center}
+.tbadge .ring{width:78px; height:78px; margin:0 auto 9px; border-radius:50%; border:2px dashed var(--olive);
+  display:grid; place-items:center; color:var(--olive-d); background:var(--paper-2)}
+.tbadge .ring svg{width:32px; height:32px}
+.tbadge b{display:block; font:800 11px/1.4 var(--sans); letter-spacing:.05em; color:var(--ink)}
+.about h2{margin:0 0 14px; font-size:clamp(26px,4vw,40px); line-height:1.14}
+.about p{margin:0 0 14px; color:var(--ink-2); max-width:52ch; font-size:15.5px}
+
+/* ---------- แถบสินค้า ---------- */
+.prodband{background:linear-gradient(100deg, var(--olive-d), var(--olive-2)); color:#fff; overflow:hidden}
+.prodband .ghost{color:#fff; opacity:.08; top:14%}
+.prodband h2{margin:0 0 8px; text-align:center; font-size:clamp(26px,4.2vw,42px); line-height:1.15; position:relative; z-index:1}
+.prodband h2 span{color:rgba(255,255,255,.8)}
+.prodband .lede{text-align:center; color:rgba(255,255,255,.82); margin:0 auto 44px; max-width:48ch; position:relative; z-index:1; font-size:15.5px}
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(252px,1fr)); gap:22px; position:relative; z-index:1}
+.pcard{background:var(--paper); color:var(--ink); border-radius:6px; padding:52px 20px 22px;
+  position:relative; text-align:center; box-shadow:var(--sh-2);
+  transition:transform .32s var(--ease), box-shadow .32s var(--ease)}
+.pcard:hover{transform:translateY(-8px)}
+.pcard.out{opacity:.62}
+/* โลโก้ลอยคร่อมขอบบน — ลายเซ็นของแนวนี้ */
+.pcard .medal{position:absolute; left:50%; top:0; transform:translate(-50%,-50%);
+  width:56px; height:56px; border-radius:50%; background:var(--olive-d);
+  display:grid; place-items:center; box-shadow:0 6px 16px -6px rgba(0,0,0,.5); border:3px solid var(--paper)}
+.pcard .medal svg{width:26px; height:26px; color:#fff}
+.pcard .kind{font:800 10.5px/1 var(--sans); letter-spacing:.16em; text-transform:uppercase; color:var(--olive); margin-bottom:8px}
+.pcard h3{margin:0; font-family:var(--disp); font-size:22px; font-weight:700; letter-spacing:.02em; text-transform:uppercase}
+.pcard .net{margin:6px 0 0; font:600 11px/1 var(--sans); letter-spacing:.13em; text-transform:uppercase; color:var(--ink-3)}
+.pcard .from{margin:16px 0 2px; font:700 10.5px/1 var(--sans); letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3)}
+.pcard .price{font:700 34px/1 var(--disp); font-variant-numeric:tabular-nums; letter-spacing:-.035em; color:var(--ink)}
+.pcard .per{font:600 11.5px/1 var(--sans); color:var(--ink-3); margin-top:5px}
+.pcard .shotwrap{margin:16px -20px -22px; padding:14px 20px 20px; background:var(--paper-2); border-radius:0 0 6px 6px}
+/* ▼ ใส่รูปสินค้าจริงตรงนี้ — ดูคอมเมนต์ในสคริปต์ ▼ */
+.pcard .shot{aspect-ratio:1/1; display:grid; place-items:center; overflow:hidden}
+.pcard .shot img{width:100%; height:100%; object-fit:contain}
+.pcard .shot svg{width:82%; height:auto}
+.lab{display:flex; justify-content:center; gap:8px; margin-top:14px}
+.lab span{font:800 10.5px/1 var(--sans); letter-spacing:.08em; padding:7px 11px; border-radius:3px;
+  background:var(--paper-2); color:var(--ink-2)}
+.stk{position:absolute; right:12px; top:12px; font:800 10px/1 var(--sans); letter-spacing:.1em;
+  text-transform:uppercase; padding:7px 10px; border-radius:3px; background:var(--paper-2); color:var(--olive-d)}
+.stk.low{background:#fbf1dd; color:var(--gold-2)}
+.stk.out{background:#f8e5e2; color:#b1483c}
+
+/* ---------- แถบไลน์ ---------- */
+.strip{background:linear-gradient(96deg,var(--olive-d),var(--olive-2)); color:#fff;
+  border-radius:6px; padding:30px 32px; display:flex; align-items:center; gap:26px; flex-wrap:wrap;
+  justify-content:space-between; box-shadow:var(--sh)}
+.strip h3{margin:0; font-size:clamp(20px,3vw,28px); line-height:1.24; font-weight:900; letter-spacing:-.02em}
+.strip h3 span{font-weight:300; color:rgba(255,255,255,.82); display:block}
+.strip p{margin:8px 0 0; color:rgba(255,255,255,.8); font-size:14.5px; max-width:46ch}
+
+/* ---------- ติดต่อ ---------- */
+.contact{background:linear-gradient(160deg,var(--olive-dd),#0f1608); color:#fff; position:relative; overflow:hidden}
+.contact .ghost{color:#fff; opacity:.05}
+.contact-in{position:relative; z-index:1; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,.7fr); gap:40px; align-items:center}
+@media (max-width:860px){ .contact-in{grid-template-columns:1fr} }
+.contact h2{margin:0 0 8px; font-size:clamp(26px,4.2vw,42px); line-height:1.14}
+.contact h2 span{color:rgba(255,255,255,.78)}
+.contact .note{color:rgba(255,255,255,.72); margin:0 0 28px; max-width:46ch; font-size:15.5px}
+.cinfo{display:grid; gap:2px}
+.crow{display:grid; grid-template-columns:104px 1fr; gap:14px; padding:15px 0; border-bottom:1px solid rgba(255,255,255,.14)}
+.crow dt{font:800 11px/1.5 var(--sans); letter-spacing:.14em; text-transform:uppercase; color:var(--gold-l)}
+.crow dd{margin:0; font-size:15.5px; line-height:1.6}
+.crow dd small{display:block; color:rgba(255,255,255,.6); font-size:13.5px; margin-top:3px}
+.contact-art{display:grid; place-items:center}
+.contact-art svg{width:100%; max-width:230px; opacity:.95}
+
+/* ---------- ท้ายเว็บ ---------- */
+footer{background:var(--paper-2); border-top:1px solid var(--line); padding:46px 0 62px}
+.fgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:26px}
+.fgrid b{display:block; font:800 10.5px/1 var(--sans); letter-spacing:.15em; text-transform:uppercase; color:var(--ink); margin-bottom:12px}
+.fgrid div{font-size:13.5px; line-height:1.85; color:var(--ink-3)}
+.warn{margin-top:32px; padding:18px 20px; border-left:4px solid var(--gold); background:var(--paper);
+  color:var(--ink-2); font-size:13.5px; line-height:1.75}
+.warn b{color:var(--gold-2)}
+.copybar{margin-top:30px; padding-top:20px; border-top:1px solid var(--line); display:flex;
+  justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;
+  font-size:12.5px; color:var(--ink-3)}
+.pays{display:flex; gap:8px}
+.pays i{font-style:normal; font:800 10.5px/1 var(--sans); letter-spacing:.09em; padding:7px 11px;
+  border:1px solid var(--line); border-radius:3px; color:var(--ink-2)}
+
+/* ---------- การเคลื่อนไหว ---------- */
+.rise{opacity:0; transform:translateY(22px)}
+.rise.in{opacity:1; transform:none; transition:opacity .8s var(--ease), transform .8s var(--ease)}
+.rise.d1.in{transition-delay:.07s} .rise.d2.in{transition-delay:.14s} .rise.d3.in{transition-delay:.21s}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .rise{opacity:1; transform:none; transition:none}
+  .btn,.pcard{transition:none}
+}
+</style>
+</head>
+<body>
+
+
+<!-- ============ ยืนยันอายุ ============ -->
+<div id="gate" role="dialog" aria-modal="true" aria-labelledby="gateH">
+  <div class="gate-card">
+    <div class="gate-logo">
+      <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" fill="currentColor">
+        <path d="M12 2c1.6 3 1.6 5.6 0 8 -1.6-2.4-1.6-5 0-8zM4 7c3 .6 4.8 2.4 5.6 5.2C6.8 12 4.8 10.2 4 7zm16 0c-.8 3.2-2.8 5-5.6 5.2C15.2 9.4 17 7.6 20 7zM5 15c2.8-.4 4.8.6 6 3-2.6.6-4.8-.4-6-3zm14 0c-1.2 2.6-3.4 3.6-6 3 1.2-2.4 3.2-3.4 6-3zM12 13v9" stroke="currentColor" stroke-width="0"/>
+      </svg>
+      ต้นลม
+    </div>
+    <h2>คุณอายุครบ 20 ปี<br><span>แล้วหรือยัง</span></h2>
+    <p>ร้านนี้จำหน่ายกัญชาตามกฎหมายไทย ผู้ที่อายุต่ำกว่า 20 ปี สตรีมีครรภ์ และสตรีให้นมบุตร ไม่สามารถซื้อได้</p>
+    <div class="gate-btns">
+      <button class="btn gold" id="gateYes" type="button">ครบแล้ว เข้าชมร้าน</button>
+      <button class="btn line on-dark" id="gateNo" type="button">ยังไม่ครบ</button>
+    </div>
+  </div>
+</div>
+
+<header class="top">
+  <div class="w top-in">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <path d="M12 21V10M12 10c0-3 1-5.5 0-8-1 2.5 0 5 0 8zM12 13c-1.5-2.5-3.6-3.8-6.6-4.2 .6 3.2 2.6 5.2 6.6 5.6M12 13c1.5-2.5 3.6-3.8 6.6-4.2 -.6 3.2-2.6 5.2-6.6 5.6M12 18c-1.4-2-3.4-2.8-6-2.6 1 2.4 3.2 3.4 6 3M12 18c1.4-2 3.4-2.8 6-2.6 -1 2.4-3.2 3.4-6 3"/>
+      </svg>
+      ต้นลม
+    </div>
+    <nav>
+      <a href="#about">ที่มา</a>
+      <a href="#shop">ดอกวันนี้</a>
+      <a href="#visit">มาหาเรา</a>
+    </nav>
+    <span class="tel">
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5c0 8 7 15 15 15l2-3-4-2-2 2c-2-1-5-4-6-6l2-2-2-4z"/></svg></span>
+      <span>[ใส่เบอร์ร้าน]</span>
+    </span>
+  </div>
+</header>
+
+<main>
+
+<!-- ============ หน้าเปิด ============ -->
+<section class="hero">
+  <div class="ghost" aria-hidden="true">TON LOM</div>
+  <span class="arrow l" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></span>
+  <span class="arrow r" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg></span>
+  <div class="w hero-in">
+    <div>
+      <div class="eyebrow rise">ปลูกในไทย · บ่มในโหล</div>
+      <h1 class="rise d1">ดอกจากไร่<br><span>ที่เราไปดูเอง</span></h1>
+      <p class="tag rise d2">เชียงใหม่ · น่าน · แม่ฮ่องสอน</p>
+      <div class="cta rise d3">
+        <a class="btn gold" href="#shop">ดูดอกวันนี้</a>
+        <a class="btn line on-dark" href="#visit">มาหาเรา</a>
+      </div>
+    </div>
+    <div class="hero-art rise d2">
+      <svg class="halo" viewBox="0 0 200 200" aria-hidden="true">
+        <g fill="#fff">
+          <ellipse cx="100" cy="58" rx="19" ry="52"/>
+          <ellipse cx="100" cy="58" rx="19" ry="52" transform="rotate(52 100 100)"/>
+          <ellipse cx="100" cy="58" rx="19" ry="52" transform="rotate(-52 100 100)"/>
+          <ellipse cx="100" cy="70" rx="15" ry="42" transform="rotate(96 100 100)"/>
+          <ellipse cx="100" cy="70" rx="15" ry="42" transform="rotate(-96 100 100)"/>
+        </g>
+      </svg>
+      <div class="jar" id="heroJar"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ที่มา + ตราความน่าเชื่อถือ ============ -->
+<section class="band" id="about">
+  <div class="ghost" aria-hidden="true" style="color:var(--ink)">ที่มา</div>
+  <div class="w about">
+    <div class="stackart rise" aria-hidden="true">
+      <div class="sq s1"></div>
+      <div class="sq s2" id="stackJar"></div>
+      <div class="badge-more">ไปดู<br>ทุกรอบ</div>
+    </div>
+    <div>
+      <div class="trust rise d1" id="trust"></div>
+      <h2 class="mix rise d1">ปลูกกลางแจ้ง <span>บ่มไม่เร่ง</span></h2>
+      <p class="rise d2">เรารับดอกจากฟาร์มพันธมิตร 4 แห่งทางภาคเหนือ และไปดูเองทุกรอบเก็บเกี่ยว ไม่ใช่ดูจากรูปที่เขาส่งมา เพราะคุณภาพเริ่มตั้งแต่ก่อนดอกจะมาถึงโหล</p>
+      <p class="rise d2">ตากช้าที่ 18 องศา ความชื้น 60% เป็นเวลา 12–14 วัน ช้ากว่ามาตรฐานทั่วไปเกือบเท่าตัว แล้วบ่มในโหลแก้วอีก 21–30 วัน เปิดระบายทุกวันในสัปดาห์แรก — ขั้นตอนที่คนส่วนใหญ่ข้ามเพราะกินทั้งเวลาและที่เก็บ</p>
+      <p class="rise d3"><b>ทุกล็อตมีใบผลตรวจจากแล็บ</b> ระบุเลขล็อตตรงกับที่ติดบนโหล ขอดูได้ทุกเมื่อ ล็อตไหนไม่มีผลตรวจ เราไม่วางขาย</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ สินค้า ============ -->
+<section class="band prodband" id="shop">
+  <div class="ghost" aria-hidden="true">ดอกวันนี้</div>
+  <div class="w">
+    <h2 class="mix" style="color:#fff">ดอกที่อยู่บนชั้น <span>สัปดาห์นี้</span></h2>
+    <p class="lede">เปลี่ยนตามรอบเก็บเกี่ยว ไม่ได้มีทุกตัวตลอดปี · ราคาที่แสดงคือราคาเริ่มต้นต่อกรัม ซื้อ 5 กรัมขึ้นไปถูกลง สอบถามที่ร้านได้</p>
+    <div class="grid" id="grid"></div>
+  </div>
+</section>
+
+<!-- ============ แถบไลน์ ============ -->
+<section class="band" style="padding-top:0">
+  <div class="w">
+    <div class="strip rise">
+      <div>
+        <h3>อยากรู้ว่ามีตัวไหนอยู่<span>ทักไลน์ถามก่อนมาได้</span></h3>
+        <p>เราตอบว่ามีอะไรบนชั้นตอนนี้ แต่สั่งซื้อออนไลน์ไม่ได้ตามกฎหมาย ต้องมารับที่ร้านเอง</p>
+      </div>
+      <a class="btn gold" href="#" data-fill="line">ทักไลน์</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ติดต่อ ============ -->
+<section class="band contact" id="visit">
+  <div class="ghost" aria-hidden="true">มาหาเรา</div>
+  <div class="w contact-in">
+    <div>
+      <h2 class="mix rise" style="color:#fff">เข้ามาดมก่อนได้ <span>ไม่ต้องซื้อ</span></h2>
+      <p class="note rise d1">เปิดโหลให้ดมทุกตัวก่อนตัดสินใจ ถามได้เต็มที่ พนักงานทุกคนตอบได้ว่าดอกนี้มาจากฟาร์มไหน บ่มมากี่วัน</p>
+      <dl class="cinfo rise d2">
+        <div class="crow"><dt>ที่อยู่</dt><dd>[ใส่ที่อยู่ร้าน]<small>ใกล้ BTS [สถานี] ทางออก [เลข]</small></dd></div>
+        <div class="crow"><dt>เวลาเปิด</dt><dd>ทุกวัน 11:00 – 23:00<small id="openNow"></small></dd></div>
+        <div class="crow"><dt>ต้องเอามา</dt><dd>บัตรประชาชนหรือพาสปอร์ตตัวจริง<small>อายุ 20 ปีขึ้นไป ทุกคนที่เข้าร้านต้องแสดง</small></dd></div>
+        <div class="crow"><dt>ชำระเงิน</dt><dd>เงินสด และพร้อมเพย์<small>ไม่รับบัตรเครดิตและบัตรเดบิต</small></dd></div>
+        <div class="crow"><dt>ใบอนุญาต</dt><dd class="mono">[ใส่เลขที่ใบอนุญาต]</dd></div>
+      </dl>
+    </div>
+    <div class="contact-art rise d2" id="contactJar" aria-hidden="true"></div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="w">
+    <div class="fgrid">
+      <div><b>ต้นลม</b>ร้านจำหน่ายกัญชา<br>[ใส่ที่อยู่ร้าน]<br>[ใส่เบอร์ร้าน]</div>
+      <div><b>ข้อกำหนด</b>จำหน่ายเฉพาะผู้มีอายุ 20 ปีขึ้นไป<br>ต้องแสดงบัตรประชาชนหรือพาสปอร์ต</div>
+      <div><b>ห้ามจำหน่ายแก่</b>ผู้มีอายุต่ำกว่า 20 ปี<br>สตรีมีครรภ์ และสตรีให้นมบุตร</div>
+      <div><b>การสั่งซื้อ</b>จำหน่ายหน้าร้านเท่านั้น<br>ไม่รับสั่งซื้อและจัดส่งออนไลน์</div>
+    </div>
+    <div class="warn">
+      <b>คำเตือน</b> — ห้ามขับขี่ยานพาหนะหรือทำงานกับเครื่องจักรหลังการใช้ · การใช้กัญชาอาจมีผลต่อความคิดและการตัดสินใจ · ผู้มีโรคประจำตัวหรือใช้ยาประจำควรปรึกษาแพทย์ก่อน · ร้านนี้ไม่ให้คำแนะนำทางการแพทย์ และไม่กล่าวอ้างสรรพคุณในการรักษาโรคใดๆ
+    </div>
+  </div>
+    <div class="copybar">
+      <span>© 2569 ต้นลม · สงวนสิทธิ์ทุกประการ &nbsp;|&nbsp; นโยบายความเป็นส่วนตัว &nbsp;|&nbsp; เงื่อนไขการใช้งาน</span>
+      <span class="pays"><i>เงินสด</i><i>พร้อมเพย์</i></span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var NS='http://www.w3.org/2000/svg';
+  function el(n,a){ var e=document.createElementNS(NS,n); for(var k in a) e.setAttribute(k,a[k]); return e; }
+  function rng(s){ return function(){ s=(s*16807)%2147483647; return s/2147483647; }; }
+
+  /* ============================================================
+     ▼ ใส่รูปสินค้าจริงตรงนี้ ▼
+     ใส่ที่อยู่รูปในช่อง photo ของแต่ละสายพันธุ์ เช่น
+       photo:'images/mae-rim-haze.jpg'
+     ถ้าเว้นว่าง จะใช้ภาพวาดโหลแทนอัตโนมัติ
+     แนวนี้ (Cannas Reserve) ใช้รูปสินค้าตัดพื้นหลังออก วางบนพื้นสว่าง
+     ถ่ายดอกบนพื้นขาว แล้วลบพื้นหลัง จะเข้ากับหน้านี้ที่สุด
+     ============================================================ */
+  var STRAINS=[
+    {seed:7,  kind:'ซาติวา', name:'Mae Rim Haze',      photo:'', thc:21.4, cbd:0.4, p1:380, stock:'in',
+     tones:['#7fd07f','#4ea85c','#a6e0a0']},
+    {seed:31, kind:'อินดิกา', name:'Nan Valley Kush',   photo:'', thc:18.9, cbd:1.2, p1:350, stock:'low',
+     tones:['#5d9b6b','#3d7a4e','#7fb98a']},
+    {seed:47, kind:'อินดิกา', name:'Doi Saket Sunset',  photo:'', thc:20.2, cbd:0.6, p1:320, stock:'in',
+     tones:['#6b8f7a','#47705c','#94b8a2']},
+    {seed:59, kind:'ผสม',    name:'Chiang Dao Lime',   photo:'', thc:14.2, cbd:4.8, p1:250, stock:'in',
+     tones:['#9ada6d','#6fb84a','#c0e88f']},
+    {seed:97, kind:'CBD สูง', name:'Pai Morning',       photo:'', thc:6.1,  cbd:11.3,p1:180, stock:'in',
+     tones:['#8fcfae','#5aa87f','#b6e3c6']},
+    {seed:71, kind:'ซาติวา', name:'Samoeng Funk',      photo:'', thc:22.8, cbd:0.3, p1:380, stock:'out',
+     tones:['#86cf72','#59a84c','#aee096']}
+  ];
+
+  /* ---------- ภาพวาดโหลดอก ---------- */
+  function bud(seed,tones,noJar){
+    var r=rng(seed), svg=el('svg',{viewBox:'0 0 120 156','aria-hidden':'true'}), g=el('g',{});
+    if(!noJar){
+      g.appendChild(el('rect',{x:'33',y:'18',width:'54',height:'11',rx:'3',fill:'#2b3a1c'}));
+      g.appendChild(el('path',{d:'M37 29 q-7 5 -7 18 v68 q0 12 12 12 h36 q12 0 12 -12 v-68 q0 -13 -7 -18',
+        fill:'rgba(255,255,255,.5)',stroke:'#2b3a1c','stroke-width':'2.4','stroke-linejoin':'round'}));
+    }
+    g.appendChild(el('path',{d:'M60 118 L60 78',stroke:tones[1],'stroke-width':'3.2','stroke-linecap':'round',fill:'none'}));
+    var rows=7, topY=42, botY=110, P=[];
+    for(var i=0;i<rows;i++){
+      var t=i/(rows-1), y=botY-t*(botY-topY), spread=(1-t)*23+5, per=i===rows-1?1:(i%2===0?3:2);
+      for(var j=0;j<per;j++){
+        var cx=60+(per===1?0:((j-(per-1)/2)*(spread/(per*0.5))))+(r()-0.5)*5;
+        P.push({cx:cx,cy:y+(r()-0.5)*4,rx:8.6-t*3.6+r()*2.1,ry:10.6-t*4.2+r()*2.1,
+                rot:(cx-60)*0.7+(r()-0.5)*12,tone:tones[(i+j)%tones.length]});
+      }
+    }
+    P.sort(function(a,b){return b.cy-a.cy;});
+    P.forEach(function(p){ g.appendChild(el('ellipse',{cx:p.cx.toFixed(1),cy:p.cy.toFixed(1),
+      rx:p.rx.toFixed(1),ry:p.ry.toFixed(1),fill:p.tone,
+      transform:'rotate('+p.rot.toFixed(1)+' '+p.cx.toFixed(1)+' '+p.cy.toFixed(1)+')'})); });
+    for(var k=0;k<11;k++){
+      var t2=r(), yy=botY-t2*(botY-topY), xx=60+(r()-0.5)*((1-t2)*23+11);
+      var dx=(xx-60)*0.18+(r()-0.5)*8, dy=-6-r()*7;
+      g.appendChild(el('path',{d:'M'+xx.toFixed(1)+' '+yy.toFixed(1)+' q'+(dx*0.4).toFixed(1)+' '+(dy*0.6).toFixed(1)+' '+dx.toFixed(1)+' '+dy.toFixed(1),
+        stroke:'#d08a3a','stroke-width':'1.7','stroke-linecap':'round',fill:'none',opacity:(.55+r()*.4).toFixed(2)}));
+    }
+    svg.appendChild(g); return svg;
+  }
+
+  var hj=document.getElementById('heroJar');
+  if(hj) hj.appendChild(bud(20260721,['#8fd98a','#57ab5e','#b6e8ad']));
+  var sj=document.getElementById('stackJar');
+  if(sj) sj.appendChild(bud(4242,['#e9f2c9','#c3dd8e','#f3f8e2'],true));
+  var cj=document.getElementById('contactJar');
+  if(cj) cj.appendChild(bud(9090,['#9ad48f','#5fa85f','#c2e8b4']));
+
+  /* ---------- ตราความน่าเชื่อถือ ---------- */
+  var BADGES=[
+    {t:'ปลูกในไทย', d:'M12 21V9M12 9c-3-1-5-3.4-5.4-6.6C9.8 2.8 12 5 12 9zm0 0c3-1 5-3.4 5.4-6.6C14.2 2.8 12 5 12 9zM12 15c-2.4-1.6-5-1.8-7.4-.6C6.2 17 9 17.4 12 15zm0 0c2.4-1.6 5-1.8 7.4-.6C17.8 17 15 17.4 12 15z'},
+    {t:'ผลแล็บทุกล็อต', d:'M9 3h6M10 3v6.5L5.5 18a2.5 2.5 0 002.2 3.5h8.6A2.5 2.5 0 0018.5 18L14 9.5V3M7.5 15h9'},
+    {t:'บ่ม 21–30 วัน', d:'M12 21a8 8 0 100-16 8 8 0 000 16zM12 9v4l2.5 2M9 2h6'}
+  ];
+  var tw=document.getElementById('trust');
+  if(tw) BADGES.forEach(function(b){
+    var d=document.createElement('div'); d.className='tbadge';
+    d.innerHTML='<div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" '+
+      'stroke-linecap="round" stroke-linejoin="round"><path d="'+b.d+'"/></svg></div><b>'+b.t+'</b>';
+    tw.appendChild(d);
+  });
+
+  /* ---------- การ์ดสินค้า ---------- */
+  var STOCK={in:{c:'',t:'มีของ'}, low:{c:'low',t:'เหลือน้อย'}, out:{c:'out',t:'หมดชั่วคราว'}};
+  var grid=document.getElementById('grid');
+  STRAINS.slice().sort(function(a,b){ return (a.stock==='out'?1:0)-(b.stock==='out'?1:0); })
+  .forEach(function(s,i){
+    var st=STOCK[s.stock];
+    var c=document.createElement('article');
+    c.className='pcard rise'+(s.stock==='out'?' out':'')+(i%3===1?' d1':i%3===2?' d2':'');
+    var shot = s.photo
+      ? '<img src="'+s.photo+'" alt="ดอก '+s.name+'">'
+      : '';
+    c.innerHTML=
+      '<div class="medal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">'+
+      '<path d="M12 21V10M12 10c0-3 1-5.5 0-8-1 2.5 0 5 0 8zM12 13c-1.5-2.5-3.6-3.8-6.6-4.2 .6 3.2 2.6 5.2 6.6 5.6M12 13c1.5-2.5 3.6-3.8 6.6-4.2 -.6 3.2-2.6 5.2-6.6 5.6"/></svg></div>'+
+      '<span class="stk '+st.c+'">'+st.t+'</span>'+
+      '<div class="kind">'+s.kind+'</div>'+
+      '<h3>'+s.name+'</h3>'+
+      '<div class="net">ดอกแห้ง · บ่มในโหล</div>'+
+      '<div class="lab"><span>THC '+s.thc.toFixed(1)+'%</span><span>CBD '+s.cbd.toFixed(1)+'%</span></div>'+
+      (s.stock==='out'
+        ? '<div class="from" style="margin-top:18px">สถานะ</div><div class="price" style="font-size:19px">ล็อตใหม่กำลังบ่ม</div>'
+        : '<div class="from">ราคาเริ่มต้น</div><div class="price">฿'+s.p1.toLocaleString()+'</div><div class="per">ต่อกรัม · ซื้อ 5 กรัมขึ้นไปถูกลง</div>')+
+      '<div class="shotwrap"><div class="shot">'+shot+'</div></div>';
+    if(!s.photo) c.querySelector('.shot').appendChild(bud(s.seed,s.tones));
+    grid.appendChild(c);
+  });
+
+  /* ---------- เปิด/ปิด ---------- */
+  var now=new Date(), h=now.getHours()+now.getMinutes()/60, o=document.getElementById('openNow');
+  if(o) o.textContent = (h>=11&&h<23) ? 'ตอนนี้เปิดอยู่' : (h<11 ? 'ตอนนี้ปิด — เปิด 11:00' : 'ปิดแล้ววันนี้ — พรุ่งนี้ 11:00');
+
+  /* ---------- ด่านอายุ ---------- */
+  var gate=document.getElementById('gate'), KEY='tonlom.age';
+  var seen=false; try{ seen=sessionStorage.getItem(KEY)==='1'; }catch(e){}
+  if(seen) gate.style.display='none';
+  document.getElementById('gateYes').addEventListener('click',function(){
+    gate.classList.add('go');
+    try{ sessionStorage.setItem(KEY,'1'); }catch(e){}
+    setTimeout(function(){ gate.style.display='none'; }, reduce?0:600);
+  });
+  document.getElementById('gateNo').addEventListener('click',function(){
+    gate.querySelector('.gate-card').innerHTML=
+      '<div class="gate-logo">ต้นลม</div><h2 style="margin-top:20px">ขอบคุณ<span> ที่แวะมา</span></h2>'+
+      '<p style="margin-bottom:0">ร้านนี้จำหน่ายเฉพาะผู้ที่มีอายุ 20 ปีขึ้นไปตามกฎหมายไทย ไว้เจอกันใหม่ครับ</p>';
+  });
+
+  /* ---------- เผยเนื้อหาตอนเลื่อน ---------- */
+  var items=[].slice.call(document.querySelectorAll('.rise'));
+  if(reduce || !('IntersectionObserver' in window)){ items.forEach(function(e){ e.classList.add('in'); }); }
+  else {
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+    },{rootMargin:'0px 0px -8% 0px',threshold:0.06});
+    items.forEach(function(e){ io.observe(e); });
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gloss — วิธีใช้ทุกฟังก์ชัน</title>
+<meta name="description" content="คู่มือ Gloss ฉบับเข้าใจง่าย: อ่านภาษาอังกฤษบนจอเป็นภาษาไทย ทั้ง Windows และ Mac — ทุกปุ่ม ทุกฟังก์ชัน อธิบายทีละอย่าง" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%96%3C/text%3E%3C/svg%3E" />
+<!-- Emoji come from a web font, never from whatever the device happens to ship: the same 🔊 renders
+     as a flat outline on one Mac and a blue speaker on another, and a manual that shows a different
+     icon than the app is a manual that is wrong. -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" />
+<style>
+  :root {
+    --ground:#f6f7f9; --panel:#ffffff; --ink:#181b21; --ink-soft:#565c66; --ink-faint:#8b919c;
+    --line:#e6e9ee; --line-soft:#eff1f4; --accent:#0b9bd4; --accent-ink:#07698f;
+    --shadow:0 1px 2px rgba(20,22,28,.04), 0 10px 30px rgba(20,22,28,.06);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --ground:#0b0d11; --panel:#14171d; --ink:#eef0f3; --ink-soft:#a4abb6; --ink-faint:#6b7280;
+      --line:#242832; --line-soft:#1b1e25; --accent:#52c4ec; --accent-ink:#8fd8f4;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 34px rgba(0,0,0,.4); }
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--ground); color:var(--ink);
+    font-family:"Sarabun","Noto Sans Thai",-apple-system,BlinkMacSystemFont,system-ui,sans-serif,"Noto Color Emoji";
+    line-height:1.75; -webkit-font-smoothing:antialiased; }
+  .page{ max-width:780px; margin:0 auto; padding:0 24px 96px; }
+
+  .top{ padding:26px 0 8px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .top a{ color:var(--accent); text-decoration:none; font-weight:600; font-size:14px; }
+  h1{ font-size:clamp(28px,5vw,40px); line-height:1.25; margin:18px 0 8px; letter-spacing:-.01em; }
+  .sub{ color:var(--ink-soft); margin:0 0 8px; font-size:17px; }
+  .pair{ display:inline-block; margin:6px 0 30px; padding:5px 12px; border-radius:999px;
+    border:1px solid var(--line); background:var(--panel); font-size:13px; color:var(--ink-soft); }
+
+  nav.toc{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px 20px; margin:0 0 38px; box-shadow:var(--shadow); }
+  nav.toc p{ margin:0 0 8px; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); font-weight:700; }
+  nav.toc ol{ margin:0; padding-left:20px; }
+  nav.toc li{ margin:3px 0; }
+  nav.toc a{ color:var(--ink); text-decoration:none; }
+  nav.toc a:hover{ color:var(--accent); }
+
+  section{ margin:0 0 46px; scroll-margin-top:20px; }
+  h2{ font-size:22px; margin:0 0 6px; letter-spacing:-.01em; }
+  h2 .num{ color:var(--accent); font-weight:800; margin-right:8px; }
+  h3{ font-size:16px; margin:26px 0 6px; }
+  p{ margin:8px 0; }
+  .lead{ color:var(--ink-soft); margin:0 0 18px; }
+  .why{ color:var(--ink-soft); font-size:15px; }
+
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px 20px; margin:14px 0; box-shadow:var(--shadow); }
+  .card h3{ margin:0 0 4px; }
+
+  kbd{ font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:13px; background:var(--line-soft);
+    border:1px solid var(--line); border-bottom-width:2px; border-radius:6px; padding:2px 7px; white-space:nowrap; }
+  .btn-ic{ font-family:"Noto Color Emoji","Sarabun",system-ui,sans-serif; display:inline-flex; align-items:center; justify-content:center; min-width:26px; height:26px;
+    border-radius:7px; background:var(--line-soft); border:1px solid var(--line); font-size:14px; }
+
+  table{ width:100%; border-collapse:collapse; margin:14px 0; font-size:15px; }
+  th,td{ text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th{ font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint); }
+  td:first-child{ white-space:nowrap; }
+  .scroll{ overflow-x:auto; }
+
+  .note{ border-left:3px solid var(--accent); background:var(--line-soft); border-radius:0 10px 10px 0;
+    padding:12px 16px; margin:16px 0; font-size:15px; }
+  .warn{ border-left-color:#e0a03a; }
+
+  ul{ margin:8px 0; padding-left:22px; }
+  li{ margin:5px 0; }
+  .foot{ border-top:1px solid var(--line); margin-top:50px; padding-top:22px; color:var(--ink-faint); font-size:14px; }
+  .foot a{ color:var(--accent); text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="top">
+    <a href="./">← กลับหน้าแรก</a>
+    <span style="color:var(--ink-faint);font-size:13px">คู่มือฉบับเต็ม</span>
+  </div>
+
+  <h1>Gloss ใช้ยังไง</h1>
+  <p class="sub">อ่านภาษาอังกฤษที่อยู่บนจอ ให้เป็นภาษาไทย — ในเกม ในไฟล์ PDF ในวิดีโอ ในโปรแกรมที่ก๊อปข้อความไม่ได้ · ใช้ได้ทั้ง <b>Windows และ Mac</b></p>
+  <span class="pair">English → ไทย</span>
+
+  <nav class="toc">
+    <p>ในหน้านี้</p>
+    <ol>
+      <li><a href="#start">เริ่มใช้ครั้งแรก — 3 ขั้น</a></li>
+      <li><a href="#ways">4 วิธีให้ Gloss อ่านข้อความ</a></li>
+      <li><a href="#card">ปุ่มบนการ์ดคำแปล</a></li>
+      <li><a href="#hover">ชี้คำ — ดูความหมายทีละคำ</a></li>
+      <li><a href="#learn">หน้าต่าง Learn — คลังคำของคุณ</a></li>
+      <li><a href="#keys">ปุ่มลัดทั้งหมด</a></li>
+      <li><a href="#settings">ตั้งค่าที่ควรรู้</a></li>
+      <li><a href="#ai">การ์ด AI · แพลน · ราคา</a></li>
+      <li><a href="#trouble">เจอปัญหา ทำยังไง</a></li>
+    </ol>
+  </nav>
+
+  <section id="start">
+    <h2><span class="num">1</span>เริ่มใช้ครั้งแรก — 3 ขั้น</h2>
+    <p class="lead">ใช้เวลาไม่ถึง 2 นาที ทำครั้งเดียวจบ</p>
+
+    <div class="card">
+      <h3>ขั้นที่ 1 — เปิดแอป</h3>
+      <p><b>Windows:</b> เปิดไฟล์ <code>Gloss-win.exe</code> ที่โหลดมา → ติดตั้ง → เปิดจาก Start menu · ครั้งแรก Windows อาจขึ้น “Windows protected your PC” ให้กด <b>More info → Run anyway</b> (เพราะแอปยังไม่ได้ซื้อใบรับรอง ไม่ใช่เพราะมีอะไรผิดปกติ)</p>
+      <p><b>Mac:</b> เปิดไฟล์ <code>.dmg</code> → ลาก Gloss ไปไว้ในโฟลเดอร์ <b>Applications</b> → เปิด · ครั้งแรกอาจต้องไปที่ <b>System Settings → Privacy &amp; Security → Open Anyway</b></p>
+      <p>ทั้งสองแบบ พอเปิดแล้วจะเห็น <b>แคปซูลเล็กๆ ลอยอยู่ที่มุมจอ</b> — นั่นคือตัวแอป มันลอยอยู่เหนือทุกอย่าง รวมถึงเกมแบบเต็มจอ</p>
+    </div>
+
+    <div class="card">
+      <h3>ขั้นที่ 2 — อนุญาตให้อ่านหน้าจอ <small style="opacity:.6">(เฉพาะ Mac)</small></h3>
+      <p><b>บน Windows ข้ามข้อนี้ไปเลย</b> — ไม่ต้องตั้งสิทธิ์อะไรทั้งนั้น เปิดแล้วใช้ได้ทันที (ครั้งแรก Windows อาจเตือนว่าไม่รู้จักผู้พัฒนา กด <b>More info → Run anyway</b> ครั้งเดียวจบ)</p>
+      <p><b>บน macOS:</b> ระบบจะถามหาสิทธิ์ <b>Screen Recording</b> — Gloss ต้องใช้เพื่อ “มองเห็น” ข้อความบนจอ · ไม่ได้อัดวิดีโอ ไม่ได้ส่งภาพหน้าจอไปไหน</p>
+      <div class="note warn"><b>ระวังจุดที่คนพลาดบ่อยที่สุด:</b> macOS มีสองหน้าที่หน้าตาคล้ายกัน — <b>Accessibility</b> (คีย์ลัด) กับ <b>Screen &amp; System Audio Recording</b> (อ่านหน้าจอ) · จุดแดงที่เขียนว่า “Screen off” หมายถึง<b>อันหลัง</b> · กดปุ่มในแอปให้มันพาไป จะไม่ไปผิดหน้า<br /><br />ถ้าติ๊กแล้วยังไม่ติด: รายการนั้นผูกกับเวอร์ชันเก่า ให้<b>ปิดสวิตช์แล้วเปิดใหม่</b> แล้วกด <b>เปิด Gloss ใหม่</b> ในแอป</div>
+    </div>
+
+    <div class="card">
+      <h3>ขั้นที่ 3 — ลองลากดู</h3>
+      <p>กดค้าง <kbd>⌃</kbd> <kbd>⌥</kbd> แล้วลากกรอบคลุมข้อความอังกฤษที่ไหนก็ได้บนจอ · ปล่อยมือ — คำแปลไทยจะเด้งขึ้นตรงนั้นเลย</p>
+    </div>
+  </section>
+
+  <section id="ways">
+    <h2><span class="num">2</span>4 วิธีให้ Gloss อ่านข้อความ</h2>
+    <p class="lead">เลือกใช้ตามสถานการณ์ ไม่ต้องจำทั้งหมด — วิธีแรกวิธีเดียวก็ใช้ได้แล้ว 90%</p>
+
+    <div class="card">
+      <h3>① ลากกรอบ (Snip) — <kbd>Ctrl+Alt</kbd> ค้างแล้วลาก <small style="opacity:.6">(Mac: <kbd>⌃⌥</kbd>)</small></h3>
+      <p>วิธีหลัก ใช้ได้กับทุกอย่างบนจอ: บทสนทนาในเกม, ป้ายในภาพ, PDF ที่ก๊อปไม่ได้, ปุ่มในโปรแกรม</p>
+      <p class="why">ตั้งค่าได้ 2 แบบใน Settings — <b>กดค้างแล้วลาก</b> (ปล่อยแล้วแปลทันที) หรือ <b>กดปุ่มก่อนแล้วค่อยลาก</b> (มือว่างทั้งสองข้าง เล็งง่ายกว่า)</p>
+    </div>
+
+    <div class="card">
+      <h3>② พิมพ์เอง (Type) — <kbd>Alt+T</kbd></h3>
+      <p>รู้คำแล้วอยากรู้แปล พิมพ์ลงไปตรงๆ ไม่ต้องลากอะไร · เหมาะกับคำที่เห็นในหนังสือหรือได้ยินมา</p>
+    </div>
+
+    <div class="card">
+      <h3>③ พูดใส่ไมค์ (Speak) — <kbd>Alt+M</kbd></h3>
+      <p>พูดประโยคอังกฤษที่ได้ยินมา แล้วให้แปลเป็นไทย · ต้องอนุญาตไมโครโฟนครั้งแรก</p>
+    </div>
+
+    <div class="card">
+      <h3>④ ซับไตเติลสด (CC) — <kbd>Alt+C</kbd></h3>
+      <p>ใช้กับสิ่งที่ <b>ข้อความเปลี่ยนไปเรื่อยๆ</b> เช่นบทสนทนายาวๆ ในเกม หรือซับในวิดีโอ</p>
+      <p>วิธีใช้: กด <b>“Choose subtitle area…”</b> ใน Settings ครั้งเดียว → ลากกรอบคลุมบริเวณที่ข้อความจะโผล่ → จากนั้นทุกครั้งที่ข้อความในกรอบนั้นเปลี่ยน Gloss จะแปลให้อัตโนมัติ</p>
+      <p class="why">ตั้งกรอบครั้งเดียวต่อ 1 เกม · เปิด-ปิด CC ทีหลังไม่ต้องตั้งใหม่ · ปรับความถี่ในการอ่านได้ที่ “CC speed”</p>
+    </div>
+  </section>
+
+  <section id="card">
+    <h2><span class="num">3</span>ปุ่มบนการ์ดคำแปล</h2>
+    <p class="lead">พอคำแปลขึ้นมาแล้ว มุมขวาบนของการ์ดมีปุ่มเล็กๆ อยู่</p>
+    <div class="scroll">
+      <table>
+        <tr><th>ปุ่ม</th><th>ทำอะไร</th><th>ใช้ตอนไหน</th></tr>
+        <tr><td><span class="btn-ic">✦</span></td><td>ให้ AI เขียนการ์ดแบบละเอียด</td><td>อยากได้คำอ่าน · ความหมายลึก · รูปคำอื่นๆ · ประโยคตัวอย่าง</td></tr>
+        <tr><td><span class="btn-ic">☆</span></td><td>เก็บคำนี้เข้าคลัง</td><td>เจอคำที่อยากจำ — ไปทวนทีหลังในหน้าต่าง Learn</td></tr>
+        <tr><td><span class="btn-ic">🔊</span></td><td>อ่านออกเสียง</td><td>อยากรู้ว่าออกเสียงยังไง</td></tr>
+        <tr><td><span class="btn-ic">⚑</span></td><td>บอกว่าอันนี้อ่านผิด</td><td>อ่านเพี้ยนหรือแปลมั่ว — กดแล้วส่งถึงเราเลย ไม่ต้องเขียนอะไร</td></tr>
+        <tr><td><span class="btn-ic">✕</span></td><td>ปิดการ์ด</td><td>หรือกด <kbd>Ctrl+Shift+X</kbd> (Mac: <kbd>⌘⇧X</kbd>)</td></tr>
+      </table>
+    </div>
+    <div class="note">การ์ดจะ<b>ไม่หายเอง</b> — มันอยู่จนกว่าคุณจะปิดหรือแปลอันใหม่ · ตั้งใจให้เป็นแบบนี้ จะได้อ่านทันโดยไม่ต้องรีบ</div>
+  </section>
+
+  <section id="hover">
+    <h2><span class="num">4</span>ชี้คำ — ดูความหมายทีละคำ</h2>
+    <p class="lead">ฟีเจอร์ที่ตัวแปลทั่วไปไม่มี</p>
+    <p>กด <kbd>Alt+G</kbd> เพื่อเปิดโหมดชี้คำ แล้วเอาเมาส์ไปวางบนคำอังกฤษคำไหนก็ได้บนจอ — ความหมายของ<b>คำนั้นคำเดียว</b>จะเด้งขึ้นมา</p>
+    <ul>
+      <li>ใช้พจนานุกรม <b>77,000 คำ ที่อยู่ในเครื่อง</b> — ไม่ต้องต่อเน็ต ไม่กินโควตา AI</li>
+      <li>เจอคำที่อยากเก็บ กด <kbd>Alt+K</kbd> เก็บเข้าคลังได้ทันที ไม่ต้องละสายตา</li>
+      <li>กด <kbd>Alt+G</kbd> อีกครั้งเพื่อปิดโหมด</li>
+    </ul>
+    <p class="why">ต่างจากการแปลทั้งประโยคตรงที่: ประโยคบอกว่า “รวมๆ แปลว่าอะไร” แต่การชี้คำบอกว่า “คำนี้แปลว่าอะไร” — อันหลังคือสิ่งที่ทำให้จำได้</p>
+  </section>
+
+  <section id="learn">
+    <h2><span class="num">5</span>หน้าต่าง Learn — คลังคำของคุณ</h2>
+    <p class="lead">กดไอคอนหมวกบัณฑิตบนแคปซูล เพื่อเปิดหน้าต่างใหญ่</p>
+    <div class="scroll">
+      <table>
+        <tr><th>หน้า</th><th>มีอะไร</th></tr>
+        <tr><td><b>Today</b></td><td>วันนี้เจอคำอะไรมาบ้าง มีอะไรถึงเวลาทวน</td></tr>
+        <tr><td><b>Learn</b></td><td>ทวนคำแบบ SRS — ระบบเลือกคำที่คุณกำลังจะลืมมาให้ทวนพอดี</td></tr>
+        <tr><td><b>Words</b></td><td>คำทั้งหมดที่เคยเก็บ ค้นหาได้ พร้อมประโยคที่เจอคำนั้นครั้งแรก</td></tr>
+        <tr><td><b>Calendar</b></td><td>ปฏิทินย้อนดูว่าเดือนไหนเก็บคำได้กี่คำ</td></tr>
+        <tr><td><b>Insights</b></td><td>ภาพรวม — รู้กี่คำแล้ว เก่งขึ้นแค่ไหน</td></tr>
+        <tr><td><b>Guide</b></td><td>คู่มือย่อในตัวแอป</td></tr>
+        <tr><td><b>Plan</b></td><td>แพลนที่ใช้อยู่ · ซื้อ Pro · หรือใส่ Claude key ของตัวเอง</td></tr>
+      </table>
+    </div>
+    <div class="note">คำที่เก็บอยู่ในเครื่องคุณ ไม่ได้อยู่บนคลาวด์ของใคร</div>
+  </section>
+
+  <section id="keys">
+    <h2><span class="num">6</span>ปุ่มลัดทั้งหมด</h2>
+    <p class="lead">เปลี่ยนได้ทุกปุ่มที่ Settings › Shortcuts — กดที่ปุ่มแล้วกดคีย์ใหม่ที่อยากได้</p>
+
+    <div class="scroll">
+      <table>
+        <tr><th>Windows</th><th>Mac</th><th>ทำอะไร</th></tr>
+        <tr><td><kbd>Ctrl+Alt</kbd> ค้าง</td><td><kbd>⌃⌥</kbd> ค้าง</td><td>ลากกรอบแปล (วิธีหลัก)</td></tr>
+        <tr><td><kbd>Alt+T</kbd></td><td><kbd>⌥T</kbd></td><td>พิมพ์คำเพื่อแปล</td></tr>
+        <tr><td><kbd>Alt+M</kbd></td><td><kbd>⌥M</kbd></td><td>พูดใส่ไมค์</td></tr>
+        <tr><td><kbd>Alt+C</kbd></td><td><kbd>⌥C</kbd></td><td>เปิด/ปิดซับไตเติลสด</td></tr>
+        <tr><td><kbd>Alt+G</kbd></td><td><kbd>⌥G</kbd></td><td>เปิด/ปิดโหมดชี้คำ</td></tr>
+        <tr><td><kbd>Alt+K</kbd></td><td><kbd>⌥K</kbd></td><td>เก็บคำที่กำลังชี้อยู่</td></tr>
+        <tr><td><kbd>Ctrl+Shift+X</kbd></td><td><kbd>⌘⇧X</kbd></td><td>ปิดการ์ด</td></tr>
+        <tr><td><kbd>Ctrl+Shift+L</kbd></td><td><kbd>⌘⇧L</kbd></td><td>ล็อกแคปซูล — คลิกทะลุไปที่เกม</td></tr>
+        <tr><td><kbd>Ctrl+Shift+↑ / ↓</kbd></td><td><kbd>⌘⇧↑ / ↓</kbd></td><td>ขยาย / ย่อตัวอักษรบนการ์ด</td></tr>
+        <tr><td><kbd>Ctrl+Shift+D</kbd></td><td><kbd>⌘⇧D</kbd></td><td>ย้ายไปจออีกตัว</td></tr>
+        <tr><td>ปุ่มเฟืองบนแคปซูล</td><td><kbd>⌘,</kbd></td><td>เปิด Settings</td></tr>
+      </table>
+    </div>
+  
+  </section>
+
+  <section id="settings">
+    <h2><span class="num">7</span>ตั้งค่าที่ควรรู้</h2>
+    <p class="lead">เปิดด้วยไอคอนเฟืองบนแคปซูล (Mac กด <kbd>⌘,</kbd> ก็ได้) — มี 4 แท็บ</p>
+
+    <div class="card">
+      <h3>Gameplay</h3>
+      <p>ภาษา (อังกฤษ → ไทย) · ตั้งกรอบซับไตเติล · ความเร็ว CC · ระดับเสียงอ่านออกเสียง</p>
+    </div>
+    <div class="card">
+      <h3>Display</h3>
+      <p>ขนาดการ์ด · หน้าตาแคปซูล (ชัด/จาง/โปร่ง/อยู่หลังหน้าต่างอื่น) · <b>ซ่อนจากการอัดจอ</b> — เปิดไว้แล้วแคปซูลจะไม่ติดในคลิปที่คุณอัดหรือสตรีม</p>
+    </div>
+    <div class="card">
+      <h3>Controls</h3>
+      <p>ปุ่มลัดทั้งหมด · โหมดลากกรอบ (กดค้าง หรือ กดก่อนลาก) · เปิดแอปอัตโนมัติตอนเปิดเครื่อง</p>
+    </div>
+    <div class="card">
+      <h3>System</h3>
+      <p>แจ้งปัญหา · แพลนและไลเซนส์ · ภาษาของตัวแอป · รีเซ็ตค่าทั้งหมด</p>
+    </div>
+  </section>
+
+  <section id="ai">
+    <h2><span class="num">8</span>การ์ด AI · แพลน · ราคา</h2>
+
+    <div class="note"><b>ซื้อครั้งเดียว ใช้ตลอดชีวิต ไม่มีค่ารายเดือน</b> — จ่ายรอบเดียวได้ทุกอย่างในคู่มือนี้ ไม่มีอะไรถูกล็อกไว้ขายทีหลัง</div>
+
+    <div class="scroll">
+      <table>
+        <tr><th>ราคา</th><th>ได้อะไร</th></tr>
+        <tr><td><b>฿149</b><br /><small>จ่ายครั้งเดียว · เติม 500 ใบ ฿149 เท่าเดิมเสมอ</small></td><td>ลิงก์ดาวน์โหลด + <b>การ์ด AI 500 ใบ</b> ไม่มีวันหมดอายุ · แปล / OCR / ชี้คำ / ซับสด / คลังคำ / SRS <b>ไม่จำกัดตลอดชีวิต</b></td></tr>
+        <tr><td><b>คีย์ตัวเอง</b><br /><small>รวมอยู่แล้ว</small></td><td>ใส่ Claude key ของคุณเอง = การ์ด AI <b>ไม่จำกัด</b> จ่าย Anthropic ตามที่ใช้จริง ไม่ผ่านเรา</td></tr>
+      </table>
+    </div>
+
+    <p><b>การ์ด AI คืออะไร:</b> ปุ่ม <span class="btn-ic">✦</span> บนการ์ด — ให้ Claude เขียนคำอ่าน ความหมายลึก รูปคำอื่นๆ และประโยคตัวอย่างให้ · <b>การแปลธรรมดาไม่นับใบ</b> ใช้ได้ไม่จำกัด</p>
+
+    <p><b>ใบหมดแล้วเป็นยังไง?</b> การแปลปกติยังทำงานเหมือนเดิมทุกอย่าง — หยุดแค่ปุ่ม ✦ เท่านั้น · คำที่เคยเปิดการ์ดไปแล้วไม่เสียใบซ้ำ · และใส่ Claude key ของตัวเองแทนได้ตลอด</p>
+  </section>
+
+  <section id="trouble">
+    <h2><span class="num">9</span>เจอปัญหา ทำยังไง</h2>
+
+    <div class="card">
+      <h3>จุดแดง + ขึ้นว่า “Screen off” <small style="opacity:.6">(Mac เท่านั้น)</small></h3>
+      <p>macOS ยังไม่ให้สิทธิ์อ่านหน้าจอ · กดปุ่มในแอป → เปิด System Settings → ติ๊ก Gloss → <b>กลับมากด “Reopen Gloss”</b> (macOS บังคับให้เปิดแอปใหม่เสมอ)</p>
+    </div>
+
+    <div class="card warn-card">
+      <h3>เคยติ๊กแล้ว แต่ยังไม่ทำงาน <small style="opacity:.6">(Mac เท่านั้น)</small></h3>
+      <p>ถ้ารายการ Gloss ในลิสต์ยังเขียวอยู่ ให้ <b>ปิดแล้วเปิดใหม่</b> — เวอร์ชันใหม่ของแอปต้องทำแบบนี้ครั้งหนึ่ง แม้สวิตช์จะดูเปิดอยู่แล้วก็ตาม</p>
+    </div>
+
+    <div class="card">
+      <h3>อ่านออกมาเพี้ยน</h3>
+      <p>ลากกรอบให้ใหญ่ขึ้นอีกนิด หรือให้ชิดขอบข้อความน้อยลง · ถ้ายังเพี้ยนอีก กด <span class="btn-ic">⚑</span> บนการ์ด — เราจะเห็นว่ามันอ่านอะไรผิด</p>
+    </div>
+
+    <div class="card">
+      <h3>แคปซูลบังเกม</h3>
+      <p>กด <kbd>Ctrl+Shift+L</kbd> (Mac: <kbd>⌘⇧L</kbd>) ล็อกไว้ — คลิกจะทะลุไปที่เกมทั้งหมด · หรือเปลี่ยนหน้าตาแคปซูลเป็นแบบจาง/โปร่ง ใน Settings › Display</p>
+    </div>
+  </section>
+
+  <p class="foot">
+    ยังติดอยู่? กด <b>Settings › System › Report a problem</b> ในแอปแล้วเขียนมาได้เลย — แนบไปแค่เวอร์ชันแอป ระบบปฏิบัติการ และคู่ภาษา ไม่มีอย่างอื่น<br />
+    <a href="./">← กลับหน้าแรก Gloss</a>
+  </p>
+
+</div>
+</body>
+</html>

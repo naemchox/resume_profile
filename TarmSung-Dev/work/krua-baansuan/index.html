@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="th" class="no-js">
+<head>
+<meta charset="utf-8">
+<!-- คืนตำแหน่งที่อ่านค้างไว้เอง ไม่รอเบราว์เซอร์ (ที่มา: work/_JANK-REFRESH.md)
+     Safari คืนตำแหน่ง scroll หลังอีเวนต์ load เท่านั้น — วัดแล้ว DCL/load ยังอยู่ที่ y=0
+     ทั้งคู่ คนที่รีเฟรชกลางหน้าจึงเห็น "ฮีโร่แวบ" ตั้งแต่เฟรมแรกจนกว่าไฟล์สุดท้ายจะโหลดจบ
+     (เน็ตช้า = ค้างนานเป็นวินาที) สคริปต์นี้เก็บตำแหน่งไว้เองใน sessionStorage แล้ววาง
+     กลับตั้งแต่เฟรมแรกที่ความสูงหน้าพอ — เร็วกว่ารอ load หลายเท่าและไม่ต้องรอรูป
+     หยุดทันทีถ้าผู้ใช้ขยับเอง (wheel/touch/key/pointer) จะได้ไม่แย่งมือกับคนอ่าน -->
+<script>
+(function () {
+  try {
+    if (!("scrollRestoration" in history)) return;
+    history.scrollRestoration = "manual";
+    var key = "ts:y:" + location.pathname;
+    var want = parseInt(sessionStorage.getItem(key) || "0", 10) || 0;
+    var timer = 0;
+    var save = function () { try { sessionStorage.setItem(key, String(Math.round(window.scrollY))); } catch (e) {} };
+    addEventListener("scroll", function () {
+      if (timer) return;
+      timer = setTimeout(function () { timer = 0; save(); }, 200);
+    }, { passive: true });
+    addEventListener("pagehide", save);
+    /* แถบเมนูต้องไม่ "โผล่" ตอนหน้าเปิดมากลางหน้าอยู่แล้ว (jek 25/8/26 · the-bed)
+       แถบมีสองชั้นที่ไล่เข้าเอง — พื้นทึบบน .nav-shell::before (opacity 300ms) กับเส้นทอง
+       บน border-color (400ms) — พอคืนตำแหน่ง scroll ปุ๊บ สคริปต์แถบเมนูใส่คลาส scrolled
+       ทั้งสองชั้นจึงไล่ให้เห็นทุกครั้งที่รีเฟรช ทั้งที่ผู้ใช้ไม่ได้เลื่อนอะไรเลย
+       ระหว่างช่วงคืนตำแหน่ง จึงปิดทรานซิชันของหัวเว็บไว้ = แถบอยู่ในสถานะสุดท้ายตั้งแต่
+       เฟรมแรก · เปิดคืนทันทีที่ผู้ใช้ขยับเอง (หรืออย่างช้า 900ms) การเลื่อนของจริงจึงยังลื่น */
+    if (want) {
+      var root = document.documentElement;
+      root.className += " nav-instant";
+      var st = document.createElement("style");
+      st.textContent = "html.nav-instant .nav-shell,html.nav-instant .nav-shell::before," +
+        "html.nav-instant .site-header,html.nav-instant header,html.nav-instant header > *," +
+        "html.nav-instant header > * > *{transition:none !important}";
+      (document.head || document.documentElement).appendChild(st);
+      var unlock = function () { root.className = root.className.replace(/\s*nav-instant/, ""); };
+      ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+        addEventListener(ev, unlock, { passive: true, once: true });
+      });
+      setTimeout(unlock, 900);
+    }
+    if (!want || location.hash) return;
+    var stop = false;
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+      addEventListener(ev, function () { stop = true; }, { passive: true, once: true });
+    });
+    var t0 = (performance.now ? performance.now() : 0);
+    var now = function () { return performance.now ? performance.now() : t0; };
+    var done = false;
+    var put = function () {
+      if (stop || done) return true;
+      var el = document.scrollingElement || document.documentElement;
+      if (!el || el.scrollHeight - window.innerHeight < want) return false;   /* หน้ายังสูงไม่พอ ค่อยลองใหม่ */
+      if (Math.round(window.scrollY) !== want) {
+        var prev = el.style.scrollBehavior;      /* html { scroll-behavior: smooth } จะทำให้การวางกลับกลายเป็นการไถ */
+        el.style.scrollBehavior = "auto";
+        window.scrollTo(0, want);
+        el.style.scrollBehavior = prev;
+      }
+      done = Math.round(window.scrollY) === want;
+      /* ใส่สถานะ "เลื่อนแล้ว" ให้หัวเว็บทันทีในจังหวะเดียวกับที่คืนตำแหน่ง — ไม่ต้องรอสคริปต์
+         ของหน้ามันเองซึ่งอยู่ท้าย <body> (วัดแล้วช้ากว่ากันราว 20ms = เห็นแถบเปล่าได้ 1 เฟรม)
+         เกณฑ์คนละค่าเพราะแต่ละที่ตั้งไว้ไม่เท่ากัน: .site-header > 8px · .nav-shell > 40px
+         (ดู js/main.js กับสคริปต์ท้ายหน้าเดโม) สคริปต์ของหน้าจะคำนวณซ้ำเองอยู่แล้ว ค่าจึงตรงกัน */
+      if (done) {
+        var mark = function (sel, cls, min) {
+          if (want <= min) return;
+          var n = document.querySelectorAll(sel);
+          for (var i = 0; i < n.length; i++) n[i].classList.add(cls);
+        };
+        /* หัวเว็บของแต่ละใบใช้คนละคลาสคนละเกณฑ์ (ของเดิมเป็นแบบนั้นมาก่อนแล้ว):
+           .site-header.scrolled >8px (เว็บเรา) · .nav-shell.scrolled >40px (the-bed)
+           .site-header.stuck (the-terrace ใช้ sentinel ไม่ใช่ตัวเลข — 80px คือค่าประมาณ)
+           header.small >120px (homecraft/lumen/glow-clinic ผ่าน js/nav-response.js)
+           เดาพลาดไม่เป็นไร สคริปต์ของหน้าคำนวณทับให้ในเฟรมถัดไป และช่วงนี้ทรานซิชันถูกปิดอยู่
+           การแก้จึงเป็นการสลับทันที ไม่ใช่การไล่สีให้เห็น */
+        mark(".site-header", "scrolled", 8);
+        mark(".nav-shell", "scrolled", 40);
+        mark(".site-header, header[data-header]", "stuck", 80);
+        mark("header, .site-header", "small", 120);
+      }
+      return done;
+    };
+    /* ลองทุกทางที่มาถึงก่อน: setTimeout(0) มักได้ก่อนเฟรมแรกด้วยซ้ำ · rAF ทำงานก่อนวาด
+       · readystatechange/DOMContentLoaded คือจุดที่ body ครบแล้วแน่ๆ
+       เหตุที่ไม่พอถ้าใช้ rAF อย่างเดียว: วัดแล้วบางหน้า (หน้าแรกของเว็บเรา) เฟรมแรก
+       มาก่อนที่ความสูงจะพอ ทำให้เลื่อนไม่ได้ แล้วต้องรอ rAF รอบถัดไป = เห็นหัวเว็บ 1 เฟรม */
+    /* สองสายแยกกัน สายละหนึ่งนัด — ถ้าให้สายเดียวนัดทั้ง setTimeout และ rAF
+       จำนวนนัดจะเพิ่มเป็นสองเท่าทุกรอบ (2^n) ภายในไม่กี่ร้อยมิลลิวินาที */
+    var tick = function () { if (put() || stop) return; if (now() - t0 < 3000) setTimeout(tick, 0); };
+    var frame = function () { if (put() || stop) return; if (now() - t0 < 3000) requestAnimationFrame(frame); };
+    tick();
+    frame();
+    document.addEventListener("readystatechange", put);
+    addEventListener("DOMContentLoaded", put);
+    addEventListener("load", put);
+  } catch (e) {}
+})();
+</script>
+  <!-- เดโมสาธิต ไม่ใช่ธุรกิจจริง: ห้ามให้เสิร์ชเอนจินเก็บเข้าดัชนี ไม่งั้นจะมีหน้า
+       ที่ดูเหมือนร้านจริง (มีชื่อ ราคา เบอร์โทร) ลอยอยู่บน Google ในชื่อโดเมนของเรา -->
+  <meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ครัวบ้านสวน — อาหารไทยรสบ้าน เอกมัย ซอย xx</title>
+  <link rel="canonical" href="https://tarmsung.pages.dev/work/krua-baansuan/">
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Restaurant",
+  "name": "ครัวบ้านสวน",
+  "description": "ร้านอาหารไทยรสบ้าน เปิดทุกวัน 10:00–22:00 วัตถุดิบซื้อสดทุกเช้า จองโต๊ะล่วงหน้าได้ทางโทรศัพท์และไลน์",
+  "url": "https://tarmsung.pages.dev/work/krua-baansuan/",
+  "inLanguage": "th",
+  "image": "https://tarmsung.pages.dev/assets/work/krua-baansuan.webp"
+}
+  </script>
+  <!-- การ์ดพรีวิวตอนวางลิงก์ในแชท (22/8/26): ส่งลิงก์เฉยๆ แล้ว LINE/เฟซบุ๊กจะขึ้นรูป
+       ให้เอง ไม่ต้องแนบภาพหรือคลิปเพิ่ม รูปที่ใช้คือปกเดียวกับที่โชว์ในพอร์ต -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="ครัวบ้านสวน — อาหารไทยรสบ้าน เอกมัย ซอย xx">
+  <meta property="og:description" content="ร้านอาหารไทยรสบ้าน เปิดทุกวัน 10:00–22:00 วัตถุดิบซื้อสดทุกเช้า จองโต๊ะล่วงหน้าได้ทางโทรศัพท์และไลน์">
+  <meta property="og:image" content="https://tarmsung.pages.dev/assets/work/krua-baansuan.webp">
+  <meta name="twitter:card" content="summary_large_image">
+<meta name="description" content="ร้านอาหารไทยรสบ้าน เปิดทุกวัน 10:00–22:00 วัตถุดิบซื้อสดทุกเช้า จองโต๊ะล่วงหน้าได้ทางโทรศัพท์และไลน์">
+<script>document.documentElement.classList.replace("no-js","js");</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- preload ฟอนต์หัวเรื่อง (Chonburi) — คู่กับ display=optional ข้างล่าง
+     optional เฉยๆ แปลว่าคนที่เข้าครั้งแรกได้ฟอนต์สำรองทั้งหน้า preload ทำให้ไฟล์
+     มาทันช่วงต้นเกือบทุกครั้ง · มีสองไฟล์เพราะ Google เสิร์ฟ Chrome กับ Safari คนละตัว
+     (เติมอัตโนมัติด้วย playbook/fix-font-flash.mjs) -->
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/chonburi/v14/8AtqGs-wOpGRTBq66LWJHLzriA.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/chonburi/v14/8AtqGs-wOpGRTBq66LWdHLw.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/chonburi/v14/8AtqGs-wOpGRTBq66LWJHLz5ixfYPzM.woff2" />
+<link href="https://fonts.googleapis.com/css2?family=Chonburi&family=Anuphan:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600&display=optional" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/booking.css">
+</head>
+<body>
+<!-- ไอคอนชุดเดียวของหน้านี้ (สร้างด้วย playbook/make-icons.mjs) -->
+<svg class="sr-only" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0"><defs>
+  <symbol id="i-icon1" viewBox="0 0 220 10"><path pathLength="1" d="M2 6c26-5 52-5 78 0s52 5 78 0 40-4 60 1" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-icon2" viewBox="0 0 60 46"><path d="M18 42c0-9 6-9 6-18s-6-9-6-18" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M30 44c0-10 6-10 6-20s-6-10-6-20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M42 42c0-9 6-9 6-18s-6-9-6-18" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol>
+  <symbol id="i-icon3" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18.4" stroke-width="1.5"/><circle cx="20" cy="20" r="15.2" stroke-width=".7"/><path d="M11.6 19.4h16.8a8.4 8.4 0 0 1-8.4 8.4 8.4 8.4 0 0 1-8.4-8.4Z" stroke-width="1.5"/><path d="M10.8 28.6h18.4" stroke-width="1.5"/><path d="M16.6 16.6c0-1.5 1.3-1.7 1.3-3.2s-1.3-1.8-1.3-1.8" stroke-width="1.3"/><path d="M22.2 16.6c0-1.5 1.3-1.7 1.3-3.2s-1.3-1.8-1.3-1.8" stroke-width="1.3"/></symbol>
+</defs></svg>
+<a class="skip" href="#main">ข้ามไปเนื้อหา</a>
+<div class="read-bar" aria-hidden="true"><span data-read-bar></span></div>
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a class="brand" href="#top">
+      <span class="mark" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-icon3"/></svg></span>
+      <span>ครัวบ้านสวน<small>BAAN SUAN KITCHEN</small></span>
+    </a>
+    <nav class="nav-links" aria-label="เมนูหลัก">
+      <a href="#menu">เมนู</a>
+      <a href="#catering">จัดเลี้ยง</a>
+      <a href="#story">ร้านของเรา</a>
+      <a href="#visit">แวะมาหาเรา</a>
+    </nav>
+    <a class="nav-slip" href="#order-slip" data-slip-jump hidden>
+      <span class="nav-slip-n" data-slip-count>0</span> จาน · <b data-slip-mini>฿0</b>
+    </a>
+    <a class="btn btn--primary btn--sm nav-cta" href="tel:">จองโต๊ะ</a>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero on-photo" aria-labelledby="hero-title" id="top">
+    <img class="hero-photo" src="img/hero.jpg" alt="สำรับกับข้าวไทยวางเต็มโต๊ะไม้" width="1400" height="933" fetchpriority="high">
+    <div class="wrap hero-copy">
+      <p class="ornament reveal" aria-hidden="true"><span></span>ตั้งแต่ พ.ศ. 2551<span></span></p>
+      <span class="eyebrow reveal">อาหารไทยรสบ้าน · เอกมัย ซอย xx</span>
+      <h1 id="hero-title" class="reveal d1"><span class="nb">กับข้าวร้อนๆ</span><br><span class="nb">เหมือนที่บ้านทำ</span></h1>
+      <p class="lead reveal d2">ครัวเปิดทุกวัน 10:00–22:00 วัตถุดิบซื้อสดจากตลาดทุกเช้า ไม่ใช้ผงชูรส</p>
+      <div class="hero-cta reveal d3">
+        <a class="btn btn--primary" href="tel:">จองโต๊ะ · 081-xxx-xxxx</a>
+        <a class="btn btn--ghost" href="#menu">ดูเมนูทั้งหมด</a>
+      </div>
+      <p class="chips reveal d3">
+        <span><span class="star" aria-hidden="true">★</span> <span class="num" data-count="4.9" data-dec="1">4.9</span> จาก <span class="num" data-count="1240">1,240</span> รีวิว</span>
+        <span>ส่ง GrabFood</span>
+        <span>ที่จอดรถฟรี</span>
+      </p>
+    </div>
+  </section>
+
+  <section class="section" id="menu" aria-labelledby="menu-title">
+    <div class="wrap">
+      <div class="section-head section-head--split reveal">
+        <p class="kicker">เมนูแนะนำ</p>
+        <h2 id="menu-title"><span class="w"><span>จานที่ลูกค้าสั่งซ้ำมากที่สุด</span></span></h2>
+        <svg class="rule" viewBox="0 0 220 10" fill="none" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+        <p>ทุกจานปรุงสดหลังรับออเดอร์ เผ็ดน้อย-เผ็ดมาก สั่งได้ตามชอบ</p>
+      </div>
+      <!-- ตู้โชว์หน้าร้าน: เลื่อนดูแนวนอนแบบเดินผ่านหน้าร้านแล้วชี้เอา ไม่ใช่การ์ด 3 ใบต่อแถว
+           ซึ่งเป็นทรงที่เดโมทุกหน้าของเราใช้เหมือนกันหมด (ดู playbook/audit-sameness.mjs)
+           และแต่ละจานกดเก็บใส่ใบออเดอร์ได้จากตรงนี้เลย ไม่ต้องเลื่อนไปหาในเมนูเต็ม -->
+      <div class="rail">
+        <article class="rail-dish reveal">
+          <span class="steam" aria-hidden="true"><svg viewBox="0 0 60 46" fill="none" focusable="false"><use href="#i-icon2"/></svg></span>
+          <span class="rail-shot"><img src="img/dish-1.jpg" alt="ผัดไทยกุ้งสดในจานขาว" width="760" height="507" loading="lazy"></span>
+          <div class="rail-body">
+            <h3>ผัดไทยกุ้งสด</h3>
+            <p>เส้นจันท์ผัดไฟแรง กุ้งแม่น้ำตัวโต</p>
+            <p class="rail-foot"><b>฿180</b>
+              <button class="pick" type="button" data-dish="ผัดไทยกุ้งสด" data-price="180" aria-label="เก็บ ผัดไทยกุ้งสด ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></p>
+          </div>
+        </article>
+        <article class="rail-dish reveal">
+          <span class="steam" aria-hidden="true"><svg viewBox="0 0 60 46" fill="none" focusable="false"><use href="#i-icon2"/></svg></span>
+          <span class="rail-shot"><img src="img/dish-2.jpg" alt="ต้มยำกุ้งน้ำข้นในชามร้อน" width="760" height="507" loading="lazy"></span>
+          <div class="rail-body">
+            <h3>ต้มยำกุ้งน้ำข้น</h3>
+            <p>เข้มข้นด้วยมันกุ้ง เปรี้ยวจากมะนาวสด</p>
+            <p class="rail-foot"><b>฿220</b>
+              <button class="pick" type="button" data-dish="ต้มยำกุ้งน้ำข้น" data-price="220" aria-label="เก็บ ต้มยำกุ้งน้ำข้น ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></p>
+          </div>
+        </article>
+        <article class="rail-dish reveal">
+          <span class="steam" aria-hidden="true"><svg viewBox="0 0 60 46" fill="none" focusable="false"><use href="#i-icon2"/></svg></span>
+          <span class="rail-shot"><img src="img/dish-3.jpg" alt="สลัดไก่ย่างจัดใส่ชาม" width="760" height="507" loading="lazy"></span>
+          <div class="rail-body">
+            <h3>ยำสลัดไก่ย่าง</h3>
+            <p>ผักสดกรอบ น้ำยำสูตรคุณยาย</p>
+            <p class="rail-foot"><b>฿150</b>
+              <button class="pick" type="button" data-dish="ยำสลัดไก่ย่าง" data-price="150" aria-label="เก็บ ยำสลัดไก่ย่าง ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- เมนูเต็ม: ก่อนหน้านี้หน้านี้โชว์แค่ 3 จานแนะนำ แล้วจบ — คนที่กำลังเลือกร้าน
+       ถามต่อทันทีว่า "มีอะไรกินอีกบ้าง ราคาประมาณไหน" แล้วไม่มีคำตอบบนหน้า
+       ไม่ใช้รูปเพิ่มสักใบ: ป้ายเมนูจริงของร้านแบบนี้ก็เป็นตัวหนังสือกับราคาเหมือนกัน -->
+  <section class="section section--tint" id="menu-full" aria-labelledby="menu-full-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">เมนูทั้งหมด</p>
+        <h2 id="menu-full-title"><span class="w"><span>ยาวหน่อย</span></span> <span class="w"><span>เพราะครัวเราทำเองทุกจาน</span></span></h2>
+        <p>ราคาต่อจาน · เผ็ดน้อย-เผ็ดมากสั่งได้ · ไม่ใส่ผงชูรส บอกล่วงหน้าได้ถ้าแพ้อะไร</p>
+      </div>
+      <div class="menu-grid">
+          <div class="menu-col reveal">
+            <h3>ผัด · ไฟแรง</h3>
+            <ul class="menu-list">
+              <li><span>ผัดไทยกุ้งสด</span><b>฿180</b><button class="pick" type="button" data-dish="ผัดไทยกุ้งสด" data-price="180" aria-label="เก็บ ผัดไทยกุ้งสด ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+              <li><span>ผัดกะเพราหมูสับไข่ดาว</span><b>฿90</b><button class="pick" type="button" data-dish="ผัดกะเพราหมูสับไข่ดาว" data-price="90" aria-label="เก็บ ผัดกะเพราหมูสับไข่ดาว ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+              <li><span>ผัดซีอิ๊วหมู</span><b>฿85</b><button class="pick" type="button" data-dish="ผัดซีอิ๊วหมู" data-price="85" aria-label="เก็บ ผัดซีอิ๊วหมู ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+              <li><span>ผัดพริกแกงหมูกรอบ</span><b>฿120</b><button class="pick" type="button" data-dish="ผัดพริกแกงหมูกรอบ" data-price="120" aria-label="เก็บ ผัดพริกแกงหมูกรอบ ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+            </ul>
+          </div>
+          <div class="menu-col reveal">
+            <h3>แกง · หม้อร้อน</h3>
+            <ul class="menu-list">
+              <li><span>ต้มยำกุ้งน้ำข้น</span><b>฿220</b><button class="pick" type="button" data-dish="ต้มยำกุ้งน้ำข้น" data-price="220" aria-label="เก็บ ต้มยำกุ้งน้ำข้น ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+              <li><span>แกงเขียวหวานไก่</span><b>฿130</b><button class="pick" type="button" data-dish="แกงเขียวหวานไก่" data-price="130" aria-label="เก็บ แกงเขียวหวานไก่ ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+              <li><span>ต้มข่าไก่</span><b>฿120</b><button class="pick" type="button" data-dish="ต้มข่าไก่" data-price="120" aria-label="เก็บ ต้มข่าไก่ ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+              <li><span>แกงส้มชะอมกุ้ง</span><b>฿160</b><button class="pick" type="button" data-dish="แกงส้มชะอมกุ้ง" data-price="160" aria-label="เก็บ แกงส้มชะอมกุ้ง ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+            </ul>
+          </div>
+          <div class="menu-col reveal">
+            <h3>ยำ · จานเย็น</h3>
+            <ul class="menu-list">
+              <li><span>ยำสลัดไก่ย่าง</span><b>฿150</b><button class="pick" type="button" data-dish="ยำสลัดไก่ย่าง" data-price="150" aria-label="เก็บ ยำสลัดไก่ย่าง ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+              <li><span>ส้มตำไทยกุ้งสด</span><b>฿140</b><button class="pick" type="button" data-dish="ส้มตำไทยกุ้งสด" data-price="140" aria-label="เก็บ ส้มตำไทยกุ้งสด ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+              <li><span>ลาบหมูอีสาน</span><b>฿110</b><button class="pick" type="button" data-dish="ลาบหมูอีสาน" data-price="110" aria-label="เก็บ ลาบหมูอีสาน ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+              <li><span>ยำวุ้นเส้นทะเล</span><b>฿170</b><button class="pick" type="button" data-dish="ยำวุ้นเส้นทะเล" data-price="170" aria-label="เก็บ ยำวุ้นเส้นทะเล ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+            </ul>
+          </div>
+          <div class="menu-col reveal">
+            <h3>ของทอด · กับข้าว</h3>
+            <ul class="menu-list">
+              <li><span>ปลาทับทิมทอดน้ำปลา</span><b>฿320</b><button class="pick" type="button" data-dish="ปลาทับทิมทอดน้ำปลา" data-price="320" aria-label="เก็บ ปลาทับทิมทอดน้ำปลา ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+              <li><span>ไข่เจียวหมูสับ</span><b>฿70</b><button class="pick" type="button" data-dish="ไข่เจียวหมูสับ" data-price="70" aria-label="เก็บ ไข่เจียวหมูสับ ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+              <li><span>หมูกรอบคั่วพริกเกลือ</span><b>฿150</b><button class="pick" type="button" data-dish="หมูกรอบคั่วพริกเกลือ" data-price="150" aria-label="เก็บ หมูกรอบคั่วพริกเกลือ ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+              <li><span>ปีกไก่ทอดน้ำปลา</span><b>฿120</b><button class="pick" type="button" data-dish="ปีกไก่ทอดน้ำปลา" data-price="120" aria-label="เก็บ ปีกไก่ทอดน้ำปลา ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+            </ul>
+          </div>
+          <div class="menu-col reveal">
+            <h3>ข้าว · เส้น</h3>
+            <ul class="menu-list">
+              <li><span>ข้าวสวยหอมมะลิ</span><b>฿15</b><button class="pick" type="button" data-dish="ข้าวสวยหอมมะลิ" data-price="15" aria-label="เก็บ ข้าวสวยหอมมะลิ ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+              <li><span>ข้าวผัดปู</span><b>฿190</b><button class="pick" type="button" data-dish="ข้าวผัดปู" data-price="190" aria-label="เก็บ ข้าวผัดปู ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+              <li><span>ข้าวคลุกกะปิ</span><b>฿120</b><button class="pick" type="button" data-dish="ข้าวคลุกกะปิ" data-price="120" aria-label="เก็บ ข้าวคลุกกะปิ ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+              <li><span>ก๋วยเตี๋ยวเรือหมู</span><b>฿70</b><button class="pick" type="button" data-dish="ก๋วยเตี๋ยวเรือหมู" data-price="70" aria-label="เก็บ ก๋วยเตี๋ยวเรือหมู ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+            </ul>
+          </div>
+          <div class="menu-col reveal">
+            <h3>ของหวาน · เครื่องดื่ม</h3>
+            <ul class="menu-list">
+              <li><span>ข้าวเหนียวมะม่วง (ตามฤดู)</span><b>฿120</b><button class="pick" type="button" data-dish="ข้าวเหนียวมะม่วง (ตามฤดู)" data-price="120" aria-label="เก็บ ข้าวเหนียวมะม่วง (ตามฤดู) ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+              <li><span>ทับทิมกรอบ</span><b>฿60</b><button class="pick" type="button" data-dish="ทับทิมกรอบ" data-price="60" aria-label="เก็บ ทับทิมกรอบ ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+              <li><span>ชาไทยเย็น</span><b>฿45</b><button class="pick" type="button" data-dish="ชาไทยเย็น" data-price="45" aria-label="เก็บ ชาไทยเย็น ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+              <li><span>น้ำมะพร้าวสด</span><b>฿55</b><button class="pick" type="button" data-dish="น้ำมะพร้าวสด" data-price="55" aria-label="เก็บ น้ำมะพร้าวสด ใส่ออเดอร์"><span aria-hidden="true">+</span> เก็บ</button></li>
+            </ul>
+          </div>
+          </div>
+      <p class="menu-note reveal">ราคาอาจเปลี่ยนตามวัตถุดิบตามฤดู — ถามก่อนสั่งได้ที่ 081-xxx-xxxx</p>
+    </div>
+  </section>
+
+
+  <!-- ใบออเดอร์ — ส่วนที่ทำให้หน้านี้ "ใช้งานได้" ไม่ใช่แค่ "อ่านได้"
+       21/8/26: เดโมของเราทุกหน้าเป็นกระดาษที่เลื่อนดูอย่างเดียว ปุ่มมีแค่โทรกับไลน์ ต่างจาก
+       velvet-leaf ที่กดเก็บของใส่ลิสต์ได้จริง — ซึ่งเป็นเหตุผลข้อใหญ่ที่สุดที่หน้านั้นไม่เคยถูก
+       มองว่าเป็นหน้าเดียวกับหน้าอื่น ร้านอาหารสั่งกลับบ้านทางไลน์อยู่แล้ว การให้ลูกค้า
+       กดเลือกจานแล้วได้ข้อความออเดอร์พร้อมส่ง คือของที่ร้านจริงได้ใช้ ไม่ใช่ลูกเล่น
+       ตัวเลขทุกตัวมาจากราคาบนหน้านี้เอง สคริปต์แค่บวก ไม่ได้ตั้งราคาใหม่ -->
+  <section class="section" id="order-slip" aria-labelledby="slip-title">
+    <div class="wrap">
+      <div class="section-head section-head--center reveal">
+        <p class="kicker">ออเดอร์ของคุณ</p>
+        <h2 id="slip-title"><span class="w"><span>กดเลือกจานข้างบน</span></span> <span class="w"><span>แล้วส่งให้ครัวได้เลย</span></span></h2>
+        <p>ไม่ต้องกรอกฟอร์ม ไม่ต้องสมัครอะไร — เลือกเสร็จกดปุ่มเดียวแล้วข้อความออเดอร์จะไปโผล่ในแชทไลน์ให้พร้อมส่ง</p>
+      </div>
+      <div class="slip reveal" data-slip>
+        <div class="slip-head">
+          <b>ครัวบ้านสวน</b>
+          <span>ใบออเดอร์ · ราคารวมยังไม่รวมค่าส่ง</span>
+        </div>
+        <ul class="slip-list" data-slip-list></ul>
+        <p class="slip-empty" data-slip-empty>ยังไม่ได้เลือกจานไหน — กดปุ่ม “เก็บ” ที่เมนูข้างบนได้เลย เปลี่ยนใจกดออกได้ตลอด</p>
+        <p class="slip-total"><span>รวมทั้งหมด</span><b data-slip-total>฿0</b></p>
+        <div class="hero-cta">
+          <a class="btn btn--primary" data-slip-line href="https://line.me/R/ti/p/@baansuan.demo">ส่งออเดอร์ทางไลน์</a>
+          <a class="btn btn--ghost" href="tel:">โทรสั่ง 081-xxx-xxxx</a>
+        </div>
+        <p class="slip-note">ครัวเริ่มทำเมื่อใกล้เวลาที่นัด — บอกเวลามารับตอนส่งข้อความได้เลย</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- รับจัดเลี้ยง: คำถามที่ร้านแบบนี้โดนถามทางโทรศัพท์ทุกสัปดาห์ และเป็นออเดอร์
+       ที่ใหญ่ที่สุดของร้าน แต่ไม่เคยมีที่อยู่บนหน้าเว็บเลย -->
+  <!-- ชุดสั่งรวม: เมนูรายจานตอบ "มีอะไรกิน" แล้ว แต่คนที่มากันสามสี่คนยังต้อง
+       นั่งบวกเองว่าสั่งอะไรถึงจะพอดีและเท่าไหร่ ชุดพวกนี้คือคำตอบสำเร็จรูป -->
+  <section class="section" id="sets" aria-labelledby="sets-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">สั่งเป็นชุด</p>
+        <h2 id="sets-title"><span class="w"><span>มากันกี่คน</span></span> <span class="w"><span>เราจัดชุดไว้ให้แล้ว</span></span></h2>
+        <p>ชุดถูกกว่าสั่งแยกจานประมาณ 15% · สลับเมนูในชุดได้ตามใจ ราคาเท่าเดิมถ้าอยู่ในหมวดเดียวกัน</p>
+      </div>
+      <div class="menu-grid">
+        <div class="menu-col reveal">
+          <h3>ชุดคู่ · 2 ท่าน <span class="set-price">฿390</span></h3>
+          <ul class="menu-list">
+            <li><span>ต้มยำกุ้งน้ำข้น (หม้อเล็ก)</span><b>1</b></li>
+            <li><span>ผัดกะเพราหมูสับไข่ดาว</span><b>1</b></li>
+            <li><span>ยำมะม่วงปลาทูทอด</span><b>1</b></li>
+            <li><span>ข้าวสวยหอมมะลิ</span><b>2</b></li>
+            <li><span>น้ำสมุนไพรวันนี้</span><b>2</b></li>
+          </ul>
+        </div>
+        <div class="menu-col reveal d1">
+          <h3>ชุดครอบครัว · 4 ท่าน <span class="set-price">฿790</span></h3>
+          <ul class="menu-list">
+            <li><span>แกงส้มชะอมกุ้ง</span><b>1</b></li>
+            <li><span>ปลาทับทิมนึ่งมะนาว</span><b>1</b></li>
+            <li><span>ผัดพริกแกงหมูกรอบ</span><b>1</b></li>
+            <li><span>ผัดผักบุ้งไฟแดง</span><b>1</b></li>
+            <li><span>ไข่เจียวหมูสับ</span><b>1</b></li>
+            <li><span>ข้าวสวย + ของหวานตามฤดูกาล</span><b>4</b></li>
+          </ul>
+        </div>
+        <div class="menu-col reveal d2">
+          <h3>ชุดโต๊ะใหญ่ · 8 ท่าน <span class="set-price">฿1,590</span></h3>
+          <ul class="menu-list">
+            <li><span>ต้มยำกุ้งน้ำข้น (หม้อใหญ่)</span><b>1</b></li>
+            <li><span>ปลาทับทิมทอดน้ำปลา</span><b>1</b></li>
+            <li><span>แกงเขียวหวานไก่ + โรตี</span><b>1</b></li>
+            <li><span>หมูกรอบคั่วพริกเกลือ</span><b>1</b></li>
+            <li><span>ผัดไทยกุ้งสด</span><b>1</b></li>
+            <li><span>ยำวุ้นเส้นทะเล</span><b>1</b></li>
+            <li><span>ผัดผักรวมน้ำมันหอย</span><b>1</b></li>
+            <li><span>ข้าวสวย + ของหวาน + น้ำสมุนไพร</span><b>8</b></li>
+          </ul>
+        </div>
+      </div>
+      <p class="menu-note reveal">สั่งชุดกลับบ้านได้ทุกชุด ครัวแยกน้ำแกงกับข้าวให้ ไม่แฉะ · แจ้งล่วงหน้า 40 นาทีสำหรับชุดโต๊ะใหญ่</p>
+    </div>
+  </section>
+
+  <section class="section" id="catering" aria-labelledby="catering-title">
+    <div class="wrap">
+      <div class="section-head section-head--split reveal">
+        <p class="kicker">จัดเลี้ยง · สั่งล่วงหน้า</p>
+        <h2 id="catering-title"><span class="w"><span>งานบ้าน</span></span> <span class="w"><span>งานบุญ</span></span> <span class="w"><span>งานเลี้ยงบริษัท</span></span></h2>
+        <p>สั่งล่วงหน้าได้ทั้งแบบมารับเองและจัดโต๊ะให้ที่บ้าน ครัวเดิม คนทำเดิม</p>
+      </div>
+      <!-- ใบเสนอราคาย่อ 3 ใบ ไม่ใช่ steps 3 ขั้น — งานจัดเลี้ยงลูกค้าถามเรื่องเดียวคือ
+           "กี่คน ต้องบอกล่วงหน้ากี่วัน หัวละเท่าไหร่" จึงเป็นใบราคา ไม่ใช่ลำดับขั้นตอน
+           ทรงกระดาษเส้นประเดียวกับใบออเดอร์ = ลายเซ็นเดียวกันทั้งหน้า -->
+      <div class="tiers">
+        <article class="tier reveal">
+          <p class="tier-head">10–20 คน</p>
+          <p class="tier-price"><b>฿180</b><span>/ ท่าน</span></p>
+          <ul class="tier-list">
+            <li><span>สั่งล่วงหน้า</span><b>1 วัน</b></li>
+            <li><span>การรับของ</span><b>มารับเองที่ร้าน</b></li>
+          </ul>
+        </article>
+        <article class="tier reveal d1">
+          <p class="tier-head">20–50 คน</p>
+          <p class="tier-price"><b>฿220</b><span>/ ท่าน</span></p>
+          <ul class="tier-list">
+            <li><span>สั่งล่วงหน้า</span><b>3 วัน</b></li>
+            <li><span>การรับของ</span><b>ส่งถึงบ้าน ในระยะ 10 กม.</b></li>
+          </ul>
+        </article>
+        <article class="tier reveal d2">
+          <p class="tier-head">50 คนขึ้นไป</p>
+          <p class="tier-price"><b>คิดตามเมนู</b><span>ที่เลือก</span></p>
+          <ul class="tier-list">
+            <li><span>สั่งล่วงหน้า</span><b>7 วัน</b></li>
+            <li><span>การรับของ</span><b>จัดโต๊ะ + อุปกรณ์ให้</b></li>
+          </ul>
+        </article>
+      </div>
+      <div class="hero-cta reveal d2" style="justify-content:center;margin-top:var(--space-5)">
+        <a class="btn btn--primary" href="tel:">โทรคุยเรื่องจัดเลี้ยง</a>
+        <a class="btn btn--ghost" href="https://line.me/R/ti/p/@baansuan.demo">ส่งจำนวนคนทางไลน์</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--tint" id="source" aria-labelledby="source-title">
+    <div class="wrap">
+      <div class="section-head section-head--center reveal">
+        <p class="kicker">วัตถุดิบ</p>
+        <h2 id="source-title"><span class="w"><span>ของสดมาจากไหน</span></span> <span class="w"><span>บอกได้ทุกอย่าง</span></span></h2>
+        <p>ร้านที่บอกว่า "สดใหม่ทุกวัน" มีเยอะ — ข้างล่างนี้คือว่าซื้อจากที่ไหน วันไหน และทำอะไรกับมันก่อนขึ้นเตา</p>
+      </div>
+      <div class="facts">
+        <div class="fact reveal"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M2.6 12c3.2-4.2 7.3-6.2 11.4-6.2 3 0 5.2 1 6.4 2.1L18.4 12l2 4.1c-1.2 1.1-3.4 2.1-6.4 2.1-4.1 0-8.2-2-11.4-6.2Z"/><circle pathLength="1" cx="8.4" cy="10.4" r="1"/><path pathLength="1" d="M12.8 8.6c1.4 2.1 1.4 4.7 0 6.8"/></svg></div><div><b>กุ้งและปลา — ตลาดสี่มุมเมือง ตีสี่</b><span>เจ้าประจำเจ้าเดิมมา 9 ปี รับเฉพาะกุ้งเป็น ถ้าวันไหนของไม่สวย เราตัดเมนูนั้นออกจากบอร์ดวันนั้นเลย</span></div></div>
+        <div class="fact reveal d1"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M12 21.4V8.6"/><path pathLength="1" d="M12 9.2c0-3.9 2.9-6.4 7.2-6.6.2 4-2.8 6.6-7.2 6.6Z"/><path pathLength="1" d="M12 14.2c0-3-2.4-5-5.9-5.2-.2 3.2 2.4 5.2 5.9 5.2Z"/></svg></div><div><b>ผักสวนครัว — สวนที่นครปฐม</b><span>ส่งวันจันทร์ พุธ ศุกร์ ผักบุ้ง ชะอม โหระพา กะเพรา เก็บเช้าวันเดียวกับที่ส่ง</span></div></div>
+        <div class="fact reveal d2"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M3.4 3.8h10.4v7.4H3.4Z"/><path pathLength="1" d="M13.8 6.6h6.8"/><path pathLength="1" d="M2.6 15.6h18.8"/></svg></div><div><b>หมูและไก่ — ฟาร์มมาตรฐาน GAP</b><span>ตัดแต่งที่ร้านเองทุกเช้า ไม่ซื้อเนื้อหั่นสำเร็จ เพราะเราอยากเห็นชิ้นก่อนลงกระทะ</span></div></div>
+        <div class="fact reveal"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M3.4 11.4h17.2c0 5-3.4 8.4-8.6 8.4s-8.6-3.4-8.6-8.4Z"/><path pathLength="1" d="M15.4 3.4 10.8 11"/><path pathLength="1" d="M14.4 2.4l2.2 2.2"/></svg></div><div><b>พริกแกง — ตำเองสัปดาห์ละสองครั้ง</b><span>สูตรของแม่ ไม่ใส่ผงปรุงรส ทำทีละหม้อเล็กเพื่อให้กลิ่นยังอยู่ตอนใช้</span></div></div>
+        <div class="fact reveal d1"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M12 21.4V7"/><path pathLength="1" d="M12 7.6c0-2 1.7-3.6 4-3.8.1 2.1-1.7 3.8-4 3.8Z"/><path pathLength="1" d="M12 12c0-2 1.7-3.6 4-3.8.1 2.1-1.7 3.8-4 3.8Z"/><path pathLength="1" d="M12 7.6c0-2-1.7-3.6-4-3.8-.1 2.1 1.7 3.8 4 3.8Z"/><path pathLength="1" d="M12 12c0-2-1.7-3.6-4-3.8-.1 2.1 1.7 3.8 4 3.8Z"/></svg></div><div><b>ข้าวหอมมะลิ — สุรินทร์ ข้าวใหม่</b><span>สั่งเป็นล็อตเล็ก ๆ ทุกเดือน หุงวันต่อวัน ไม่มีข้าวค้างคืนในหม้ออุ่น</span></div></div>
+        <div class="fact reveal d2"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M9.8 2.6h4.4v3.2l3 4.2v11.4H6.8V10l3-4.2Z"/><path pathLength="1" d="M6.8 15.4h10.4"/></svg></div><div><b>น้ำมันทอด — เปลี่ยนวันละสองรอบ</b><span>วัดค่าน้ำมันทุกวันและจดไว้หลังครัว ขอดูได้ถ้าอยากเห็น</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band deep" id="story" aria-labelledby="story-title">
+    <svg class="brandmark" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-icon3"/></svg>
+    <div class="wrap">
+      <h2 id="story-title" class="reveal"><span class="w"><span>ครัวเล็กๆ</span></span> <span class="w"><span>ที่เปิดมา</span></span> <span class="w"><span><span class="num" data-count="18">18</span></span></span> <span class="w"><span>ปี</span></span></h2>
+        <svg class="rule" viewBox="0 0 220 10" fill="none" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+      <p class="reveal d1">เริ่มจากรถเข็นหน้าปากซอย วันนี้มี 42 ที่นั่ง แต่ยังใช้สูตรเดิมและซื้อของเองทุกเช้า</p>
+      <!-- ตัวเลขสามตัวนี้อยู่บนหน้านี้อยู่แล้วทั้งสามตัว (42 อยู่ในย่อหน้าข้างบน,
+           4.9 กับ 1,240 อยู่ใน hero) แถบนี้แค่ทำให้มันใหญ่พอจะเป็นภาพ ไม่มีตัวไหนใหม่ -->
+      <!-- ท้ายใบเสร็จ ไม่ใช่แถบตัวเลขสามช่องเรียง — ตัวเลขชุดเดิมทั้งสามตัว แค่เปลี่ยน
+           เครื่องมือให้เป็นภาษาเดียวกับใบออเดอร์/ใบเสนอราคาที่เหลือของหน้า -->
+      <dl class="tally reveal d2">
+        <div><dt>ที่นั่งในร้าน</dt><dd><span class="num" data-count="42">42</span></dd></div>
+        <div><dt>คะแนนเฉลี่ย</dt><dd><span class="num" data-count="4.9" data-dec="1">4.9</span></dd></div>
+        <div><dt>รีวิวจากลูกค้า</dt><dd><span class="num" data-count="1240">1,240</span></dd></div>
+      </dl>
+      <div class="hero-cta reveal d3">
+        <a class="btn btn--primary" href="https://line.me/R/ti/p/@baansuan.demo">ทักไลน์สั่งล่วงหน้า</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="visit" aria-labelledby="visit-title">
+    <div class="wrap">
+      <div class="section-head section-head--split reveal">
+        <p class="kicker">แวะมาหาเรา</p>
+        <h2 id="visit-title"><span class="w"><span>เอกมัย</span></span> <span class="w"><span>ซอย</span></span> <span class="w"><span>xx</span></span> <span class="w"><span>ตรงข้ามตลาดเช้า</span></span></h2>
+        <p>ตรงข้ามตลาดเช้าพอดี ถ้ามาถึงตลาดแล้วคือถึงร้านแล้ว</p>
+      </div>
+      <!-- แผนผังวาดเป็นเส้น ไม่ฝัง iframe ของ Google Maps: iframe นั้นหนักกว่า
+           ทั้งหน้านี้รวมกัน และลากคุกกี้ของ Google เข้ามาด้วย ปุ่มข้างล่างทำงาน
+           เดียวกันให้คนที่ต้องการนำทางจริง โดยไม่คิดน้ำหนักกับคนที่แค่อยากรู้ว่าแถวไหน -->
+      <div class="soi reveal">
+        <svg class="soi-map" viewBox="0 0 320 190" role="img"
+             aria-label="แผนผังซอย: ร้านอยู่ในเอกมัย ซอย xx ตรงข้ามตลาดเช้า เดินจากสถานีบีทีเอสเอกมัยประมาณ 8 นาที">
+          <rect class="paper" x="0" y="0" width="320" height="190"/>
+          <path class="road" d="M0 40H320" stroke-width="13"/>
+          <path class="road" d="M196 40V182" stroke-width="9"/>
+          <rect class="block" x="112" y="92" width="62" height="52" rx="5"/>
+          <rect class="block" x="52" y="54" width="20" height="20" rx="3"/>
+          <text class="label" x="238" y="28">ถ.เอกมัย</text>
+          <text class="label" x="206" y="72">ซอย xx</text>
+          <text class="label" x="40" y="88">BTS เอกมัย</text>
+          <text class="label" x="122" y="122">ตลาดเช้า</text>
+          <path class="route" pathLength="1" d="M62 54V34H203V124h14"/>
+          <circle class="here" cx="220" cy="124" r="7"/>
+          <text class="here-label" x="234" y="128">ครัวบ้านสวน</text>
+        </svg>
+        <div class="soi-facts">
+          <div><b>เปิดทุกวัน</b><span>10:00–22:00 · ครัวปิดรับออเดอร์ 21:30</span></div>
+          <div><b>เดินจาก BTS</b><span>เอกมัย ทางออก 2 ประมาณ 8 นาที</span></div>
+          <div><b>ที่จอดรถ</b><span>หน้าร้าน 6 คัน ฟรีสำหรับลูกค้า</span></div>
+          <div><b>โทรถามทาง</b><span><a href="tel:">081-xxx-xxxx</a></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="order" aria-labelledby="order-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">สั่งยังไง</p>
+        <h2 id="order-title"><span class="w"><span>สามขั้น</span></span> <span class="w"><span>จบตั้งแต่ยังไม่ออกจากบ้าน</span></span></h2>
+      </div>
+      <!-- ลำดับแบบใบเสร็จ เลขกำกับ + เส้นประนำสายตา ภาษาเดียวกับใบออเดอร์ข้างบน -->
+      <ol class="flow reveal">
+        <li><span class="flow-n">1</span><div><b>เลือกเมนู</b><span>ดูรายการกับราคาในหน้านี้ กดปุ่มเก็บใส่ใบออเดอร์ได้เลย ไม่ต้องโทรถามว่ามีอะไรบ้าง</span></div></li>
+        <li><span class="flow-n">2</span><div><b>โทรหรือทักไลน์</b><span>บอกจำนวนคนกับเวลา เราจองโต๊ะให้ ถ้าสั่งกลับบ้านบอกเวลามารับได้เลย</span></div></li>
+        <li><span class="flow-n">3</span><div><b>รับที่ร้านหรือให้ส่ง</b><span>ครัวเริ่มทำเมื่อใกล้เวลาที่นัด อาหารถึงมือยังร้อน</span></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section section--paper" id="book" aria-labelledby="book-title">
+    <div class="wrap">
+      <div class="section-head section-head--center reveal">
+        <p class="kicker">จองโต๊ะ</p>
+        <h2 id="book-title"><span class="w"><span>ช่วงไหนคนเยอะ</span></span> <span class="w"><span>ควรจองล่วงหน้าเท่าไหร่</span></span></h2>
+        <svg class="rule" viewBox="0 0 220 10" fill="none" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+        <p>ร้านมี 14 โต๊ะ (72 ที่นั่ง) โซนในแอร์ 8 โต๊ะ โซนระเบียงริมสวน 6 โต๊ะ — บอกได้ว่าอยากนั่งโซนไหน</p>
+      </div>
+      <div class="duo">
+        <div class="duo-col reveal">
+          <h3>ช่วงเวลาในร้าน</h3>
+          <ul>
+            <li><b>จันทร์–ศุกร์ 11:00–14:00</b> — คนแน่นช่วง 12:00–13:00 จองล่วงหน้าครึ่งวันพอ</li>
+            <li><b>จันทร์–ศุกร์ 17:00–22:00</b> — ว่างเกือบทุกวัน เดินเข้ามาได้เลย</li>
+            <li><b>เสาร์–อาทิตย์ 11:00–15:00</b> — เต็มบ่อยที่สุด ควรจองก่อน 1 วัน</li>
+            <li><b>เสาร์–อาทิตย์ 17:00–22:00</b> — โต๊ะใหญ่ 6 ที่นั่งขึ้นไป ควรจอง 2 วัน</li>
+          </ul>
+        </div>
+        <div class="duo-col reveal d1">
+          <h3>เรื่องที่ต้องรู้ก่อนจอง</h3>
+          <ul>
+            <li>จองฟรี ไม่ต้องมัดจำ ถ้าไม่เกิน 8 ท่าน</li>
+            <li>เกิน 8 ท่าน ขอให้สั่งอาหารล่วงหน้า ครัวจะได้เตรียมของทัน</li>
+            <li>เก็บโต๊ะให้ 20 นาที ถ้ามาช้ากว่านั้นโทรบอกได้ เราเลื่อนให้</li>
+            <li>มีเก้าอี้เด็ก 4 ตัว และที่จอดรถในร้าน 12 คัน (จอดริมถนนได้หลัง 18:00)</li>
+            <li>พาสัตว์เลี้ยงมานั่งโซนระเบียงได้ ตัวไม่เกิน 10 กก.</li>
+          </ul>
+        </div>
+      </div>
+
+      <form class="book-form" data-book-form data-endpoint="" novalidate>
+        <div class="book-slip">
+          <div class="book-body">
+            <h3>จองโต๊ะออนไลน์</h3>
+            <p class="book-lead">กรอกแล้วส่งได้เลย ไม่ต้องรอเวลาทำการ ร้านจะโทรยืนยันอีกครั้ง</p>
+
+            <div class="book-grid">
+              <div class="book-field">
+                <label for="bk-name">ชื่อผู้จอง</label>
+                <input id="bk-name" name="name" type="text" required autocomplete="name" maxlength="60">
+              </div>
+              <div class="book-field">
+                <label for="bk-phone">เบอร์โทร</label>
+                <input id="bk-phone" name="phone" type="tel" required inputmode="tel"
+                       autocomplete="tel" pattern="[0-9 \-]{9,15}" maxlength="15">
+                <span class="book-hint">ใช้โทรยืนยันเท่านั้น</span>
+              </div>
+              <div class="book-field">
+                <label for="bk-people">จำนวนคน</label>
+                <select id="bk-people" name="people" required>
+                  <option value="">เลือก</option>
+                  <option>1</option><option>2</option><option>3</option><option>4</option>
+                  <option>5</option><option>6</option><option>7</option><option>8</option>
+                  <option value="9+">9 คนขึ้นไป</option>
+                </select>
+              </div>
+              <div class="book-field">
+                <label for="bk-date">วันที่</label>
+                <input id="bk-date" name="date" type="date" required>
+              </div>
+              <div class="book-field">
+                <label for="bk-time">เวลา</label>
+                <select id="bk-time" name="time" required>
+                  <option value="">เลือก</option>
+                  <option>11:00</option>
+                  <option>11:30</option>
+                  <option>12:00</option>
+                  <option>12:30</option>
+                  <option>13:00</option>
+                  <option>13:30</option>
+                  <option>14:00</option>
+                  <option>14:30</option>
+                  <option>15:00</option>
+                  <option>15:30</option>
+                  <option>16:00</option>
+                  <option>16:30</option>
+                  <option>17:00</option>
+                  <option>17:30</option>
+                  <option>18:00</option>
+                  <option>18:30</option>
+                  <option>19:00</option>
+                  <option>19:30</option>
+                  <option>20:00</option>
+                  <option>20:30</option>
+                  <option>21:00</option>
+                </select>
+              </div>
+              <div class="book-field">
+                <label for="bk-zone">โซนที่อยากนั่ง</label>
+                <select id="bk-zone" name="zone">
+                  <option value="">ไม่เกี่ยง</option>
+                  <option>ในแอร์</option>
+                  <option>ระเบียงริมสวน</option>
+                </select>
+              </div>
+              <div class="book-field book-field--wide">
+                <label for="bk-note">อยากบอกอะไรเพิ่ม (ไม่บังคับ)</label>
+                <textarea id="bk-note" name="note" maxlength="300"></textarea>
+              </div>
+            </div>
+
+            <div class="book-actions">
+              <button class="btn btn--primary" type="submit" data-book-submit>ส่งคำขอจอง</button>
+              <span class="book-alt">ข้อมูลใช้เพื่อยืนยันการจองเท่านั้น · หรือโทร <a href="tel:">081-xxx-xxxx</a></span>
+            </div>
+          </div>
+
+          <p class="book-status" data-book-status role="status" aria-live="polite"></p>
+
+          <div class="book-done">
+            <h3>ส่งคำขอจองแล้ว</h3>
+            <p class="book-lead">ร้านจะโทรกลับยืนยันภายในเวลาทำการ ถ้าด่วนโทรได้เลยที่ <a href="tel:">081-xxx-xxxx</a></p>
+            <ul class="book-recap" data-book-recap></ul>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section class="section" id="voices" aria-labelledby="voices-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">ลูกค้าประจำ</p>
+        <h2 id="voices-title"><span class="w"><span>คนแถวนี้พูดถึงเราว่าอะไร</span></span></h2>
+      </div>
+      <div class="quotes">
+        <blockquote class="quote reveal">
+          <p class="stars" aria-label="ให้ 5 ดาว">★★★★★</p>
+          <p>สั่งกลับบ้านทุกวันศุกร์ ต้มยำเข้มจริงอย่างที่เขียนไว้ ไม่ใช่เผ็ดอย่างเดียว</p>
+          <footer>คุณแนน · ลูกค้าประจำ 3 ปี</footer>
+        </blockquote>
+        <blockquote class="quote reveal d1">
+          <p class="stars" aria-label="ให้ 5 ดาว">★★★★★</p>
+          <p>พาลูกค้าต่างชาติมากินสองรอบแล้ว เขาชอบที่บอกระดับความเผ็ดได้</p>
+          <footer>คุณกิตติ · ออฟฟิศแถวเอกมัย</footer>
+        </blockquote>
+        <blockquote class="quote reveal d2">
+          <p class="stars" aria-label="ให้ 4 ดาว">★★★★☆</p>
+          <p>เสาร์-อาทิตย์คนเยอะจริง จองไว้ก่อนดีกว่า แต่ของอร่อยคุ้มที่รอ</p>
+          <footer>คุณเมย์ · มากับครอบครัว</footer>
+        </blockquote>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="faq" aria-labelledby="faq-title">
+    <div class="wrap">
+      <div class="section-head section-head--center reveal">
+        <p class="kicker">คำถามที่พบบ่อย</p>
+        <h2 id="faq-title"><span class="w"><span>เรื่องที่ลูกค้าถามก่อนมาเสมอ</span></span></h2>
+      </div>
+      <div class="faq reveal">
+        <details><summary>ต้องจองล่วงหน้ากี่วัน</summary><p>วันธรรมดาโทรมาก่อน 2 ชั่วโมงก็ทัน เสาร์-อาทิตย์แนะนำจองล่วงหน้า 1 วัน</p></details>
+        <details><summary>มีที่จอดรถไหม</summary><p>มีลานจอดหลังร้าน 12 คัน จอดฟรีตลอดเวลาที่นั่งทาน</p></details>
+        <details><summary>จัดเลี้ยงกลุ่มใหญ่ได้ไหม</summary><p>รับได้ถึง 42 ที่นั่ง จัดชุดโต๊ะจีนได้ แจ้งล่วงหน้า 3 วันเพื่อเตรียมวัตถุดิบ</p></details>
+        <details><summary>ปรับความเผ็ดได้ไหม</summary><p>ได้ทุกจาน บอกตอนสั่งว่าไม่เผ็ด เผ็ดน้อย หรือเผ็ดปกติ เด็กทานได้</p></details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<button class="to-top" type="button" data-to-top aria-label="กลับขึ้นบนสุด" hidden>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
+</button>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p><strong>ครัวบ้านสวน</strong> · 88/xx ซอยเอกมัย xx คลองตันเหนือ วัฒนา กรุงเทพฯ 10110</p>
+    <p>หน้านี้เป็นงานตัวอย่างของ ตามสั่ง (TarmSung) — ร้านในภาพเป็นแบรนด์สมมติ</p>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script src="js/order.js"></script>
+<script src="js/booking.js"></script>
+<script src="/work/_demo-badge.js" defer></script>
+</body>
+</html>

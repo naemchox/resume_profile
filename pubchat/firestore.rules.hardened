@@ -1,0 +1,72 @@
+rules_version = '2';
+// =====================================================================
+// HARDENED rules — deploy this ONLY AFTER the Cloud Functions in
+// /functions are live and the client has been cut over (see BACKEND-SETUP.md).
+// Difference vs firestore.rules: the client can no longer GRANT itself
+// economy value. It may still SPEND (decrement balls when throwing); every
+// increase to coins/paidBalls/freeBalls/exp/points must come from a
+// Cloud Function (Admin SDK, which bypasses these rules).
+// =====================================================================
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+    function chatMembers(cid) {
+      return get(/databases/$(database)/documents/chats/$(cid)).data.members;
+    }
+    // On a client write the economy may only stay equal or DECREASE (spending).
+    // Defaults via get() keep this safe for docs that predate a field.
+    function econNotInflated() {
+      return request.resource.data.get('coins', 0)     == resource.data.get('coins', 0)
+          && request.resource.data.get('exp', 0)       == resource.data.get('exp', 0)
+          && request.resource.data.get('points', 0)    == resource.data.get('points', 0)
+          && request.resource.data.get('paidBalls', 0) <= resource.data.get('paidBalls', 0)
+          && request.resource.data.get('freeBalls', 0) <= resource.data.get('freeBalls', 0);
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create: if isOwner(uid);
+      allow update: if isOwner(uid)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && econNotInflated();
+      allow delete: if false;
+    }
+
+    match /presence/{uid} {
+      allow read: if signedIn();
+      allow write: if isOwner(uid);
+    }
+
+    match /blocks/{uid}/blocked/{other} {
+      allow read, write: if isOwner(uid);
+    }
+
+    match /keys/{key} {
+      allow read:   if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /chats/{cid} {
+      allow read:   if signedIn() && (resource == null || request.auth.uid in resource.data.members);
+      allow create: if signedIn() && request.auth.uid in request.resource.data.members;
+      allow update: if signedIn() && request.auth.uid in resource.data.members;
+      allow delete: if false;
+
+      match /messages/{mid} {
+        allow read:   if signedIn() && request.auth.uid in chatMembers(cid);
+        allow create: if signedIn() && request.auth.uid in chatMembers(cid)
+          && (!('from' in request.resource.data) || request.resource.data.from == request.auth.uid);
+        allow update, delete: if false;
+      }
+    }
+
+    // Stripe idempotency ledger — written only by the webhook (Admin SDK). No client access.
+    match /stripeSessions/{sid} {
+      allow read, write: if false;
+    }
+  }
+}

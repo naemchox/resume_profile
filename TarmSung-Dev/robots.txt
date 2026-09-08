@@ -1,0 +1,11 @@
+# Two demos were pulled from the portfolio: one is a condom brand shown to
+# corporate buyers, the other carries real Pepsi, Coca-Cola, Sprite and Fanta
+# artwork we have no right to publish. They are out of _archive/ and off the
+# site's links, and must not be indexed if the host ever serves that folder.
+User-agent: *
+Disallow: /_archive/
+# เดโมทั้งหมดใน /work/ เป็นร้านสมมติ มีชื่อ ราคา และเบอร์โทรที่หน้าตาเหมือนของจริง
+# ถ้าปล่อยให้เข้าดัชนี จะมีคนหลงเข้ามาแล้วโทรไปหาเบอร์ที่ไม่ใช่ของเรา (22/8/26)
+Disallow: /work/
+
+Sitemap: https://tarmsung.pages.dev/sitemap.xml

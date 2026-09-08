@@ -1,0 +1,13 @@
+node_modules/
+dist/
+build/
+# …except the app icon: it's the packaged build's icon source (and main.js loads it at runtime), so a
+# fresh clone without it silently falls back to Electron's logo. Regenerate with `node _gen_icon.js`.
+!build/icon.png
+!build/icon.ico
+.DS_Store
+*.log
+_backup-*/
+
+# Local Netlify folder
+.netlify

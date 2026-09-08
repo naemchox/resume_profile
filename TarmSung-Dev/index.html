@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="th" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+<!-- คืนตำแหน่งที่อ่านค้างไว้เอง ไม่รอเบราว์เซอร์ (ที่มา: work/_JANK-REFRESH.md)
+     Safari คืนตำแหน่ง scroll หลังอีเวนต์ load เท่านั้น — วัดแล้ว DCL/load ยังอยู่ที่ y=0
+     ทั้งคู่ คนที่รีเฟรชกลางหน้าจึงเห็น "ฮีโร่แวบ" ตั้งแต่เฟรมแรกจนกว่าไฟล์สุดท้ายจะโหลดจบ
+     (เน็ตช้า = ค้างนานเป็นวินาที) สคริปต์นี้เก็บตำแหน่งไว้เองใน sessionStorage แล้ววาง
+     กลับตั้งแต่เฟรมแรกที่ความสูงหน้าพอ — เร็วกว่ารอ load หลายเท่าและไม่ต้องรอรูป
+     หยุดทันทีถ้าผู้ใช้ขยับเอง (wheel/touch/key/pointer) จะได้ไม่แย่งมือกับคนอ่าน -->
+<script>
+(function () {
+  try {
+    if (!("scrollRestoration" in history)) return;
+    history.scrollRestoration = "manual";
+    var key = "ts:y:" + location.pathname;
+    var want = parseInt(sessionStorage.getItem(key) || "0", 10) || 0;
+    var timer = 0;
+    var save = function () { try { sessionStorage.setItem(key, String(Math.round(window.scrollY))); } catch (e) {} };
+    addEventListener("scroll", function () {
+      if (timer) return;
+      timer = setTimeout(function () { timer = 0; save(); }, 200);
+    }, { passive: true });
+    addEventListener("pagehide", save);
+    /* แถบเมนูต้องไม่ "โผล่" ตอนหน้าเปิดมากลางหน้าอยู่แล้ว (jek 25/8/26 · the-bed)
+       แถบมีสองชั้นที่ไล่เข้าเอง — พื้นทึบบน .nav-shell::before (opacity 300ms) กับเส้นทอง
+       บน border-color (400ms) — พอคืนตำแหน่ง scroll ปุ๊บ สคริปต์แถบเมนูใส่คลาส scrolled
+       ทั้งสองชั้นจึงไล่ให้เห็นทุกครั้งที่รีเฟรช ทั้งที่ผู้ใช้ไม่ได้เลื่อนอะไรเลย
+       ระหว่างช่วงคืนตำแหน่ง จึงปิดทรานซิชันของหัวเว็บไว้ = แถบอยู่ในสถานะสุดท้ายตั้งแต่
+       เฟรมแรก · เปิดคืนทันทีที่ผู้ใช้ขยับเอง (หรืออย่างช้า 900ms) การเลื่อนของจริงจึงยังลื่น */
+    if (want) {
+      var root = document.documentElement;
+      root.className += " nav-instant";
+      var st = document.createElement("style");
+      st.textContent = "html.nav-instant .nav-shell,html.nav-instant .nav-shell::before," +
+        "html.nav-instant .site-header,html.nav-instant header,html.nav-instant header > *," +
+        "html.nav-instant header > * > *{transition:none !important}";
+      (document.head || document.documentElement).appendChild(st);
+      var unlock = function () { root.className = root.className.replace(/\s*nav-instant/, ""); };
+      ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+        addEventListener(ev, unlock, { passive: true, once: true });
+      });
+      setTimeout(unlock, 900);
+    }
+    if (!want || location.hash) return;
+    var stop = false;
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+      addEventListener(ev, function () { stop = true; }, { passive: true, once: true });
+    });
+    var t0 = (performance.now ? performance.now() : 0);
+    var now = function () { return performance.now ? performance.now() : t0; };
+    var done = false;
+    var put = function () {
+      if (stop || done) return true;
+      var el = document.scrollingElement || document.documentElement;
+      if (!el || el.scrollHeight - window.innerHeight < want) return false;   /* หน้ายังสูงไม่พอ ค่อยลองใหม่ */
+      if (Math.round(window.scrollY) !== want) {
+        var prev = el.style.scrollBehavior;      /* html { scroll-behavior: smooth } จะทำให้การวางกลับกลายเป็นการไถ */
+        el.style.scrollBehavior = "auto";
+        window.scrollTo(0, want);
+        el.style.scrollBehavior = prev;
+      }
+      done = Math.round(window.scrollY) === want;
+      /* ใส่สถานะ "เลื่อนแล้ว" ให้หัวเว็บทันทีในจังหวะเดียวกับที่คืนตำแหน่ง — ไม่ต้องรอสคริปต์
+         ของหน้ามันเองซึ่งอยู่ท้าย <body> (วัดแล้วช้ากว่ากันราว 20ms = เห็นแถบเปล่าได้ 1 เฟรม)
+         เกณฑ์คนละค่าเพราะแต่ละที่ตั้งไว้ไม่เท่ากัน: .site-header > 8px · .nav-shell > 40px
+         (ดู js/main.js กับสคริปต์ท้ายหน้าเดโม) สคริปต์ของหน้าจะคำนวณซ้ำเองอยู่แล้ว ค่าจึงตรงกัน */
+      if (done) {
+        var mark = function (sel, cls, min) {
+          if (want <= min) return;
+          var n = document.querySelectorAll(sel);
+          for (var i = 0; i < n.length; i++) n[i].classList.add(cls);
+        };
+        /* หัวเว็บของแต่ละใบใช้คนละคลาสคนละเกณฑ์ (ของเดิมเป็นแบบนั้นมาก่อนแล้ว):
+           .site-header.scrolled >8px (เว็บเรา) · .nav-shell.scrolled >40px (the-bed)
+           .site-header.stuck (the-terrace ใช้ sentinel ไม่ใช่ตัวเลข — 80px คือค่าประมาณ)
+           header.small >120px (homecraft/lumen/glow-clinic ผ่าน js/nav-response.js)
+           เดาพลาดไม่เป็นไร สคริปต์ของหน้าคำนวณทับให้ในเฟรมถัดไป และช่วงนี้ทรานซิชันถูกปิดอยู่
+           การแก้จึงเป็นการสลับทันที ไม่ใช่การไล่สีให้เห็น */
+        mark(".site-header", "scrolled", 8);
+        mark(".nav-shell", "scrolled", 40);
+        mark(".site-header, header[data-header]", "stuck", 80);
+        mark("header, .site-header", "small", 120);
+      }
+      return done;
+    };
+    /* ลองทุกทางที่มาถึงก่อน: setTimeout(0) มักได้ก่อนเฟรมแรกด้วยซ้ำ · rAF ทำงานก่อนวาด
+       · readystatechange/DOMContentLoaded คือจุดที่ body ครบแล้วแน่ๆ
+       เหตุที่ไม่พอถ้าใช้ rAF อย่างเดียว: วัดแล้วบางหน้า (หน้าแรกของเว็บเรา) เฟรมแรก
+       มาก่อนที่ความสูงจะพอ ทำให้เลื่อนไม่ได้ แล้วต้องรอ rAF รอบถัดไป = เห็นหัวเว็บ 1 เฟรม */
+    /* สองสายแยกกัน สายละหนึ่งนัด — ถ้าให้สายเดียวนัดทั้ง setTimeout และ rAF
+       จำนวนนัดจะเพิ่มเป็นสองเท่าทุกรอบ (2^n) ภายในไม่กี่ร้อยมิลลิวินาที */
+    var tick = function () { if (put() || stop) return; if (now() - t0 < 3000) setTimeout(tick, 0); };
+    var frame = function () { if (put() || stop) return; if (now() - t0 < 3000) requestAnimationFrame(frame); };
+    tick();
+    frame();
+    document.addEventListener("readystatechange", put);
+    addEventListener("DOMContentLoaded", put);
+    addEventListener("load", put);
+  } catch (e) {}
+})();
+</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+  <!-- SEO (Step 14) -->
+  <title>ตามสั่ง (TarmSung) — รับพัฒนาเว็บไซต์และแอปพลิเคชัน ตามสั่ง</title>
+  <meta name="description" content="รับทำเว็บไซต์ เว็บแอป และโมบายแอป — ทำเดโมหน้าจริงให้ดูก่อน ไม่ถูกใจไม่ต้องจ่าย · วางโครง SEO พื้นฐานมาให้ในทุกแพ็กเกจ · รับประกันงานเสียหลังส่งมอบ · ประเมินราคาฟรี" />
+  <meta name="theme-color" content="#d63a00" />
+  <!-- 19/8/26 รอบสอง: URL จริงคือ netlify ไม่ใช่ tarmsung.dev (วัดแล้ว — .dev คืน 000, netlify คืน 200)
+       รอบแรกถอด canonical ออกถูกแล้ว แต่ลืม og:url / og:image / JSON-LD / robots.txt Sitemap ไว้ที่
+       โดเมนตาย → แชร์ลิงก์แล้วการ์ดไม่มีรูป ตอนนี้ทุกจุดชี้ netlify เหมือนกันหมด
+       วันที่ tarmsung.dev ตอบจริง ต้องแก้พร้อมกัน 5 จุด: canonical + og:url + og:image + JSON-LD url
+       + robots.txt Sitemap + sitemap.xml -->
+  <link rel="canonical" href="https://tarmsung.pages.dev/" />
+
+  <!-- Open Graph / Twitter -->
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="th_TH" />
+  <meta property="og:title" content="ตามสั่ง (TarmSung) — รับพัฒนาเว็บไซต์และแอปพลิเคชัน" />
+  <meta property="og:description" content="ทำเดโมหน้าจริงให้ดูก่อน ไม่ถูกใจไม่ต้องจ่าย · วางโครง SEO พื้นฐานมาให้ในทุกแพ็กเกจ · รับประกันงานเสียหลังส่งมอบ" />
+  <meta property="og:url" content="https://tarmsung.pages.dev/" />
+  <meta property="og:image" content="https://tarmsung.pages.dev/assets/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="ตามสั่ง — รับพัฒนาเว็บไซต์ &amp; แอปพลิเคชัน ตามสั่ง" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="ตามสั่ง (TarmSung) — รับพัฒนาเว็บไซต์และแอปพลิเคชัน" />
+  <meta name="twitter:description" content="ทำเดโมหน้าจริงให้ดูก่อน ไม่ถูกใจไม่ต้องจ่าย · วางโครง SEO พื้นฐานมาให้ในทุกแพ็กเกจ" />
+
+  <!-- Fonts (preconnect + swap). The stylesheet is preloaded as a style so the
+       font CSS is fetched at highest priority: the woff2 files cannot even be
+       requested until it has been parsed, and that second round-trip is most of
+       the window in which the page is showing fallback metrics. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- preload ฟอนต์หัวเรื่อง (Anuphan) — คู่กับ display=optional ข้างล่าง
+     optional เฉยๆ แปลว่าคนที่เข้าครั้งแรกได้ฟอนต์สำรองทั้งหน้า preload ทำให้ไฟล์
+     มาทันช่วงต้นเกือบทุกครั้ง · มีสองไฟล์เพราะ Google เสิร์ฟ Chrome กับ Safari คนละตัว
+     (เติมอัตโนมัติด้วย playbook/fix-font-flash.mjs) -->
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/anuphan/v6/2sDeZGxYgY7LkLT0mX4Dan29.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/anuphan/v6/2sDeZGxYgY7LkLT0mWoDag.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/anuphan/v6/2sDeZGxYgY7LkLT0mX4Dam--C70lZQ.woff2" />
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Anuphan:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=optional" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anuphan:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" />
+
+  <link rel="stylesheet" href="css/tokens.css?v=78" />
+  <link rel="stylesheet" href="css/styles.css?v=216" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1" />
+  <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><path%20d='M15.00,3.40%20C16.58,3.40%2018.73,3.50%2020.50,4.20%20C22.27,4.90%2024.25,6.23%2025.60,7.60%20C26.95,8.97%2028.43,10.77%2028.60,12.40%20C28.77,14.03%2026.37,15.93%2026.60,17.40%20C26.83,18.87%2030.33,19.87%2030.00,21.20%20C29.67,22.53%2026.50,24.17%2024.60,25.40%20C22.70,26.63%2020.80,28.13%2018.60,28.60%20C16.40,29.07%2013.47,28.77%2011.40,28.20%20C9.33,27.63%207.50,26.50%206.20,25.20%20C4.90,23.90%203.90,22.03%203.60,20.40%20C3.30,18.77%204.47,17.03%204.40,15.40%20C4.33,13.77%202.70,12.20%203.20,10.60%20C3.70,9.00%206.10,6.87%207.40,5.80%20C8.70,4.73%209.73,4.60%2011.00,4.20%20C12.27,3.80%2013.42,3.40%2015.00,3.40%20Z'%20fill='%23fdf7ef'%20stroke='%230e0705'%20stroke-width='1.3'/><circle%20cx='18.4'%20cy='13.2'%20r='5.2'%20fill='%23e84400'/></svg>" />
+
+  <!-- Structured data (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ProfessionalService",
+    "name": "ตามสั่ง (TarmSung)",
+    "description": "รับพัฒนาเว็บไซต์และแอปพลิเคชันครบวงจร ออกแบบ UX/UI พัฒนาเว็บแอปและโมบายแอป",
+    "url": "https://tarmsung.pages.dev/",
+    "email": "tarmsungdev@gmail.com",
+    "telephone": "+66-81-654-7401",
+    "areaServed": "TH",
+    "priceRange": "฿฿",
+    "serviceType": ["Web Development", "Mobile App Development", "UX/UI Design", "E-commerce"]
+  }
+  </script>
+<!-- Both of these have to be in the head, before first paint. -->
+<script>
+  /* Marks that scripting is alive. Every .reveal starts hidden, so that initial
+     state is written as html.js .reveal — with no JS, or a script that throws
+     before the observer is wired, the content is simply visible. noscript alone
+     did not cover the throwing case. */
+  document.documentElement.classList.add("js");
+
+  /* 26/8/26 (jek): แถบสั่งงานล่างจอไม่ต้องขึ้นตอนอยู่ที่ hero บนมือถือ
+     ตั้งคลาสตรงนี้ ไม่ใช่รอ main.js เพราะ main.js เป็น deferred — ถ้ารอ
+     แถบจะแวบขึ้นมาให้เห็นหนึ่งจังหวะแล้วค่อยหาย ซึ่งแย่กว่าไม่ซ่อนเลย
+     ตอนเปิดหน้า hero อยู่บนจอเสมอ จึงเริ่มที่ at-hero ได้ตรงๆ
+     main.js เป็นคนปลดคลาสนี้ออกเมื่อเลื่อนพ้น hero (ดู Phone order bar) */
+  document.documentElement.classList.add("at-hero");
+
+  /* Theme, applied before anything renders. main.js is deferred, so someone who
+     picked the dark theme while their OS is light saw a white flash on every
+     single load. Wrapped because localStorage throws (not returns null) under
+     Safari's "Block All Cookies".
+
+     data-theme is ALWAYS written here, falling back to the OS preference, because
+     the CSS only knows the two explicit values: with the attribute missing the
+     page painted in light tokens while main.js read the OS and believed it was
+     already dark, so the first press of the toggle changed nothing visible. One
+     source of truth — the attribute — for both sides. */
+  var t = null;
+  try { t = localStorage.getItem("ts-theme"); } catch (e) {}
+  if (t !== "light" && t !== "dark") {
+    t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  document.documentElement.setAttribute("data-theme", t);
+
+  /* The loading screen is opt-in per session, and the decision has to be made
+     here, before the first paint: a screen that appears one frame after the page
+     has already shown itself is worse than no screen at all. js/loader.js only
+     takes it away again — with scripting off this class is never written and
+     .ld stays display:none, so nobody can be shut behind it. */
+  /* Every load, jek's call (20/8/26). It was once per session first — the reasoning
+     being that someone clicking through four pages should be greeted once — but
+     the screen is the kitchen opening, and a kitchen opens every time you walk in.
+     One line to put the session gate back if that ever reads as a delay:
+       if (!sessionStorage.getItem("ts-served")) ...add("loading")   (wrapped in
+     try/catch — Safari's "Block All Cookies" throws on read rather than returning
+     null). Nothing else in the mechanism depends on which of the two it is. */
+  document.documentElement.classList.add("loading");
+
+  /* One gate for every entrance on the page. Anything that animates on arrival —
+     the hero rise, the work cards, the reference grid — has to wait behind the
+     loading screen, or it plays out against the back of a sheet of paper and the
+     page is already static by the time anyone sees it. Defined here, in the one
+     script that runs on every page before anything else, so the home page and the
+     reference page cannot end up with two different ideas of when the page begins.
+     No loading screen (returning visitor, no JS gate written) = runs at once. */
+  window.tsCurtain = function (fn) {
+    if (!document.documentElement.classList.contains("loading")) { fn(); return; }
+    var ran = false;
+    var go = function () { if (ran) return; ran = true; fn(); };
+    document.addEventListener("ts:served", go);
+    setTimeout(go, 5000);   // past the loader's own 4s cap: nothing waits forever
+  };
+
+</script>
+<noscript>
+  <style>
+    /* Every .reveal starts at opacity:0 and is switched on by main.js. With no JS —
+       or a script that failed to load — that is 53 invisible elements and a page
+       with no readable content at all. Show everything instead. */
+    .reveal { opacity: 1 !important; transform: none !important; }
+  </style>
+</noscript>
+  <script src="js/loader.js?v=34" defer></script>
+</head>
+
+<body>
+
+  <!-- ไอคอนชุดเดียวของหน้านี้ (สร้างด้วย playbook/make-icons.mjs) -->
+<svg class="sr-only" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0"><defs>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></symbol>
+  <symbol id="i-chev-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-icon5" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+</defs></svg>
+<!-- ============================ LOADING SCREEN ============================
+       The ScoreUp shape — ring, mark, wordmark, shuttle bar — in this site's ink.
+       Gated on html.loading (see the head script) and taken away by js/loader.js.
+       The other variant, the order ticket printing out of the rail, is parked in
+       _archive/loading-ticket.html; its CSS is still live in styles.css.
+       Everything visible is aria-hidden: the one line a screen reader gets is the
+       .sr-only status, because a wordmark and a bar read aloud are noise. -->
+  <div class="ld ld--orb" id="ld" role="status" aria-live="polite">
+    <p class="sr-only">กำลังเปิดครัว กรุณารอสักครู่</p>
+    <div class="ld-stack" aria-hidden="true">
+      <div class="ld-orb">
+        <img class="ld-egg" src="assets/emoji/1f373-anim.webp?v=1" width="78" height="78" alt="" decoding="async" fetchpriority="high">
+        <span class="ld-mark"><svg viewBox="0 0 32 32" focusable="false" aria-hidden="true"><path class="egg-white" d="M15.00,3.40 C16.58,3.40 18.73,3.50 20.50,4.20 C22.27,4.90 24.25,6.23 25.60,7.60 C26.95,8.97 28.43,10.77 28.60,12.40 C28.77,14.03 26.37,15.93 26.60,17.40 C26.83,18.87 30.33,19.87 30.00,21.20 C29.67,22.53 26.50,24.17 24.60,25.40 C22.70,26.63 20.80,28.13 18.60,28.60 C16.40,29.07 13.47,28.77 11.40,28.20 C9.33,27.63 7.50,26.50 6.20,25.20 C4.90,23.90 3.90,22.03 3.60,20.40 C3.30,18.77 4.47,17.03 4.40,15.40 C4.33,13.77 2.70,12.20 3.20,10.60 C3.70,9.00 6.10,6.87 7.40,5.80 C8.70,4.73 9.73,4.60 11.00,4.20 C12.27,3.80 13.42,3.40 15.00,3.40 Z"/><circle class="yolk" cx="18.4" cy="13.2" r="5.2"/></svg></span>
+      </div>
+      <div class="ld-name">ตามสั่ง<small>web &amp; app studio</small></div>
+      <div class="ld-track"><i></i></div>
+    </div>
+    <p class="ld-msg" aria-hidden="true">กำลังเปิดครัว<span>.</span><span>.</span><span>.</span></p>
+  </div>
+
+  <a class="skip-link" href="#main">ข้ามไปยังเนื้อหาหลัก</a>
+
+  <!-- Under the drawer, over the page; tapping it closes the menu (main.js).
+       It lives here, OUTSIDE <header>, and that is not a style choice: the header
+       carries backdrop-filter, which makes it the containing block for any fixed
+       descendant — inset:0 inside it means "the header", so the dim covered a
+       4.5rem strip and nothing else. The drawer itself is fixed inside the header
+       for the same reason and gets away with it only because its offset happens to
+       equal the header's height; leave both where they are. -->
+  <div class="menu-scrim" aria-hidden="true"></div>
+
+  <!-- ============================= HEADER ============================= -->
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="#top" aria-label="ตามสั่ง หน้าแรก">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false"><path class="egg-white" d="M15.00,3.40 C16.58,3.40 18.73,3.50 20.50,4.20 C22.27,4.90 24.25,6.23 25.60,7.60 C26.95,8.97 28.43,10.77 28.60,12.40 C28.77,14.03 26.37,15.93 26.60,17.40 C26.83,18.87 30.33,19.87 30.00,21.20 C29.67,22.53 26.50,24.17 24.60,25.40 C22.70,26.63 20.80,28.13 18.60,28.60 C16.40,29.07 13.47,28.77 11.40,28.20 C9.33,27.63 7.50,26.50 6.20,25.20 C4.90,23.90 3.90,22.03 3.60,20.40 C3.30,18.77 4.47,17.03 4.40,15.40 C4.33,13.77 2.70,12.20 3.20,10.60 C3.70,9.00 6.10,6.87 7.40,5.80 C8.70,4.73 9.73,4.60 11.00,4.20 C12.27,3.80 13.42,3.40 15.00,3.40 Z"/><circle class="yolk" cx="18.4" cy="13.2" r="5.2"/></svg></span>
+        <span>ตามสั่ง<small>WEB &amp; APP STUDIO</small></span>
+      </a>
+
+      <nav class="nav-links" aria-label="เมนูหลัก">
+        <a href="#services">บริการ</a>
+        <a href="#process">ขั้นตอน</a>
+        <a href="#why">จุดเด่น</a>
+        <a href="#work">ผลงาน</a>
+        <a href="#pricing">ราคา</a>
+        <a href="#faq">คำถาม</a>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="theme-toggle" id="themeToggle" type="button" role="switch" aria-checked="false"
+                aria-label="สลับเป็นธีมมืด">
+          <span class="tt-thumb">
+            <svg class="tt-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"/></svg>
+            <svg class="tt-moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+          </span>
+        </button>
+        <a class="btn btn--primary btn-desktop" href="#contact">ปรึกษาฟรี</a>
+        <button class="icon-btn nav-toggle" type="button" aria-label="เปิดเมนู" aria-expanded="false" aria-controls="mobile-menu">
+          <span class="nav-bars" aria-hidden="true"><i></i><i></i><i></i></span>
+        </button>
+      </div>
+    </div>
+    <!-- The drawer is an order pad, not a list of links. Numbered lines in the
+         mono face, a dashed rule under each one and a tear-off perforation along
+         the bottom — the same object the price cards and the hero stub are drawn
+         as, which the old plain white stack said nothing about. The row you are
+         currently reading is marked by the scroll-spy (aria-current), same as the
+         desktop nav: one spy, both navs, so they can never disagree. -->
+    <nav class="mobile-menu" id="mobile-menu" aria-label="เมนูบนมือถือ">
+      <ul class="mm-list">
+        <li><a href="#services"><span class="mm-no">01</span><span class="mm-name"><span class="egg-dot egg-dot--ink mm-egg" aria-hidden="true"></span>บริการ</span><span class="mm-go" aria-hidden="true">→</span></a></li>
+        <li><a href="#process"><span class="mm-no">02</span><span class="mm-name"><span class="egg-dot egg-dot--ink mm-egg" aria-hidden="true"></span>ขั้นตอน</span><span class="mm-go" aria-hidden="true">→</span></a></li>
+        <li><a href="#why"><span class="mm-no">03</span><span class="mm-name"><span class="egg-dot egg-dot--ink mm-egg" aria-hidden="true"></span>จุดเด่น</span><span class="mm-go" aria-hidden="true">→</span></a></li>
+        <li><a href="#work"><span class="mm-no">04</span><span class="mm-name"><span class="egg-dot egg-dot--ink mm-egg" aria-hidden="true"></span>ผลงาน</span><span class="mm-go" aria-hidden="true">→</span></a></li>
+        <li><a href="#pricing"><span class="mm-no">05</span><span class="mm-name"><span class="egg-dot egg-dot--ink mm-egg" aria-hidden="true"></span>ราคา</span><span class="mm-go" aria-hidden="true">→</span></a></li>
+        <li><a href="#faq"><span class="mm-no">06</span><span class="mm-name"><span class="egg-dot egg-dot--ink mm-egg" aria-hidden="true"></span>คำถาม</span><span class="mm-go" aria-hidden="true">→</span></a></li>
+      </ul>
+      <a class="btn btn--primary btn--block" href="#contact">ปรึกษาฟรี</a>
+      <!-- The order bar carries these too, but it stands down while the drawer is
+           open — so someone who opened the menu meaning to call would have had to
+           close it again to find the number. -->
+      <p class="mm-call">สั่งงานผ่าน <a href="https://fastwork.co/user/nawafreelance/web-development-73128454" target="_blank" rel="noopener">Fastwork</a> — แพลตฟอร์มถือเงินไว้จนงานเสร็จ</p>
+    </nav>
+  </header>
+
+  <main id="main">
+    <span id="top"></span>
+
+    <!-- ============================= HERO ============================= -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="container">
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <span class="pill-badge reveal"><span class="dot"></span> เปิดครัว • ตอบออเดอร์ภายใน 1 วันทำการ</span>
+            <h1 id="hero-title" class="reveal d1"><span class="nb">รับพัฒนา</span><span class="grad"><span class="nb">เว็บไซต์</span> &amp; <span class="nb">แอปพลิเคชัน</span></span> <span class="nb">ตามสั่ง</span></h1>
+            <!-- 23/8/26 เปลี่ยนคำนำจาก "รวดเร็ว สวยงาม ใช้งานง่าย" เป็นผลลัพธ์ที่ตลาดซื้อจริง
+                 เหตุผล: ส่อง 65 แอดคู่แข่งใน Ad Library (AD-SPY-2026-08-22-รับทำเว็บไซต์.md)
+                 52% ของมุมที่คู่แข่งใช้พูดเรื่อง SEO/ติด Google — "เว็บสวย" ไม่ใช่สิ่งที่ลูกค้าจ่ายเงินซื้อ -->
+            <p class="lead reveal d2">ปรุงเว็บไซต์ เว็บแอป และโมบายแอปที่วางโครง SEO มาให้พร้อมติด Google — ไม่ใช่แค่สวยแล้วเงียบ ดูแลตั้งแต่สั่งออเดอร์แรก จนเสิร์ฟระบบที่ใช้งานจริง</p>
+            <div class="hero-cta reveal d3">
+              <a class="btn btn--primary btn--lg" href="#contact">
+                สั่งงานกับเรา
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><use href="#i-icon5"/></svg>
+              </a>
+              <a class="btn btn--secondary btn--lg" href="#work">ดูเมนูผลงาน</a>
+            </div>
+            <p class="hero-note reveal d3">
+              <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><use href="#i-check"/></svg>
+              <!-- 22/8/26 ตัด "เดโมฟรีอันแรก ดูของจริงก่อนจ่าย" ออกจากบรรทัดนี้ เพราะป้ายลอย
+                   ใบซ้าย (.hero-float--ticket.one) พูดเรื่องเดียวกันอยู่ห่างกันไม่ถึงจอเดียว —
+                   คำสัญญาข้อเดียวเขียนสองที่ในเฟรมเดียว ตาอ่านเป็นเสียงซ้ำ ไม่ใช่ย้ำ -->
+              ประเมินราคาฟรี · รับประกันงานเสียหลังส่งมอบ · ไม่มีค่าใช้จ่ายแอบแฝง
+            </p>
+          </div>
+
+          <div class="hero-visual reveal d2" aria-hidden="true">
+          <!-- The cards are written in by js/main.js: each one is placed on an
+               arc every frame, so there is no markup to keep in sync here and no
+               second pass of the set to fake a seamless loop. -->
+          <!-- ป้ายกระดาษย้ายเข้ามาอยู่ในกรอบเดียวกับการ์ด 22/8/26 (jek: "ชี้การ์ดใบเดียว
+               แต่การ์ดใบอื่นก็ขึ้นมาหน้าป้ายด้วย") — เหตุผลอยู่ที่ styles.css ตรง .reel__track
+               สรุปสั้น: .reel มี clip-path = stacking context ของตัวเอง เลข z ของการ์ด
+               จึงจัดอันดับกันเองในกรอบเท่านั้น ป้ายที่อยู่นอกกรอบไม่มีทางแทรกกลางกองได้
+               ต้องอยู่ในกรอบเดียวกันเท่านั้นถึงจะ "หน้าการ์ดใบอื่น แต่หลังใบที่ถูกชี้" ได้ -->
+          <div class="reel" role="group" aria-label="ผลงานที่เราส่งมอบแล้ว">
+            <!-- การ์ดถูกเขียนลงในแทร็ก ไม่ใช่ลงกรอบโดยตรง เพราะลูปล้าง innerHTML
+                 ทุกครั้งที่สร้างใหม่ ถ้าป้ายอยู่ระดับเดียวกันจะโดนล้างทิ้งไปด้วย -->
+            <div class="reel__track"></div>
+            <div class="hero-float hero-float--ticket one">
+              <span class="chip">
+                <!-- ตา ไม่ใช่วงเล็บโค้ด — ป้ายนี้เคยเป็น "โค้ดสะอาด" (ภาษาช่างที่เจ้าของ
+                     ร้านไม่ได้ซื้อ) ตอนนี้ขายเรื่อง "ได้เห็นของจริงก่อนจ่าย" ไอคอนต้องเปลี่ยนตาม -->
+                <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg>
+              </span>
+              <span>เดโมฟรีก่อนจ่าย<small>ไม่ถูกใจ ไม่ต้องจ่าย</small></span>
+            </div>
+            <div class="hero-float hero-float--ticket two">
+              <span class="chip">
+                <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h7l-1 8 10-12h-7z"/></svg>
+              </span>
+<!-- 23/8/26 "คะแนน CWV สูง" คือภาษาช่างที่เจ้าของร้านไม่ได้ซื้อ (เหตุผลเดียวกับป้ายใบซ้าย
+                     ที่เคยเขียนว่า "โค้ดสะอาด") — เปลี่ยนเป็นผลลัพธ์ที่ 24% ของแอดคู่แข่งพูดถึง -->
+              <span>วางโครง SEO ให้<small>title · โครงสร้าง · ความเร็ว</small></span>
+            </div>
+            <!-- Signature #1, back on the reel with motion: the stub prints itself
+                 onto the top edge on arrival and the number ticks over like an
+                 order screen (js/main.js, "queue ticker"). -->
+            <div class="queue-stub" aria-hidden="true">
+              <span class="queue-label">คิวที่</span>
+              <span class="queue-num">001</span>
+            </div>
+          </div><!-- /.reel -->
+          </div>
+        </div>
+
+        <!-- A rail of what the kitchen actually cooks with, running. It replaces a
+             static line of pale words that sat where client logos normally go and
+             said nothing. The set is written twice and the track travels exactly
+             one set, so the loop closes on itself with no seam; the second copy is
+             aria-hidden so it is read once. -->
+        <!-- role="group" so the aria-label is actually read: ARIA forbids a
+             label on a plain div, and a screen reader drops it silently. -->
+        <div class="rail-strip" role="group" aria-label="เครื่องมือที่เราใช้ทำงานจริง">
+          <div class="rail-track">
+            <div class="rail-set"><span>HTML/CSS/JS</span><i aria-hidden="true"></i><span>React</span><i aria-hidden="true"></i><span>TypeScript</span><i aria-hidden="true"></i><span>Vite</span><i aria-hidden="true"></i><span>PWA</span><i aria-hidden="true"></i><span>Service Worker</span><i aria-hidden="true"></i><span>Tailwind</span><i aria-hidden="true"></i><span>Cloudflare</span><i aria-hidden="true"></i><span>Firebase</span></div>
+            <div class="rail-set" aria-hidden="true"><span>HTML/CSS/JS</span><i aria-hidden="true"></i><span>React</span><i aria-hidden="true"></i><span>TypeScript</span><i aria-hidden="true"></i><span>Vite</span><i aria-hidden="true"></i><span>PWA</span><i aria-hidden="true"></i><span>Service Worker</span><i aria-hidden="true"></i><span>Tailwind</span><i aria-hidden="true"></i><span>Cloudflare</span><i aria-hidden="true"></i><span>Firebase</span></div>
+          </div>
+          </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= SERVICES ============================= -->
+    <section class="section" id="services" aria-labelledby="services-title">
+      <div class="container">
+        <!-- Staged one line at a time, exactly like the hero: badge, then heading,
+             then the line under it. One .reveal on the wrapper moved all three as
+             a single slab, which is why this section arrived flatter than the top
+             of the page even after it got the house fade-and-rise. -->
+        <div class="section-head">
+          <span class="eyebrow reveal">เมนูของเรา</span>
+          <h2 id="services-title" class="reveal d1">เมนูครบ จบในครัวเดียว</h2>
+          <p class="reveal d2">ตั้งแต่หน้าเว็บแรก ไปจนถึงระบบหลังบ้านและแอปมือถือ — เราออกแบบ พัฒนา และดูแลให้ครบทุกเมนู</p>
+        </div>
+
+        <!-- One picture, four answers. This was a five-tab board: every service
+             carried a heading, a paragraph, four chips, a button and a source
+             link, and four of the five sat behind a tab at any moment — six
+             things to read before you knew what we sell. What a visitor is
+             actually asking at this point is "do you build the kind of thing I
+             need", so it is answered with one real project on four real screens
+             and the four answers set around it. The selling detail lives in the
+             price section, which is where someone who has already said yes goes
+             next. (jek, 20/8/26 — v1 kept in _archive/services-menu-board.html)
+
+             The stage and the four devices are the previous version's, unchanged:
+             every screen is a REAL capture at that real viewport width
+             (1600 / 900 / 390), not one desktop shot pasted into four frames,
+             which is the tell in every stock device mockup. -->
+        <div class="svc-board reveal d2">
+          <!-- Drawn frames, not a photograph. The generated mockup looked right
+               in a thumbnail and fell apart at full size: soft JPEG bezels, odd
+               little stands under the tablet and phone, and screens whose shape
+               matched no real viewport, so every screenshot had to be cropped to
+               fit and none of them fitted. These frames are CSS: sharp at any
+               pixel density, themed with the page — and each screen is set to the
+               EXACT ratio of the capture that goes in it (16:10 desktop, 3:4
+               tablet, 390:844 phone), so nothing is cropped. What the browser
+               rendered at that width is what shows. -->
+          <div class="stage stage--rig">
+            <span class="rig rig-tablet">
+              <span class="rig-screen"><img src="assets/work/devices/bed-tab.webp?v=2" alt="งานของเราบนแท็บเล็ต" width="600" height="800" loading="eager" decoding="async"></span>
+            </span>
+            <span class="rig rig-monitor">
+              <span class="rig-screen"><img src="assets/work/devices/bed-desk.webp?v=2" alt="งานของเราบนจอคอมพิวเตอร์" width="1200" height="750" loading="eager" decoding="async"></span>
+              <span class="rig-neck" aria-hidden="true"></span>
+              <span class="rig-foot" aria-hidden="true"></span>
+            </span>
+            <span class="rig rig-laptop">
+              <span class="rig-screen"><img src="assets/work/devices/bed-desk2.webp?v=2" alt="" width="1000" height="625" loading="eager" decoding="async"></span>
+              <span class="rig-base" aria-hidden="true"></span>
+            </span>
+            <span class="rig rig-phone">
+              <span class="rig-screen"><img src="assets/work/devices/bed-phone.webp?v=2" alt="งานของเราบนมือถือ" width="380" height="822" loading="eager" decoding="async"></span>
+            </span>
+          </div>
+
+          <!-- Written AFTER the stage on purpose: on a phone the picture comes
+               first and the four lines fall underneath it, which is the reading
+               order the layout wants anyway. On a wide screen the grid places
+               them either side of the picture without moving them in the DOM. -->
+          <ul class="svc-notes svc-notes--l">
+            <li style="--n:1"><b>เว็บไซต์ &amp; ร้านค้า</b><span>เว็บองค์กร แลนดิ้งเพจ ร้านค้าออนไลน์</span></li>
+            <li style="--n:2"><b>แอปพลิเคชัน</b><span>เว็บแอป ระบบจอง แอปมือถือ iOS/Android</span></li>
+          </ul>
+          <ul class="svc-notes svc-notes--r">
+            <li style="--n:3"><b>ออกแบบ UX/UI</b><span>ต้นแบบกดได้จริง ก่อนเริ่มเขียนโค้ด</span></li>
+            <li style="--n:4"><b>ระบบหลังบ้าน</b><span>ฐานข้อมูล สมาชิก ชำระเงิน ดูแลต่อหลังส่งมอบ</span></li>
+          </ul>
+        </div>
+        <!-- A line, not a seventh tile. As a tile it was a third row of its own,
+             and the section is six services long, not seven. -->
+        <p class="bento-ask reveal d3">
+          ไม่แน่ใจว่าต้องสั่งเมนูไหน? บอกสิ่งที่อยากได้มาคร่าวๆ
+          <a href="#contact">เราช่วยดูให้ ประเมินราคาฟรี →</a>
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================= PROCESS ============================= -->
+    <section class="section section--ink reveal reveal--band" id="process" aria-labelledby="process-title">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">ขั้นตอนในครัว</span>
+          <h2 id="process-title">สั่งงานกับเรา ทำงานกันยังไง</h2>
+          <p>4 ขั้นตอน รู้ตั้งแต่แรกว่าแต่ละขั้นใช้เวลาเท่าไหร่ คุณต้องทำอะไร และจะได้อะไรกลับไป</p>
+        </div>
+        <!-- Torn down and rebuilt around one question a first-time client actually
+             asks: what happens, in what order, and what do I have to do. The old
+             version was four nouns and a sentence each — true, but it answered
+             none of that. Each step now states its length, what we hand over at
+             the end of it, and what (if anything) we need from you, because the
+             thing that makes a stranger nervous about hiring a developer is not
+             knowing where their turn is. An <ol>, not a row of cards: it IS an
+             ordered list, and a screen reader should say so. -->
+        <ol class="flow reveal">
+          <li class="flow-step reveal">
+            <div class="flow-head"><span class="flow-num flow-num--start">1</span></div>
+            <h3><svg class="flow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5.2 4.8a1.6 1.6 0 0 1 1.6-1.6h10.4a1.6 1.6 0 0 1 1.6 1.6V20.4l-2.3-1.7-2.3 1.7-2.3-1.7-2.3 1.7-2.3-1.7-2.1 1.7Z"/><path d="M8.4 8.4h7.2"/><path d="M8.4 12h4.6"/></svg>คุยโจทย์</h3>
+            <p class="flow-meta"><span class="flow-time">~30 นาที</span></p>
+            <p>เล่าให้ฟังว่าอยากได้อะไร ใช้ทำอะไร งบเท่าไหร่ — ทักผ่าน Fastwork ได้เลย จบแล้วได้ใบเสนอราคาและกำหนดส่งเป็นลายลักษณ์อักษร</p>
+            <p class="flow-prep"><span>คุณเตรียม</span> ตัวอย่างเว็บที่ชอบ + ข้อมูลธุรกิจคร่าว ๆ</p>
+          </li>
+          <li class="flow-step reveal">
+            <div class="flow-head"><span class="flow-num">2</span></div>
+            <h3><svg class="flow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5.6 17.4c-1.3-1.3-1.1-3.6.5-5.2s3.9-1.8 5.2-.5 1.1 3.6-.5 5.2-3.9 1.8-5.2.5z"/><path d="M12.1 11.4 19.2 4.9"/><path d="M8.2 22.4c.62 0 1.05-.48 1.05-1.06 0-.62-1.05-1.94-1.05-1.94s-1.05 1.32-1.05 1.94c0 .58.43 1.06 1.05 1.06z"/></svg>ทำเดโมให้ดูก่อน</h3>
+            <p class="flow-meta"><span class="flow-time">3–5 วัน</span></p>
+            <p>เราออกแบบและทำหน้าจริงหน้าแรกให้กดดูของจริง ไม่ใช่ภาพนิ่ง — ถูกใจค่อยไปต่อ ไม่ถูกใจไม่ต้องจ่าย</p>
+            <p class="flow-prep"><span>คุณเตรียม</span> โลโก้ รูป ข้อความ (ไม่มีเราช่วยจัดให้ได้)</p>
+          </li>
+          <li class="flow-step reveal">
+            <div class="flow-head"><span class="flow-num">3</span></div>
+            <h3><svg class="flow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.2 12.2h13.1v1.5a5.4 5.4 0 0 1-5.4 5.4H8.6a5.4 5.4 0 0 1-5.4-5.4z"/><path d="M16.3 13h4.4"/><path d="M8.6 10.4c-1.3-1-1.3-1.8 0-2.8s1.3-1.8 0-2.8" stroke-width="1.3"/><path d="M12 10.4c-1.3-1-1.3-1.8 0-2.8s1.3-1.8 0-2.8" stroke-width="1.3"/></svg>ลงมือทำจริง</h3>
+            <p class="flow-meta"><span class="flow-time">3 วัน – 4 สัปดาห์</span></p>
+            <p>พัฒนาเป็นเฟส ส่งความคืบหน้าให้ดูทุกสัปดาห์ แก้ระหว่างทางได้ตามรอบที่ตกลงกันไว้</p>
+            <p class="flow-prep"><span>คุณเตรียม</span> ดูของที่ส่งให้ แล้วบอกว่าตรงไหนอยากแก้</p>
+          </li>
+          <li class="flow-step reveal">
+            <div class="flow-head"><span class="flow-num">4</span></div>
+            <h3><svg class="flow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.8 16.4a8.2 8.2 0 0 1 16.4 0"/><path d="M2.2 18.7h19.6"/><path d="M12 8.1V6.7"/><circle cx="12" cy="5.4" r="1.3"/><path d="M12 15c-1.2-.9-1.2-1.6 0-2.5s1.2-1.6 0-2.5" stroke-width="1.3"/></svg>ส่งมอบ &amp; ดูแลต่อ</h3>
+            <p class="flow-meta"><span class="flow-time">วันส่งมอบ + 1–3 เดือนตามแพ็กเกจ</span></p>
+            <p>นำขึ้นออนไลน์ สอนใช้งานจนทำเองได้ แล้วรับประกันงานเสียต่อโดยไม่คิดเพิ่ม — หน้าเดียว 1 เดือน · แพ็กเกจอื่น 3 เดือน</p>
+            <p class="flow-prep"><span>คุณเตรียม</span> โดเมนที่อยากใช้ (ยังไม่มีเราจดให้ได้)</p>
+          </li>
+        </ol>
+        <!-- The question everyone is too polite to ask first. Answering it here,
+             inside the steps, is worth more than another adjective anywhere else. -->
+        <p class="flow-pay reveal">
+          <strong>จ่ายเงินตอนไหน?</strong> ขั้นที่ 1–2 ไม่มีค่าใช้จ่าย · เริ่มจ่ายมัดจำ 50% เมื่อคุณพอใจเดโมและตกลงเริ่มงาน · ที่เหลือจ่ายวันส่งมอบ · งานเกิน ฿20,000 แบ่งเป็น 3 งวด (30–40–30)
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================= WHY US ============================= -->
+    <section class="section section--tint" id="why" aria-labelledby="why-title">
+      <div class="container">
+        <div class="why-grid">
+          <div class="reveal">
+            <span class="eyebrow">ทำไมต้องสั่งกับเรา</span>
+            <h2 id="why-title" style="font-size: var(--text-3xl);">พาร์ทเนอร์นักพัฒนา ที่เข้าใจธุรกิจคุณ</h2>
+            <p class="lead" style="margin-top: var(--space-4);">เราไม่ได้แค่เขียนโค้ด — เราช่วยคิด วางแผน และส่งมอบสิ่งที่ช่วยให้ธุรกิจคุณเติบโตจริง สื่อสารตรงไปตรงมา ไม่มีศัพท์เทคนิคที่ทำให้งง</p>
+            <a class="btn btn--primary" href="#contact" style="margin-top: var(--space-5);">คุยกับทีมของเรา</a>
+          </div>
+
+          <div class="checks">
+            <div class="check reveal reveal--stamp">
+              <span class="tick stamp-tick"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path pathLength="1" d="M12 3.8a8.2 8.2 0 1 1 0 16.4 8.2 8.2 0 0 1 0-16.4Z"/><path pathLength="1" d="M12 7.8V12l3 1.8"/></svg></span>
+              <div><h3>ส่งมอบตรงเวลา</h3><p>วางแผนเป็นเฟส มีกำหนดชัดเจน ติดตามความคืบหน้าได้ทุกสัปดาห์</p></div>
+            </div>
+            <div class="check reveal reveal--stamp">
+              <span class="tick stamp-tick"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path pathLength="1" d="M12.4 3.6H5.2A1.6 1.6 0 0 0 3.6 5.2v7.2l8.2 8.2a1.6 1.6 0 0 0 2.3 0l6.3-6.3a1.6 1.6 0 0 0 0-2.3Z"/><path pathLength="1" d="M7.7 7.7h.01"/></svg></span>
+              <div><h3>ราคาโปร่งใส</h3><p>เสนอราคาชัดเจนก่อนเริ่มงาน ไม่มีค่าใช้จ่ายงอกระหว่างทาง</p></div>
+            </div>
+            <div class="check reveal reveal--stamp">
+              <span class="tick stamp-tick"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path pathLength="1" d="M9 8.6 5.2 12 9 15.4"/><path pathLength="1" d="M15 8.6 18.8 12 15 15.4"/><path pathLength="1" d="M13.3 6.4 10.7 17.6"/></svg></span>
+              <div><h3>เทคโนโลยีที่เหมาะกับงาน</h3><p>เว็บทั่วไปเขียนด้วยมาตรฐานเว็บล้วน โหลดไว ไม่มีปลั๊กอินให้ดูแล — งานที่โตขึ้นต่อยอดเป็น React / Next.js ได้</p></div>
+            </div>
+            <div class="check reveal reveal--stamp">
+              <span class="tick stamp-tick"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path pathLength="1" d="M14.2 15.2H4.2a1.4 1.4 0 0 1-1.4-1.4V6.2a1.4 1.4 0 0 1 1.4-1.4h11.6a1.4 1.4 0 0 1 1.4 1.4v1.4"/><path pathLength="1" d="M7.6 19.2h5"/><path pathLength="1" d="M10.1 15.2v4"/><path pathLength="1" d="M19.2 9.2h-2.6a1.2 1.2 0 0 0-1.2 1.2v7.6a1.2 1.2 0 0 0 1.2 1.2h2.6a1.2 1.2 0 0 0 1.2-1.2v-7.6a1.2 1.2 0 0 0-1.2-1.2Z"/></svg></span>
+              <div><h3>รองรับทุกอุปกรณ์</h3><p>สวยและใช้งานได้ลื่นตั้งแต่มือถือจอเล็ก ไปจนถึงจอเดสก์ท็อป</p></div>
+            </div>
+            <div class="check reveal reveal--stamp">
+              <span class="tick stamp-tick"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path pathLength="1" d="M4.4 16.8a8.4 8.4 0 1 1 15.2 0"/><path pathLength="1" d="M12 16.6 15.8 11"/></svg></span>
+              <div><h3>เร็วและติดอันดับ</h3><p>ปรับแต่งความเร็วและ SEO ให้ลูกค้าเจอคุณบน Google ได้ง่ายขึ้น</p></div>
+            </div>
+            <div class="check reveal reveal--stamp">
+              <span class="tick stamp-tick"><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path pathLength="1" d="M12 3.4 19.2 6v6c0 4.2-3 7.3-7.2 8.6C7.8 19.3 4.8 16.2 4.8 12V6Z"/><path pathLength="1" d="m9.3 12.1 2 2 3.5-3.8"/></svg></span>
+              <div><h3>ดูแลหลังส่งมอบ</h3><p>มีทีมซัพพอร์ตคอยช่วยเหลือ พร้อมรับประกันงานเสีย 1–3 เดือนตามแพ็กเกจ</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= MEMBER ============================= -->
+    <section class="section" id="member" aria-labelledby="member-title">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">ทีมงานของเรา</span>
+          <h2 id="member-title">ทีมในครัว</h2>
+        </div>
+        <div class="team-grid">
+          <article class="card member card--hover reveal reveal--left">
+            <span class="member-avatar member-avatar--emoji" aria-hidden="true">
+              <img class="member-emoji" src="assets/emoji/1f98a.webp?v=1" data-anim="assets/emoji/1f98a-anim.webp?v=1" alt="🦊" width="128" height="128" loading="lazy" decoding="async">
+              <img class="member-hat" src="assets/emoji/1f451.webp?v=1" data-anim="assets/emoji/1f451-anim.webp?v=1" alt="👑" width="96" height="96" loading="lazy" decoding="async">
+            </span>
+            <h3>Patipan J. <span class="member-nick">(Pat)</span></h3>
+            <span class="member-role">ผู้ก่อตั้ง · ออกแบบและดูแลลูกค้า</span>
+            <ul>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> Art direction &amp; UX/UI design</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> Front-end (HTML / CSS / JavaScript)</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> วางขอบเขตงานและดูแลลูกค้า</li>
+            </ul>
+          </article>
+          <article class="card member card--hover reveal reveal--right d1">
+            <span class="member-avatar member-avatar--emoji" aria-hidden="true">
+              <img class="member-emoji" src="assets/emoji/1f425.webp?v=1" data-anim="assets/emoji/1f425-anim.webp?v=1" alt="🐥" width="128" height="128" loading="lazy" decoding="async">
+              <img class="member-hat member-hat--high" src="assets/emoji/1f393.webp?v=1" data-anim="assets/emoji/1f393-anim.webp?v=1" alt="🎓" width="96" height="96" loading="lazy" decoding="async">
+            </span>
+            <h3>Wannuwat S. <span class="member-nick">(Naem)</span></h3>
+            <span class="member-role">นักพัฒนา · ระบบหลังบ้านและดีพลอย</span>
+            <ul>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> ปริญญาโทด้านไอที</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> Full-stack development</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> เชื่อมต่อ API และฐานข้อมูล</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> Deploy และดูแลระบบหลังส่งมอบ</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= WORK ============================= -->
+    <section class="section section--tint" id="work" aria-labelledby="work-title">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">เสิร์ฟไปแล้ว</span>
+          <h2 id="work-title">ผลงานที่เสิร์ฟจริง</h2>
+          <p>ทั้งแอปที่ปล่อยใช้จริงและงานสาธิตที่เราออกแบบและพัฒนาเองทั้งหมด ทุกชิ้นลงมือทำเองตั้งแต่ดีไซน์จนถึงโค้ด</p>
+          <a class="head-link" href="#contact">อยากได้แบบนี้บ้าง สั่งเลย<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><use href="#i-icon5"/></svg></a>
+        </div>
+        <!-- The first six show on a phone; the last four sit behind this checkbox.
+             Ten cards is 4,753px of portfolio on a 390px screen — five and a half
+             screens of scrolling before the price section, and the ones doing the
+             convincing are the first few. Nothing is removed: the label expands them
+             in place, and on anything wider than a phone the box does nothing at all
+             and all ten are visible from the start. CSS only, same reason as the
+             services board — a portfolio that needs JavaScript to show the work is
+             a portfolio that shows nothing when JavaScript fails. -->
+        <input class="sr-only work-more-box" type="checkbox" id="work-more">
+        <div class="work-grid">
+          <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูภาพและคลิปของผลงาน: ครัวบ้านสวน — เว็บร้านอาหารไทย" data-reel="assets/work/reel/krua-baansuan.mp4?v=16">
+            <div class="thumb">
+              <span class="tag">งานสาธิต · เว็บร้านอาหาร · 1 หน้า</span>
+              <img class="preview" src="assets/work/krua-baansuan.webp?v=7" alt="" width="1440" height="900" loading="lazy" decoding="async">
+            </div>
+            <div class="work-body">
+              <span class="work-no" aria-hidden="true"></span>
+              <h3>ครัวบ้านสวน — เว็บร้านอาหารไทย</h3>
+              <p>หน้าเดียวจบสำหรับร้านอาหาร: ภาพบรรยากาศ → เมนูแนะนำพร้อมราคา → ที่ตั้งและเวลาเปิด ปุ่มโทรจองโต๊ะกับแอดไลน์อยู่ในระยะนิ้วโป้งตลอดหน้า</p>
+              <a class="work-live" href="work/krua-baansuan/" aria-label="เปิดงานสาธิตของ ครัวบ้านสวน">เปิดงานสาธิต<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+            </div>
+          </div>
+          <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูภาพและคลิปของผลงาน: Homecraft — เว็บรับเหมาก่อสร้าง/รีโนเวท" data-reel="assets/work/reel/homecraft.mp4?v=16">
+            <div class="thumb">
+              <span class="tag">งานสาธิต · เว็บรับเหมาก่อสร้าง · 1 หน้า</span>
+              <img class="preview" src="assets/work/homecraft.webp?v=5" alt="" width="1440" height="900" loading="lazy" decoding="async">
+            </div>
+            <div class="work-body">
+              <span class="work-no" aria-hidden="true"></span>
+              <h3>Homecraft — เว็บรับเหมาก่อสร้าง/รีโนเวท</h3>
+              <p>เว็บหน้าเดียว 9 บล็อก ไล่จากปัญหาที่เจ้าของบ้านเจอจริง ขอบเขตงาน ประเภทงาน ราคา คำถามที่พบบ่อย จนถึงปุ่มโทร/แอดไลน์ ไอคอนวาดเองทุกตัว</p>
+              <a class="work-live" href="work/homecraft/" aria-label="เปิดงานสาธิตของ Homecraft">เปิดงานสาธิต<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+            </div>
+          </div>
+          <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูภาพและคลิปของผลงาน: โกลว์ คลินิก — เว็บคลินิกผิวพรรณ" data-reel="assets/work/reel/glow-clinic.mp4?v=16">
+            <div class="thumb">
+              <span class="tag">งานสาธิต · เว็บคลินิกความงาม · 1 หน้า</span>
+              <img class="preview" src="assets/work/glow-clinic.webp?v=6" alt="" width="1440" height="900" loading="lazy" decoding="async">
+            </div>
+            <div class="work-body">
+              <span class="work-no" aria-hidden="true"></span>
+              <h3>โกลว์ คลินิก — เว็บคลินิกผิวพรรณ</h3>
+              <p>โครงหน้าแบบคลินิก: จุดขายที่ไม่ใช่ราคาถูก → โปรแกรมยอดนิยมพร้อมราคาชัด → ทีมแพทย์ → ปุ่มจองคิว/ทักไลน์</p>
+              <a class="work-live" href="work/glow-clinic/" aria-label="เปิดงานสาธิตของ โกลว์ คลินิก">เปิดงานสาธิต<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+            </div>
+          </div>
+          <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูภาพหกหน้าของผลงาน: โกลว์ คลินิก (ฉบับหลายหน้า) — เว็บคลินิกหลายหน้า" data-pages="glow-clinic-multi-1,glow-clinic-multi-2,glow-clinic-multi-3,glow-clinic-multi-4,glow-clinic-multi-5,glow-clinic-multi-6">
+            <div class="thumb">
+              <span class="tag">งานสาธิต · เว็บหลายหน้า · 8 หน้าหลัก + 6 หน้าบริการ</span>
+              <img class="preview" src="assets/work/glow-clinic-multi.webp?v=1" alt="" width="1440" height="900" loading="lazy" decoding="async">
+            </div>
+            <div class="work-body">
+              <span class="work-no" aria-hidden="true"></span>
+              <h3>โกลว์ คลินิก (ฉบับหลายหน้า) — เว็บคลินิกหลายหน้า</h3>
+              <p>8 หน้าหลัก + หน้าโปรแกรมรายตัวอีก 6 หน้า ผังมาจากการนับเว็บคลินิกไทยจริง 5 เจ้า → โปรโมชั่นเดือนนี้ · เครื่องมือและความรู้ · รีวิว · คนหล่อสวย → เลือกจาก &quot;ปัญหาผิวที่มี&quot; แล้วเห็นกี่ครั้ง พักฟื้นกี่วัน รวมเท่าไหร่ โดยไม่ต้องทักไลน์</p>
+              <a class="work-live" href="work/glow-clinic-multi/" aria-label="เปิดงานสาธิตของ โกลว์ คลินิก ฉบับหลายหน้า">เปิดงานสาธิต<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+            </div>
+          </div>
+          <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูภาพและคลิปของผลงาน: เดอะ เทอเรส — เวนิวจัดงานแต่งและงานเลี้ยง" data-reel="assets/work/reel/the-terrace.mp4?v=13">
+            <div class="thumb">
+              <span class="tag">งานสาธิต · เว็บเวนิวจัดงาน · 1 หน้า</span>
+              <img class="preview" src="assets/work/the-terrace.webp?v=4" alt="" width="1440" height="900" loading="lazy" decoding="async">
+            </div>
+            <div class="work-body">
+              <span class="work-no" aria-hidden="true"></span>
+              <h3>เดอะ เทอเรส — เวนิวจัดงานแต่งและงานเลี้ยง</h3>
+              <p>เว็บที่ตอบคำถามซึ่งเจ้าภาพถามก่อนโทร: อะไรรวมในราคาแล้ว อะไรคิดเพิ่ม → รันดาวน์จริงของงานหนึ่งวัน 06:30–23:00 → ของที่เวนิวมีอยู่แล้วไม่ต้องเช่าเข้ามา</p>
+              <a class="work-live" href="work/the-terrace/" aria-label="เปิดงานสาธิตของ เดอะ เทอเรส">เปิดงานสาธิต<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+            </div>
+          </div>
+          <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูภาพและคลิปของผลงาน: อู่ช่างชัด — เว็บอู่ซ่อมรถยนต์" data-reel="assets/work/reel/chang-chat.mp4?v=7">
+            <div class="thumb">
+              <span class="tag">งานสาธิต · เว็บอู่ซ่อมรถ · 1 หน้า</span>
+              <img class="preview" src="assets/work/chang-chat.webp?v=2" alt="" width="1440" height="900" loading="lazy" decoding="async">
+            </div>
+            <div class="work-body">
+              <span class="work-no" aria-hidden="true"></span>
+              <h3>อู่ช่างชัด — เว็บอู่ซ่อมรถยนต์</h3>
+              <p>หน้าเดียวที่แก้ความกลัวเรื่องเดียวของเจ้าของรถ คือกลัวราคาบานปลาย — กดเลือกอาการรถกับกลุ่มรถแล้วได้ช่วงราคาจริงทันทีโดยไม่ต้องโทรถาม ต่อด้วยใบเสนอราคาที่แยกค่าแรงกับค่าอะไหล่ทุกบรรทัด ใบตรวจ 30 จุดแบบเขียว-เหลือง-แดง และหน้าติดตามสถานะรถว่าซ่อมถึงขั้นไหนแล้ว</p>
+              <a class="work-live" href="work/chang-chat/" aria-label="เปิดงานสาธิตของ อู่ช่างชัด">เปิดงานสาธิต<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+            </div>
+          </div>
+          <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูภาพห้าหน้าของผลงาน: เดอะ เทอเรส (ฉบับ 5 หน้า) — เว็บธุรกิจหลายหน้า" data-pages="the-terrace-multi-1,the-terrace-multi-2,the-terrace-multi-3,the-terrace-multi-4,the-terrace-multi-5">
+            <div class="thumb">
+              <span class="tag">งานสาธิต · เว็บหลายหน้า · 5 หน้า</span>
+              <img class="preview" src="assets/work/the-terrace-multi.webp?v=1" alt="" width="1440" height="900" loading="lazy" decoding="async">
+            </div>
+            <div class="work-body">
+              <span class="work-no" aria-hidden="true"></span>
+              <h3>เดอะ เทอเรส (ฉบับ 5 หน้า) — เว็บธุรกิจหลายหน้า</h3>
+              <p>เวนิวเดียวกัน แบรนด์เดียวกัน ดีไซน์เดียวกัน — แต่ผ่าเป็น 5 หน้าจริงที่มี URL ของตัวเอง หน้าละ title/description/OG แยกกัน มีหน้ารายละเอียดรายห้อง breadcrumb และ sitemap วางคู่กับฉบับหน้าเดียวเพื่อให้เห็นว่าโครงหลายหน้าต่างจากหน้าเดียวตรงไหน</p>
+              <a class="work-live" href="work/the-terrace-multi/" aria-label="เปิดงานสาธิตของ เดอะ เทอเรส ฉบับ 5 หน้า">เปิดงานสาธิต<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+            </div>
+          </div>
+          <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูภาพและคลิปของผลงาน: The Bed — เว็บที่พักหรู" data-reel="assets/work/reel/the-bed.mp4?v=19">
+            <div class="thumb">
+              <span class="tag">งานสาธิต · อสังหาริมทรัพย์ · 1 หน้า</span>
+              <img class="preview" src="assets/work/the-bed.webp?v=8" alt="" width="1440" height="900" loading="lazy" decoding="async">
+            </div>
+            <div class="work-body">
+              <span class="work-no" aria-hidden="true"></span>
+              <h3>The Bed — เว็บที่พักหรู</h3>
+              <p>เว็บนำเสนอที่พักและอสังหาริมทรัพย์ เน้นภาพอาคารเต็มจอ พาผู้ชมไล่ดูห้องทีละส่วนจนถึงปุ่มนัดเข้าชม</p>
+              <a class="work-live" href="work/the-bed/" aria-label="เปิดงานสาธิตของ The Bed">เปิดงานสาธิต<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+            </div>
+          </div>
+          <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูภาพห้าหน้าของผลงาน: The Bed (ฉบับ 5 หน้า) — เว็บที่พักหลายหน้า" data-pages="the-bed-multi-1,the-bed-multi-2,the-bed-multi-3,the-bed-multi-4,the-bed-multi-5">
+            <div class="thumb">
+              <span class="tag">งานสาธิต · เว็บหลายหน้า · 5 หน้า</span>
+              <img class="preview" src="assets/work/the-bed-multi.webp?v=1" alt="" width="1440" height="900" loading="lazy" decoding="async">
+            </div>
+            <div class="work-body">
+              <span class="work-no" aria-hidden="true"></span>
+              <h3>The Bed (ฉบับ 5 หน้า) — เว็บที่พักหลายหน้า</h3>
+              <p>ที่พักเดียวกัน ดีไซน์เดียวกับฉบับหน้าเดียว แต่ผ่าเป็น 5 หน้าจริง และห้องพักแต่ละแบบมีหน้าของตัวเอง (สเปก ขนาด ค่าเช่า ทิศแสง) ส่งลิงก์ห้องเดียวให้ผู้สนใจได้ Google เก็บเป็นคนละหน้า</p>
+              <a class="work-live" href="work/the-bed-multi/" aria-label="เปิดงานสาธิตของ The Bed ฉบับ 5 หน้า">เปิดงานสาธิต<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+            </div>
+          </div>
+          <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูภาพและคลิปของผลงาน: VELVET LEAF — เว็บร้านบูทีคหน้าเดียว" data-reel="assets/work/reel/velvet-leaf.mp4?v=16">
+            <div class="thumb">
+              <span class="tag">งานสาธิต · ร้านค้าหน้าเดียว · 1 หน้า</span>
+              <img class="preview" src="assets/work/velvet-leaf.webp?v=7" alt="" width="1440" height="900" loading="lazy" decoding="async">
+            </div>
+            <div class="work-body">
+              <span class="work-no" aria-hidden="true"></span>
+              <h3>VELVET LEAF — เว็บร้านบูทีคหน้าเดียว</h3>
+              <p>เว็บร้านครบในหน้าเดียว หน้าร้าน เรื่องราวแบรนด์ เมนูสินค้าพร้อมราคา เวลาทำการ และแผนที่ ต่อด้วยระบบเลือกสินค้าใส่ตะกร้าไว้ก่อนไปหน้าร้าน</p>
+              <a class="work-live" href="work/velvet-leaf/" aria-label="เปิดงานสาธิตของ VELVET LEAF">เปิดงานสาธิต<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+            </div>
+          </div>
+          <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูภาพและคลิปของผลงาน: Lumen — เว็บ SaaS เอฟเฟกต์ WebGL" data-reel="assets/work/reel/lumen.mp4?v=18">
+            <div class="thumb">
+              <span class="tag">งานสาธิต · SaaS · WebGL · 1 หน้า</span>
+              <img class="preview" src="assets/work/lumen.webp?v=5" alt="" width="1440" height="900" loading="lazy" decoding="async">
+            </div>
+            <div class="work-body">
+              <span class="work-no" aria-hidden="true"></span>
+              <h3>Lumen — เว็บซอฟต์แวร์ สมัครใช้ออนไลน์</h3>
+              <p>หน้าเว็บขายซอฟต์แวร์ที่ใช้เอฟเฟกต์แสงแบบ WebGL เป็นตัวเล่าคุณค่าสินค้า พร้อมตารางราคาและส่วนคำถามที่พบบ่อย</p>
+              <a class="work-live" href="work/lumen/" aria-label="เปิดงานสาธิตของ Lumen">เปิดงานสาธิต<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+            </div>
+          </div>
+          <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูคลิปและภาพจอแอปของผลงาน: Ijek — เว็บแอปฝึกวินัยตัวเอง" data-reel="assets/work/reel/ijek.mp4?v=12">
+            <div class="thumb">
+              <span class="tag">แอปของเราเอง · PWA</span>
+              <img class="preview" src="assets/work/ijek.webp?v=7" alt="" width="1280" height="800" loading="lazy" decoding="async">
+            </div>
+            <div class="work-body">
+              <span class="work-no" aria-hidden="true"></span>
+              <h3>Ijek — เว็บแอปฝึกวินัยตัวเอง</h3>
+              <p>ตั้งเป้าหมาย บันทึกผลรายวัน และดูสถิติย้อนหลัง ติดตั้งลงมือถือได้เหมือนแอปจริง เปิดใช้ได้ตอนเน็ตหลุด ข้อมูลซิงก์ข้ามเครื่อง</p>
+            </div>
+          </div>
+          <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูคลิปและภาพจอแอปของผลงาน: ScoreUp — แอปติว TOEIC" data-reel="assets/work/reel/scoreup.mp4?v=7">
+            <div class="thumb">
+              <span class="tag">แอปของเราเอง · การศึกษา</span>
+              <img class="preview" src="assets/work/scoreup.webp?v=8" alt="" width="1280" height="800" loading="lazy" decoding="async">
+            </div>
+            <div class="work-body">
+              <span class="work-no" aria-hidden="true"></span>
+              <h3>ScoreUp — แอปติว TOEIC</h3>
+              <p>แดชบอร์ดวัดจุดอ่อนรายทักษะ คลังข้อสอบพร้อมเฉลย ระบบ XP และลีก บันทึกผลสอบลงชีตให้ผู้ดูแลดูย้อนหลังได้ ใช้ออฟไลน์และติดตั้งลงมือถือได้</p>
+            </div>
+          <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูภาพห้าหน้าของผลงาน: GAMEDOCK — ร้านเกมออนไลน์ พร้อมระบบหลังร้าน" data-pages="gamedock-1,gamedock-2,gamedock-3,gamedock-4,gamedock-5">
+            <div class="thumb">
+              <span class="tag">งานสาธิต · ร้านค้าออนไลน์ + หลังบ้าน · 5 หน้า</span>
+              <img class="preview" src="assets/work/gamedock.webp?v=4" alt="" width="1440" height="900" loading="lazy" decoding="async">
+            </div>
+            <div class="work-body">
+              <span class="work-no" aria-hidden="true"></span>
+              <h3>GAMEDOCK — ร้านเกมออนไลน์ พร้อมระบบหลังร้าน</h3>
+              <p>ร้านขายเกมและเครื่องเกมที่กดใช้ได้จริงทั้งเส้น — ค้นหาและกรองตามเครื่องได้จริง สินค้าทุกชิ้นมีหน้าของตัวเองพร้อมตัวเลือกเวอร์ชัน เลือกสินค้า ใส่ตะกร้า กรอกที่อยู่ เลือกวิธีจ่ายเงิน แล้วออเดอร์เข้าไปโผล่ในระบบหลังร้านทันที เจ้าของร้านล็อกอินเข้าไป แก้ชื่อ ราคา และจำนวนคงเหลือได้เอง กดบันทึกแล้วหน้าร้านเปลี่ยนตามทันทีโดยไม่ต้องเรียกคนทำเว็บ มีระบบสมาชิกให้ลูกค้าดูประวัติการสั่งซื้อและสถานะพัสดุของตัวเอง (ลองระบบหลังร้านได้ที่ /admin.html บัญชีทดลอง demo / demo) <b>ขอบเขต:</b> ระบบหลังบ้านแก้เนื้อหารวมอยู่ในแพ็กเกจ ฿9,900 ส่วนตะกร้า ระบบชำระเงิน และระบบสมาชิก คิดเพิ่มตามฟังก์ชันที่สั่ง ตกลงราคาก่อนทำเสมอ <b>ข้อจำกัดของงานสาธิต:</b> ใบนี้เก็บออเดอร์และบัญชีสมาชิกไว้ในเบราว์เซอร์ของเครื่องที่เปิดดู ยังไม่ได้ต่อฐานข้อมูลบนเซิร์ฟเวอร์ เปิดคนละเครื่องจึงไม่เห็นออเดอร์เดียวกัน — งานจริงต่อฐานข้อมูลให้ ข้อมูลอยู่กลางและเห็นตรงกันทุกเครื่อง</p>
+              <a class="work-live" href="work/gamedock/" aria-label="เปิดงานสาธิตของ GAMEDOCK">เปิดงานสาธิต<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+            </div>
+          </div>
+          </div>
+        </div>
+
+        <label class="work-more" for="work-more">ดูผลงานทั้งหมด — อีก 8 ชิ้น</label>
+        <p class="work-note reveal d3">
+          <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+          คลิกที่การ์ดเพื่อดูคลิปเลื่อนทั้งหน้า และภาพหน้าจอทีละหน้าแบบขยายเต็มจอ
+        </p>
+        <!-- reference.html existed with nothing linking to it from anywhere on the site — a sheet
+             built to be handed to a client who asks "ทำเองจริงไหม" that the client could not reach.
+             Here rather than in the head: it answers a question the grid has just raised. -->
+        <p class="work-note reveal d3">
+          <a class="head-link" href="reference.html">ดูอ้างอิงผลงานฉบับเต็ม — ทำเองส่วนไหน ใช้เทคอะไร<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><use href="#i-icon5"/></svg></a>
+        </p>
+      </div>
+    </section>
+
+    <!-- ============================= PRICING ============================= -->
+    <!-- ============ STATEMENT ============
+         A full-bleed typographic beat between the proof and the price, where the
+         page otherwise runs card after card. It is also the honest answer to the
+         objection that lands right here: two people, so why not cheaper and
+         faster. Everything it claims is true of this studio. -->
+    <section class="statement reveal reveal--band" aria-labelledby="statement-title">
+      <div class="container statement-in">
+        <span class="statement-mark reveal">ครัวเล็ก</span>
+        <h2 id="statement-title" class="statement-h reveal d1">
+          <span class="nb">เราทำ</span><span class="nb">ทีละจาน</span><br />
+          <span class="nb">ไม่ใช่</span><em class="nb">สายพาน</em>
+        </h2>
+        <p class="statement-p reveal d2">
+          ทีมเรามีสองคน เลยรับงานได้ทีละไม่กี่ชิ้น — ทุกโปรเจกต์จึงมีคนที่รู้จักมันทั้งระบบ
+          ไม่ใช่คนที่เพิ่งเปิดไฟล์เมื่อเช้า ถ้าคิวเต็มเราบอกตรงๆ ดีกว่ารับไว้แล้วเสิร์ฟไม่ทัน
+        </p>
+      </div>
+    </section>
+
+    <section class="section section--tint section--ruled" id="pricing" aria-labelledby="pricing-title">
+      <div class="container">
+        <div class="section-head reveal">
+          <span class="eyebrow">ใบออเดอร์ราคา</span>
+          <h2 id="pricing-title">ราคาที่โปร่งใส ตรงไปตรงมา</h2>
+          <p>เลือกแพ็กเกจที่เหมาะกับคุณ หรือให้เราประเมินราคาตามความต้องการเฉพาะ</p>
+        </div>
+        <!-- This strip carries no price on purpose. It used to be TS-00 (฿3,500),
+             which put the cheapest number in the loudest slot and left the asking
+             to a fourth card priced "ประเมินตามงาน" — a card nobody could tell
+             whether they belonged in. Every price now lives in the three tickets
+             below; this strip only offers the free way in, for the people who are
+             not ready to pick one yet.
+             TODO: point the button at the Fastwork profile once that URL exists. -->
+        <article class="starter reveal">
+          <div class="starter-body">
+            <div class="ticket-head"><span class="ticket-no">START HERE</span></div>
+            <h3>คุยรายละเอียดฟรี ดูเดโมก่อนตัดสินใจ</h3>
+            <p>ยังไม่ต้องเลือกแพ็กเกจก็ได้ — บอกงบกับสิ่งที่อยากได้มา แล้วเราสรุปแนวทางและราคาให้เป็นลายลักษณ์อักษรก่อนเริ่มงาน</p>
+            <ul class="svc-chips">
+              <li>ปรึกษาฟรี</li><li>ประเมินราคาให้ก่อน</li><li>ดูเดโมหน้าจริง</li>
+              <li>ไม่ต้องมัดจำ</li><li>ไม่มีข้อผูกมัด</li>
+            </ul>
+          </div>
+          <div class="starter-buy">
+            <span class="starter-from">ปรึกษา + ประเมินราคา</span>
+            <div class="starter-free">FREE</div>
+            <a class="btn btn--primary" href="#contact" data-plan="ยังไม่แน่ใจ — ขอปรึกษาฟรีก่อน">คุยรายละเอียดฟรี</a>
+            <span class="starter-note">ตอบกลับภายใน 1 วันทำการ</span>
+          </div>
+        </article>
+
+        <div class="price-grid">
+          <!-- Every ticket now shows a floor price with a "+", and the .per line
+               under each one says what the "+" buys. A bare "฿3,500+" would just
+               move the vagueness of "ประเมินตามงาน" up a card. -->
+          <article class="card price reveal reveal--fade">
+            <div class="ticket-head"><span class="ticket-no">TS-01</span></div>
+            <h3>หน้าเดียว เสร็จไว</h3>
+            <div class="amount"><span class="cur">฿</span>3,500<span class="plus">+</span></div>
+            <p class="per">“+” คือฟังก์ชันที่สั่งเพิ่ม — คิดตามฟังก์ชัน ไม่คิดค่าหน้าเพิ่มรายหน้า ตกลงราคาก่อนทำเสมอ</p>
+            <ul>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> เดโมหน้าแรกฟรี ดูของจริงก่อนจ่าย</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> หน้าเดียวจบ ปรับจากเลย์เอาต์ที่มีให้เข้าแบรนด์</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> รองรับมือถือ + ปุ่ม LINE / โทร</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> ฟอร์มติดต่อ + ปุ่มสั่งซื้อ/ทัก LINE</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> ส่งใน 3–5 วัน (นับหลังยืนยันเดโม) · แก้ 3 รอบ</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> SEO พื้นฐาน + Google Analytics + og-image</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> รับประกันงานเสีย 1 เดือน</li>
+            </ul>
+            <a class="btn btn--secondary btn--block" href="#contact" data-plan="TS-01 · หน้าเดียว เสร็จไว — ฿3,500+">สั่งแพ็กเกจนี้</a>
+          </article>
+
+          <article class="card price featured reveal reveal--fade d1">
+            <span class="ribbon">แนะนำ</span>
+            <div class="ticket-head"><span class="ticket-no">TS-02</span></div>
+            <h3>เว็บไซต์เริ่มต้น</h3>
+            <div class="amount"><span class="cur">฿</span>7,500<span class="plus">+</span></div>
+            <p class="per">“+” คือฟังก์ชันที่สั่งเพิ่ม — คิดตามฟังก์ชัน ไม่คิดค่าหน้าเพิ่มรายหน้า ตกลงราคาก่อนทำเสมอ</p>
+            <ul>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> เดโมหน้าแรกฟรี ดูของจริงก่อนจ่าย</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> ออกแบบตามแบรนด์ ราว 7–8 หน้าหลัก + หน้ารายบริการที่งอกจากแม่แบบเดียวกัน ไม่จำกัดจำนวน — ไม่คิดค่าหน้าเพิ่มรายหน้า</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> รองรับมือถือ + โหลดไว + ฟอร์มติดต่อ/LINE</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> ส่งใน 1–2 สัปดาห์ (นับหลังยืนยันเดโม) · แก้ 3 รอบ</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> SEO พื้นฐาน + ฝัง Google Maps + ตั้ง Google Business ให้</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> รับประกันงานเสีย 3 เดือน</li>
+            </ul>
+            <a class="btn btn--primary btn--block" href="#contact" data-plan="TS-02 · เว็บไซต์เริ่มต้น — ฿7,500+">ขอเดโมฟรี</a>
+          </article>
+
+          <article class="card price reveal reveal--fade d2">
+            <div class="ticket-head"><span class="ticket-no">TS-03</span></div>
+            <h3>อัปเกรด UX/UI + ระบบ</h3>
+            <div class="amount"><span class="cur">฿</span>9,900<span class="plus">+</span></div>
+            <p class="per">“+” คือฟังก์ชันที่สั่งเพิ่ม — คิดตามฟังก์ชัน ไม่คิดค่าหน้าเพิ่มรายหน้า ตกลงราคาก่อนทำเสมอ</p>
+            <ul>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> เดโมหน้าแรกฟรี ดูของจริงก่อนจ่าย</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> ยกระดับ UX/UI เฉพาะแบรนด์ จำนวนหน้าตามขอบเขตที่ตกลง</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> ระบบหลังบ้าน จัดการเนื้อหาเองได้ (รวมในแพ็กเกจ)</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> ต่อระบบใหญ่ได้ — ร้านค้า/ตะกร้า · สมาชิก · เชื่อม API</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> แอป iOS &amp; Android ประเมินเป็นงานๆ หลังสรุปฟีเจอร์</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> ส่งใน 2–4 สัปดาห์ (นับหลังยืนยันเดโม) · แก้ 3 รอบ</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> SEO พื้นฐาน + ฝัง Google Maps + ตั้ง Google Business ให้</li>
+              <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-check"/></svg> รับประกันงานเสีย 3 เดือน + สัญญาดูแลระยะยาว</li>
+            </ul>
+            <a class="btn btn--secondary btn--block" href="#contact" data-plan="TS-03 · อัปเกรด UX/UI + ระบบ — ฿9,900+">สั่งแพ็กเกจนี้</a>
+          </article>
+        </div>
+        <!-- เงื่อนไขการจ่ายเงิน. หน้านี้พิมพ์ราคาไว้สามใบแต่ไม่เคยบอกว่าจ่ายเมื่อไหร่ ทั้งที่
+             FAQ ข้อกรรมสิทธิ์โค้ดอ้างถึง "ข้อตกลง" ที่ลูกค้ายังไม่เคยเห็น — คนที่กำลังจะ
+             กดสั่งต้องรู้ตรงนี้ ไม่ใช่ไปรู้ตอนคุยแชท. บรรทัดเดียว ไม่ใช่การ์ดใบที่สี่:
+             มันคือเงื่อนไขของสามใบข้างบน ไม่ใช่ของที่ขายแยก -->
+        <!-- บรรทัดเงื่อนไขใต้การ์ด (ย่อ 22/8/26). ก่อนหน้านี้เป็นสามย่อหน้ายาวจัดกลาง
+             ทั้งขอบเขตการรับประกัน · เงื่อนไขจ่ายเงิน · กฎงานใหญ่ ตัวหนากระจายเต็มไปหมด
+             จนตากวาดไม่ทัน (jek: "too overwhelmed?") — และของสองในสามนั้นมีคำตอบเต็ม
+             อยู่ใน FAQ ข้างล่างอยู่แล้ว จึงเหลือแค่ "สามตัวเลขที่ต้องรู้ก่อนกดสั่ง"
+             แล้วส่งคนที่อยากอ่านต่อไปที่ FAQ ที่เดียว ไม่เขียนซ้ำสองที่ -->
+        <ul class="terms-strip reveal">
+          <li><b>ปรึกษา + ประเมินราคา</b><span>ฟรี ไม่มีมัดจำ</span></li>
+          <li><b>เริ่มงาน</b><span>มัดจำ 50% · ที่เหลือตอนส่งมอบ</span></li>
+          <li><b>งานเกิน ฿20,000</b><span>แบ่ง 3 งวด 30–40–30</span></li>
+        </ul>
+        <p class="terms-more reveal">เงื่อนไขเต็ม — ขอบเขตการรับประกัน เอกสาร และภาษี — อยู่ใน<a href="#faq">คำถามที่พบบ่อย</a></p>
+
+      </div>
+    </section>
+
+    <!-- ============ สั่งงาน + คำถามที่พบบ่อย (รวมเป็นส่วนเดียว 21/8/26) ============
+         แถบดำนำหน้า เพราะคนที่เลื่อนมาถึงตรงนี้คือคนที่ดูราคากับผลงานจบแล้ว —
+         สิ่งที่ควรเจอก่อนคือ "กดสั่งงานได้เลย" ส่วนคำถามคือของที่อ่านต่อเมื่อยังลังเล
+         สองส่วนนี้เคยเป็นคนละ section ทำให้คนต้องเลื่อนผ่านคำถามเก้าข้อก่อนจะเจอปุ่ม -->
+    <section class="section section--ruled" id="contact" aria-labelledby="contact-title">
+      <div class="container">
+        <div class="cta-band reveal" style="margin-bottom: var(--space-8);">
+                  <h2>พร้อมสั่งงานกับเราแล้วหรือยัง?</h2>
+                  <p>ปรึกษาฟรี ไม่มีข้อผูกมัด บอกไอเดียคร่าว ๆ แล้วให้เราช่วยประเมินแนวทางและราคาให้</p>
+                  <div class="fw-order">
+                    <!-- ปุ่มสั่งงานสไตล์ Fastwork (jek ส่งภาพอ้างอิงมา 22/8/26): วงกลมซ้อน
+                         + ตัวเป็ดตามภาษาภาพของแพลตฟอร์ม พื้นเขียวมิ้นต์ ปุ่มน้ำเงิน #0063F5
+                         เป็ดตัวนี้วาดเองเป็น SVG ไม่ได้ก๊อปมาสคอตของ Fastwork มาใช้ —
+                         ยืมภาษาภาพได้ แต่ตัวละครของเขาเป็นงานมีลิขสิทธิ์ ไม่เอามาแปะ -->
+                    <a class="fw-order__card" href="https://fastwork.co/user/nawafreelance/web-development-73128454" target="_blank" rel="noopener">
+                      <span class="fw-order__art" aria-hidden="true">
+                        <!-- ภาพเป็ดที่ jek ส่งมาเอง 22/8/26 ให้ใช้แทนตัวที่ผมวาด — ตัวไฟล์มี
+                             วงกลมพื้นหลังมาในตัวแล้ว จึงไม่ต้องมีวงกลมซ้อนที่วาดด้วย CSS อีก -->
+                        <img class="fw-order__duck" src="assets/brand/fastwork-duck.webp?v=1"
+                             alt="" width="320" height="320" loading="lazy" decoding="async">
+                      </span>
+                      <span class="fw-order__body">
+                        <b>สั่งงานผ่าน Fastwork</b>
+                        <small>เงินพักไว้กับแพลตฟอร์มจนงานเสร็จ · มีรีวิวจากลูกค้าจริง</small>
+                        <span class="fw-order__btn">สั่งงานเลย <span aria-hidden="true">→</span></span>
+                      </span>
+                    </a>
+                    <div class="fw-order__side">
+                      <a class="btn btn--secondary btn--lg" href="#pricing">ดูราคาและแพ็กเกจ</a>
+                      <ul class="fw-order__meta">
+                        <li><b>โทร</b> <a href="tel:+66816547401">081-654-7401</a></li>
+                        <li><b>อีเมล</b> <a href="mailto:tarmsungdev@gmail.com">tarmsungdev@gmail.com</a></li>
+                        <li><b>รูปแบบการทำงาน</b> ทำงานออนไลน์ · ตอบกลับภายใน 1 วันทำการ</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+        <div class="faq-wrap" id="faq" aria-labelledby="faq-title">
+        <div class="section-head reveal">
+                  <span class="eyebrow">คำถามที่พบบ่อย</span>
+                  <h2 id="faq-title">อยากรู้อะไร ถามได้เลย</h2>
+                </div>
+                <div class="faq">
+          <details class="reveal" open>
+                              <summary>ใช้เวลาพัฒนานานแค่ไหน?<svg class="chev icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-chev-down"/></svg></summary>
+                              <p>ขึ้นอยู่กับขอบเขตงาน — <strong>หน้าเดียว 3–5 วัน</strong> · <strong>เว็บไซต์เริ่มต้น 1–2 สัปดาห์</strong> · <strong>อัปเกรด UX/UI + ระบบ 2–4 สัปดาห์</strong> ส่วนเว็บแอปหรือโมบายแอปจะประเมินหลังสรุปฟีเจอร์ร่วมกัน เรากำหนดไทม์ไลน์ชัดเจนก่อนเริ่มเสมอ</p>
+                            </details>
+          <details class="reveal">
+                              <summary>&quot;เดโมฟรี&quot; กับ &quot;ปรึกษาฟรี&quot; คืออะไร ฟรีจริงไหม?<svg class="chev icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-chev-down"/></svg></summary>
+                              <p>ฟรีจริง ไม่ต้องมัดจำและไม่มีข้อผูกมัด — <strong>ปรึกษาฟรี</strong> คือคุยเป้าหมาย ขอบเขตงาน และงบประมาณ แล้วเราสรุปแนวทางกับราคาให้เป็นลายลักษณ์อักษร ส่วน <strong>เดโมฟรี</strong> คือเราทำหน้าจริงหน้าแรกให้ดูก่อน (ทุกแพ็กเกจ ไม่มีขั้นต่ำ) ถ้าไม่ถูกใจก็ไม่ต้องจ่าย ไม่คิดเงินย้อนหลัง</p>
+                            </details>
+          <details class="reveal">
+                              <summary>คิดราคาอย่างไร มีค่าใช้จ่ายแอบแฝงไหม?<svg class="chev icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-chev-down"/></svg></summary>
+                              <p>เราเสนอราคาแบบชัดเจนเป็นลายลักษณ์อักษรก่อนเริ่มงาน ระบุขอบเขตและสิ่งที่จะได้รับครบถ้วน ไม่มีค่าใช้จ่ายงอกระหว่างทาง — <strong>เราไม่คิดค่าหน้าเพิ่มเป็นรายหน้า</strong> จำนวนหน้าอยู่ในขอบเขตที่ตกลงกันตั้งแต่ต้น จะคิดเพิ่มก็ต่อเมื่อสั่ง “ฟังก์ชัน” ใหม่เข้าไป เช่น ระบบจอง ระบบสมาชิก หรือตะกร้าสินค้า และตกลงราคากันก่อนลงมือทุกครั้ง <strong>รอบแก้ที่ให้มากับแพ็กเกจ</strong> (ทุกแพ็กเกจ 3 รอบ) คือการปรับงานที่อยู่ในขอบเขตเดิม ไม่ใช่การเปลี่ยนโจทย์ใหม่</p>
+                            </details>
+          <details class="reveal">
+                              <summary>จ่ายเงินยังไง ต้องมัดจำเท่าไหร่?<svg class="chev icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-chev-down"/></svg></summary>
+                              <p>คุยและประเมินราคาฟรี ยังไม่ต้องจ่ายอะไรทั้งนั้น — พอตกลงขอบเขตกับราคาแล้ว (ทุกแพ็กเกจได้ดูเดโมหน้าแรกของจริงก่อน) <strong>มัดจำ 50% เพื่อเริ่มงานเต็ม</strong> และจ่ายอีก <strong>50% ตอนส่งมอบหรือขึ้นเว็บจริง</strong> โอนเข้าบัญชีธนาคาร มีใบเสนอราคาระบุขอบเขตทุกงาน</p>
+                              <p><strong>งานใหญ่เกิน ฿20,000</strong> เช่น ร้านค้าออนไลน์ ระบบสมาชิก หรือแอป แบ่งจ่าย <strong>3 งวด: 30% เริ่มงาน · 40% เมื่อผ่านรีวิวกลางทาง · 30% ตอนขึ้นระบบจริง</strong> เพื่อไม่ให้ฝ่ายไหนแบกก้อนใหญ่ไว้ฝ่ายเดียว</p>
+                              <p>งานระดับนี้<strong>เดโมละเอียดไม่ได้แถมฟรี</strong> — เดโมฟรีคือหน้าแรกหนึ่งหน้าเพื่อดูฝีมือและโทนงาน ถ้าอยากได้ต้นแบบที่กดใช้ได้จริงก่อนตัดสินใจ คิดเป็น<strong>ค่าออกแบบต้นแบบ</strong>แยก และ<strong>หักคืนให้เต็มจำนวน</strong>เมื่อจ้างทำต่อ ส่วนงานที่สั่งแก้เพิ่มหลังยืนยันเดโมแล้วและอยู่นอกขอบเขตเดิม จะออกใบเสนอราคาเพิ่มให้ตกลงกันก่อนเสมอ เก็บมัดจำ 50% ของยอดส่วนเพิ่มเช่นกัน</p>
+                            </details>
+          <details class="reveal">
+                              <summary>ออกเอกสารอะไรให้ได้บ้าง หักภาษี ณ ที่จ่ายยังไง?<svg class="chev icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><use href="#i-chev-down"/></svg></summary>
+                              <p>เรารับงาน<strong>ในนามบุคคลธรรมดา</strong> — บริษัทจ้างได้ตามปกติ ไม่ต้องรอให้เราจดนิติบุคคล เอกสารที่ออกให้ได้คือ <strong>ใบเสนอราคา</strong> ก่อนเริ่มงาน และ <strong>ใบสำคัญรับเงิน</strong> พร้อมสำเนาบัตรประชาชนตอนจ่าย ซึ่งฝ่ายบัญชีใช้เป็นหลักฐานลงรายจ่ายได้</p>
+                              <p>เวลาจ่ายให้บุคคลธรรมดา บริษัทมีหน้าที่<strong>หักภาษี ณ ที่จ่าย 3%</strong> (ค่าจ้างทำของ/ค่าบริการ) แล้วนำส่งกรมสรรพากร — เช่น ตกลงกันที่ ฿7,500 บริษัทโอนจริง ฿7,275 และออกหนังสือรับรองการหักภาษีให้เรา ส่วน<strong>ใบกำกับภาษี (VAT) เราออกให้ไม่ได้</strong> เพราะไม่ได้จดทะเบียน VAT — แปลว่าราคาที่เห็นบนหน้านี้คือราคาที่จ่ายจริง ไม่มี VAT 7% บวกเพิ่ม</p>
+                            </details>
+        </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Phone-only order bar. 25/8/26 (jek): เจ้าของสั่งสองข้อ — (1) ห้ามให้ปุ่มหายไป
+       บนจอมือถือ/หน้าต่างย่อ เดิมมันซ่อนตอนอยู่ที่ hero และซ่อนอีกทีตอนถึงฟอร์ม
+       ทำให้คนเลื่อนแล้วปุ่มหาย → ตอนนี้ขึ้นค้างตลอดช่วง ≤960px
+       (2) ให้หน้าตาไปทางเดียวกับการ์ด "สั่งงานผ่าน Fastwork" ในหัวข้อสั่งงาน —
+       การ์ดพื้นมิ้นต์→ขาว มีเป็ดตัวเดียวกัน ปุ่มน้ำเงิน #0063F5 แทนแถบดำ+ปุ่มส้ม
+       เดิม เพื่อให้ "ที่ที่กดสั่งงาน" ทั้งสองจุดของหน้าอ่านเป็นของชิ้นเดียวกัน -->
+  <div class="order-bar" aria-hidden="false">
+    <div class="order-bar__card">
+      <!-- เป็ดตัวเดียวกับการ์ดสั่งงาน (assets/brand/fastwork-duck.webp) ไฟล์มีวงกลม
+           พื้นหลังมาในตัวแล้ว จึงไม่ต้องวาดวงกลมซ้อนด้วย CSS -->
+      <span class="order-bar__art" aria-hidden="true">
+        <img class="order-bar__duck" src="assets/brand/fastwork-duck.webp?v=1"
+             alt="" width="320" height="320" loading="lazy" decoding="async">
+      </span>
+      <div class="order-bar__main">
+        <!-- คำสัญญาเดิมยังอยู่ข้างปุ่ม: นี่คือปุ่มที่คนแปลกหน้ากดเป็นปุ่มแรก
+             จึงไม่ควรเป็นที่เดียวในหน้าที่คำว่า "ปรึกษาฟรี" หายไป -->
+        <p class="order-bar__note">ปรึกษาฟรี ไม่มีข้อผูกมัด · ตอบใน 1 วัน</p>
+        <div class="order-bar__row">
+          <a class="btn btn--secondary" href="#pricing">
+            <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h10"/></svg>
+            ดูราคา
+          </a>
+          <a class="order-bar__cta" href="https://fastwork.co/user/nawafreelance/web-development-73128454" target="_blank" rel="noopener">
+            <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 7h-3V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v2H4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a1 1 0 0 0-1-1zM9 5h6v2H9z"/><path d="M3 12h18"/></svg>
+            สั่งผ่าน Fastwork
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================= FOOTER ============================= -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a class="brand" href="#top">
+            <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false"><path class="egg-white" d="M15.00,3.40 C16.58,3.40 18.73,3.50 20.50,4.20 C22.27,4.90 24.25,6.23 25.60,7.60 C26.95,8.97 28.43,10.77 28.60,12.40 C28.77,14.03 26.37,15.93 26.60,17.40 C26.83,18.87 30.33,19.87 30.00,21.20 C29.67,22.53 26.50,24.17 24.60,25.40 C22.70,26.63 20.80,28.13 18.60,28.60 C16.40,29.07 13.47,28.77 11.40,28.20 C9.33,27.63 7.50,26.50 6.20,25.20 C4.90,23.90 3.90,22.03 3.60,20.40 C3.30,18.77 4.47,17.03 4.40,15.40 C4.33,13.77 2.70,12.20 3.20,10.60 C3.70,9.00 6.10,6.87 7.40,5.80 C8.70,4.73 9.73,4.60 11.00,4.20 C12.27,3.80 13.42,3.40 15.00,3.40 Z"/><circle class="yolk" cx="18.4" cy="13.2" r="5.2"/></svg></span>
+            <span>ตามสั่ง<small>WEB &amp; APP STUDIO</small></span>
+          </a>
+          <p>รับพัฒนาเว็บไซต์และแอปพลิเคชันครบวงจร ออกแบบสวย ใช้งานง่าย ส่งมอบตรงเวลา ดูแลคุณตั้งแต่สั่งจนเสิร์ฟเสร็จ</p>
+          <div class="socials">
+            <a class="icon-btn" href="https://fastwork.co/user/nawafreelance/web-development-73128454" target="_blank" rel="noopener" aria-label="สั่งงานผ่าน Fastwork"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6M9 16h4"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M19 8v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7z"/></svg></a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h3>บริการ</h3>
+          <ul>
+            <li><a href="#services">พัฒนาเว็บไซต์</a></li>
+            <li><a href="#services">เว็บแอปพลิเคชัน</a></li>
+            <li><a href="#services">โมบายแอป</a></li>
+            <li><a href="#services">ออกแบบ UX/UI</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3>บริษัท</h3>
+          <ul>
+            <li><a href="#why">จุดเด่นของเรา</a></li>
+            <li><a href="#work">ผลงาน</a></li>
+            <li><a href="reference.html">อ้างอิงผลงาน</a></li>
+            <li><a href="#process">ขั้นตอนการทำงาน</a></li>
+            <li><a href="#pricing">ราคา</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3>ติดต่อ</h3>
+          <ul>
+            <li><a href="tel:+66816547401">081-654-7401</a></li>
+            <li><a href="mailto:tarmsungdev@gmail.com">tarmsungdev@gmail.com</a></li>
+            <li><a href="#faq">คำถามที่พบบ่อย</a></li>
+            <li><a href="https://fastwork.co/user/nawafreelance/web-development-73128454" target="_blank" rel="noopener">สั่งงานผ่าน Fastwork</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© <span id="year">2026</span> ตามสั่ง (TarmSung) — สงวนลิขสิทธิ์</span>
+        <span><a href="privacy.html">นโยบายความเป็นส่วนตัว</a> · ออกแบบและพัฒนาด้วย ♥ ในประเทศไทย</span>
+      </div>
+    </div>
+    <!-- Reveals like every other block, but as a wipe: the word rises out of its
+         own overflow:hidden box instead of fading. See .wordmark.reveal in the CSS
+         for why a fade stuttered here and a transform does not. -->
+    <div class="wordmark reveal reveal--early" aria-hidden="true"><span>SERVED</span></div>
+  </footer>
+
+  <script src="js/reel-video.js?v=9"></script>
+<script src="js/main.js?v=166" defer></script>
+<!-- เครื่องวัดความหนืด เปิดด้วย ?perf เท่านั้น ไม่ใส่ = สคริปต์ออกทันที ไม่มีต้นทุน -->
+<script src="js/perf-probe.js?v=3" defer></script>
+  <!-- กดการ์ดผลงาน = เปิดคลิปในหน้าต่าง ไม่ใช่กระโดดออกจากหน้า (ไฟล์เดียวกับหน้าอ้างอิง) -->
+  <script src="js/peek.js?v=32" defer></script>
+</body>
+</html>

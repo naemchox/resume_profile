@@ -1,0 +1,176 @@
+/* =====================================================================
+ * PubChat — server-authoritative economy (Cloud Functions, Gen 2)
+ *
+ * WHY: the client cannot be trusted to grant itself coins, premium balls,
+ * XP or points (anyone can edit their own Firestore doc from the console).
+ * Every operation that ADDS value runs here, under the Admin SDK, inside a
+ * transaction. The client may only SPEND (decrement balls when throwing) —
+ * that stays client-side and is bounded by firestore.rules.hardened.
+ *
+ * Exposes (httpsCallable, region us-central1):
+ *   - purchasePremiumBalls({ n })      coins  -> paidBalls
+ *   - redeemReward({ id })             points -> balls / coins
+ *   - grantFreeBallRegen()             time   -> freeBalls (capped)
+ *   - creditFriendship({ otherUid })   verified friendship -> exp/points (+1 friend)
+ * And one HTTP endpoint:
+ *   - stripeWebhook                    Stripe payment confirmed -> coins
+ *
+ * Deploy: see ../BACKEND-SETUP.md
+ * ===================================================================== */
+import { onCall, onRequest, HttpsError } from "firebase-functions/v2/https";
+import { defineSecret } from "firebase-functions/params";
+import { initializeApp } from "firebase-admin/app";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import Stripe from "stripe";
+
+initializeApp();
+const db = getFirestore();
+
+// ---- must mirror the client constants in talk.html ----
+const PAID_BALL_COST   = 50;
+const FREE_BALL_MAX    = 5;
+const FREE_BALL_REGEN_MS = 2 * 60 * 1000;
+const EXP_PER_FRIEND   = 50;
+const REWARDS = {
+  paidball: { cost: 150, balls: 1, coins: 0 },
+  coins100: { cost: 300, balls: 0, coins: 100 },
+};
+// Map a Stripe amount (in the smallest currency unit, e.g. cents) to a coin grant.
+// Keep this in sync with COIN_PACKS in talk.html. Example assumes USD.
+const STRIPE_AMOUNT_TO_COINS = { 199: 200, 499: 600, 999: 1500 };
+
+const STRIPE_SECRET = defineSecret("STRIPE_SECRET_KEY");
+const STRIPE_WEBHOOK_SECRET = defineSecret("STRIPE_WEBHOOK_SECRET");
+
+const userRef = (uid) => db.collection("users").doc(uid);
+const chatIdOf = (a, b) => [a, b].sort().join("_");
+
+function requireAuth(req) {
+  if (!req.auth?.uid) throw new HttpsError("unauthenticated", "Sign in first.");
+  return req.auth.uid;
+}
+
+/* ---- coins -> premium balls ---- */
+export const purchasePremiumBalls = onCall(async (req) => {
+  const uid = requireAuth(req);
+  const n = Math.floor(Number(req.data?.n));
+  if (!Number.isInteger(n) || n < 1 || n > 99) throw new HttpsError("invalid-argument", "Bad quantity.");
+  const cost = PAID_BALL_COST * n;
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(userRef(uid));
+    if (!snap.exists) throw new HttpsError("not-found", "No profile.");
+    const coins = snap.get("coins") || 0;
+    if (coins < cost) throw new HttpsError("failed-precondition", "Not enough coins.");
+    tx.update(userRef(uid), { coins: FieldValue.increment(-cost), paidBalls: FieldValue.increment(n) });
+    return { coins: coins - cost, paidBalls: (snap.get("paidBalls") || 0) + n };
+  });
+});
+
+/* ---- points -> reward (premium balls / coins) ---- */
+export const redeemReward = onCall(async (req) => {
+  const uid = requireAuth(req);
+  const r = REWARDS[req.data?.id];
+  if (!r) throw new HttpsError("invalid-argument", "Unknown reward.");
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(userRef(uid));
+    if (!snap.exists) throw new HttpsError("not-found", "No profile.");
+    const points = snap.get("points") || 0;
+    if (points < r.cost) throw new HttpsError("failed-precondition", "Not enough points.");
+    const patch = { points: FieldValue.increment(-r.cost) };
+    if (r.balls) patch.paidBalls = FieldValue.increment(r.balls);
+    if (r.coins) patch.coins = FieldValue.increment(r.coins);
+    tx.update(userRef(uid), patch);
+    return { points: points - r.cost };
+  });
+});
+
+/* ---- time -> free balls (server clock; client can't fast-forward it) ---- */
+export const grantFreeBallRegen = onCall(async (req) => {
+  const uid = requireAuth(req);
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(userRef(uid));
+    if (!snap.exists) throw new HttpsError("not-found", "No profile.");
+    const now = Date.now();
+    const freeBalls = snap.get("freeBalls") || 0;
+    let last = snap.get("lastFreeRegen") || now;
+    if (freeBalls >= FREE_BALL_MAX) {
+      tx.update(userRef(uid), { lastFreeRegen: now });
+      return { freeBalls, lastFreeRegen: now };
+    }
+    const add = Math.floor((now - last) / FREE_BALL_REGEN_MS);
+    if (add <= 0) return { freeBalls, lastFreeRegen: last };
+    const next = Math.min(FREE_BALL_MAX, freeBalls + add);
+    const newLast = next >= FREE_BALL_MAX ? now : last + add * FREE_BALL_REGEN_MS;
+    tx.update(userRef(uid), { freeBalls: next, lastFreeRegen: newLast });
+    return { freeBalls: next, lastFreeRegen: newLast };
+  });
+});
+
+/* ---- verified friendship -> XP/points (each member credits self once) ----
+ * Trust comes from the chat doc: it must exist, mark friends:true, and include
+ * the caller as a member. We never grant the same friend twice. */
+export const creditFriendship = onCall(async (req) => {
+  const uid = requireAuth(req);
+  const otherUid = String(req.data?.otherUid || "");
+  if (!otherUid || otherUid === uid) throw new HttpsError("invalid-argument", "Bad friend id.");
+  const cid = chatIdOf(uid, otherUid);
+  const chatSnap = await db.collection("chats").doc(cid).get();
+  if (!chatSnap.exists) throw new HttpsError("failed-precondition", "No chat with that person.");
+  const chat = chatSnap.data();
+  if (!chat.friends) throw new HttpsError("failed-precondition", "Not friends yet.");
+  if (!Array.isArray(chat.members) || !chat.members.includes(uid))
+    throw new HttpsError("permission-denied", "Not a member of that chat.");
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(userRef(uid));
+    const friends = snap.get("friends") || [];
+    if (friends.includes(otherUid)) return { alreadyCredited: true };
+    tx.update(userRef(uid), {
+      friends: FieldValue.arrayUnion(otherUid),
+      exp: FieldValue.increment(EXP_PER_FRIEND),
+      points: FieldValue.increment(EXP_PER_FRIEND),
+    });
+    return { credited: true, exp: (snap.get("exp") || 0) + EXP_PER_FRIEND };
+  });
+});
+
+/* ---- Stripe payment confirmed -> coins ----
+ * The client opens a Payment Link tagged with client_reference_id = uid. Stripe
+ * calls this endpoint when the payment completes; we verify the signature and
+ * credit the buyer. The client is NEVER trusted to credit its own coins. */
+export const stripeWebhook = onRequest(
+  { secrets: [STRIPE_SECRET, STRIPE_WEBHOOK_SECRET] },
+  async (req, res) => {
+    const stripe = new Stripe(STRIPE_SECRET.value());
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.rawBody, req.headers["stripe-signature"], STRIPE_WEBHOOK_SECRET.value()
+      );
+    } catch (err) {
+      console.error("Stripe signature check failed:", err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+    if (event.type === "checkout.session.completed") {
+      const s = event.data.object;
+      const uid = s.client_reference_id;
+      const coins = STRIPE_AMOUNT_TO_COINS[s.amount_total];
+      if (uid && coins) {
+        // Idempotency: one credit per Stripe session id.
+        const seen = db.collection("stripeSessions").doc(s.id);
+        try {
+          await db.runTransaction(async (tx) => {
+            if ((await tx.get(seen)).exists) return;
+            tx.set(seen, { uid, coins, at: Date.now() });
+            tx.update(userRef(uid), { coins: FieldValue.increment(coins) });
+          });
+        } catch (err) {
+          console.error("Coin credit failed:", err);
+          return res.status(500).send("credit failed");
+        }
+      } else {
+        console.warn("Unmatched checkout session", { uid, amount: s.amount_total });
+      }
+    }
+    res.json({ received: true });
+  }
+);

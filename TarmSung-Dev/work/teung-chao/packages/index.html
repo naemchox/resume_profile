@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="th" class="no-js">
+<head>
+  <meta name="robots" content="noindex,nofollow">
+<meta charset="utf-8">
+<!-- คืนตำแหน่งที่อ่านค้างไว้เอง ไม่รอเบราว์เซอร์ (ที่มา: work/_JANK-REFRESH.md)
+     Safari คืนตำแหน่ง scroll หลังอีเวนต์ load เท่านั้น — วัดแล้ว DCL/load ยังอยู่ที่ y=0
+     ทั้งคู่ คนที่รีเฟรชกลางหน้าจึงเห็น "ฮีโร่แวบ" ตั้งแต่เฟรมแรกจนกว่าไฟล์สุดท้ายจะโหลดจบ
+     (เน็ตช้า = ค้างนานเป็นวินาที) สคริปต์นี้เก็บตำแหน่งไว้เองใน sessionStorage แล้ววาง
+     กลับตั้งแต่เฟรมแรกที่ความสูงหน้าพอ — เร็วกว่ารอ load หลายเท่าและไม่ต้องรอรูป
+     หยุดทันทีถ้าผู้ใช้ขยับเอง (wheel/touch/key/pointer) จะได้ไม่แย่งมือกับคนอ่าน -->
+<script>
+(function () {
+  try {
+    if (!("scrollRestoration" in history)) return;
+    history.scrollRestoration = "manual";
+    var key = "ts:y:" + location.pathname;
+    var want = parseInt(sessionStorage.getItem(key) || "0", 10) || 0;
+    var timer = 0;
+    var save = function () { try { sessionStorage.setItem(key, String(Math.round(window.scrollY))); } catch (e) {} };
+    addEventListener("scroll", function () {
+      if (timer) return;
+      timer = setTimeout(function () { timer = 0; save(); }, 200);
+    }, { passive: true });
+    addEventListener("pagehide", save);
+    /* แถบเมนูต้องไม่ "โผล่" ตอนหน้าเปิดมากลางหน้าอยู่แล้ว (jek 25/8/26 · the-bed)
+       แถบมีสองชั้นที่ไล่เข้าเอง — พื้นทึบบน .nav-shell::before (opacity 300ms) กับเส้นทอง
+       บน border-color (400ms) — พอคืนตำแหน่ง scroll ปุ๊บ สคริปต์แถบเมนูใส่คลาส scrolled
+       ทั้งสองชั้นจึงไล่ให้เห็นทุกครั้งที่รีเฟรช ทั้งที่ผู้ใช้ไม่ได้เลื่อนอะไรเลย
+       ระหว่างช่วงคืนตำแหน่ง จึงปิดทรานซิชันของหัวเว็บไว้ = แถบอยู่ในสถานะสุดท้ายตั้งแต่
+       เฟรมแรก · เปิดคืนทันทีที่ผู้ใช้ขยับเอง (หรืออย่างช้า 900ms) การเลื่อนของจริงจึงยังลื่น */
+    if (want) {
+      var root = document.documentElement;
+      root.className += " nav-instant";
+      var st = document.createElement("style");
+      st.textContent = "html.nav-instant .nav-shell,html.nav-instant .nav-shell::before," +
+        "html.nav-instant .site-header,html.nav-instant header,html.nav-instant header > *," +
+        "html.nav-instant header > * > *{transition:none !important}";
+      (document.head || document.documentElement).appendChild(st);
+      var unlock = function () { root.className = root.className.replace(/\s*nav-instant/, ""); };
+      ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+        addEventListener(ev, unlock, { passive: true, once: true });
+      });
+      setTimeout(unlock, 900);
+    }
+    if (!want || location.hash) return;
+    var stop = false;
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+      addEventListener(ev, function () { stop = true; }, { passive: true, once: true });
+    });
+    var t0 = (performance.now ? performance.now() : 0);
+    var now = function () { return performance.now ? performance.now() : t0; };
+    var done = false;
+    var put = function () {
+      if (stop || done) return true;
+      var el = document.scrollingElement || document.documentElement;
+      if (!el || el.scrollHeight - window.innerHeight < want) return false;   /* หน้ายังสูงไม่พอ ค่อยลองใหม่ */
+      if (Math.round(window.scrollY) !== want) {
+        var prev = el.style.scrollBehavior;      /* html { scroll-behavior: smooth } จะทำให้การวางกลับกลายเป็นการไถ */
+        el.style.scrollBehavior = "auto";
+        window.scrollTo(0, want);
+        el.style.scrollBehavior = prev;
+      }
+      done = Math.round(window.scrollY) === want;
+      /* ใส่สถานะ "เลื่อนแล้ว" ให้หัวเว็บทันทีในจังหวะเดียวกับที่คืนตำแหน่ง — ไม่ต้องรอสคริปต์
+         ของหน้ามันเองซึ่งอยู่ท้าย <body> (วัดแล้วช้ากว่ากันราว 20ms = เห็นแถบเปล่าได้ 1 เฟรม)
+         เกณฑ์คนละค่าเพราะแต่ละที่ตั้งไว้ไม่เท่ากัน: .site-header > 8px · .nav-shell > 40px
+         (ดู js/main.js กับสคริปต์ท้ายหน้าเดโม) สคริปต์ของหน้าจะคำนวณซ้ำเองอยู่แล้ว ค่าจึงตรงกัน */
+      if (done) {
+        var mark = function (sel, cls, min) {
+          if (want <= min) return;
+          var n = document.querySelectorAll(sel);
+          for (var i = 0; i < n.length; i++) n[i].classList.add(cls);
+        };
+        /* หัวเว็บของแต่ละใบใช้คนละคลาสคนละเกณฑ์ (ของเดิมเป็นแบบนั้นมาก่อนแล้ว):
+           .site-header.scrolled >8px (เว็บเรา) · .nav-shell.scrolled >40px (the-bed)
+           .site-header.stuck (the-terrace ใช้ sentinel ไม่ใช่ตัวเลข — 80px คือค่าประมาณ)
+           header.small >120px (homecraft/lumen/glow-clinic ผ่าน js/nav-response.js)
+           เดาพลาดไม่เป็นไร สคริปต์ของหน้าคำนวณทับให้ในเฟรมถัดไป และช่วงนี้ทรานซิชันถูกปิดอยู่
+           การแก้จึงเป็นการสลับทันที ไม่ใช่การไล่สีให้เห็น */
+        mark(".site-header", "scrolled", 8);
+        mark(".nav-shell", "scrolled", 40);
+        mark(".site-header, header[data-header]", "stuck", 80);
+        mark("header, .site-header", "small", 120);
+      }
+      return done;
+    };
+    /* ลองทุกทางที่มาถึงก่อน: setTimeout(0) มักได้ก่อนเฟรมแรกด้วยซ้ำ · rAF ทำงานก่อนวาด
+       · readystatechange/DOMContentLoaded คือจุดที่ body ครบแล้วแน่ๆ
+       เหตุที่ไม่พอถ้าใช้ rAF อย่างเดียว: วัดแล้วบางหน้า (หน้าแรกของเว็บเรา) เฟรมแรก
+       มาก่อนที่ความสูงจะพอ ทำให้เลื่อนไม่ได้ แล้วต้องรอ rAF รอบถัดไป = เห็นหัวเว็บ 1 เฟรม */
+    /* สองสายแยกกัน สายละหนึ่งนัด — ถ้าให้สายเดียวนัดทั้ง setTimeout และ rAF
+       จำนวนนัดจะเพิ่มเป็นสองเท่าทุกรอบ (2^n) ภายในไม่กี่ร้อยมิลลิวินาที */
+    var tick = function () { if (put() || stop) return; if (now() - t0 < 3000) setTimeout(tick, 0); };
+    var frame = function () { if (put() || stop) return; if (now() - t0 < 3000) requestAnimationFrame(frame); };
+    tick();
+    frame();
+    document.addEventListener("readystatechange", put);
+    addEventListener("DOMContentLoaded", put);
+    addEventListener("load", put);
+  } catch (e) {}
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แพ็กเกจเดือนนี้ ลูกสัตว์ สัตว์สูงวัย ทำหมัน | ถึงเช้า ระยอง</title>
+<meta name="description" content="แพ็กเกจลูกสุนัขลูกแมว ฿2,490 ตรวจครบสัตว์สูงวัย 7 ปีขึ้นไป ฿2,900 ทำหมันพร้อมวัคซีน ฿1,990 ตัวที่สองลด 10% ใช้ได้ถึงสิ้นเดือน">
+<link rel="canonical" href="https://tarmsung.pages.dev/work/teung-chao/packages/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="แพ็กเกจเดือนนี้ ลูกสัตว์ สัตว์สูงวัย ทำหมัน | ถึงเช้า ระยอง">
+<meta property="og:description" content="แพ็กเกจลูกสุนัขลูกแมว ฿2,490 ตรวจครบสัตว์สูงวัย 7 ปีขึ้นไป ฿2,900 ทำหมันพร้อมวัคซีน ฿1,990 ตัวที่สองลด 10% ใช้ได้ถึงสิ้นเดือน">
+<meta property="og:image" content="https://tarmsung.pages.dev/work/teung-chao/img/rest-blanket.webp">
+<meta property="og:url" content="https://tarmsung.pages.dev/work/teung-chao/packages/">
+<meta name="twitter:card" content="summary_large_image">
+<script>document.documentElement.classList.replace("no-js","js");</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- preload ฟอนต์หัวเรื่อง (Anuphan) — คู่กับ display=optional ข้างล่าง
+     optional เฉยๆ แปลว่าคนที่เข้าครั้งแรกได้ฟอนต์สำรองทั้งหน้า preload ทำให้ไฟล์
+     มาทันช่วงต้นเกือบทุกครั้ง · มีสองไฟล์เพราะ Google เสิร์ฟ Chrome กับ Safari คนละตัว
+     (เติมอัตโนมัติด้วย playbook/fix-font-flash.mjs) -->
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/anuphan/v6/2sDeZGxYgY7LkLT0mX4Dan29.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/anuphan/v6/2sDeZGxYgY7LkLT0mWoDag.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/anuphan/v6/2sDeZGxYgY7LkLT0mX4Dam--C70lZQ.woff2" />
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600&family=Noto+Sans+Thai:wght@600;700;800&family=Cormorant+Garamond:wght@500;600&display=optional" rel="stylesheet">
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/styles.css">
+<link rel="stylesheet" href="../css/multi.css">
+<style>
+/* =============================================================================
+   รอบ "แก้จืด" ครั้งที่ 2 — 22/8/26 (playbook/PROMPT-JUED.md)
+   ===========================================================================
+   AUDIT ก่อนแก้: ไล่ css/styles.css + tokens.css ซ้ำอีกรอบ (grep rgba alpha ต่ำ,
+   blur, opacity ต่ำ) เจอแค่ .hero-grain (opacity .10, blur 6px บน .slots) ซึ่ง
+   ทั้งคู่จงใจให้จางตามคอมเมนต์เดิมในไฟล์ ไม่ใช่บั๊ก — ไม่แตะ ตรงกับที่ jek วัดมา
+   ว่าความจืดของหน้านี้คือ "นิ่ง" (@keyframes 1 อัน) ไม่ใช่ "ของจาง"
+
+   งานรอบนี้จึงเป็นชั้น 3 ล้วนๆ — หยิบภาษาของเวนิวจัดงานที่ยังไม่ได้ใช้: ไฟอุ่น
+   เหนือรูปฮีโร่ (ของชนิดเดียวกับไฟที่ #story ใช้ keyframe tt-warm เดิม ไม่เขียน
+   กลไกที่สอง), ผ้าม่านเปิดบนรูปห้อง, และการจัดโต๊ะ (เมนูทยอยวางทีละจาน) —
+   ไม่มี fade ทั่วไปเพิ่มสักตัว
+   -------------------------------------------------------------------------- */
+
+/* ---- 1) ไฟอุ่นเหนือรูปฮีโร่ --------------------------------------------------
+   จุดสนใจของภาพฮีโร่คือโคมไฟกับหน้าต่างริมน้ำที่ถูกจัดให้อยู่ขวาของหัวเรื่อง
+   (ดูคอมเมนต์ .hero-media img ด้านบน) ไฟดวงนี้หายใจช้าตรงตำแหน่งนั้น ใช้
+   keyframe เดียวกับไฟที่แถบมืด #story (tt-warm) เพราะเป็นของชนิดเดียวกัน:
+   ไฟอุ่นของเวนิวตอนค่ำ ไม่ใช่ไฟดิสโก้ที่กะพริบเร็ว */
+.hero-glow {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(55% 60% at 72% 38%,
+    color-mix(in oklch, var(--brass-400) 30%, transparent) 0%, transparent 68%);
+}
+.js .hero-glow { animation: tt-warm 11s ease-in-out infinite; }
+
+/* ---- 2) ผ้าม่านเปิดบนรูปห้อง -------------------------------------------------
+   #rooms เดิมรูปสามห้องโผล่มาพร้อมการ์ด (fade+เลื่อนขึ้นเฉยๆ) ตอนนี้มีแผ่นผ้า
+   สีเข้มปิดรูปอยู่ก่อน แล้วเลื่อนเปิดออกทางขวาเหมือนม่านเปิดพื้นที่จัดงาน —
+   ภาษาของเวนิวจัดงานที่ใช้ผ้าม่านจริงในพิธีและซุ้ม ไม่ใช่ fade ทั่วไป */
+.room-media { position: relative; display: block; overflow: hidden; }
+.room-curtain {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(100deg, var(--forest-950) 46%,
+    color-mix(in oklch, var(--forest-950) 55%, transparent) 100%);
+  transform-origin: right; transform: scaleX(1);
+}
+.js .room-curtain { transition: transform 900ms var(--ease); }
+.js .room.in .room-curtain { transform: scaleX(0); }
+.js .room:nth-child(1).in .room-curtain { transition-delay: 650ms; }
+.js .room:nth-child(2).in .room-curtain { transition-delay: 800ms; }
+.js .room:nth-child(3).in .room-curtain { transition-delay: 950ms; }
+
+/* ---- 3) เมนูทยอยวางทีละจาน --------------------------------------------------
+   รายการอาหารในแต่ละชุด (.set li) เดิมโผล่มาพร้อมกันทั้งลิสต์ตอนการ์ดเข้าจอ
+   ตอนนี้ทยอยขึ้นทีละบรรทัดเหมือนพนักงานจัดโต๊ะวางจานทีละจาน — ใช้ตัวเลข
+   ลำดับจานเดิม (counter(dish)) เป็นตัวบอกจังหวะอยู่แล้ว จึงให้ทยอยตามลำดับนั้น */
+.js .set li { opacity: 0; transform: translateY(10px); transition: opacity 420ms var(--ease), transform 420ms var(--ease); }
+.js .set.in li { opacity: 1; transform: none; }
+.js .set.in li:nth-child(1)  { transition-delay: 80ms; }
+.js .set.in li:nth-child(2)  { transition-delay: 130ms; }
+.js .set.in li:nth-child(3)  { transition-delay: 180ms; }
+.js .set.in li:nth-child(4)  { transition-delay: 230ms; }
+.js .set.in li:nth-child(5)  { transition-delay: 280ms; }
+.js .set.in li:nth-child(6)  { transition-delay: 330ms; }
+.js .set.in li:nth-child(7)  { transition-delay: 380ms; }
+.js .set.in li:nth-child(8)  { transition-delay: 430ms; }
+.js .set.in li:nth-child(9)  { transition-delay: 480ms; }
+.js .set.in li:nth-child(10) { transition-delay: 530ms; }
+.js .set.in li:nth-child(11) { transition-delay: 580ms; }
+.js .set.in li:nth-child(12) { transition-delay: 630ms; }
+
+/* ---- 4) ป้าย "จองมากที่สุด" คลี่ออกเหมือนริบบิ้น ----------------------------
+   ป้ายบนการ์ดแพ็กเกจที่ขายดีที่สุดเดิมโผล่มาพร้อมการ์ด ตอนนี้คลี่ออกจากกึ่งกลาง
+   หลังการ์ดตั้งตัวแล้ว เหมือนริบบิ้น/แถบผูกโบว์ในงานเลี้ยง ไม่ใช่ป้ายกระพริบ */
+.js .card .tag { transform: scaleX(0); transition: transform 380ms var(--ease) 520ms; }
+.js .card.in .tag { transform: scaleX(1); }
+
+/* ---- ปิดได้จริงสองทาง: media query ของระบบ และ .still ที่ main.js ติดให้เมื่อ
+   เปิดด้วย ?reduce=1 (ทางที่สคริปต์ถ่ายภาพใช้) ------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .js .hero-glow { animation: none !important; opacity: .8; }
+  .js .room-curtain { transition: none !important; transform: scaleX(0) !important; }
+  .js .set li { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .js .card .tag { transform: scaleX(1) !important; transition: none !important; }
+}
+.still .hero-glow { animation: none !important; opacity: .8; }
+.still .room-curtain { transition: none !important; transform: scaleX(0) !important; }
+.still .set li { opacity: 1 !important; transform: none !important; }
+.still .card .tag { transform: scaleX(1) !important; }
+</style>
+<style>
+/* ---- ของเฉพาะ "ถึงเช้า" ------------------------------------------------
+   คลาสร่วม (.section .wrap .card .set .fact .room .quote .btn) มาจาก css/styles.css
+   กับ css/multi.css ซึ่งใช้ร่วมกับเดโมหลายหน้าใบอื่น — ที่เพิ่มตรงนี้คือของที่ใบอื่นไม่มี
+   ทั้งหมดใช้ gradient/สีนิ่ง ไม่มี filter/backdrop-filter (DEMO-SPEC S2.4) จึงไม่กินเฟรมตอนเลื่อน */
+
+/* แถบบริบทบนฮีโร่ — จุดสีเขียวเครื่องวัดบอกว่า "มีคนอยู่จริง" */
+.kicker.onair i { background: var(--vital-400); box-shadow: 0 0 0 4px rgba(70,183,132,.22); }
+.kicker.onair b { color: var(--amber-400); font-variant-numeric: tabular-nums; }
+
+/* การ์ดคาบขอบล่างฮีโร่ (ท่าเดียวกับ the-terrace §4.1 ข้อ 5) */
+.lift { margin-top: calc(var(--s8) * -1); position: relative; z-index: 2; }
+.lift .facts .fact { background: var(--surface); box-shadow: var(--e2); }
+.mt5 { margin-top: var(--s5); }
+
+/* สามระดับความเร่งด่วน — สีเดียวกันทั้งหน้าแรกและหน้า now/ */
+/* 31/8 audit: #C2410C บนพื้น wash ได้ 4.44 เฉียดเกณฑ์ 4.5 — เข้มลงหนึ่งขั้น */
+.lv--now     { --lv: #A8360A; --lv-wash: #FDEAE0; }
+.lv--watch   { --lv: var(--amber-600); --lv-wash: var(--amber-100); }
+.lv--morning { --lv: var(--vital-600); --lv-wash: #E3F3EB; }
+.lv-badge, .fact-ico.lv {
+  display: inline-grid; place-items: center; width: 2em; height: 2em; border-radius: 999px;
+  background: var(--lv-wash); color: var(--lv); font-weight: 700; font-size: var(--t-sm);
+}
+.tri-lv h3 .lv-badge, .tri-out-head .lv-badge { margin-right: var(--s3); vertical-align: -.35em; }
+
+/* ตัวเลือกอาการ */
+.tri { display: grid; gap: var(--s5); margin-top: var(--s6); }
+.tri-set { border: 1px solid var(--line); border-radius: var(--card-radius); padding: var(--s5); background: var(--surface); }
+.tri-set legend { padding: 0 var(--s3); font-family: var(--font-d); font-size: var(--t-sm); color: var(--text-muted); letter-spacing: .04em; }
+.chip { display: inline-block; margin: var(--s2) var(--s2) 0 0; }
+/* ซ่อนช่องติ๊กแบบที่ยังโฟกัสด้วยคีย์บอร์ดได้จริง — width/height:0 ทำให้บางเบราว์เซอร์
+   ข้ามการโฟกัสไปเลย (และเครื่องมือทดสอบมองว่า "ไม่มีตัวตน") 1px+clip คือท่ามาตรฐาน */
+.chip input { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
+.chip span {
+  display: inline-block; padding: var(--s3) var(--s4); border: 1px solid var(--line);
+  border-radius: 999px; cursor: pointer; font-size: var(--t-sm); line-height: 1.3;
+  transition: background var(--dur-reveal) var(--ease), border-color var(--dur-reveal) var(--ease), color var(--dur-reveal) var(--ease);
+}
+.chip input:checked + span { background: var(--action); border-color: var(--action); color: var(--on-action); }
+.chip input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* กล่องสรุป */
+.tri-out { display: none; }
+.tri-out.is-on {
+  display: block; margin-top: var(--s6); padding: var(--s6);
+  border-radius: var(--card-radius); border-left: 6px solid var(--lv); background: var(--lv-wash);
+}
+.tri-out-kicker { font-size: var(--t-sm); color: var(--text-muted); margin: 0 0 var(--s2); }
+.tri-out-head { font-family: var(--font-d); font-size: var(--t-2xl); margin: 0 0 var(--s3); color: var(--lv); }
+.tri-out-list { margin: var(--s4) 0 var(--s5); padding-left: var(--s5); color: var(--text-muted); font-size: var(--t-sm); }
+.tri-out .act { margin: 0; }
+
+/* สามระดับแบบเต็ม (เห็นได้แม้ JS ไม่ทำงาน) */
+.tri-all { display: grid; gap: var(--s4); margin-top: var(--s7); }
+@media (min-width: 860px) { .tri-all { grid-template-columns: repeat(3, 1fr); } }
+.tri-lv { padding: var(--s5); border-radius: var(--card-radius); background: var(--surface); border-top: 4px solid var(--lv); box-shadow: var(--e1); }
+.tri-lv h3 { font-family: var(--font-d); font-size: var(--t-lg); margin: 0 0 var(--s3); }
+.tri-lv p { margin: 0; color: var(--text-muted); font-size: var(--t-sm); }
+
+/* ---- แก้จาก G2 รอบแรก (31/8) — เจอจากภาพจริง ไม่ใช่จากการเดา ------------
+   1) .fact ของชีตร่วมเป็นกริด 2 คอลัมน์ (38px | 1fr) ออกแบบมาให้หัวข้อสั้นๆ
+      พอเอามาใส่หัวข้อ "มาเดี๋ยวนี้" + อาการยาว มันฉีกหัวข้อเป็นบรรทัดละคำ
+      ใบนี้จึงบังคับเป็นกองซ้อนแนวตั้งเฉพาะการ์ดสามใบนี้ ไม่แตะชีตร่วม
+   2) .facts/.rooms ไม่ได้ตั้งจำนวนคอลัมน์ไว้ที่จอกว้าง เนื้อหาเลยกองซ้ายแล้วเหลือ
+      ที่ว่างขวาเกือบ 400px (เห็นจากภาพ tc-2-now.png) */
+.facts { grid-template-columns: 1fr; }
+.rooms { grid-template-columns: 1fr; }
+@media (min-width: 860px) {
+  .facts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .rooms { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.facts .fact {
+  display: block; padding: var(--s5);
+  border-radius: var(--card-radius);
+}
+.facts .fact .fact-ico { display: inline-grid; margin-bottom: var(--s3); }
+.facts .fact b { font-family: var(--font-d); font-size: var(--t-lg); line-height: 1.35; }
+.facts .fact span { margin-top: var(--s2); }
+.facts a.fact { text-decoration: none; color: inherit; transition: box-shadow var(--dur-reveal) var(--ease), transform var(--dur-reveal) var(--ease); }
+.facts a.fact:hover { box-shadow: var(--e2); transform: translateY(-3px); }
+
+/* หัวข้อยาวภาษาไทยไม่ควรตัดคำจนเหลือตัวเดียวลอยบรรทัดล่าง */
+.section-head h2 { text-wrap: balance; max-width: 22ch; }
+.section-head p { max-width: 62ch; }
+
+/* จาก G2 รอบสอง: .act ของฮีโร่จัดกลาง พอเอามาใช้ในกล่องสรุปมันเลยลอยกลาง
+   และปุ่มเส้นขอบจางจนแทบไม่เห็นบนพื้น wash — ล็อกเฉพาะในกล่องนี้ */
+.tri-out .act { justify-content: flex-start; flex-wrap: wrap; gap: var(--s3); }
+.tri-out .btn--outline { border-color: var(--lv); color: var(--lv); background: var(--surface); }
+.tri-out .btn--solid { background: var(--lv); border-color: var(--lv); color: var(--paper); }
+
+/* ตารางราคา — หน้า price/ · ตารางเป็นรูปแบบที่ถูกต้องของ "ข้อมูลเปรียบเทียบ"
+   (BRIEF B3.4: รายการ→การ์ด · เปรียบเทียบ→ตาราง) ไม่ยัดเป็นการ์ด 3 ใบต่อแถว */
+.prices { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: var(--s6);
+  border: 1px solid var(--line); border-radius: var(--card-radius); background: var(--surface); }
+.ptab { width: 100%; border-collapse: collapse; font-size: var(--t-sm); min-width: 560px; }
+.ptab th, .ptab td { text-align: left; padding: var(--s4) var(--s5); border-top: 1px solid var(--line); vertical-align: top; }
+.ptab thead th { border-top: 0; font-family: var(--font-d); font-size: var(--t-xs);
+  letter-spacing: .06em; color: var(--text-muted); text-transform: uppercase; background: var(--bg); }
+.ptab tbody th { font-weight: 600; color: var(--text); width: 34%; }
+.ptab .num { font-family: var(--font-d); font-size: var(--t-lg); font-weight: 700;
+  color: var(--accent); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ptab td:last-child { color: var(--text-muted); line-height: 1.6; }
+.ptab tr.hot th, .ptab tr.hot td { background: var(--amber-100); }
+.ptab tr.hot .num { color: var(--ink-950); }
+
+/* การ์ดตารางเวร — ใช้สีระดับเดียวกับเครื่องมือคัดกรอง จะได้ไม่ใช่คนละภาษาสีในเว็บเดียว */
+.facts .fact.lv--now, .facts .fact.lv--watch, .facts .fact.lv--morning { border-top: 4px solid var(--lv); }
+
+/* เมนู 8 ปลายทาง — ชีตร่วมตั้ง gap ไว้ที่ --s5 (24px) ซึ่งพอดีกับเดโมที่มี 5 เมนู
+   ใบนี้มี 8 เมนู พอถึง 1440px มันล้นแล้วหักคำเป็นสองบรรทัด ("หน้า / แรก")
+   เห็นจากภาพ v-price.png · ลด gap + กันหักคำ + ค่อยกลับเป็นปกติที่จอกว้างจริง */
+.nav-links { gap: var(--s4); white-space: nowrap; }
+@media (min-width: 1280px) { .nav-links { gap: var(--s5); } }
+@media (max-width: 1180px) { .nav-links { font-size: var(--t-xs); gap: var(--s3); } }
+
+/* .step ของชีตร่วมเป็นกริด 44px|1fr — ลูกตัวที่สองจะตกไปคอลัมน์ 44px ถ้าไม่บังคับ
+   b-price-how ใช้โครง h3+p ตามคอมโพเนนต์ร่วมแล้ว บรรทัดนี้กันไว้เผื่อบล็อกอื่นในอนาคต */
+.step > * { grid-column: 2; }
+.step::before { grid-column: 1; grid-row: 1 / span 2; }
+
+/* ป้ายไอคอนเป็นตัวอักษรสั้น ไม่ใช่อีโมจิ — LOG-DEMO กฎข้อ 3 ห้ามใช้อีโมจิเป็นไอคอน UI
+   (อีโมจิหน้าตาต่างกันทุก OS และต้องโหลดฟอนต์ Noto เองถึงจะคุมได้)
+   รอบแรกผมใส่อีโมจิไป 11 จุด ใน 4 ไฟล์ — เจอตอนเปิดภาพ v-packages.png ดู */
+.fact-ico { display: inline-grid; place-items: center; width: auto; min-width: 2.4em; height: 2.4em;
+  padding: 0 .7em; border-radius: 999px; background: var(--accent-wash); color: var(--amber-600);
+  font-family: var(--font-d); font-size: var(--t-xs); font-weight: 700; letter-spacing: .04em; }
+.fact-ico.lv { background: var(--lv-wash); color: var(--lv); }
+
+/* ราคาชุดกับหมายเหตุติดกันเป็นคำเดียว ("฿2,490ปกติ ฿3,100") — เห็นจาก v-packages.png */
+.set-price span { display: block; margin-top: var(--s2); font-size: var(--t-sm);
+  font-weight: 500; color: var(--text-muted); letter-spacing: 0; }
+
+/* ---- ตรึงแถบเมนู ไม่ให้หดตอนเลื่อน (31/8/26 · jek ทักเอง) -----------------
+   วัดก่อนแก้: หัวข้อฮีโร่ไม่ขยับเลย (top 163.1px · font-size 61px คงที่ทุกค่า y 0-800)
+   ตัวที่ขยับคือแถบเมนู 80.4 → 60.4px ใน **เฟรมเดียว** ที่ y=123 → ของในแถบกระโดด 10px
+   ที่มา: ลูกของแถบ padding 15px→5px และ min-height 46px→0 พร้อมกันในเฟรมเดียว
+   ก้อนกลาง nav-shrink ตั้งใจไม่ใส่ transition ให้ padding (layout property · DEMO-SPEC S2.3)
+   การหดจึงเป็น "สลับทันที" ไม่ใช่ "ไหล"
+
+   ทางแก้ = ตรึงแถบ ทางเดียวกับที่ the-bed ใช้หลัง jek ทักอาการเดียวกัน 25/8/26
+   ประกาศเป็นข้อยกเว้นใน playbook/audit-nav.mjs พร้อมเหตุผลแล้ว — ไม่ใช่ปิดด่านเงียบๆ */
+.site-header.small > * {
+  padding-top: 15px !important;
+  padding-bottom: 15px !important;
+  min-height: 46px !important;
+}
+
+/* =============================================================================
+   ชั้นดีไซน์แบบ velvet-leaf — เติม 31/8/26 หลัง jek ขอ "advanced design เหมือน velvet"
+   วัดก่อนเติม (เทียบจาก index.html ที่ประกอบแล้ว):
+     velvet-leaf : serif 36 · letter-spacing 49 · clamp 3 · แอนิเมชันตอนอยู่เฉยๆ 46
+     teung-chao  : serif  0 · letter-spacing  4 · clamp 0 · แอนิเมชันตอนอยู่เฉยๆ  0
+   §3.4 ของ website.md สรุปไว้ว่า velvet ชนะด้วย 5 อย่าง "ที่เป็นโครง ไม่ใช่ผิว"
+   ข้างล่างคือ 5 อย่างนั้น ปรับให้ใช้กับภาษาไทยได้ (Cormorant ไม่มีตัวไทย จึงใช้
+   กับตัวเลข/คำอังกฤษเท่านั้น แล้วให้ไทยตกไปที่ Noto Sans Thai ตัวเดิม ไม่ใช่ serif ระบบ)
+   ทุกตัวเป็น transform/opacity ล้วน ไม่มี filter/backdrop-filter (DEMO-SPEC S2.4)
+   ========================================================================== */
+:root {
+  --font-num: "Cormorant Garamond", "Noto Sans Thai", Georgia, serif;
+  /* 4) ตัวหนังสือยืดตามจอ — velvet มี clamp 3 จุด เรามี 0 */
+  --t-hero: clamp(2.4rem, 1.2rem + 3.6vw, 4.2rem);
+  --t-disp: clamp(1.8rem, 1.1rem + 2.1vw, 2.9rem);
+}
+
+/* 1) ตัวหนังสือผีเป็นชั้นพื้นหลัง — ความลึกที่ไม่ต้องใช้เงา */
+.section-head[data-ghost] { position: relative; }
+/* วัด 31/8: ตัวหนังสือผีล้นออกนอกบล็อกด้านบน 11px ที่ 7 จาก 9 จุด
+   บนหน้าแรกบล็อกที่อยู่เหนือมันคือฮีโร่รูปมืด ตัวผีเลยจมหายครึ่งบน (jek ชี้ให้ดู)
+   bottom:100% วางขอบล่างของผีไว้ที่ขอบบนของหัวข้อพอดี แล้วตัวมันสูง .8em ขึ้นไป
+   ซึ่งเกินระยะ padding ด้านบนของ section — ดึงลงมา .2em (สเกลตามขนาดฟอนต์ ไม่ใช่ px ตายตัว) */
+.section-head[data-ghost]::before {
+  content: attr(data-ghost); position: absolute; left: -.04em; bottom: calc(100% - .2em);
+  font-family: var(--font-num); font-size: clamp(4rem, 11vw, 9rem); font-weight: 600;
+  line-height: .8; letter-spacing: .04em; white-space: nowrap; pointer-events: none;
+  /* ความจางของตัวหนังสือผี — จูนสามรอบตามที่ jek บอก (31/8) จดค่าไว้กันปรับวนอีก
+       slate-200 @ .55  → คอนทราสต์ 1.16 · jek: "จางเกิน มองไม่ค่อยเห็น"
+       #7A7F88   @ 1    → คอนทราสต์ 3.80 · jek: "ชัดไป"
+       #A2A6AE   @ 1    → คอนทราสต์ 2.30 · jek: "เริ่มชัดเกินไปแล้ว"
+       #C6C9D0   @ 1    → คอนทราสต์ ~1.6 ← ใช้ค่านี้ "จางมากๆ แต่ยังเห็นอยู่"
+     ต่ำกว่าเกณฑ์ 4.5/3 โดยตั้งใจ เพราะเป็น **ของตกแต่ง ไม่ใช่เนื้อหา** — ข้อความในนั้น
+     ซ้ำกับหัวข้อที่อยู่ใต้มันอยู่แล้ว คนที่อ่านไม่เห็นจึงไม่พลาดข้อมูลอะไร
+     (ข้อยกเว้นที่มีคำอธิบาย ไม่ใช่ข้อยกเว้นที่หายเงียบๆ)
+     เส้น 1.4px เพราะที่ขนาด 144px เส้น 1px หายไปเลย */
+  color: transparent; -webkit-text-stroke: 1.2px #C6C9D0; opacity: 1; z-index: 0;
+}
+.section--ink .section-head[data-ghost]::before { -webkit-text-stroke-color: rgba(232,180,95,.26); opacity: 1; }
+.section-head > * { position: relative; z-index: 1; }
+@media (max-width: 720px) { .section-head[data-ghost]::before { display: none; } }
+
+/* 2) serif เฉพาะตัวเลขและคำอังกฤษ + 3) small-caps ยืดตัวอักษร */
+.set-price, .ptab .num { font-family: var(--font-num); font-weight: 600; letter-spacing: .01em; }
+.set-price { font-size: var(--t-disp); }
+.section-head h2 em, .hero-copy h1 em { font-style: normal; }
+.kicker, .crumb, .fact-ico, .tri-set legend, .tri-out-kicker, .ptab thead th {
+  letter-spacing: .09em; text-transform: none;
+}
+.hero-copy h1 { font-size: var(--t-hero); letter-spacing: -.01em; }
+.section-head h2 { font-size: var(--t-disp); }
+
+/* 5) สลับสว่าง-มืดระหว่างบล็อก — จังหวะที่ตาพัก (velvet: เขียวเข้ม → ครีม → เขียวเข้ม) */
+.section--ink { background: var(--ink-950); color: var(--ink-100); }
+.section--ink h2, .section--ink h3, .section--ink b { color: var(--paper); }
+.section--ink p, .section--ink span, .section--ink li { color: rgba(220,227,239,.82); }
+.section--ink em { color: var(--amber-400); }
+.section--ink .fact, .section--ink .set, .section--ink .quote {
+  background: rgba(255,255,255,.045); border-color: rgba(232,180,95,.20); box-shadow: none; }
+.section--ink .spec li { border-color: rgba(232,180,95,.16); }
+.section--ink .set-price { color: var(--amber-400); }
+.section--ink .set-note { color: rgba(220,227,239,.66); }
+
+/* 6) ของที่ขยับตอนอยู่เฉยๆ — velvet มี 46 ตัว เรามี 0
+   ทั้งหมดช้ามาก (18-70 วิ) และเป็น transform/opacity ล้วน จึงไม่กินเฟรมตอนเลื่อน */
+@keyframes tc-drift { 0%,100% { transform: scale(1.04) translate3d(0,0,0); }
+                      50%     { transform: scale(1.075) translate3d(-1.4%,-1%,0); } }
+@keyframes tc-breathe { 0%,100% { opacity: .55; transform: scale(1); }
+                        50%     { opacity: 1;   transform: scale(1.35); } }
+@keyframes tc-sweep { from { transform: translate3d(-30%,0,0); } to { transform: translate3d(130%,0,0); } }
+@keyframes tc-mote { from { transform: translate3d(0,0,0); opacity: 0; }
+                     15%  { opacity: .5; } 85% { opacity: .35; }
+                     to   { transform: translate3d(14px,-190px,0); opacity: 0; } }
+
+.hero-media img { animation: tc-drift 64s ease-in-out infinite; will-change: transform; }
+.kicker.onair i { animation: tc-breathe 3.4s ease-in-out infinite; }
+.hero::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1;
+  background: linear-gradient(100deg, transparent 42%, rgba(232,180,95,.09) 50%, transparent 58%);
+  animation: tc-sweep 22s linear infinite;
+}
+.hero-copy { position: relative; z-index: 2; }
+.motes { position: absolute; inset: auto 0 0 0; height: 260px; pointer-events: none; z-index: 1; overflow: hidden; }
+.motes i { position: absolute; bottom: -8px; width: 3px; height: 3px; border-radius: 50%;
+  background: var(--amber-400); opacity: 0; animation: tc-mote linear infinite; }
+.motes i:nth-child(1){ left: 12%; animation-duration: 26s; animation-delay: 0s; }
+.motes i:nth-child(2){ left: 27%; animation-duration: 34s; animation-delay: 5s; }
+.motes i:nth-child(3){ left: 46%; animation-duration: 29s; animation-delay: 11s; }
+.motes i:nth-child(4){ left: 63%; animation-duration: 41s; animation-delay: 3s; }
+.motes i:nth-child(5){ left: 78%; animation-duration: 31s; animation-delay: 16s; }
+.motes i:nth-child(6){ left: 90%; animation-duration: 37s; animation-delay: 8s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-media img, .kicker.onair i, .hero::after, .motes i { animation: none !important; }
+  .hero::after { display: none; }
+}
+
+/* ฿ ใน Cormorant Garamond มีความกว้างแคบผิดปกติ ตัวเลขจึงเลื่อนมาทับ (เห็นจาก w-price.png)
+   ให้เฉพาะตัวสัญลักษณ์กลับไปใช้ฟอนต์หัวเรื่อง ส่วนตัวเลขยังเป็น serif ตามที่ตั้งใจ */
+.cur { font-family: var(--font-d); font-weight: 700; font-size: .82em;
+  margin-right: .06em; letter-spacing: 0; }
+/* .set-price span ถูกตั้งเป็น display:block ไว้ก่อนหน้า (เพื่อดันหมายเหตุลงบรรทัดใหม่)
+   .cur เป็น span ในนั้นด้วย มันเลยตกไปคนละบรรทัดกับตัวเลข — ชนกันเองระหว่างกฎสองข้อของผม */
+.set-price .cur { display: inline; margin-top: 0; font-size: .6em; vertical-align: .12em; color: inherit; }
+
+/* =============================================================================
+   ฮีโร่ทรง velvet-leaf (31/8/26) — วัดจากของจริงก่อนทำ:
+     velvet hero = พื้นมืด rgb(4,16,11) · แบ่งครึ่งซ้าย-ขวา · h1 60.8px Playfair
+     · รูปกินแค่ 24% ของจอ (ชนะด้วยตัวหนังสือ ไม่ใช่ด้วยรูป)
+   ⚠️ ทรงนี้ทำให้รูปฮีโร่เหลือราว 1/3 ของจอ = ขัดกฎ §4.1 ข้อ 1 (รูป ≥70%) ที่ jek ตั้งเอง
+      velvet เองก็เป็นข้อยกเว้นของกฎนั้น — ทรงเดิมเก็บไว้ที่ _src/b-hero-fullbleed.html
+   ========================================================================== */
+/* ดึงขึ้นใต้แถบเมนูที่ sticky — ท่าเดียวกับ .hero เดิม (margin-top:-76px ใน styles.css)
+   ไม่ดึง = เห็นแถบพื้นครีมของ body คั่นอยู่บนสุด แล้วเมนูสีขาวอ่านไม่ออก (เจอจากภาพ x-hero.png) */
+.vhero { position: relative; overflow: hidden; background: var(--ink-950); color: var(--ink-100);
+  /* ดึงขึ้นเยอะกว่าความสูงแถบเสมอ แล้วชดเชยด้วย padding เท่ากัน — ตำแหน่งเนื้อหาไม่ขยับ
+     ใช้ -80px ตายตัวไม่พอ: บนมือถือแถบสูงกว่านั้น (ชื่อแบรนด์ตัดสองบรรทัด) พื้นครีมของ body
+     เลยโผล่มาเป็นแถบขาวหลังชื่อแบรนด์ = อ่านไม่ออก (เจอจากภาพ x-mobile.png) */
+  margin-top: -160px; padding: calc(160px + var(--s7)) 0 0; }
+.vhero-glow { position: absolute; pointer-events: none; border-radius: 50%; opacity: .5; }
+.vhero-glow--a { width: 46vw; height: 46vw; right: -10vw; top: -18vw;
+  background: radial-gradient(circle, rgba(60,52,120,.55), transparent 65%); }
+.vhero-glow--b { width: 52vw; height: 52vw; left: -16vw; bottom: -26vw;
+  background: radial-gradient(circle, rgba(168,107,24,.30), transparent 66%); }
+.vhero .wrap { position: relative; z-index: 2; }
+.vhero-grid { display: grid; gap: var(--s7); align-items: center; }
+@media (min-width: 980px) { .vhero-grid { grid-template-columns: 1fr 1fr; gap: var(--s8); } }
+
+/* หัวสองระดับคั่นด้วยเส้น — ท่าเดียวกับ VELVET LEAF / Curated Cannabis Boutique */
+.vh1 { margin: var(--s4) 0 0; }
+/* letter-spacing แรง .22em ทำให้ "ถึงเช้า" อ่านเป็น "ถึง เช้า" — ภาษาไทยไม่รับการยืดตัวอักษร
+   แบบละติน (velvet เป็นอังกฤษล้วนจึงใช้ได้) ลดเหลือ .06em แล้วไปเพิ่มน้ำหนักที่ขนาดแทน */
+.vh1-mark { display: block; font-family: var(--font-d); font-weight: 700;
+  font-size: clamp(1.7rem, .9rem + 2.4vw, 2.6rem); letter-spacing: .06em; color: var(--amber-100);
+  padding-bottom: var(--s3); border-bottom: 1px solid rgba(232,180,95,.34); }
+.vh1-lead { display: block; margin-top: var(--s4); font-family: var(--font-d); font-weight: 700;
+  font-size: var(--t-hero); line-height: 1.08; letter-spacing: -.01em; color: var(--paper); }
+.vh1-lead em { font-style: normal; color: var(--amber-400); }
+.vhero .lede { margin-top: var(--s5); max-width: 46ch; color: rgba(220,227,239,.80); }
+
+/* เช็คลิสต์วงกลม — velvet ใช้ติ๊กกลมทอง 3 ข้อ */
+.proof { list-style: none; margin: var(--s6) 0 0; padding: 0; display: grid; gap: var(--s3); }
+.proof li { display: grid; grid-template-columns: 26px 1fr; gap: var(--s3); align-items: start;
+  font-size: var(--t-sm); line-height: 1.6; color: rgba(220,227,239,.88); }
+.tick { width: 26px; height: 26px; border-radius: 50%; background: var(--amber-400); position: relative; }
+.tick::after { content: ""; position: absolute; inset: 0; margin: auto; width: 11px; height: 6px;
+  border-left: 2px solid var(--ink-950); border-bottom: 2px solid var(--ink-950);
+  transform: rotate(-45deg) translate(1px,-2px); }
+.vhero .act { margin-top: var(--s6); }
+
+/* รูปในกรอบ + เส้นเยื้องมุม + ของประดับจาง */
+.vhero-media { position: relative; }
+.vhero-frame { margin: 0; border-radius: var(--card-radius); overflow: hidden;
+  box-shadow: 0 30px 70px rgba(0,0,0,.55); }
+.vhero-frame img { display: block; width: 100%; height: auto; aspect-ratio: 4/3; object-fit: cover;
+  animation: tc-drift 64s ease-in-out infinite; will-change: transform; }
+.vhero-bracket { position: absolute; left: -14px; top: -14px; width: 46%; height: 42%;
+  border-left: 1px solid rgba(232,180,95,.42); border-top: 1px solid rgba(232,180,95,.42);
+  border-radius: 6px 0 0 0; pointer-events: none; }
+.vhero-orn { position: absolute; right: -28px; top: -56px; width: 150px; height: 150px;
+  color: rgba(232,180,95,.20); pointer-events: none; animation: tc-orn 70s linear infinite; }
+.vhero-orn svg { width: 100%; height: 100%; }
+@keyframes tc-orn { to { transform: rotate(360deg); } }
+
+/* การ์ดลอยคาบรูป — velvet วาง OPENING HOURS คาบมุมล่างซ้าย */
+.vhero-card { position: absolute; left: -8px; bottom: -26px; display: flex; gap: var(--s3);
+  align-items: center; background: var(--dawn); color: var(--ink-950);
+  border-radius: 14px; padding: var(--s4) var(--s5); box-shadow: var(--e2); max-width: 88%; }
+.vhero-card-ico { flex: none; width: 34px; height: 34px; display: grid; place-items: center;
+  border-radius: 50%; background: var(--ink-950); color: var(--amber-400); }
+.vhero-card-ico svg { width: 19px; height: 19px; }
+.vhero-card b { display: block; font-family: var(--font-d); font-size: var(--t-md);
+  font-variant-numeric: tabular-nums; }
+.vhero-card span { display: block; font-size: var(--t-xs); color: var(--slate-600); margin-top: 1px; }
+
+/* แถบตัวเลขคาบขอบล่าง — velvet มีแถบ 02/03/03/20 ตัดขอบล่างฮีโร่ */
+.vstats { position: relative; z-index: 2; list-style: none; margin: var(--s9) 0 0; padding: 0;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px;
+  background: rgba(232,180,95,.16); border-top: 1px solid rgba(232,180,95,.16); }
+@media (min-width: 760px) { .vstats { grid-template-columns: repeat(4, 1fr); } }
+.vstats li { background: var(--ink-950); padding: var(--s5) var(--s5) var(--s6); text-align: center; }
+.vstats b { display: block; font-family: var(--font-num); font-weight: 600;
+  font-size: clamp(2.2rem, 1.4rem + 2.2vw, 3.4rem); line-height: 1; color: var(--amber-400); }
+.vstats span { display: block; margin-top: var(--s2); font-size: var(--t-xs);
+  letter-spacing: .09em; color: rgba(220,227,239,.62); }
+
+/* .lift ถูกออกแบบไว้ให้คาบฮีโร่รูปเต็มจอ — ทรงใหม่มีแถบตัวเลขปิดท้ายอยู่แล้ว จึงไม่ต้องดึงขึ้น */
+.vhero + .lift { margin-top: 0; }
+@media (prefers-reduced-motion: reduce) { .vhero-frame img, .vhero-orn { animation: none !important; } }
+
+/* ชื่อแบรนด์บนมือถือตัดเป็นสองบรรทัดแล้วล้นออกนอกแถบ — ย่อบรรทัดรองให้พอดีจอเล็ก */
+@media (max-width: 560px) {
+  .brand span { font-size: 10px; letter-spacing: .04em; white-space: nowrap; }
+  .brand b { font-size: var(--t-md); }
+}
+
+/* =============================================================================
+   ฮีโร่ทรงที่สาม — แผงหมึกซ้าย + รูปเต็มความสูงขวา (31/8/26)
+   ที่มา: jek ทักว่า "สัดส่วนมันแปลกๆ มีหลายอย่างเลย" กับทรงรูปเต็มจอ
+   ปัญหาที่วัดได้จากทรงเดิม: ตัวหนังสือจัดกลางไปทับตัวหมาซึ่งอยู่ซ้ายของภาพพอดี
+   · คิกเกอร์สีอำพัน 14px วางบนขนสีน้ำตาลสว่าง = อ่านยากเป็นช่วงๆ
+   · ที่ว่างบน-ล่างของบล็อกตัวหนังสือเยอะกว่าตัวเนื้อหาเอง
+   ทรงนี้แก้ทั้งสามข้อ: ตัวหนังสืออยู่บนพื้นทึบ ไม่ต้องพึ่งม่าน · รูปไม่มีอะไรทับ
+   ========================================================================== */
+.hero2 { position: relative; margin-top: -160px; display: grid; background: var(--ink-950); }
+@media (min-width: 900px) { .hero2 { grid-template-columns: 46fr 54fr; align-items: stretch; } }
+
+.hero2-panel { position: relative; overflow: hidden; display: flex; align-items: center;
+  padding: calc(160px + var(--s7)) var(--s6) var(--s8); }
+@media (min-width: 900px) { .hero2-panel { padding-inline: clamp(var(--s6), 6vw, var(--s9)); } }
+/* แสงอุ่นเรืองจากมุมล่างซ้าย = ทิศเดียวกับแสงในรูป ไม่ใช่แสงลอยมาจากไหนไม่รู้ */
+.hero2-panel::before { content: ""; position: absolute; left: -20%; bottom: -30%;
+  width: 80%; padding-bottom: 80%; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(168,107,24,.34), transparent 68%); }
+.hero2-copy { position: relative; z-index: 2; max-width: 34rem; }
+
+.hero2-copy h1 { font-family: var(--font-d); font-weight: 700; color: var(--paper);
+  font-size: var(--t-hero); line-height: 1.1; letter-spacing: -.01em; margin: var(--s4) 0 0; }
+.hero2-copy h1 em { font-style: normal; color: var(--amber-400); }
+.hero2-copy .lede { margin-top: var(--s5); max-width: 44ch; color: rgba(220,227,239,.82); }
+.hero2-copy .act { margin-top: var(--s6); justify-content: flex-start; }
+
+/* บรรทัด "ตอนนี้กี่โมง ใครอยู่เวร" — เดินตามเวลาจริงของเครื่อง (js/triage.js)
+   ย้ายลงมาจากคิกเกอร์ เพราะบนพื้นทึบอ่านออกทุกสภาพแสง ไม่ต้องพึ่งความมืดของรูป */
+.hero2-now { display: flex; align-items: center; gap: var(--s3); margin: var(--s6) 0 0;
+  padding-top: var(--s5); border-top: 1px solid rgba(232,180,95,.20);
+  font-size: var(--t-sm); color: rgba(220,227,239,.74); }
+.hero2-now b { color: var(--amber-400); font-variant-numeric: tabular-nums; }
+.hero2-now-dot { flex: none; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--vital-400); animation: tc-breathe 3.4s ease-in-out infinite; }
+
+.hero2-media { position: relative; margin: 0; overflow: hidden; min-height: 46vh; }
+@media (min-width: 900px) { .hero2-media { min-height: 84vh; } }
+/* จุดยึดรูป: ต้นฉบับเป็นภาพแนวนอน 1600x1065 ตัวหมาอยู่กลางค่อนซ้าย
+   กรอบฝั่งขวาเป็นทรงสูง (84vh) ถ้ายึด 50% จะได้พื้นเปล่าฝั่งขวาของภาพเป็นหลัก */
+.hero2-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  object-position: 38% 52%; animation: tc-drift 64s ease-in-out infinite; will-change: transform; }
+/* ไล่สีบางๆ ตรงรอยต่อ ให้แผงกับรูปไม่ชนกันเป็นเส้นตรงแข็ง — gradient นิ่ง ไม่ใช่ filter (S2.4) */
+/* สองชั้น: ซ้ายไล่เข้าหาแผงหมึก (รอยต่อไม่เป็นเส้นตรงแข็ง)
+   + บนไล่ลงมาให้แถบเมนูอ่านออก — เมนูขวากับปุ่มโทรตกไปอยู่บนพื้นไม้สว่างพอดี
+   (เจอจากภาพ y-desktop.png) ทั้งคู่เป็น gradient นิ่ง ไม่ใช่ filter (DEMO-SPEC S2.4) */
+.hero2-media::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(11,18,32,.82) 0, rgba(11,18,32,.42) 92px, rgba(11,18,32,0) 190px),
+    linear-gradient(90deg, rgba(11,18,32,.72), rgba(11,18,32,0) 22%); }
+@media (max-width: 899px) {
+  .hero2 { grid-template-rows: auto auto; }
+  /* จอเตี้ยกรอบกว้าง: object-position 42% ตัดหัวหมาหายไปเหลือแต่ขา (เจอจากภาพ y-mobile.png)
+     ต้นฉบับเป็นภาพแนวตั้ง หัวอยู่ราว 30% จากบน จึงเลื่อนจุดยึดขึ้น + เพิ่มความสูงกรอบ */
+  .hero2-media { order: -1; min-height: 54vh; margin-top: 0; }
+  .hero2-media img { object-position: 42% 50%; }
+  .hero2-media::before { background: linear-gradient(180deg, rgba(11,18,32,.86) 0, rgba(11,18,32,.5) 120px, rgba(11,18,32,0) 58%); }
+  .hero2-panel { padding-top: var(--s7); }
+}
+
+/* .lift ถูกทำไว้ให้คาบฮีโร่รูปเต็มจอ — ทรงนี้จบด้วยขอบตรง ไม่ต้องดึงขึ้น
+   และตัวหนังสือผี 02:14 ที่เคยคาบรอยต่อก็ไม่ต้องมีแล้ว (มันไปชนขอบรูป) */
+.hero2 + .lift { margin-top: 0; }
+@media (prefers-reduced-motion: reduce) { .hero2-media img, .hero2-now-dot { animation: none !important; } }
+
+/* ---- แก้พื้นครีมโผล่หลังชื่อแบรนด์บนมือถือ (ไม่แตะเรขาคณิตของฮีโร่) ---------
+   อาการ: .hero ของชีตร่วมดึงขึ้น -76px แต่แถบมือถือสูงกว่านั้น พื้น body สีครีมจึงโผล่
+   เป็นแถบขาวหลังชื่อแบรนด์สีขาว = อ่านไม่ออก
+   วิธีแรกที่ลอง (ดึงฮีโร่ -170px ชดเชยด้วย padding) ใช้ได้ แต่ทำให้ฮีโร่สูงขึ้น 94px
+   = องค์ประกอบเปลี่ยนไปจากทรงที่ jek เลือก จึงเปลี่ยนมาทาพื้นหลังแถบเองแทน
+   ทาเฉพาะตอนยังไม่เลื่อนพ้นฮีโร่ (:not(.stuck)) พอเลื่อนลงไปเจอพื้นครีม แถบจะสลับเป็นพื้นสว่างตามเดิม */
+.site-header:not(.stuck)::after {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: var(--ink-950); pointer-events: none;
+}
+
+
+/* บล็อกแรกหลังฮีโร่ — jek: "สวยดี แต่จัดตำแหน่งใหม่หน่อย" (31/8)
+   ปัญหา: .lift ดึงบล็อกขึ้น -64px คาบรูป ตัวหนังสือผีจึงล้นไปอยู่บนรูปเสมอ
+
+   ลองมาแล้วสองทางที่ไม่เวิร์ก บันทึกไว้กันทำซ้ำ:
+     1) ดึงตัวผีลง .2em → วัดเทียบ "ขอบบนของ section" ได้ผ่าน แต่ภาพยังพัง
+        เพราะ section เริ่มเหนือขอบล่างฮีโร่อยู่แล้ว — **จุดอ้างอิงที่ถูกคือขอบล่างของบล็อกก่อนหน้า**
+     2) ย้ายไปอยู่หลังหัวข้อ (bottom: calc(100% - .62em)) → พ้นรอยต่อจริง แต่หัวข้อทึบบังจนมองไม่เห็นเลย
+
+   ทางที่ใช้: เลิกดึงบล็อกขึ้น แล้วเปิดที่ว่างเหนือหัวข้อให้พอ
+   ตัวผีจึงอยู่ "เหนือหัวข้อ" เหมือนอีก 8 จุดทุกประการ = กลไกเดียวกันทั้งชุด
+   (ยอมเสียเอฟเฟกต์การ์ดคาบขอบรูป ซึ่งพอเปลี่ยนมาใช้ section-head นำหน้าแล้วมันก็ไม่โผล่อยู่ดี) */
+.hero + .lift, .hero2 + .lift { margin-top: 0; padding-top: calc(var(--s9) + 44px); }
+@media (prefers-reduced-motion: reduce) { .hero2-media img, .hero2-now-dot { animation: none !important; } }
+
+/* ---- แก้พื้นครีมโผล่หลังชื่อแบรนด์บนมือถือ (ไม่แตะเรขาคณิตของฮีโร่) ---------
+   อาการ: .hero ของชีตร่วมดึงขึ้น -76px แต่แถบมือถือสูงกว่านั้น พื้น body สีครีมจึงโผล่
+   เป็นแถบขาวหลังชื่อแบรนด์สีขาว = อ่านไม่ออก
+   วิธีแรกที่ลอง (ดึงฮีโร่ -170px ชดเชยด้วย padding) ใช้ได้ แต่ทำให้ฮีโร่สูงขึ้น 94px
+   = องค์ประกอบเปลี่ยนไปจากทรงที่ jek เลือก จึงเปลี่ยนมาทาพื้นหลังแถบเองแทน
+   ทาเฉพาะตอนยังไม่เลื่อนพ้นฮีโร่ (:not(.stuck)) พอเลื่อนลงไปเจอพื้นครีม แถบจะสลับเป็นพื้นสว่างตามเดิม */
+.site-header:not(.stuck)::after {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: var(--ink-950); pointer-events: none;
+}
+
+
+/* บล็อกแรกหลังฮีโร่ถูกดึงขึ้นคาบรูป (.lift margin-top:-64px) ตัวหนังสือผีของมันจึง
+   ล้นขึ้นไปอยู่บนรูปเสมอ ไม่ว่าจะดึงลงเท่าไหร่ — jek ชี้ให้ดู 31/8
+   บทเรียนของผมรอบนี้: รอบแรกผมวัดเทียบ "ขอบบนของ section" แล้วได้ผ่านทั้ง 9 จุด
+   ทั้งที่ภาพยังพัง เพราะ section มันเริ่มเหนือขอบล่างของฮีโร่อยู่แล้ว
+   **จุดอ้างอิงที่ถูกคือขอบล่างของฮีโร่ ไม่ใช่ขอบบนของ section**
+   บล็อกนี้จึงไม่ใส่ตัวหนังสือผี — บล็อกอื่นที่ไม่ได้คาบรูปยังมีเหมือนเดิม */
+</style>
+<style>
+  @view-transition { navigation: auto; }
+  ::view-transition-old(root) { animation: pg-out 240ms cubic-bezier(.33,0,.3,1) both; }
+  ::view-transition-new(root) { animation: pg-in  380ms cubic-bezier(.33,0,.3,1) both; }
+  @keyframes pg-out { to   { opacity: 0; transform: translateY(-8px); } }
+  @keyframes pg-in  { from { opacity: 0; transform: translateY(10px); } }
+  /* ตัวสำรองของเบราว์เซอร์ที่ไม่มี view transition — เฟดด้วยคลาส */
+  body.is-leaving {
+    opacity: 0; transform: translateY(-8px);
+    transition: opacity 240ms cubic-bezier(.33,0,.3,1), transform 240ms cubic-bezier(.33,0,.3,1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+    body.is-leaving { opacity: 1; transform: none; transition: none; }
+  }
+</style>
+<script>
+(function () {
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce || "startViewTransition" in document) return;   /* เบราว์เซอร์ทำเองแล้ว */
+  /* แคบไว้ก่อน: เฉพาะคลิกซ้ายเปล่าๆ ลิงก์โดเมนเดียวกัน ไม่ใช่แท็บใหม่ ไม่ใช่ดาวน์โหลด
+     ไม่ใช่จุดยึดในหน้าเดียวกัน — cmd-click / กลางคลิก ต้องเปิดแท็บหลังได้ตามปกติ */
+  document.addEventListener("click", function (e) {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var a = e.target.closest && e.target.closest("a[href]");
+    if (!a || a.target === "_blank" || a.hasAttribute("download")) return;
+    var url = new URL(a.href, location.href);
+    if (url.origin !== location.origin) return;
+    if (url.pathname === location.pathname && url.hash) return;
+    e.preventDefault();
+    document.body.classList.add("is-leaving");
+    /* ตั้งเวลาสำรองไว้ด้วย: แท็บที่ถูกซ่อนอยู่จะไม่ยิง transitionend เลย */
+    var gone = false, go = function () { if (!gone) { gone = true; location.href = a.href; } };
+    document.body.addEventListener("transitionend", go, { once: true });
+    setTimeout(go, 300);
+  });
+  /* กลับด้วยปุ่ม Back แล้วเจอหน้าจาง = หน้าถูกคืนจากแคช ทั้งที่ยังใส่คลาสค้างไว้ */
+  addEventListener("pageshow", function () { document.body.classList.remove("is-leaving"); });
+})();
+</script>
+
+</head>
+<body>
+<a class="skip" href="#main">ข้ามไปเนื้อหา</a>
+
+<header class="site-header" data-header>
+  <div class="wrap">
+    <a class="brand" href="../">
+      <b>ถึงเช้า</b><span>โรงพยาบาลสัตว์ · เปิด 24 ชม.</span>
+    </a>
+    <nav class="nav-links" aria-label="เมนูหลัก">
+      <a href="../">หน้าแรก</a>
+      <a href="../now/">ควรพามาเลยไหม</a>
+      <a href="../services/">บริการ</a>
+      <a href="../price/">ค่าใช้จ่าย</a>
+      <a href="../packages/" aria-current="page">แพ็กเกจเดือนนี้</a>
+      <a href="../boarding/">ฝากเลี้ยง</a>
+      <a href="../team/">หมอเวรคืนนี้</a>
+      <a href="../reviews/">รีวิว</a>
+    </nav>
+    <span class="nav-right">
+      <a class="btn btn--outline btn--sm" href="tel:021184499">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 4.5h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4.5 6.7 2 2 0 0 1 6.5 4.5z"/></svg>
+        038-xxx-xxx</a>
+      <a class="btn btn--brass btn--sm" href="../now/">ควรพามาเลยไหม
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6.5 18.5 12 13 17.5"/></svg></a>
+    </span>
+  </div>
+</header>
+
+<!-- เมนูมือถือ: .nav-links ของเว็บเดิมเป็น display:none ต่ำกว่าจอ 900px ซึ่งพอรับได้
+     ตอนเป็นหน้าเดียว (ทุกอย่างอยู่ข้างล่างให้เลื่อนหา) แต่พอเป็น 5 หน้า มันแปลว่า
+     คนใช้มือถือไปหน้าอื่นไม่ได้เลยสักหน้า — แถบนี้จึงเป็นของที่ "หลายหน้า" บังคับให้มี
+     ทำเป็นแถบเลื่อนแนวนอน ไม่ใช่เบอร์เกอร์ เพราะมี 5 ปลายทาง ไม่ต้องซ่อน และ
+     ไม่ต้องพึ่ง JS — เมนูที่พังตอน JS ไม่โหลด คือเว็บที่ไปไหนไม่ได้ -->
+<nav class="pagenav" aria-label="เมนูหน้าเว็บ (มือถือ)">
+  <div class="wrap">
+    <a href="../">หน้าแรก</a>
+    <a href="../now/">ควรพามาเลยไหม</a>
+    <a href="../services/">บริการ</a>
+    <a href="../price/">ค่าใช้จ่าย</a>
+    <a href="../packages/" aria-current="page">แพ็กเกจเดือนนี้</a>
+    <a href="../boarding/">ฝากเลี้ยง</a>
+    <a href="../team/">หมอเวรคืนนี้</a>
+    <a href="../reviews/">รีวิว</a>
+  </div>
+</nav>
+<main id="main">
+
+  <section class="hero hero--page" aria-labelledby="page-title">
+    <div class="wrap">
+      <span class="kicker"><i aria-hidden="true"></i>แพ็กเกจ</span>
+      <h1 id="page-title">เดือนนี้เน้นสัตว์เด็กกับสัตว์สูงวัย</h1>
+      <p>ลูกสุนัข/ลูกแมวเริ่มต้นชีวิต ฿2,490 · ตรวจครบสัตว์สูงวัย 7 ปีขึ้นไป ฿2,900 · ทำหมันพร้อมวัคซีน ฿1,990 · ตัวที่สองลด 10% — อัปเดตทุกต้นเดือน</p>
+    </div>
+  </section>
+
+<nav class="crumb" aria-label="เส้นทางหน้าเว็บ">
+  <div class="wrap">
+    <ol>
+      <li><a href="../">หน้าแรก</a></li>
+      <li aria-current="page">แพ็กเกจเดือนนี้</li>
+    </ol>
+  </div>
+</nav>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VeterinaryCare","@id":"https://tarmsung.pages.dev/work/teung-chao/#org","name":"โรงพยาบาลสัตว์ถึงเช้า","alternateName":"Teung Chao Animal Hospital","description":"โรงพยาบาลสัตว์มาบตาพุด ระยอง เปิด 24 ชั่วโมง มีสัตวแพทย์อยู่เวรในตึกตลอดคืน","url":"https://tarmsung.pages.dev/work/teung-chao/","telephone":"+66-38-000-000","image":"https://tarmsung.pages.dev/work/teung-chao/img/hero-1200.webp","address":{"@type":"PostalAddress","streetAddress":"198/xx ถนนวัดมาบตาพุด","addressLocality":"มาบตาพุด","addressRegion":"ระยอง","postalCode":"21150","addressCountry":"TH"},"openingHoursSpecification":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],"opens":"00:00","closes":"23:59"}],"availableService":[{"@type":"MedicalProcedure","name":"ทำหมันสุนัขและแมว"},{"@type":"MedicalProcedure","name":"ผ่าตัดฉุกเฉิน 24 ชั่วโมง"},{"@type":"MedicalProcedure","name":"CT Scan"},{"@type":"MedicalProcedure","name":"รักษาสัตว์เอ็กโซติก"},{"@type":"Service","name":"ฝากเลี้ยงและอาบน้ำตัดขน"},{"@type":"Service","name":"Pet Taxi รับส่งในเขตเมืองระยอง"}],"priceRange":"฿200–฿2,900"}</script>
+  <section class="section" aria-labelledby="pk-h">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <h2 id="pk-h">แพ็กเกจเดือนนี้</h2>
+        <p>อัปเดตทุกต้นเดือน — รอบนี้เน้นสัตว์เด็กกับสัตว์สูงวัย เพราะเป็นสองช่วงที่เจ้าของมองข้ามบ่อยที่สุด</p>
+      </div>
+      <div class="sets">
+        <div class="set reveal">
+          <h3>ลูกสุนัข / ลูกแมว เริ่มต้นชีวิต</h3>
+          <p class="set-price"><span class="cur">฿</span>2,490<span>ปกติ <span class="cur">฿</span>3,100</span></p>
+          <p class="set-note">วัคซีน 4 เข็ม + ถ่ายพยาธิ 2 ครั้ง + ตรวจสุขภาพแรกรับ · นัดครบทุกเข็มให้ตั้งแต่วันแรก</p>
+        </div>
+        <div class="set set--pick reveal d1">
+          <h3>สูงวัย 7 ปีขึ้นไป · ตรวจครบ</h3>
+          <p class="set-price"><span class="cur">฿</span>2,900<span>ปกติ <span class="cur">฿</span>3,800</span></p>
+          <p class="set-note">เลือด + ไต + ตับ + X-ray ทรวงอก + อัลตราซาวด์ช่องท้อง · ใช้เวลาราว 2 ชม. รอรับได้เลย</p>
+        </div>
+        <div class="set reveal d2">
+          <h3>ทำหมัน + วัคซีน จบในทริปเดียว</h3>
+          <p class="set-price"><span class="cur">฿</span>1,990<span>เพศเมีย · ปกติ <span class="cur">฿</span>2,400</span></p>
+          <p class="set-note">เพศผู้ ฿1,290 · รวมยาแก้ปวด นัดตัดไหม และวัคซีนพิษสุนัขบ้า 1 เข็ม</p>
+        </div>
+      </div>
+      <div class="facts mt5">
+        <div class="fact reveal"><span class="fact-ico" aria-hidden="true">เดือน</span><b>ใช้ได้ถึงสิ้นเดือน</b><span>จองคิวไว้ก่อนแล้วมาทำเดือนหน้าได้ ถ้าแจ้งภายในเดือนนี้</span></div>
+        <div class="fact reveal d1"><span class="fact-ico" aria-hidden="true">2 ตัว</span><b>ตัวที่สองลด 10%</b><span>บ้านที่เลี้ยงหลายตัว พามาพร้อมกันได้</span></div>
+        <div class="fact reveal d2"><span class="fact-ico" aria-hidden="true">ถาม</span><b>ไม่แน่ใจว่าตัวไหนควรใช้อันไหน</b><span>โทรถามได้ 038-xxx-xxx ไม่คิดค่าปรึกษา</span></div>
+      </div>
+      <p class="set-note reveal d3 mt5">แพ็กเกจเป็นราคาชุด — ถ้าระหว่างตรวจเจอสิ่งที่ต้องรักษาเพิ่ม เราแจ้งราคาก่อนทุกครั้ง ไม่รวมอยู่ในชุดนี้เงียบๆ</p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <nav class="foot-nav" aria-label="เมนูท้ายหน้า">
+      <a href="../">หน้าแรก</a>
+      <a href="../now/">ควรพามาเลยไหม</a>
+      <a href="../services/">บริการ</a>
+      <a href="../price/">ค่าใช้จ่าย</a>
+      <a href="../packages/" aria-current="page">แพ็กเกจเดือนนี้</a>
+      <a href="../boarding/">ฝากเลี้ยง</a>
+      <a href="../team/">หมอเวรคืนนี้</a>
+      <a href="../reviews/">รีวิว</a>
+    </nav>
+    <p><strong>โรงพยาบาลสัตว์ถึงเช้า</strong> · 198/xx ถ.วัดมาบตาพุด ต.มาบตาพุด อ.เมือง จ.ระยอง 21150 · 038-xxx-xxx</p>
+    <p><strong>เปิดทุกวัน 24 ชั่วโมง</strong> — มีสัตวแพทย์อยู่เวรตลอดคืน ไม่ใช่แค่รับสาย</p>
+    <p>หน้านี้เป็นงานตัวอย่างของ ตามสั่ง (TarmSung) — โรงพยาบาลในภาพเป็นแบรนด์สมมติ</p>
+  </div>
+</footer>
+
+<script src="../js/main.js"></script>
+<!-- กลไกกลางของ playbook: หัวเว็บหดตอนเลื่อน + ไฮไลต์หัวข้อที่กำลังอ่าน (website.md §11 ข้อ 5)
+     ไฟล์เดียวกันเป๊ะทุกเดโม ห้ามแก้รายชิ้น — ก่อนหน้านี้เดโม 5 หน้าไม่มีไฟล์นี้เพราะถูกตัด
+     ออกมาจากต้นฉบับก่อนที่กลไกนี้จะถูกเพิ่ม = ของชนิดเดียวกันแต่ได้กลไกไม่เท่ากัน -->
+<script src="../js/nav-response.js"></script>
+
+<script src="/work/_demo-badge.js" defer></script>
+</body>
+</html>

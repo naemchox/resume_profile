@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8">
+<title>เดอะ เทอเรส — หน้าแรก (จอคอมกลางปก)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600&family=Noto+Sans+Thai:wght@600;700;800&family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* =============================================================================
+   เดอะ เทอเรส — เว็บไซต์ธุรกิจบริการ (หน้าเดียว 1440x900 สำหรับจอคอมกลางปก)
+
+   ใบนี้คือ "หน้าแรก" ของเว็บเดียวกัน ไม่ใช่หน้าราคา — บนปกโฆษณาเรารับทำเว็บ
+   ตัวเลขค่าจัดงานของลูกค้าตัวอย่างไม่ได้ช่วยขายอะไรเลย แถมคนอ่านผ่านๆ นึกว่า
+   ฿690 คือค่าทำเว็บ
+
+   ข้อบังคับที่ตัดสินทุกอย่างในหน้านี้: ปกจะไปอยู่บนเว็บหางานฟรีแลนซ์ในขนาด
+   ธัมบ์เนล จอคอมกว้างจริงเหลือแค่ ~300px กว้าง ตัวหนังสือ 14px กลายเป็นรอยเปื้อน
+   หน้านี้จึงเหลือของแค่สี่ชิ้นที่ยังอ่านออกตอนย่อ: รูป · พาดหัว · ปุ่มเดียว · แถบเมนู
+   ไม่มีการ์ด ไม่มีตาราง ไม่มีแถบตัวเลข — ของที่อ่านไม่ออกตอนย่อคือ noise ไม่ใช่
+   "รายละเอียดที่ให้เปล่า"
+
+   หมวดธุรกิจเลือกไม่ให้ชนของเดิมบนปก (โรงแรม / ร้านอาหาร / คลินิก / ร้านค้า)
+   และรูปทุกใบเลือกจากที่ยังไม่โผล่บนปก — รูปซ้ำสองที่ในภาพเดียวคือ tell ของงานปลอม
+
+   ทำตาม website_building.md เหมือนหน้า VELA: โทเคนสามชั้น (OKLCH), สเกลระยะห่าง
+   เดียว, เงาสองชั้น, ปุ่มชุดเดียวทั้งหน้า, ไอคอน stroke เดียว, โฟกัสจุดเดียว
+   ข้อบังคับของที่ที่มันไปอยู่: มือถือในปกทับจอซ้าย ~10% ทุกอย่างจึงจัดกึ่งกลาง
+   ========================================================================== */
+*{margin:0;padding:0;box-sizing:border-box}
+a{text-decoration:none;color:inherit}
+svg{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+
+:root{
+  /* 1 · primitive */
+  --forest-950:oklch(0.19 0.024 158); --forest-900:oklch(0.25 0.031 158);
+  --forest-700:oklch(0.40 0.045 158); --forest-100:oklch(0.93 0.020 158);
+  --brass-600:oklch(0.72 0.108 76); --brass-400:oklch(0.82 0.086 80);
+  --brass-100:oklch(0.94 0.035 84);
+  --stone-800:oklch(0.32 0.008 100); --stone-600:oklch(0.52 0.008 100);
+  --stone-400:oklch(0.68 0.007 100); --stone-200:oklch(0.89 0.006 100);
+  --cream:oklch(0.981 0.006 90); --paper:oklch(0.995 0.002 90);
+  /* 2 · semantic */
+  --bg:var(--cream); --surface:var(--paper); --line:var(--stone-200);
+  --text:var(--forest-950); --text-muted:var(--stone-600); --text-faint:var(--stone-400);
+  --action:var(--forest-900); --on-action:var(--paper);
+  --accent:var(--brass-600); --accent-wash:var(--brass-100);
+  --on-photo:var(--paper);
+  /* 3 · component */
+  --btn-radius:999px; --card-radius:20px; --field-radius:12px;
+  --t-xs:12px; --t-sm:14px; --t-md:16px; --t-lg:20px; --t-xl:25px; --t-2xl:31px;
+  --t-4xl:49px; --t-5xl:61px;
+  --font-d:"Noto Sans Thai",sans-serif; --font-b:"Anuphan","Noto Sans Thai",sans-serif;
+  --font-s:"Cormorant Garamond",serif;   /* ตัวเอียงฝรั่งไว้ใช้คำเดียว ไม่ใช่ทั้งหน้า */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:64px; --s9:96px;
+  --e1:0 1px 2px oklch(0.25 0.03 158 / .07), 0 4px 12px oklch(0.25 0.03 158 / .07);
+  --e2:0 2px 4px oklch(0.25 0.03 158 / .08), 0 14px 30px oklch(0.25 0.03 158 / .12);
+  --e3:0 4px 8px oklch(0.25 0.03 158 / .10), 0 30px 60px oklch(0.25 0.03 158 / .20);
+}
+
+body{width:1440px;height:900px;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:var(--font-b);font-size:var(--t-md);position:relative}
+
+/* ---- top bar ------------------------------------------------------------ */
+/* เมนูเหลือสามคำ: ตอนย่อมันอ่านไม่ออกอยู่แล้ว หน้าที่เดียวที่เหลือคือทำให้ภาพนี้
+   "เป็นเว็บ" ไม่ใช่โปสเตอร์ — สี่ห้าคำจึงกลายเป็นเส้นเทาพร่าเปล่าๆ */
+header{position:absolute;inset:0 0 auto;height:88px;z-index:3;display:flex;align-items:center;
+  gap:var(--s7);padding:0 var(--s8);color:var(--on-photo)}
+.brand{display:flex;flex-direction:column;line-height:1.05}
+.brand b{font-family:var(--font-d);font-weight:700;font-size:var(--t-xl);letter-spacing:.02em}
+.brand span{font-family:var(--font-s);font-size:var(--t-sm);letter-spacing:.28em;
+  color:color-mix(in oklch, var(--paper) 72%, transparent);text-transform:uppercase}
+header .lk{display:flex;gap:var(--s6);font-size:var(--t-md);font-weight:500;
+  color:color-mix(in oklch, var(--paper) 86%, transparent)}
+header .rt{margin-left:auto;display:flex;align-items:center}
+
+.btn{display:inline-flex;align-items:center;gap:var(--s2);border-radius:var(--btn-radius);
+  font-weight:600;white-space:nowrap}
+.btn svg{width:1.05em;height:1.05em;flex:none}
+.btn--sm{font-size:var(--t-md);padding:12px var(--s5)}
+/* ปุ่มหลักใหญ่กว่าปกติหนึ่งขั้น: ตอนย่อเหลือจุดสีทองจุดเดียวในภาพ ซึ่งคือสิ่งที่
+   ต้องเหลือ — ตาไปหยุดที่ "มีปุ่มให้กด" ได้โดยไม่ต้องอ่านออก */
+.btn--lg{font-size:var(--t-lg);padding:20px var(--s7)}
+.btn--brass{background:var(--accent);color:var(--forest-950);box-shadow:var(--e1)}
+.btn--solid{background:var(--paper);color:var(--forest-950);box-shadow:var(--e2)}
+
+/* ---- hero: เต็มจอ ไม่มีอะไรต่อท้าย -------------------------------------- */
+.hero{position:relative;height:900px;overflow:hidden}
+.hero img{width:120%;max-width:none;margin-left:-19%;height:100%;object-fit:cover;display:block;
+  filter:saturate(1.06) contrast(1.04)}
+/* เกรนบางๆ ทับรูป: ไล่สีล้วนๆ บนภาพถ่ายจะดูเป็นพลาสติก เกรนทำให้มันเป็น "ภาพ" */
+.hero .grain{position:absolute;inset:0;z-index:1;opacity:.10;mix-blend-mode:overlay;
+  background-image:radial-gradient(oklch(0.19 0.02 158) 1px, transparent 1px);
+  background-size:3px 3px}
+/* ม่านหนากว่าใบเดิม เพราะตอนนี้พาดหัวไม่มีการ์ดขาวมารองข้างล่างแล้ว ต้องอาศัย
+   คอนทราสต์จากม่านล้วนๆ ให้ตัวขาวรอดตอนย่อเหลือ 300px */
+.hero::after{content:"";position:absolute;inset:0;
+  background:
+    linear-gradient(180deg, oklch(0.19 0.02 158 / .58) 0%, oklch(0.19 0.02 158 / .10) 30%),
+    radial-gradient(72% 58% at 50% 54%, oklch(0.19 0.02 158 / .60) 0%,
+      oklch(0.19 0.02 158 / .18) 62%, oklch(0.19 0.02 158 / 0) 100%),
+    linear-gradient(0deg, oklch(0.19 0.02 158 / .20) 0%, oklch(0.19 0.02 158 / .04) 40%,
+      oklch(0.19 0.02 158 / 0) 58%)}
+/* กลางจอจริงๆ ไม่ใช่ชิดล่าง: มือถือบนปกทับซ้าย-ขวาข้างละ ~10% และทับมุมล่างด้วย
+   ของสำคัญจึงต้องอยู่ในกรอบกลางที่ไม่มีอะไรมาบัง */
+.hero .copy{position:absolute;left:50%;top:50%;translate:-50% -50%;z-index:2;
+  width:1000px;text-align:center;color:var(--on-photo)}
+.kicker{display:inline-flex;align-items:center;gap:var(--s3);font-size:var(--t-md);
+  font-weight:600;letter-spacing:.2em;color:var(--brass-400);text-transform:uppercase}
+.kicker i{width:34px;height:1px;background:currentColor;display:block}
+/* 61 → 84px: พาดหัวคือของชิ้นเดียวที่ต้องอ่านออกตอนภาพย่อ ที่เหลือรองมันทั้งหมด */
+h1{font-family:var(--font-d);font-weight:800;font-size:84px;line-height:1.16;
+  letter-spacing:-.02em;margin-top:var(--s4);
+  text-shadow:0 2px 30px oklch(0.19 0.02 158 / .55)}
+h1 em{font-style:normal;color:var(--brass-400)}
+.lede{font-size:var(--t-xl);line-height:1.55;margin:var(--s5) auto 0;max-width:34ch;
+  color:color-mix(in oklch, var(--paper) 88%, transparent);
+  text-shadow:0 2px 18px oklch(0.19 0.02 158 / .5)}
+.act{display:flex;justify-content:center;margin-top:var(--s7)}
+</style></head><body>
+
+<header>
+  <span class="brand"><b>เดอะ เทอเรส</b><span>The Terrace</span></span>
+  <span class="lk"><span>สถานที่</span><span>แพ็กเกจจัดงาน</span><span>ติดต่อ</span></span>
+  <span class="rt"><a class="btn btn--brass btn--sm" href="#">เช็กวันว่าง</a></span>
+</header>
+
+<section class="hero">
+  <img src="../work/summit/collection-camp.webp" alt="ห้องจัดเลี้ยงริมน้ำของเดอะ เทอเรส">
+  <span class="grain"></span>
+  <div class="copy">
+    <span class="kicker"><i></i>เวนิวจัดงาน · ทองหล่อ<i></i></span>
+    <h1>จัดงานให้จบ<br>ใน<em>ที่เดียว</em></h1>
+    <p class="lede">ห้องริมน้ำ ครัวของเราเอง ทีมดูแลตลอดงาน</p>
+    <div class="act">
+      <a class="btn btn--solid btn--lg" href="#">นัดชมสถานที่ฟรี
+        <svg viewBox="0 0 24 24"><path d="M5 12h13M13 6.5 18.5 12 13 17.5"/></svg></a>
+    </div>
+  </div>
+</section>
+
+</body></html>

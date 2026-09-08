@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="th" class="no-js">
+<head>
+<meta charset="utf-8">
+<!-- คืนตำแหน่งที่อ่านค้างไว้เอง ไม่รอเบราว์เซอร์ (ที่มา: work/_JANK-REFRESH.md)
+     Safari คืนตำแหน่ง scroll หลังอีเวนต์ load เท่านั้น — วัดแล้ว DCL/load ยังอยู่ที่ y=0
+     ทั้งคู่ คนที่รีเฟรชกลางหน้าจึงเห็น "ฮีโร่แวบ" ตั้งแต่เฟรมแรกจนกว่าไฟล์สุดท้ายจะโหลดจบ
+     (เน็ตช้า = ค้างนานเป็นวินาที) สคริปต์นี้เก็บตำแหน่งไว้เองใน sessionStorage แล้ววาง
+     กลับตั้งแต่เฟรมแรกที่ความสูงหน้าพอ — เร็วกว่ารอ load หลายเท่าและไม่ต้องรอรูป
+     หยุดทันทีถ้าผู้ใช้ขยับเอง (wheel/touch/key/pointer) จะได้ไม่แย่งมือกับคนอ่าน -->
+<script>
+(function () {
+  try {
+    if (!("scrollRestoration" in history)) return;
+    history.scrollRestoration = "manual";
+    var key = "ts:y:" + location.pathname;
+    var want = parseInt(sessionStorage.getItem(key) || "0", 10) || 0;
+    var timer = 0;
+    var save = function () { try { sessionStorage.setItem(key, String(Math.round(window.scrollY))); } catch (e) {} };
+    addEventListener("scroll", function () {
+      if (timer) return;
+      timer = setTimeout(function () { timer = 0; save(); }, 200);
+    }, { passive: true });
+    addEventListener("pagehide", save);
+    /* แถบเมนูต้องไม่ "โผล่" ตอนหน้าเปิดมากลางหน้าอยู่แล้ว (jek 25/8/26 · the-bed)
+       แถบมีสองชั้นที่ไล่เข้าเอง — พื้นทึบบน .nav-shell::before (opacity 300ms) กับเส้นทอง
+       บน border-color (400ms) — พอคืนตำแหน่ง scroll ปุ๊บ สคริปต์แถบเมนูใส่คลาส scrolled
+       ทั้งสองชั้นจึงไล่ให้เห็นทุกครั้งที่รีเฟรช ทั้งที่ผู้ใช้ไม่ได้เลื่อนอะไรเลย
+       ระหว่างช่วงคืนตำแหน่ง จึงปิดทรานซิชันของหัวเว็บไว้ = แถบอยู่ในสถานะสุดท้ายตั้งแต่
+       เฟรมแรก · เปิดคืนทันทีที่ผู้ใช้ขยับเอง (หรืออย่างช้า 900ms) การเลื่อนของจริงจึงยังลื่น */
+    if (want) {
+      var root = document.documentElement;
+      root.className += " nav-instant";
+      var st = document.createElement("style");
+      st.textContent = "html.nav-instant .nav-shell,html.nav-instant .nav-shell::before," +
+        "html.nav-instant .site-header,html.nav-instant header,html.nav-instant header > *," +
+        "html.nav-instant header > * > *{transition:none !important}";
+      (document.head || document.documentElement).appendChild(st);
+      var unlock = function () { root.className = root.className.replace(/\s*nav-instant/, ""); };
+      ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+        addEventListener(ev, unlock, { passive: true, once: true });
+      });
+      setTimeout(unlock, 900);
+    }
+    if (!want || location.hash) return;
+    var stop = false;
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+      addEventListener(ev, function () { stop = true; }, { passive: true, once: true });
+    });
+    var t0 = (performance.now ? performance.now() : 0);
+    var now = function () { return performance.now ? performance.now() : t0; };
+    var done = false;
+    var put = function () {
+      if (stop || done) return true;
+      var el = document.scrollingElement || document.documentElement;
+      if (!el || el.scrollHeight - window.innerHeight < want) return false;   /* หน้ายังสูงไม่พอ ค่อยลองใหม่ */
+      if (Math.round(window.scrollY) !== want) {
+        var prev = el.style.scrollBehavior;      /* html { scroll-behavior: smooth } จะทำให้การวางกลับกลายเป็นการไถ */
+        el.style.scrollBehavior = "auto";
+        window.scrollTo(0, want);
+        el.style.scrollBehavior = prev;
+      }
+      done = Math.round(window.scrollY) === want;
+      /* ใส่สถานะ "เลื่อนแล้ว" ให้หัวเว็บทันทีในจังหวะเดียวกับที่คืนตำแหน่ง — ไม่ต้องรอสคริปต์
+         ของหน้ามันเองซึ่งอยู่ท้าย <body> (วัดแล้วช้ากว่ากันราว 20ms = เห็นแถบเปล่าได้ 1 เฟรม)
+         เกณฑ์คนละค่าเพราะแต่ละที่ตั้งไว้ไม่เท่ากัน: .site-header > 8px · .nav-shell > 40px
+         (ดู js/main.js กับสคริปต์ท้ายหน้าเดโม) สคริปต์ของหน้าจะคำนวณซ้ำเองอยู่แล้ว ค่าจึงตรงกัน */
+      if (done) {
+        var mark = function (sel, cls, min) {
+          if (want <= min) return;
+          var n = document.querySelectorAll(sel);
+          for (var i = 0; i < n.length; i++) n[i].classList.add(cls);
+        };
+        /* หัวเว็บของแต่ละใบใช้คนละคลาสคนละเกณฑ์ (ของเดิมเป็นแบบนั้นมาก่อนแล้ว):
+           .site-header.scrolled >8px (เว็บเรา) · .nav-shell.scrolled >40px (the-bed)
+           .site-header.stuck (the-terrace ใช้ sentinel ไม่ใช่ตัวเลข — 80px คือค่าประมาณ)
+           header.small >120px (homecraft/lumen/glow-clinic ผ่าน js/nav-response.js)
+           เดาพลาดไม่เป็นไร สคริปต์ของหน้าคำนวณทับให้ในเฟรมถัดไป และช่วงนี้ทรานซิชันถูกปิดอยู่
+           การแก้จึงเป็นการสลับทันที ไม่ใช่การไล่สีให้เห็น */
+        mark(".site-header", "scrolled", 8);
+        mark(".nav-shell", "scrolled", 40);
+        mark(".site-header, header[data-header]", "stuck", 80);
+        mark("header, .site-header", "small", 120);
+      }
+      return done;
+    };
+    /* ลองทุกทางที่มาถึงก่อน: setTimeout(0) มักได้ก่อนเฟรมแรกด้วยซ้ำ · rAF ทำงานก่อนวาด
+       · readystatechange/DOMContentLoaded คือจุดที่ body ครบแล้วแน่ๆ
+       เหตุที่ไม่พอถ้าใช้ rAF อย่างเดียว: วัดแล้วบางหน้า (หน้าแรกของเว็บเรา) เฟรมแรก
+       มาก่อนที่ความสูงจะพอ ทำให้เลื่อนไม่ได้ แล้วต้องรอ rAF รอบถัดไป = เห็นหัวเว็บ 1 เฟรม */
+    /* สองสายแยกกัน สายละหนึ่งนัด — ถ้าให้สายเดียวนัดทั้ง setTimeout และ rAF
+       จำนวนนัดจะเพิ่มเป็นสองเท่าทุกรอบ (2^n) ภายในไม่กี่ร้อยมิลลิวินาที */
+    var tick = function () { if (put() || stop) return; if (now() - t0 < 3000) setTimeout(tick, 0); };
+    var frame = function () { if (put() || stop) return; if (now() - t0 < 3000) requestAnimationFrame(frame); };
+    tick();
+    frame();
+    document.addEventListener("readystatechange", put);
+    addEventListener("DOMContentLoaded", put);
+    addEventListener("load", put);
+  } catch (e) {}
+})();
+</script>
+  <!-- เดโมสาธิต ไม่ใช่ธุรกิจจริง: ห้ามให้เสิร์ชเอนจินเก็บเข้าดัชนี ไม่งั้นจะมีหน้า
+       ที่ดูเหมือนร้านจริง (มีชื่อ ราคา เบอร์โทร) ลอยอยู่บน Google ในชื่อโดเมนของเรา -->
+  <meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PARCELA — ร้านค้าออนไลน์ ของแท้ ส่งถึงบ้าน 1-2 วัน</title>
+  <link rel="canonical" href="https://tarmsung.pages.dev/work/parcela/">
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Store",
+  "name": "PARCELA",
+  "description": "ร้านค้าออนไลน์ ของแท้ทุกชิ้น ส่งไว 1-2 วัน เก็บเงินปลายทาง เปลี่ยนคืนได้ภายใน 7 วัน",
+  "url": "https://tarmsung.pages.dev/work/parcela/",
+  "inLanguage": "th"
+}
+  </script>
+<meta name="description" content="ร้านค้าออนไลน์ ของแท้ทุกชิ้น ส่งไว 1-2 วัน เก็บเงินปลายทาง เปลี่ยนคืนได้ภายใน 7 วัน">
+<script>document.documentElement.classList.replace("no-js","js");</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<!-- ไอคอนชุดเดียวของหน้านี้ (สร้างด้วย playbook/make-icons.mjs) -->
+<svg class="sr-only" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0"><defs>
+  <symbol id="i-icon1" viewBox="0 0 190 24"><path d="M4 16 C46 16 58 6 98 6 C136 6 148 16 178 16"/><path d="M170 10 L179 16 L170 22"/></symbol>
+  <symbol id="i-icon2" viewBox="0 0 32 32"><path d="M5.4 11.4 16 6.6l10.6 4.8v11.4L16 27.6 5.4 22.8Z" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round"/><path d="M5.4 11.4 16 16.2l10.6-4.8" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round"/><path d="M16 16.2v11.4" fill="none" stroke="currentColor" stroke-width="2.1"/><path d="m10.9 19.6 2.6 2.6 5-5.4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-icon3" viewBox="0 0 190 24"><path d="M4 16 C46 16 58 6 98 6 S150 14 178 12" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-dasharray="6 7"/><path d="M170 7l8 5-8 5" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</defs></svg>
+<a class="skip" href="#main">ข้ามไปเนื้อหา</a>
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a class="brand" href="#top">
+      <span class="mark" aria-hidden="true"><svg viewBox="0 0 32 32" aria-hidden="true"><use href="#i-icon2"/></svg></span>
+      <span class="wm">PARCELA<small>REAL GOODS, FAST</small></span>
+    </a>
+    <nav class="nav-links" aria-label="เมนูหลัก">
+      <a href="#new">สินค้าใหม่</a>
+      <a href="#cats">หมวดสินค้า</a>
+      <a href="#deal">โปรวันนี้</a>
+      <a href="#help">ติดตามพัสดุ</a>
+    </nav>
+    <a class="btn btn--primary btn--sm nav-cta" href="#new">ตะกร้า · 2</a>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero hero--shop" aria-labelledby="hero-title" id="top">
+    <svg class="stamp" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+      <path d="M5.4 11.4 16 6.6l10.6 4.8v11.4L16 27.6 5.4 22.8Z"/>
+      <path d="M5.4 11.4 16 16.2l10.6-4.8"/>
+      <path d="M16 16.2v11.4"/>
+      <path d="m10.9 19.6 2.6 2.6 5-5.4"/>
+    </svg>
+    <div class="wrap hero-copy">
+      <span class="eyebrow reveal">ส่งจากคลังในไทย · ของแท้ 100%</span>
+      <h1 id="hero-title" class="reveal d1"><span class="nb">สั่งแล้วไม่ต้องลุ้น</span><br><span class="nb">ของถึงบ้านใน <mark>1-2 วัน</mark></span></h1>
+      <p class="lead reveal d2">เก็บเงินปลายทางได้ทุกชิ้น เปลี่ยนคืนฟรีภายใน 7 วัน ไม่ต้องถามเหตุผล</p>
+      <p class="search reveal d2" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+        ค้นหาสินค้า เช่น หูฟัง, นาฬิกา, รองเท้า
+        <span class="search-go">ค้นหา</span>
+      </p>
+      <!-- หมวดสินค้า: ร้านจริงบอกตั้งแต่จอแรกว่า "ขายอะไร" ไม่ปล่อยให้เดาจากพาดหัว -->
+      <ul class="cats reveal d2">
+        <li><a href="#new">หูฟัง</a></li>
+        <li><a href="#new">นาฬิกา</a></li>
+        <li><a href="#new">รองเท้า</a></li>
+        <li><a href="#new">ของใช้ในบ้าน</a></li>
+      </ul>
+
+      <!-- ดีลวันนี้อยู่ในจอแรก: จอแรกเดิมมีแต่ตัวหนังสือ ไม่มีของสักชิ้นและไม่มีราคา
+           สักตัว ซึ่งเป็นสองสิ่งที่ร้านค้าออนไลน์ใช้ขาย นาฬิกาเรือนนี้เป็นชิ้นเดียว
+           กับใบแรกในกริดข้างล่าง ราคาเดียวกัน — ดีลที่ไม่มีอยู่จริงในหน้าเดียวกัน
+           คือคำโกหกที่คนกดแล้วรู้ทันที -->
+      <article class="deal reveal d3">
+        <img src="img/item-1.jpg" alt="นาฬิกาข้อมือสายซิลิโคนสีขาว" width="760" height="760">
+        <div class="deal-body">
+          <p class="deal-kicker">
+            <span class="deal-badge">-32%</span>
+            ดีลวันนี้ · เหลืออีก <time class="deal-clock" data-countdown>00:00:00</time>
+          </p>
+          <h2>นาฬิกาสมาร์ตวอทช์ กันน้ำ 5ATM</h2>
+          <p class="price">฿1,290<span class="was">฿1,890</span></p>
+        </div>
+        <a class="btn btn--primary deal-cta" href="#new">ช้อปเลย</a>
+      </article>
+
+      <ul class="trust reveal d3">
+        <li>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="18.5" r="1.8"/><circle cx="17" cy="18.5" r="1.8"/></svg>
+          ส่งฟรีเมื่อครบ ฿499
+        </li>
+        <li>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="19" height="11" rx="2"/><circle cx="12" cy="12" r="2.2"/><path d="M6 10v4M18 10v4"/></svg>
+          เก็บเงินปลายทาง
+        </li>
+        <li>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 1 2.5 5.8"/><path d="M4 6.5V12h5.5"/></svg>
+          คืนฟรีใน 7 วัน
+        </li>
+      </ul>
+
+      <!-- ตัวเลขวิ่งมา: สามตัวนี้อยู่ในหน้านี้อยู่แล้วทั้งหมด ไม่ได้เติมตัวเลขใหม่เข้ามา
+           data-count = ค่าปลายทาง · data-dec = ทศนิยม · ข้อความในแท็กคือค่าที่คนเห็น
+           ตอนปิด JS จึงยังอ่านได้ครบเหมือนเดิม ไม่ใช่เลข 0 -->
+      <p class="chips reveal d3">
+        <span><span class="star" aria-hidden="true">★</span>
+          <b class="tally" data-count="4.8" data-dec="1">4.8</b> จาก
+          <b class="tally" data-count="12400">12,400</b> รีวิว</span>
+        <span>ส่งแล้ว <b class="tally" data-count="68000" data-suffix="+">68,000+</b> กล่อง</span>
+      </p>
+    </div>
+  </section>
+
+  <section class="section band-route" id="new" aria-labelledby="new-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">ขายดีสัปดาห์นี้</p>
+        <h2 id="new-title" class="rise">คนซื้อซ้ำมากที่สุด</h2>
+        <svg class="route" width="190" height="24" viewBox="0 0 190 24" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+      </div>
+      <div class="cards cards--grid2">
+        <article class="card reveal">
+          <span class="badge">-32%</span>
+          <img src="img/item-1.jpg" alt="นาฬิกาข้อมือสายซิลิโคนสีขาว" width="760" height="760" loading="lazy">
+          <div class="card-body">
+            <h3>นาฬิกาสมาร์ตวอทช์</h3>
+            <p>วัดชีพจร กันน้ำ 5ATM</p>
+            <p class="price">฿1,290<span class="was">฿1,890</span></p>
+          </div>
+        </article>
+        <article class="card reveal d1">
+          <span class="badge">ขายดี</span>
+          <img src="img/item-2.jpg" alt="หูฟังครอบหูสีดำบนพื้นสีเหลือง" width="760" height="760" loading="lazy">
+          <div class="card-body">
+            <h3>หูฟังตัดเสียงรบกวน</h3>
+            <p>แบตอยู่ 40 ชม. ต่อได้ 2 เครื่อง</p>
+            <p class="price">฿2,450<span class="was">฿3,200</span></p>
+          </div>
+        </article>
+        <article class="card reveal d2">
+          <span class="badge">ของใหม่</span>
+          <img src="img/item-3.jpg" alt="กล้องอินสแตนต์ทรงสี่เหลี่ยมสีขาว" width="760" height="760" loading="lazy">
+          <div class="card-body">
+            <h3>กล้องอินสแตนต์</h3>
+            <p>ปริ้นรูปได้ทันที แถมฟิล์ม 20 ใบ</p>
+            <p class="price">฿3,990</p>
+          </div>
+        </article>
+        <article class="card reveal d3">
+          <span class="badge">-25%</span>
+          <img src="img/item-4.jpg" alt="รองเท้าผ้าใบลายกราฟิกคู่หนึ่ง" width="760" height="760" loading="lazy">
+          <div class="card-body">
+            <h3>รองเท้าผ้าใบรุ่นลิมิเต็ด</h3>
+            <p>มีไซซ์ 36-45 พร้อมส่ง</p>
+            <p class="price">฿1,690<span class="was">฿2,250</span></p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- หมวดสินค้า: หน้านี้โชว์ของขายดี 4 ชิ้นแล้วจบ คนที่ไม่ได้อยากได้สี่ชิ้นนั้นไม่มี
+       ทางรู้เลยว่าร้านขายอะไรอีกบ้าง — หมวดคือคำตอบที่ถูกที่สุด ไม่ต้องใช้รูปเพิ่ม -->
+  <section class="section" id="cats" aria-labelledby="cats-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">เลือกตามหมวด</p>
+        <h2 id="cats-title" class="rise"><span class="w"><span>ของใช้ทุกวัน</span></span> <span class="w"><span>ที่สั่งแล้วถึงเร็ว</span></span></h2>
+        <svg class="route" width="190" height="24" viewBox="0 0 190 24" aria-hidden="true" focusable="false"><use href="#i-icon3"/></svg>
+      </div>
+      <div class="cat-grid">
+          <a class="cat reveal" href="#new"><b>หูฟัง &amp; ลำโพง</b><span>48 รายการ</span></a>
+          <a class="cat reveal" href="#new"><b>นาฬิกา &amp; สมาร์ตวอทช์</b><span>36 รายการ</span></a>
+          <a class="cat reveal" href="#new"><b>รองเท้า &amp; กระเป๋า</b><span>72 รายการ</span></a>
+          <a class="cat reveal" href="#new"><b>ของใช้ในบ้าน</b><span>95 รายการ</span></a>
+          <a class="cat reveal" href="#new"><b>มือถือ &amp; อุปกรณ์เสริม</b><span>120 รายการ</span></a>
+          <a class="cat reveal" href="#new"><b>สุขภาพ &amp; ความงาม</b><span>64 รายการ</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ค่าส่ง/เวลาส่ง: "ถึงไวแค่ไหน" คือคำสัญญาทั้งหมดของร้านนี้ แต่ตัวเลขจริงต่อภูมิภาค
+       ไม่เคยอยู่บนหน้า มีแต่คำว่า 1-2 วัน ลอยๆ ตารางนี้ทำให้คำสัญญานั้นตรวจสอบได้ -->
+  <!-- ตารางเทียบรุ่น: หน้านี้ขายสมาร์ตวอทช์เป็นสินค้าหลักตั้งแต่ฮีโร่ แต่ไม่เคยบอก
+       ว่าสามรุ่นต่างกันตรงไหน คนที่กำลังเลือกอยู่จึงต้องออกไปหาข้อมูลที่อื่น -->
+  <section class="section" id="spec" aria-labelledby="spec-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">เลือกรุ่น</p>
+        <h2 id="spec-title" class="rise"><span class="w"><span>สามรุ่นที่ขายดี</span></span> <span class="w"><span>ต่างกันตรงไหน</span></span></h2>
+        <svg class="route" width="190" height="24" viewBox="0 0 190 24" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+        <p>ทุกรุ่นกันน้ำ 5ATM และใช้ได้ทั้ง iPhone และ Android — ที่ต่างกันคือแบตกับเซ็นเซอร์</p>
+      </div>
+      <div class="table-wrap reveal">
+        <table class="cmp">
+          <thead><tr><th scope="col">รุ่น</th><th scope="col">แบตใช้ได้</th><th scope="col">วัดอะไรได้</th><th scope="col">หน้าจอ</th><th scope="col">ราคา</th></tr></thead>
+          <tbody>
+            <tr class="reveal"><th scope="row">Lite — ใส่ทุกวัน</th><td data-l="แบตใช้ได้">7 วัน</td><td data-l="วัดอะไรได้">ก้าว · หัวใจ · การนอน</td><td data-l="หน้าจอ">1.6" LCD</td><td data-l="ราคา"><b>฿1,290</b></td></tr>
+            <tr class="reveal"><th scope="row">Pro — ออกกำลังกาย</th><td data-l="แบตใช้ได้">10 วัน</td><td data-l="วัดอะไรได้">+ ออกซิเจนในเลือด · GPS ในตัว</td><td data-l="หน้าจอ">1.8" AMOLED</td><td data-l="ราคา"><b>฿1,990</b></td></tr>
+            <tr class="reveal"><th scope="row">Max — ใช้แทนมือถือ</th><td data-l="แบตใช้ได้">14 วัน</td><td data-l="วัดอะไรได้">+ รับสายบนนาฬิกา · ความเครียด</td><td data-l="หน้าจอ">2.0" AMOLED</td><td data-l="ราคา"><b>฿2,690</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="menu-note reveal">ทุกรุ่นแถมสายเพิ่มหนึ่งเส้นและฟิล์มกันรอยติดมาจากโรงงาน · เปลี่ยนรุ่นได้ภายใน 7 วันถ้าเลือกผิด จ่ายแค่ส่วนต่าง</p>
+    </div>
+  </section>
+
+  <section class="section section--tint" id="shipping" aria-labelledby="shipping-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">ค่าส่ง · เวลาส่ง</p>
+        <h2 id="shipping-title" class="rise"><span class="w"><span>ของถึงเมื่อไหร่</span></span> <span class="w"><span>คิดเท่าไหร่</span></span></h2>
+        <svg class="route" width="190" height="24" viewBox="0 0 190 24" aria-hidden="true" focusable="false"><use href="#i-icon3"/></svg>
+        <p>ตัดรอบส่งทุกวัน 15:00 น. · เก็บเงินปลายทางได้ทุกเขต · แจ้งเลขพัสดุอัตโนมัติทางไลน์</p>
+      </div>
+      <div class="table-wrap reveal">
+        <table class="cmp">
+          <thead><tr><th scope="col">ปลายทาง</th><th scope="col">ได้ของเมื่อไหร่</th><th scope="col">ค่าส่ง</th></tr></thead>
+          <tbody>
+          <tr class="reveal"><th scope="row">กรุงเทพ &amp; ปริมณฑล</th><td data-l="ได้ของเมื่อไหร่">ตัดรอบ 15:00 · ได้ของวันถัดไป</td><td data-l="ค่าส่ง"><b>฿40 (ฟรีเมื่อครบ ฿499)</b></td></tr>
+          <tr class="reveal"><th scope="row">ภาคกลาง ภาคตะวันออก</th><td data-l="ได้ของเมื่อไหร่">1–2 วันทำการ</td><td data-l="ค่าส่ง"><b>฿50 (ฟรีเมื่อครบ ฿499)</b></td></tr>
+          <tr class="reveal"><th scope="row">ภาคเหนือ อีสาน ใต้</th><td data-l="ได้ของเมื่อไหร่">2–3 วันทำการ</td><td data-l="ค่าส่ง"><b>฿60 (ฟรีเมื่อครบ ฿699)</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="menu-note reveal">สั่งก่อน 15:00 ของวันทำการ = นับเป็นรอบวันนั้น · สั่งหลัง 15:00 หรือวันหยุด = นับรอบวันทำการถัดไป</p>
+    </div>
+  </section>
+
+  <section class="band deep" id="deal" aria-labelledby="deal-title">
+    <svg class="brandmark" viewBox="0 0 32 32" aria-hidden="true"><use href="#i-icon2"/></svg>
+    <div class="wrap">
+      <h2 id="deal-title" class="rise">สั่งวันนี้ ส่งพรุ่งนี้</h2>
+        <svg class="route" width="190" height="24" viewBox="0 0 190 24" aria-hidden="true" focusable="false"><path d="M4 16 C46 16 58 6 98 6 C136 6 148 16 178 16"/><path d="M170 10 L179 16 L170 22"/><rect class="parcel" x="0" y="0" width="7" height="7" rx="1.6" fill="currentColor"/></svg>
+      <p class="reveal d1">ตัดรอบส่งทุกวัน 15:00 น. สั่งก่อนได้ของก่อน แจ้งเลขพัสดุอัตโนมัติทางไลน์</p>
+      <!-- ทั้งสามตัวอยู่ใน hero ของหน้านี้อยู่ก่อนแล้ว และใช้ตัวนับ .tally ตัวเดิม -->
+      <div class="stat-row reveal d2">
+        <div class="stat"><b class="tally" data-count="4.8" data-dec="1">4.8</b><span>คะแนนจากผู้ซื้อ</span></div>
+        <div class="stat"><b class="tally" data-count="12400">12,400</b><span>รีวิว</span></div>
+        <div class="stat"><b class="tally" data-count="68000" data-suffix="+">68,000+</b><span>กล่องที่ส่งแล้ว</span></div>
+      </div>
+      <div class="hero-cta reveal d3">
+        <a class="btn btn--primary" href="https://line.me/R/ti/p/@parcela.demo">แจ้งเลขพัสดุทางไลน์</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--tint" id="pay" aria-labelledby="pay-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">การชำระเงิน</p>
+        <h2 id="pay-title" class="rise"><span class="w"><span>จ่ายยังไงก็ได้</span></span> <span class="w"><span>ราคาเท่ากัน</span></span></h2>
+        <svg class="route" width="190" height="24" viewBox="0 0 190 24" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+        <p>ไม่มีค่าธรรมเนียมบัตร ไม่มีบวกเปอร์เซ็นต์ตอนจ่าย ราคาบนหน้าเว็บคือยอดที่ตัดจริง</p>
+      </div>
+      <div class="pays">
+        <div class="pay reveal"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M4.2 4.2h6.4v6.4H4.2Z"/><path pathLength="1" d="M13.4 4.2h6.4v6.4h-6.4Z"/><path pathLength="1" d="M4.2 13.4h6.4v6.4H4.2Z"/><path pathLength="1" d="M13.4 13.4h2.8M19.8 13.4v3M16.2 17v2.8h3.6"/></svg></div><div><b>โอนผ่านแอปธนาคาร</b><span>สแกน QR แล้วแนบสลิป ระบบตัดสต็อกให้ทันที ไม่ต้องรอแอดมินยืนยัน</span></div></div>
+        <div class="pay reveal d1"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M2.6 5.4h18.8v13.2H2.6Z"/><path pathLength="1" d="M2.6 9.6h18.8"/><path pathLength="1" d="M6 14.6h4.4"/></svg></div><div><b>บัตรเครดิต/เดบิต</b><span>Visa · Mastercard · JCB ผ่าน 3-D Secure ร้านไม่เห็นเลขบัตรของคุณ</span></div></div>
+        <div class="pay reveal d2"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle pathLength="1" cx="12" cy="12" r="9.2"/><path pathLength="1" d="M12 6.6V12l3.6 2.2"/></svg></div><div><b>ผ่อน 0% นาน 10 เดือน</b><span>ยอดตั้งแต่ ฿1,500 กับบัตร 6 ธนาคาร เลือกจำนวนงวดหน้าสรุปยอด</span></div></div>
+        <div class="pay reveal"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M1.8 7.2h11.6v9.4H1.8Z"/><path pathLength="1" d="M13.4 10.4h4l3.4 3.4v2.8h-7.4Z"/><circle pathLength="1" cx="6.4" cy="18.4" r="2"/><circle pathLength="1" cx="17" cy="18.4" r="2"/></svg></div><div><b>เก็บเงินปลายทาง</b><span>ได้ทุกเขต ไม่มีขั้นต่ำ จ่ายสดกับพนักงานส่งของตอนรับ</span></div></div>
+        <div class="pay reveal d1"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M3.2 6.2h15.4v12.6H3.2Z"/><path pathLength="1" d="M3.2 6.2c0-1.4 1-2.2 2.4-2.2h11"/><path pathLength="1" d="M18.6 10.4h3v4.2h-3Z"/></svg></div><div><b>วอลเล็ต</b><span>TrueMoney · ShopeePay · Rabbit LINE Pay ใช้คูปองร้านร่วมได้</span></div></div>
+        <div class="pay reveal d2"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M5 2.8h9l5 5v13.4H5Z"/><path pathLength="1" d="M14 2.8v5h5"/><path pathLength="1" d="M8 12.6h8M8 16.2h5"/></svg></div><div><b>ใบกำกับภาษีเต็มรูปแบบ</b><span>กรอกชื่อบริษัทตอนสั่งได้เลย ส่งไฟล์ให้ภายในวันทำการถัดไป</span></div></div>
+      </div>
+      <p class="menu-note reveal">ซื้อในนามบริษัท หักภาษี ณ ที่จ่าย 3% ได้ตามปกติ — แจ้งในช่องหมายเหตุ ทีมบัญชีจะออกเอกสารให้ครบ</p>
+    </div>
+  </section>
+
+  <section class="section" id="help" aria-labelledby="help-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">ช่วยเหลือ</p>
+        <h2 id="help-title" class="rise">เปลี่ยนคืนได้ 7 วัน ไม่ต้องถามเหตุผล</h2>
+        <svg class="route" width="190" height="24" viewBox="0 0 190 24" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+        <p>ทักแชทได้ทุกวัน 09:00–21:00 · โทร 02-xxx-xxxx</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section band-route" id="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">สั่งยังไง</p>
+        <h2 id="how-title" class="rise">สั่งวันนี้ ได้ของภายในสองวัน</h2>
+        <svg class="route" width="190" height="24" viewBox="0 0 190 24" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+      </div>
+      <div class="steps">
+        <div class="step reveal">
+          <div><h3>เลือกของใส่ตะกร้า</h3><p>ราคาที่เห็นคือราคาที่จ่าย ค่าส่งคิดตอนสรุปยอด ไม่มีบวกซ่อน</p></div>
+        </div>
+        <div class="step reveal d1">
+          <div><h3>เลือกวิธีจ่าย</h3><p>โอน บัตร หรือเก็บเงินปลายทาง ได้ทุกชิ้นไม่มีขั้นต่ำ</p></div>
+        </div>
+        <div class="step reveal d2">
+          <div><h3>รอรับพัสดุ</h3><p>ตัดรอบส่งทุกวัน 15:00 น. แจ้งเลขพัสดุอัตโนมัติทางไลน์</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section band-route" id="warranty" aria-labelledby="warranty-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">ประกันสินค้า</p>
+        <h2 id="warranty-title" class="rise"><span class="w"><span>เสียภายในประกัน</span></span> <span class="w"><span>เราส่งตัวใหม่ก่อน</span></span></h2>
+        <svg class="route" width="190" height="24" viewBox="0 0 190 24" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+        <p>ไม่ต้องรอศูนย์ตรวจเสร็จถึงจะได้ของใช้ — ขั้นตอนทั้งหมดข้างล่างนี้จบใน 3 วันทำการ</p>
+      </div>
+      <div class="steps">
+        <div class="step reveal"><div><h3>ทักไลน์พร้อมคลิปอาการ</h3><p>ถ่ายให้เห็นอาการ 10 วินาทีก็พอ ไม่ต้องกรอกฟอร์มหรือหาใบเสร็จ เราดูจากเบอร์ที่สั่ง</p></div></div>
+        <div class="step reveal d1"><div><h3>เราส่งตัวใหม่ไปก่อน</h3><p>ส่งวันถัดไปทันทีถ้าอยู่ในประกันและมีของในสต็อก ไม่ต้องจ่ายค่าส่งทั้งไปและกลับ</p></div></div>
+        <div class="step reveal d2"><div><h3>ส่งตัวเก่ากลับด้วยกล่องเดิม</h3><p>ใบส่งของแนบมาให้ในกล่อง หย่อนที่เคาน์เตอร์ขนส่งได้เลย ไม่ต้องจ่ายเงินหน้าร้าน</p></div></div>
+      </div>
+      <div class="table-wrap reveal">
+        <table class="cmp">
+          <thead><tr><th scope="col">ประเภทสินค้า</th><th scope="col">ประกัน</th><th scope="col">ครอบคลุม</th><th scope="col">ไม่ครอบคลุม</th></tr></thead>
+          <tbody>
+            <tr class="reveal"><th scope="row">นาฬิกา · หูฟัง</th><td data-l="ประกัน"><b>1 ปี</b></td><td data-l="ครอบคลุม">แบตเสื่อมผิดปกติ · จอไม่ติด · ปุ่มค้าง</td><td data-l="ไม่ครอบคลุม">ตกแตก · น้ำเข้าจากการดำน้ำลึก</td></tr>
+            <tr class="reveal"><th scope="row">กล้องอินสแตนต์</th><td data-l="ประกัน"><b>1 ปี</b></td><td data-l="ครอบคลุม">ชัตเตอร์ · มอเตอร์ฟีดฟิล์ม</td><td data-l="ไม่ครอบคลุม">ฟิล์มหมดอายุ · เลนส์เป็นรอยจากการใช้งาน</td></tr>
+            <tr class="reveal"><th scope="row">รองเท้า · เครื่องแต่งกาย</th><td data-l="ประกัน"><b>30 วัน</b></td><td data-l="ครอบคลุม">ตะเข็บปริ · พื้นหลุดจากการผลิต</td><td data-l="ไม่ครอบคลุม">สึกตามการใช้งาน · ใส่ผิดไซซ์</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- สั่งจำนวนมาก: ยอดต่อบิลของออเดอร์องค์กรสูงกว่าลูกค้าเดี่ยวหลายเท่า แต่หน้าเดิม
+       ไม่มีที่ให้คนกลุ่มนี้ยืนเลย เขาจึงต้องเดาว่าร้านรับหรือเปล่าแล้วทักมาถาม -->
+  <section class="section section--tint" id="bulk" aria-labelledby="bulk-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">สั่งจำนวนมาก</p>
+        <h2 id="bulk-title" class="rise"><span class="w"><span>ของขวัญปีใหม่บริษัท</span></span> <span class="w"><span>สั่ง 10 ชิ้นขึ้นไปถูกลง</span></span></h2>
+        <svg class="route" width="190" height="24" viewBox="0 0 190 24" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+        <p>สลักชื่อ ใส่กล่องของขวัญ และแยกส่งตามที่อยู่พนักงานได้ ทีมจะส่งใบเสนอราคาให้ภายในวันเดียวกัน</p>
+      </div>
+      <div class="table-wrap reveal">
+        <table class="cmp">
+          <thead><tr><th scope="col">จำนวน</th><th scope="col">ส่วนลด</th><th scope="col">ของแถม</th><th scope="col">เวลาเตรียมของ</th></tr></thead>
+          <tbody>
+            <tr class="reveal"><th scope="row">10–29 ชิ้น</th><td data-l="ส่วนลด"><b>5%</b></td><td data-l="ของแถม">กล่องของขวัญ + การ์ด</td><td data-l="เวลาเตรียมของ">2 วันทำการ</td></tr>
+            <tr class="reveal"><th scope="row">30–99 ชิ้น</th><td data-l="ส่วนลด"><b>10%</b></td><td data-l="ของแถม">+ สลักชื่อพนักงานรายชิ้น</td><td data-l="เวลาเตรียมของ">5 วันทำการ</td></tr>
+            <tr class="reveal"><th scope="row">100 ชิ้นขึ้นไป</th><td data-l="ส่วนลด"><b>15%</b></td><td data-l="ของแถม">+ แยกส่งตามที่อยู่รายคน ฟรี</td><td data-l="เวลาเตรียมของ">7–10 วันทำการ</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pays">
+        <div class="pay reveal"><b>วางบิล 30 วันได้</b><span>สำหรับบริษัทจดทะเบียน ส่งหนังสือรับรองมาครั้งเดียว ครั้งต่อไปสั่งได้เลย</span></div>
+        <div class="pay reveal d1"><b>ตัวอย่างก่อนสั่งจริง</b><span>ขอตัวอย่าง 1 ชิ้นดูงานสลักก่อนได้ หักออกจากยอดจริงเมื่อสั่งครบ</span></div>
+        <div class="pay reveal d2"><b>ผู้ดูแลออเดอร์ประจำ</b><span>คุยกับคนเดิมทั้งดีล ไม่ต้องเล่าใหม่ทุกครั้งที่ทักเข้ามา</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section band-route" id="voices" aria-labelledby="voices-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">รีวิวจากผู้ซื้อ</p>
+        <h2 id="voices-title" class="rise">คนที่สั่งไปแล้วบอกว่าอะไร</h2>
+        <svg class="route" width="190" height="24" viewBox="0 0 190 24" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+      </div>
+      <div class="quotes">
+        <blockquote class="quote reveal">
+          <p class="stars" aria-label="ให้ 5 ดาว">★★★★★</p>
+          <p>สั่งบ่ายวันจันทร์ ได้ของเช้าวันพุธ กล่องไม่บุบ มีกันกระแทกเต็มใบ</p>
+          <footer>คุณโบว์ · ซื้อหูฟัง</footer>
+        </blockquote>
+        <blockquote class="quote reveal d1">
+          <p class="stars" aria-label="ให้ 5 ดาว">★★★★★</p>
+          <p>เปลี่ยนไซซ์รองเท้าง่ายมาก ทักไลน์แล้วเขาส่งใบปะหน้ามาให้เลย ไม่ต้องเถียง</p>
+          <footer>คุณต้า · ซื้อรองเท้า</footer>
+        </blockquote>
+        <blockquote class="quote reveal d2">
+          <p class="stars" aria-label="ให้ 4 ดาว">★★★★☆</p>
+          <p>ของดีตามราคา แต่รุ่นที่อยากได้หมดบ่อย อยากให้เติมสต็อกไวกว่านี้</p>
+          <footer>คุณฟ้า · ซื้อนาฬิกา</footer>
+        </blockquote>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="real" aria-labelledby="real-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">ของแท้ · ร้านจริง</p>
+        <h2 id="real-title" class="rise"><span class="w"><span>ซื้อจากร้านออนไลน์</span></span> <span class="w"><span>ที่ตามตัวได้</span></span></h2>
+        <svg class="route" width="190" height="24" viewBox="0 0 190 24" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+        <p>คำถามที่คนถามก่อนโอนเงินให้ร้านที่ไม่เคยซื้อ — ตอบไว้ตรงนี้ทั้งหมด ไม่ต้องทักมาถาม</p>
+      </div>
+      <div class="pays">
+        <div class="pay reveal"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M4.6 2.8h14.8v18.4H4.6Z"/><path pathLength="1" d="M7.8 7.6h8.4M7.8 11.2h8.4"/><circle pathLength="1" cx="16.4" cy="16.4" r="2.6"/></svg></div><div><b>จดทะเบียนพาณิชย์อิเล็กทรอนิกส์</b><span>ทะเบียน DBD เลขที่ 0105566xxxxx ตรวจได้ที่กรมพัฒนาธุรกิจการค้า</span></div></div>
+        <div class="pay reveal d1"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M2.6 8.2 12 3.6l9.4 4.6v8.4L12 21.2 2.6 16.6Z"/><path pathLength="1" d="M2.6 8.2 12 12.8l9.4-4.6M12 12.8v8.4"/></svg></div><div><b>นำเข้าเอง ไม่ผ่านคนกลาง</b><span>ทุกล็อตมีใบขนสินค้าขาเข้า ขอดูได้ก่อนสั่งซื้อจำนวนมาก</span></div></div>
+        <div class="pay reveal d2"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M3.4 9.4h17.2v11.2H3.4Z"/><path pathLength="1" d="M3.4 9.4 5.2 4h13.6l1.8 5.4"/><path pathLength="1" d="M9.6 20.6v-6.4h4.8v6.4"/></svg></div><div><b>มีหน้าร้านให้เดินดู</b><span>ลาดพร้าว 71 เปิดทุกวัน 10:00–19:00 นัดมารับเองแล้วจ่ายที่ร้านได้</span></div></div>
+        <div class="pay reveal"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle pathLength="1" cx="12" cy="12" r="9.2"/><path pathLength="1" d="M15.2 8.6h-4.4a2.4 2.4 0 0 0 0 4.8h2.4a2.4 2.4 0 0 1 0 4.8H8.8"/><path pathLength="1" d="M12 6.2v1.8M12 16.2v1.8"/></svg></div><div><b>คืนเงินเต็มถ้าของไม่ตรง</b><span>ตรวจแล้วไม่ใช่ของแท้ คืนเต็มจำนวนพร้อมค่าส่ง ไม่ต้องต่อรอง</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section band-route" id="faq" aria-labelledby="faq-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">คำถามที่พบบ่อย</p>
+        <h2 id="faq-title" class="rise">เรื่องที่ถามกันมากที่สุด</h2>
+        <svg class="route" width="190" height="24" viewBox="0 0 190 24" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+      </div>
+      <div class="faq reveal">
+        <details><summary>ส่งกี่วันถึง</summary><p>กรุงเทพฯ และปริมณฑล 1 วัน ต่างจังหวัด 2-3 วัน นับจากรอบตัดส่ง 15:00 น.</p></details>
+        <details><summary>เก็บเงินปลายทางได้ทุกชิ้นไหม</summary><p>ได้ทุกชิ้น ไม่มียอดขั้นต่ำ มีค่าบริการปลายทาง 20 บาทต่อกล่อง</p></details>
+        <details><summary>เปลี่ยนคืนยังไง</summary><p>ทักไลน์ภายใน 7 วันหลังรับของ เราส่งใบปะหน้าให้ ไม่ต้องบอกเหตุผล</p></details>
+        <details><summary>ของแท้ไหม มีประกันหรือเปล่า</summary><p>ของแท้ทุกชิ้น มีใบรับประกันศูนย์ไทย 1 ปีแนบในกล่อง</p></details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p><strong>PARCELA</strong> · คลังสินค้า บางนา-ตราด กม.19 สมุทรปราการ 10540</p>
+    <p>หน้านี้เป็นงานตัวอย่างของ ตามสั่ง (TarmSung) — ร้านในภาพเป็นแบรนด์สมมติ</p>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script src="/work/_demo-badge.js" defer></script>
+</body>
+</html>

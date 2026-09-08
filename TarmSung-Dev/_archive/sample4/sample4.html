@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Liquid Luxe — Maison · A Symphony of Four</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;0,6..96,600;0,6..96,700;1,6..96,400;1,6..96,500&family=Jost:wght@200;300;400;500;600&family=Inter:wght@700;800;900&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* ——— Vasari · Powder Indigo (pastel) ——— */
+    --vasari-ink:        #B6C4E2;
+    --vasari-deep:       #97A8CE;
+    --vasari-paper:      #1F2D52;   /* deep navy text — 8.7:1 on #B6C4E2 */
+    --vasari-gold:       #8A6E3A;
+
+    /* ——— Kolara · Powder Rose (pastel) ——— */
+    --kolara-carbon:      #F2D5CB;
+    --kolara-warm:        #E6BBAE;
+    --kolara-bone:        #5A2828;   /* deep rust text — 8.4:1 on #F2D5CB */
+    --kolara-gold:        #8A6E3A;
+    --kolara-oxblood:     #A85959;
+
+    /* ——— Solara · Soft Apricot (pastel) ——— */
+    --solara-sienna:     #F0B086;
+    --solara-rust:       #D58C5A;
+    --solara-cream:      #4A2208;   /* deep cocoa text — 7.4:1 on #F0B086 */
+    --solara-cocoa:      #3A1A06;
+
+    /* ——— Zephyr · Mint Sage (pastel) ——— */
+    --zephyr-bone:      #E2ECD0;
+    --zephyr-paper:     #D2DFBA;
+    --zephyr-ink:       #2F3A2C;   /* deep sage text — 10.3:1 on #E2ECD0 */
+    --zephyr-sage:      #4A5A24;
+    --zephyr-deep:      #4A5530;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Jost', system-ui, sans-serif;
+    overflow-x: hidden;
+    background: #F4ECE0;
+    color: #1F2D52;
+    font-feature-settings: "ss01", "liga", "kern";
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ============ SCROLL ENGINE ============ */
+  .scroll-space {
+    height: 800vh;
+    position: relative;
+    pointer-events: none;
+  }
+
+  .stage {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  .layer {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    will-change: clip-path;
+    overflow: hidden;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  /* ——— LAYER BACKGROUNDS (refined, desaturated) ——— */
+  .layer-vasari {
+    background:
+      radial-gradient(ellipse 60% 80% at 25% 30%, rgba(213, 224, 246, 0.55), transparent 70%),
+      radial-gradient(ellipse 80% 80% at 80% 85%, rgba(151, 168, 206, 0.45), transparent 60%),
+      linear-gradient(165deg, #DCE4F1 0%, var(--vasari-ink) 45%, var(--vasari-deep) 100%);
+    color: var(--vasari-paper);
+    --accent: var(--vasari-gold);
+    --ink: var(--vasari-paper);
+    --hairline: rgba(31, 45, 82, 0.22);
+    --hairline-strong: rgba(31, 45, 82, 0.55);
+    z-index: 1;
+  }
+
+  .layer-kolara {
+    background:
+      radial-gradient(ellipse 70% 60% at 70% 25%, rgba(232, 192, 181, 0.55), transparent 70%),
+      radial-gradient(ellipse 60% 60% at 25% 80%, rgba(138, 110, 58, 0.12), transparent 70%),
+      linear-gradient(180deg, #FAE3DA 0%, var(--kolara-carbon) 45%, var(--kolara-warm) 100%);
+    color: var(--kolara-bone);
+    --accent: var(--kolara-gold);
+    --ink: var(--kolara-bone);
+    --hairline: rgba(90, 40, 40, 0.20);
+    --hairline-strong: rgba(90, 40, 40, 0.5);
+    z-index: 2;
+    clip-path: circle(0px at 50% 50%);
+  }
+
+  .layer-solara {
+    background:
+      radial-gradient(ellipse 70% 60% at 25% 25%, #F5C49A 0%, transparent 65%),
+      radial-gradient(ellipse 70% 70% at 80% 90%, #C68458 0%, transparent 65%),
+      linear-gradient(165deg, #F8C8A0 0%, var(--solara-sienna) 50%, var(--solara-rust) 100%);
+    color: var(--solara-cream);
+    --accent: var(--solara-cocoa);
+    --ink: var(--solara-cream);
+    --hairline: rgba(74, 34, 8, 0.25);
+    --hairline-strong: rgba(74, 34, 8, 0.55);
+    z-index: 3;
+    clip-path: circle(0px at 50% 50%);
+  }
+
+  .layer-zephyr {
+    background:
+      radial-gradient(ellipse 70% 60% at 25% 20%, rgba(74, 90, 36, 0.12), transparent 70%),
+      radial-gradient(ellipse 60% 60% at 80% 90%, rgba(47, 58, 44, 0.10), transparent 70%),
+      linear-gradient(180deg, #F0F4E4 0%, var(--zephyr-bone) 55%, var(--zephyr-paper) 100%);
+    color: var(--zephyr-ink);
+    --accent: var(--zephyr-sage);
+    --ink: var(--zephyr-ink);
+    --hairline: rgba(27, 36, 25, 0.18);
+    --hairline-strong: rgba(27, 36, 25, 0.45);
+    z-index: 4;
+    clip-path: circle(0px at 50% 50%);
+  }
+
+  /* ============ FILM GRAIN ============ */
+  .grain {
+    position: absolute;
+    inset: -20%;
+    z-index: 10;
+    pointer-events: none;
+    opacity: 0.10;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    background-size: 220px 220px;
+  }
+  .layer-zephyr .grain { mix-blend-mode: multiply; opacity: 0.07; }
+
+  /* ============ EDITORIAL PAGE FRAME ============ */
+  .frame { display: none; }
+  .tick  { display: none; }
+
+  /* ============ TOP BAR ============ */
+  .brand-bar {
+    position: absolute;
+    top: 50px;
+    left: 56px;
+    right: 56px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 8;
+    color: var(--ink);
+    font-family: 'Jost', sans-serif;
+    font-weight: 400;
+    font-size: 10px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+  }
+  .brand-bar .maison {
+    font-family: 'Jost', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+  }
+  .brand-bar .nav {
+    display: flex;
+    gap: 38px;
+    opacity: 0.85;
+  }
+  .brand-bar .nav span {
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+  }
+  .brand-bar .nav span:hover { opacity: 0.55; }
+  .brand-bar .folio {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-family: 'Bodoni Moda', serif;
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    text-transform: none;
+  }
+  .brand-bar .folio em { font-style: italic; opacity: 0.7; }
+
+  /* ============ BOTTOM BAR ============ */
+  .page-foot {
+    position: absolute;
+    bottom: 50px;
+    left: 56px;
+    right: 56px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 8;
+    color: var(--ink);
+    font-family: 'Jost', sans-serif;
+    font-size: 10px;
+    font-weight: 300;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+  }
+  .page-foot .center {
+    display: flex; align-items: center; gap: 18px;
+  }
+  .page-foot .center .glyph {
+    width: 18px; height: 1px; background: currentColor; opacity: 0.5;
+  }
+
+  .scroll-cue {
+    position: absolute;
+    bottom: 82px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 8;
+    color: var(--ink);
+    font-family: 'Bodoni Moda', serif;
+    font-size: 11px;
+    font-style: italic;
+    letter-spacing: 0.3em;
+    opacity: 0.75;
+    display: none;
+  }
+
+  /* ============ WATERMARK NUMERAL ============ */
+  .watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Bodoni Moda', serif;
+    font-weight: 500;
+    font-size: clamp(360px, 62vw, 920px);
+    line-height: 0.78;
+    letter-spacing: -0.06em;
+    opacity: 0.045;
+    color: var(--ink);
+    pointer-events: none;
+    user-select: none;
+    z-index: 0;
+    font-style: italic;
+  }
+
+  /* ============ CONTENT GRID ============ */
+  .content {
+    position: absolute;
+    top: clamp(108px, 15vh, 200px);
+    left: clamp(40px, 5.2vw, 110px);
+    width: min(520px, calc(100vw - 220px));
+    z-index: 5;
+  }
+
+  /* ============ LEFT COLUMN (editorial copy) ============ */
+  .copy {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    color: var(--ink);
+  }
+
+  /* — Chapter mark — */
+  .chapter {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    color: var(--ink);
+  }
+  .chapter .roman {
+    font-family: 'Bodoni Moda', serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 22px;
+    letter-spacing: 0.08em;
+  }
+  .chapter .rule {
+    display: none;
+  }
+  .chapter .tag {
+    font-family: 'Jost', sans-serif;
+    font-weight: 400;
+    font-size: 10px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+
+  /* — Display title — */
+  .title {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 900;
+    font-size: clamp(80px, 12vw, 200px);
+    line-height: 0.88;
+    letter-spacing: -0.04em;
+    color: var(--ink);
+  }
+  /* When the title sits behind the can: centered on the layer,
+     below the orbit-shell (z-index 5 in the body) and above the
+     watermark / bubbles inside the layer. */
+  .title-behind {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 4;
+    width: max-content;
+    max-width: 92vw;
+    text-align: center;
+    pointer-events: none;
+  }
+  .title-behind em { text-align: center; }
+  /* Each line of the title animates independently — JS drives
+     transform (Y) and opacity per line for the rise / staggered
+     fade transitions between sections. */
+  .title-line {
+    display: block;
+    will-change: transform, opacity;
+    transform: translateY(0);
+    opacity: 0;
+  }
+  /* Shared fixed deck that stacks ABOVE every layer's background but
+     BELOW the orbit-shell, so a layer's pastel reveal can no longer
+     paint over the previous (or upcoming) drink's title. Each title
+     keeps its own brand ink + accent via data-drink. */
+  .titles-deck {
+    position: fixed;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+  }
+  .title-behind[data-drink="vasari"]  { --ink: var(--vasari-paper); --accent: var(--vasari-gold);  color: var(--vasari-paper); }
+  .title-behind[data-drink="kolara"]   { --ink: var(--kolara-bone);   --accent: var(--kolara-gold);   color: var(--kolara-bone); }
+  .title-behind[data-drink="solara"]  { --ink: var(--solara-cream); --accent: var(--solara-cocoa); color: var(--solara-cream); }
+  .title-behind[data-drink="zephyr"] { --ink: var(--zephyr-ink);  --accent: var(--zephyr-sage); color: var(--zephyr-ink); }
+  .title em {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-style: normal;
+    font-weight: 900;
+    display: block;
+    color: var(--accent);
+    letter-spacing: -0.04em;
+  }
+  .title .dot {
+    color: var(--accent);
+    font-style: normal;
+  }
+
+  /* — Lede paragraph (italic editorial) — */
+  .lede {
+    font-family: 'Bodoni Moda', serif;
+    font-weight: 400;
+    font-style: italic;
+    font-size: clamp(15px, 1.1vw, 18px);
+    line-height: 1.6;
+    max-width: 38ch;
+    opacity: 0.92;
+  }
+  .lede::first-letter {
+    font-family: 'Bodoni Moda', serif;
+    font-weight: 500;
+    font-style: normal;
+    font-size: 2.6em;
+    float: left;
+    line-height: 0.84;
+    margin: 0.05em 0.14em 0 0;
+    color: var(--accent);
+  }
+
+  /* — Specimen plate — */
+  .specimen {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: clamp(20px, 3vw, 52px);
+    row-gap: 16px;
+    padding: 22px 0 22px;
+    max-width: 540px;
+  }
+  .spec-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .spec-label {
+    font-family: 'Jost', sans-serif;
+    font-weight: 300;
+    font-size: 9px;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+  .spec-value {
+    font-family: 'Bodoni Moda', serif;
+    font-weight: 400;
+    font-size: clamp(15px, 1.1vw, 17px);
+    letter-spacing: 0.01em;
+  }
+  .spec-value em { font-style: italic; }
+
+  /* — CTA — */
+  .cta {
+    margin-top: 4px;
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 18px;
+    padding: 18px 0 18px 0;
+    font-family: 'Jost', sans-serif;
+    font-weight: 400;
+    font-size: 10px;
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--ink);
+    cursor: pointer;
+    transition: gap 0.5s ease, color 0.4s ease;
+    background: none;
+  }
+  .cta:hover { gap: 28px; color: var(--accent); }
+  .cta .arrow {
+    font-family: 'Bodoni Moda', serif;
+    font-size: 18px;
+    font-style: italic;
+    letter-spacing: 0;
+    line-height: 1;
+    transform: translateY(-1px);
+  }
+
+  /* ============ ORBIT (fixed across all sections) ============ */
+  /* The four diagrams share a single fixed orbit centered horizontally
+     on screen. The active drink sits at the SOUTH position. Each can is
+     rendered in its own brand colour, so the difference blend used by
+     the prior line-art is no longer required. */
+  .orbit-shell {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+    transform: translateZ(0);
+  }
+  .orbit-ring { display: none; }
+  .orbit-item {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: clamp(600px, 90vmin, 1200px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    will-change: transform, opacity;
+  }
+  .orbit-bottle {
+    width: 100%;
+    height: auto;
+    display: block;
+    filter: drop-shadow(0 16px 22px rgba(0,0,0,0.35));
+    will-change: transform;
+    transform-origin: 50% 86%; /* pivot near the can's base so it leans like a pendulum */
+  }
+
+  /* ============ ACTIVE PLATE (caption below south drink) ============ */
+  .plate-stack {
+    display: none;
+  }
+  .active-plate {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    opacity: 0;     /* JS drives this each frame in lockstep with the orbit */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .active-plate .orn {
+    font-family: 'Bodoni Moda', serif;
+    font-size: 12px;
+    letter-spacing: 0.4em;
+    opacity: 0.85;
+  }
+  .active-plate .pnum {
+    font-family: 'Bodoni Moda', serif;
+    font-style: italic;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+  }
+  .active-plate .ploc {
+    font-family: 'Jost', sans-serif;
+    font-weight: 300;
+    font-size: 9px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    opacity: 0.7;
+  }
+  .active-plate[data-drink="vasari"]  { color: var(--vasari-paper); }
+  .active-plate[data-drink="vasari"]  .orn { color: var(--vasari-gold); }
+  .active-plate[data-drink="kolara"]   { color: var(--kolara-bone); }
+  .active-plate[data-drink="kolara"]   .orn { color: var(--kolara-gold); }
+  .active-plate[data-drink="solara"]  { color: var(--solara-cream); }
+  .active-plate[data-drink="solara"]  .orn { color: var(--solara-cream); }
+  .active-plate[data-drink="zephyr"] { color: var(--zephyr-ink); }
+  .active-plate[data-drink="zephyr"] .orn { color: var(--zephyr-sage); }
+
+  /* ============ VERTICAL INDEX (replaces dots) ============ */
+  .index {
+    position: fixed;
+    bottom: 100px;
+    left: 100px;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    mix-blend-mode: difference;
+    color: #fff;
+    font-family: 'Bodoni Moda', serif;
+  }
+  .idx {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    color: #fff;
+    transition: color 0.4s ease, opacity 0.4s ease;
+    opacity: 0.9;
+  }
+  .idx .num {
+    font-size: 17px;
+    font-weight: 600;
+    font-style: italic;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    width: 22px;
+    text-align: right;
+  }
+  .idx .bar {
+    font-family: 'Bodoni Moda', serif;
+    font-style: italic;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    color: currentColor;
+    opacity: 0.55;
+    white-space: nowrap;
+    transition: font-size 0.5s ease, letter-spacing 0.5s ease, opacity 0.5s ease;
+  }
+  .idx.active { opacity: 1; }
+  .idx.active .bar { font-size: 18px; letter-spacing: 0.08em; opacity: 1; }
+  .idx.active .num { font-weight: 700; }
+
+  /* ============ ORDER NOW · FIXED CTA ============ */
+  /* Editorial pill — Jost label + Bodoni Moda italic arrow.
+     Uses mix-blend-mode: difference (same pattern as .index) so the
+     button stays legible across every section's pastel palette without
+     needing per-section color overrides. */
+  .order-now {
+    position: fixed;
+    bottom: 50px;
+    right: 56px;
+    z-index: 9;
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 26px;
+    min-height: 44px;
+    font-family: 'Jost', sans-serif;
+    font-weight: 400;
+    font-size: 10px;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: #fff;
+    background: transparent;
+    border: 1px solid #fff;
+    border-radius: 0;
+    cursor: pointer;
+    mix-blend-mode: difference;
+    opacity: 0.92;
+    transition:
+      letter-spacing 0.5s ease,
+      padding 0.4s ease,
+      opacity 0.3s ease;
+  }
+  .order-now:hover {
+    opacity: 1;
+    letter-spacing: 0.5em;
+    padding: 14px 32px;
+  }
+  .order-now:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 4px;
+  }
+  .order-now .arrow {
+    font-family: 'Bodoni Moda', serif;
+    font-style: italic;
+    font-size: 16px;
+    line-height: 1;
+    letter-spacing: 0;
+    transition: transform 0.4s ease;
+  }
+  .order-now:hover .arrow { transform: translateX(5px); }
+
+  @media (max-width: 980px) {
+    .order-now {
+      bottom: 50px;
+      right: 24px;
+      padding: 11px 18px;
+      font-size: 9px;
+      letter-spacing: 0.32em;
+    }
+    .order-now:hover {
+      padding: 11px 22px;
+      letter-spacing: 0.38em;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .order-now, .order-now .arrow { transition: none; }
+    .order-now:hover {
+      padding: 14px 26px;
+      letter-spacing: 0.42em;
+    }
+    .order-now:hover .arrow { transform: none; }
+  }
+
+  /* ============ AMBIENT PARTICLES ============ */
+  .bubbles { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
+  .bubble {
+    position: absolute;
+    bottom: -40px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.40), rgba(255,255,255,0.03) 60%, transparent 70%);
+    border: 1px solid rgba(255,255,255,0.12);
+    animation: rise linear infinite;
+  }
+  .layer-vasari .bubble {
+    background: radial-gradient(circle at 30% 30%, rgba(31, 45, 82, 0.18), rgba(31, 45, 82, 0.02) 60%, transparent 70%);
+    border-color: rgba(31, 45, 82, 0.20);
+  }
+  .layer-kolara .bubble {
+    background: radial-gradient(circle at 30% 30%, rgba(90, 40, 40, 0.16), rgba(90, 40, 40, 0.02) 60%, transparent 70%);
+    border-color: rgba(90, 40, 40, 0.18);
+  }
+  .layer-solara .bubble {
+    background: radial-gradient(circle at 30% 30%, rgba(74, 34, 8, 0.16), rgba(74, 34, 8, 0.02) 60%, transparent 70%);
+    border-color: rgba(74, 34, 8, 0.20);
+  }
+  .layer-zephyr .bubble {
+    background: radial-gradient(circle at 30% 30%, rgba(47, 58, 44, 0.14), rgba(47, 58, 44, 0.02) 60%, transparent 70%);
+    border-color: rgba(27, 36, 25, 0.20);
+  }
+  @keyframes rise {
+    0%   { transform: translate(0, 0) scale(0.55); opacity: 0; }
+    12%  { opacity: 0.75; }
+    88%  { opacity: 0.55; }
+    100% { transform: translate(var(--drift, 18px), -110vh) scale(1); opacity: 0; }
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 980px) {
+    .content { width: calc(100vw - 80px); top: clamp(96px, 13vh, 160px); left: 32px; }
+    .brand-bar .nav, .brand-bar .folio { display: none; }
+    .frame-top, .frame-bottom, .tick { display: none; }
+    .index { left: 14px; }
+    .watermark { font-size: clamp(260px, 70vw, 520px); }
+    .orbit-item { width: clamp(400px, 90vmin, 650px); }
+  }
+  @media (max-width: 600px) {
+    .specimen { grid-template-columns: 1fr; }
+    .brand-bar, .page-foot { left: 24px; right: 24px; }
+    .title { font-size: clamp(44px, 11vw, 80px); }
+    .plate-stack { bottom: 80px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bubble { display: none; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Tall spacer drives all scroll-linked animation -->
+<div class="scroll-space"></div>
+
+<!-- Vertical numerical index -->
+<nav class="index" id="index" aria-label="Section navigation">
+  <div class="idx active" data-i="0"><span class="num">I</span><span class="bar">Vasari Cola</span></div>
+  <div class="idx"        data-i="1"><span class="num">II</span><span class="bar">Kolara</span></div>
+  <div class="idx"        data-i="2"><span class="num">III</span><span class="bar">Solara Orange</span></div>
+  <div class="idx"        data-i="3"><span class="num">IV</span><span class="bar">Zephyr</span></div>
+</nav>
+
+<a href="#" class="order-now">Order Now<span class="arrow" aria-hidden="true">→</span></a>
+
+<div class="stage">
+
+  <!-- ====================================================== -->
+  <!-- ============= I.  VASARI · MIDNIGHT INK =============== -->
+  <!-- ====================================================== -->
+  <section class="layer layer-vasari" id="layer-1">
+    <div class="grain"></div>
+    <div class="bubbles" data-bubbles="10"></div>
+    <div class="watermark">I</div>
+
+    <div class="frame frame-top"></div>
+    <span class="tick tl"></span><span class="tick tr"></span>
+    <span class="tick bl"></span><span class="tick br"></span>
+
+    <header class="brand-bar">
+      <div class="maison">DRINKS</div>
+      <div class="nav"></div>
+      <div class="folio">Folio <em>I</em> / IV</div>
+    </header>
+
+    <div class="content">
+      <div class="copy">
+        <div class="chapter"><span class="roman"></span><span class="rule"></span><span class="tag"></span></div>
+        <p class="lede"></p>
+
+        <div class="specimen">
+          <div class="spec-item"><span class="spec-label"></span><span class="spec-value"></span></div>
+          <div class="spec-item"><span class="spec-label"></span><span class="spec-value"></span></div>
+          <div class="spec-item"><span class="spec-label"></span><span class="spec-value"></span></div>
+          <div class="spec-item"><span class="spec-label"></span><span class="spec-value"></span></div>
+        </div>
+
+        <a class="cta"><span class="arrow"></span></a>
+      </div>
+    </div>
+
+    <footer class="page-foot">
+      <span></span>
+      <span class="center"><span class="glyph"></span>Scroll ↓<span class="glyph"></span></span>
+      <span></span>
+    </footer>
+  </section>
+
+  <!-- ====================================================== -->
+  <!-- ============= II. KOLARA · CARBON ================= -->
+  <!-- ====================================================== -->
+  <section class="layer layer-kolara" id="layer-2">
+    <div class="grain"></div>
+    <div class="bubbles" data-bubbles="10"></div>
+    <div class="watermark">II</div>
+
+    <div class="frame frame-top"></div>
+    <span class="tick tl"></span><span class="tick tr"></span>
+    <span class="tick bl"></span><span class="tick br"></span>
+
+    <header class="brand-bar">
+      <div class="maison">DRINKS</div>
+      <div class="nav"></div>
+      <div class="folio">Folio <em>II</em> / IV</div>
+    </header>
+
+    <div class="content">
+      <div class="copy">
+        <div class="chapter"><span class="roman"></span><span class="rule"></span><span class="tag"></span></div>
+        <p class="lede"></p>
+
+        <div class="specimen">
+          <div class="spec-item"><span class="spec-label"></span><span class="spec-value"></span></div>
+          <div class="spec-item"><span class="spec-label"></span><span class="spec-value"></span></div>
+          <div class="spec-item"><span class="spec-label"></span><span class="spec-value"></span></div>
+          <div class="spec-item"><span class="spec-label"></span><span class="spec-value"></span></div>
+        </div>
+
+        <a class="cta"><span class="arrow"></span></a>
+      </div>
+    </div>
+
+    <footer class="page-foot">
+      <span></span>
+      <span class="center"><span class="glyph"></span>Scroll ↓<span class="glyph"></span></span>
+      <span></span>
+    </footer>
+  </section>
+
+  <!-- ====================================================== -->
+  <!-- ============= III. SOLARA · BURNT SIENNA ============== -->
+  <!-- ====================================================== -->
+  <section class="layer layer-solara" id="layer-3">
+    <div class="grain"></div>
+    <div class="bubbles" data-bubbles="10"></div>
+    <div class="watermark">III</div>
+
+    <div class="frame frame-top"></div>
+    <span class="tick tl"></span><span class="tick tr"></span>
+    <span class="tick bl"></span><span class="tick br"></span>
+
+    <header class="brand-bar">
+      <div class="maison">DRINKS</div>
+      <div class="nav"></div>
+      <div class="folio">Folio <em>III</em> / IV</div>
+    </header>
+
+    <div class="content">
+      <div class="copy">
+        <div class="chapter"><span class="roman"></span><span class="rule"></span><span class="tag"></span></div>
+        <p class="lede"></p>
+
+        <div class="specimen">
+          <div class="spec-item"><span class="spec-label"></span><span class="spec-value"></span></div>
+          <div class="spec-item"><span class="spec-label"></span><span class="spec-value"></span></div>
+          <div class="spec-item"><span class="spec-label"></span><span class="spec-value"></span></div>
+          <div class="spec-item"><span class="spec-label"></span><span class="spec-value"></span></div>
+        </div>
+
+        <a class="cta"><span class="arrow"></span></a>
+      </div>
+    </div>
+
+    <footer class="page-foot">
+      <span></span>
+      <span class="center"><span class="glyph"></span>Scroll ↓<span class="glyph"></span></span>
+      <span></span>
+    </footer>
+  </section>
+
+  <!-- ====================================================== -->
+  <!-- ============= IV. ZEPHYR · BONE & SAGE =============== -->
+  <!-- ====================================================== -->
+  <section class="layer layer-zephyr" id="layer-4">
+    <div class="grain"></div>
+    <div class="bubbles" data-bubbles="10"></div>
+    <div class="watermark">IV</div>
+
+    <div class="frame frame-top"></div>
+    <span class="tick tl"></span><span class="tick tr"></span>
+    <span class="tick bl"></span><span class="tick br"></span>
+
+    <header class="brand-bar">
+      <div class="maison">DRINKS</div>
+      <div class="nav"></div>
+      <div class="folio">Folio <em>IV</em> / IV</div>
+    </header>
+
+    <div class="content">
+      <div class="copy">
+        <div class="chapter"><span class="roman"></span><span class="rule"></span><span class="tag"></span></div>
+        <p class="lede"></p>
+
+        <div class="specimen">
+          <div class="spec-item"><span class="spec-label"></span><span class="spec-value"></span></div>
+          <div class="spec-item"><span class="spec-label"></span><span class="spec-value"></span></div>
+          <div class="spec-item"><span class="spec-label"></span><span class="spec-value"></span></div>
+          <div class="spec-item"><span class="spec-label"></span><span class="spec-value"></span></div>
+        </div>
+
+        <a class="cta"><span class="arrow"></span></a>
+      </div>
+    </div>
+
+    <footer class="page-foot">
+      <span></span>
+      <span class="center"><span class="glyph"></span>Chapitre Quatrième — Finis<span class="glyph"></span></span>
+      <span> </span>
+    </footer>
+  </section>
+</div>
+
+<!-- ============================================================
+     SHARED TITLE DECK — fixed, sits above every layer background
+     (z=4) and below the orbit-shell (z=5). Pulling the titles out
+     of their layers means a section's pastel reveal can no longer
+     paint over the previous drink's name during the transition.
+     DOM order MUST match TITLE_SCHEDULE: vasari, kolara, solara, zephyr.
+     ============================================================ -->
+<div class="titles-deck">
+  <h1 class="title title-behind" data-drink="vasari"><span class="title-line">Vasari</span><em class="title-line">cola<span class="dot">.</span></em></h1>
+  <h1 class="title title-behind" data-drink="kolara"><span class="title-line">Coca</span><em class="title-line">cola<span class="dot">.</span></em></h1>
+  <h1 class="title title-behind" data-drink="solara"><span class="title-line">Solara</span><em class="title-line">orange<span class="dot">.</span></em></h1>
+  <h1 class="title title-behind" data-drink="zephyr"><span class="title-line">Zephyr</span><em class="title-line">lemon-lime<span class="dot">.</span></em></h1>
+</div>
+
+<!-- ============================================================
+     SHARED ORBIT — fixed across all sections.
+     4 editorial 3D-illustrated cans arranged on a circle. Each
+     can is rendered in its own brand palette via SVG gradients
+     (cylindrical body shading, metallic lid, pull tab, monogram
+     on the wrap). The orbit no longer uses mix-blend-mode, so
+     each can shows in its native colour against every section.
+     Default angles (math convention, East=0°, CCW positive):
+       Vasari  N → 90°
+       Kolara   E → 0°
+       Solara  S → 270°
+       Zephyr W → 180°
+     JS adds an evolving rotation θ(scroll) on top so that the
+     active section's drink always lands at South.
+     ============================================================ -->
+<div class="orbit-shell" id="orbit-shell">
+  <div class="orbit-ring"></div>
+
+  <!-- ——— VASARI ——— -->
+  <div class="orbit-item" data-angle="90" data-drink="vasari">
+    <img class="orbit-bottle" src="sample4_Vasari-transparent.webp" alt="Vasari can" />
+  </div>
+
+  <!-- ——— KOLARA ——— -->
+  <div class="orbit-item" data-angle="0" data-drink="kolara">
+    <img class="orbit-bottle" src="sample4_Kolara-transparent.webp" alt="Kolara can" />
+  </div>
+
+  <!-- ——— SOLARA ——— -->
+  <div class="orbit-item" data-angle="270" data-drink="solara">
+    <img class="orbit-bottle" src="sample4_Solara-transparent.webp" alt="Solara can" />
+  </div>
+
+  <!-- ——— ZEPHYR ——— -->
+  <div class="orbit-item" data-angle="180" data-drink="zephyr">
+    <img class="orbit-bottle" src="sample4_Zephyr-transparent.webp" alt="Zephyr can" />
+  </div>
+</div>
+
+<!-- Active drink caption (fixed, crossfades between drinks) -->
+<div class="plate-stack" id="plate-stack">
+  <div class="active-plate" data-drink="vasari">
+    <span class="orn">·  ❦  ·</span>
+    <span class="pnum">Plate Nº I — <em>Vasari Cola</em></span>
+    <span class="ploc">Carolina · MDCCCXCIII</span>
+  </div>
+  <div class="active-plate" data-drink="kolara">
+    <span class="orn">·  ❦  ·</span>
+    <span class="pnum">Plate Nº II — <em>Kolara</em></span>
+    <span class="ploc">Atlanta · MDCCCLXXXVI</span>
+  </div>
+  <div class="active-plate" data-drink="solara">
+    <span class="orn">·  ❦  ·</span>
+    <span class="pnum">Plate Nº III — <em>Solara Orange</em></span>
+    <span class="ploc">Essen · MCMXL</span>
+  </div>
+  <div class="active-plate" data-drink="zephyr">
+    <span class="orn">·  ❦  ·</span>
+    <span class="pnum">Plate Nº IV — <em>Zephyr</em></span>
+    <span class="ploc">Atlanta · MCMLXI</span>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // SCROLL-DRIVEN CIRCULAR CLIP-PATH REVEAL
+  //
+  // Native scroll is preserved (no scroll hijacking) — but the visual
+  // animation reads from a "virtual" scroll value that lerps toward
+  // window.scrollY each rAF frame. This decouples the spreading circle
+  // from discrete wheel events and gives a Lenis-style buttery glide:
+  // when the user stops scrolling, the radius continues easing toward
+  // its target for ~400ms before settling.
+  //
+  // Total scroll height = 700vh. Each layer transition spans 100vh:
+  //   Vasari  visible:  0   -> 1vh
+  //   Kolara   reveal:   1vh -> 2vh   (Kolara circle grows from 50% 50%)
+  //   Kolara   visible:  2vh -> 3vh
+  //   Solara  reveal:   3vh -> 4vh
+  //   Solara  visible:  4vh -> 5vh
+  //   Zephyr reveal:   5vh -> 6vh
+  //   Zephyr visible:  6vh -> 7vh
+  // ============================================================
+
+  const layers = [
+    { el: document.getElementById('layer-2'), startVH: 1, endVH: 2 },
+    { el: document.getElementById('layer-3'), startVH: 3, endVH: 4 },
+    { el: document.getElementById('layer-4'), startVH: 5, endVH: 6 },
+  ];
+
+  const indexItems = document.querySelectorAll('#index .idx');
+
+  // ——— Orbit references ———
+  const orbitShell = document.getElementById('orbit-shell');
+  const orbitItems = document.querySelectorAll('#orbit-shell .orbit-item');
+  const activePlates = document.querySelectorAll('#plate-stack .active-plate');
+  const drinkIndex = { vasari: 0, kolara: 1, solara: 2, zephyr: 3 };
+  // drink-name → plate element (built once)
+  const platesByDrink = {};
+  activePlates.forEach(p => { platesByDrink[p.dataset.drink] = p; });
+
+  // ——— Title rise/exit references ———
+  // Each section's title is centered behind its can. As scroll progresses,
+  // the title translates upward (middle → top on exit, bottom → middle on
+  // entry) and its lines fade in/out with a small stagger so they appear
+  // and disappear line by line. The math mirrors `centers` below.
+  // Section schedule — each title is below viewport before enterStart,
+  // rises into middle across [enterStart, enterEnd], holds at center until
+  // exitStart, then rises out the top across [exitStart, exitEnd].
+  //   Vasari  visible 0→1   (exit 1→2)
+  //   Kolara   visible 2→3   (enter 1→2; exit 3→4)
+  //   Solara  visible 4→5   (enter 3→4; exit 5→6)
+  //   Zephyr visible 6→7   (enter 5→6)
+  const TITLE_SCHEDULE = [
+    { enterStart: -1, enterEnd: 0, exitStart: 1, exitEnd: 2 },
+    { enterStart:  1, enterEnd: 2, exitStart: 3, exitEnd: 4 },
+    { enterStart:  3, enterEnd: 4, exitStart: 5, exitEnd: 6 },
+    { enterStart:  5, enterEnd: 6, exitStart: 7, exitEnd: 8 },
+  ];
+  const LINE_STAGGER = 0.22;   // vh units — each line trails the one above
+  const TITLE_TRAVEL = 0.5;    // multiplier on vh: half-screen rise distance
+  const titleData = [];
+  document.querySelectorAll('.title-behind').forEach((title, i) => {
+    titleData.push({
+      lines: Array.from(title.querySelectorAll('.title-line')),
+      sched: TITLE_SCHEDULE[i] ?? TITLE_SCHEDULE[0],
+    });
+  });
+
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const smoothstep = (t) => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
+
+  // Reach the furthest corner from center (for clip-path)
+  function maxRadius() {
+    const w = window.innerWidth, h = window.innerHeight;
+    return Math.sqrt(w * w + h * h) / 2 + 6;
+  }
+
+  // Orbit geometry — large, with south drink at ~64vh so the active
+  // bottle has presence and the plate / page-foot still clear it.
+  function orbitParams() {
+    const w = window.innerWidth, h = window.innerHeight;
+    const R = Math.max(190, Math.min(0.40 * Math.min(w, h), 460));
+    const cx = w / 2;
+    const cy = 0.56 * h - R;
+    return { R, cx, cy };
+  }
+
+  // Orbit rotation θ(scroll) — counter-clockwise positive (math convention).
+  // Default drink angles: Vasari=N=90°, Kolara=E=0°, Solara=S=270°, Zephyr=W=180°.
+  // At each section, the active drink lands at South (270°):
+  //   Vasari  → θ=180°   (Vasari 90° + 180° = 270°)
+  //   Kolara   → θ=270°   (Kolara 0° + 270° = 270°)
+  //   Solara  → θ=360°   (Solara 270° + 360° = 270° mod 360)
+  //   Zephyr → θ=450°   (Zephyr 180° + 450° = 270° mod 360)
+  // Smoothstep eases through the transition zones for that buttery feel.
+  function orbitRotation(virtualY, vh) {
+    const y = virtualY / vh;
+    if (y <= 1) return 180;
+    if (y <  2) return 180 + smoothstep(y - 1) * 90;
+    if (y <= 3) return 270;
+    if (y <  4) return 270 + smoothstep(y - 3) * 90;
+    if (y <= 5) return 360;
+    if (y <  6) return 360 + smoothstep(y - 5) * 90;
+    return 450;
+  }
+
+  // Honour reduced-motion: snap instead of glide
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const LERP    = prefersReduced ? 1 : 0.085;  // 0.085 ≈ ~500ms settle
+  const EPSILON = 0.15;                         // px — when to stop rAF loop
+
+  // ——— Mouse-follow jiggle ———
+  // Each can has its own spring state (rotation + small translation).
+  // Targets are recomputed each frame from the cursor's offset from the
+  // can's current screen position, so the cans "lean" toward the mouse
+  // and wobble there with a damped spring.
+  const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+  const jiggleState = new Map();
+  orbitItems.forEach(item => {
+    jiggleState.set(item, { rz: 0, vrz: 0, tx: 0, vtx: 0, ty: 0, vty: 0 });
+  });
+  const JIGGLE_STIFFNESS = prefersReduced ? 1   : 0.10;
+  const JIGGLE_DAMPING   = prefersReduced ? 0   : 0.74;
+  const JIGGLE_REST_V    = 0.01;  // velocity threshold to consider settled
+
+  let maxR     = maxRadius();
+  let targetY  = window.scrollY;
+  let virtualY = window.scrollY;
+  let rafId    = null;
+  let lastIdx  = -1;
+
+  function paint() {
+    const vh = window.innerHeight;
+
+    // ——— Clip-path circles ———
+    for (let i = 0; i < layers.length; i++) {
+      const { el, startVH, endVH } = layers[i];
+      const start = startVH * vh;
+      const end   = endVH   * vh;
+      const p = clamp((virtualY - start) / (end - start), 0, 1);
+      const eased = smoothstep(p);
+      const r = eased * maxR;
+      el.style.clipPath = `circle(${r.toFixed(2)}px at 50% 50%)`;
+    }
+
+    // ——— Orbit positioning ———
+    const { R, cx, cy } = orbitParams();
+    orbitShell.style.setProperty('--cx', cx + 'px');
+    orbitShell.style.setProperty('--cy', cy + 'px');
+    orbitShell.style.setProperty('--r',  R  + 'px');
+
+    const theta = orbitRotation(virtualY, vh);
+
+    // ONLY the active drink (within ±90° of South) is visible. Outside that
+    // window opacity is hard 0, so each stable section shows exactly one
+    // drink. During the 90° transition zone, the outgoing & incoming drinks
+    // crossfade linearly along their arc — the sum of their opacities stays
+    // ≈ 1, while the other two stay completely hidden the whole time.
+    const VISIBLE_ARC = 90;
+    for (let i = 0; i < orbitItems.length; i++) {
+      const item = orbitItems[i];
+      const def  = parseFloat(item.dataset.angle);
+      const beta = (def + theta) * Math.PI / 180;
+      const x = cx + R * Math.cos(beta);
+      const y = cy - R * Math.sin(beta);
+      const curr = ((def + theta) % 360 + 360) % 360;
+      const distFromSouth = Math.abs(((curr - 270 + 540) % 360) - 180);
+      const t = Math.max(0, 1 - distFromSouth / VISIBLE_ARC);
+      const eased = smoothstep(t);
+      const scale = 0.86 + 0.14 * eased;
+      item.style.transform = `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px) translate(-50%, -50%) scale(${scale.toFixed(3)})`;
+      item.style.opacity = eased.toFixed(3);
+
+      // —— Mouse-follow spring (applied to the inner SVG so the orbit
+      // transform on the item stays clean). Distance falloff keeps the
+      // pull localised; multiplying by `eased` means hidden cans don't
+      // visibly thrash while the active one leads the dance.
+      const state = jiggleState.get(item);
+      const dx    = mouse.x - x;
+      const dy    = mouse.y - y;
+      const reach = Math.exp(-Math.hypot(dx, dy) / 520);
+      const targetRz = clamp(dx * 0.035, -14, 14) * reach * eased;
+      const targetTx = clamp(dx * 0.040, -22, 22) * reach * eased * 0.5;
+      const targetTy = clamp(dy * 0.040, -22, 22) * reach * eased * 0.5;
+      state.vrz = (state.vrz + (targetRz - state.rz) * JIGGLE_STIFFNESS) * JIGGLE_DAMPING;
+      state.rz += state.vrz;
+      state.vtx = (state.vtx + (targetTx - state.tx) * JIGGLE_STIFFNESS) * JIGGLE_DAMPING;
+      state.tx += state.vtx;
+      state.vty = (state.vty + (targetTy - state.ty) * JIGGLE_STIFFNESS) * JIGGLE_DAMPING;
+      state.ty += state.vty;
+      const svg = item.firstElementChild;
+      svg.style.transform = `translate(${state.tx.toFixed(2)}px, ${state.ty.toFixed(2)}px) rotate(${state.rz.toFixed(3)}deg)`;
+
+      // Caption plate fades only for the south drink (sharp falloff)
+      const plate = platesByDrink[item.dataset.drink];
+      if (plate) plate.style.opacity = (eased * eased).toFixed(3);
+    }
+
+    // ——— Title rise + line-by-line fade ———
+    // p = 0   →  title at center, fully visible
+    // p > 0   →  scrolled past this section; title rising to top + fading
+    // p < 0   →  not yet reached; title sits below screen + fades up
+    // The translation is shared by all lines (so the block stays cohesive)
+    // but each line has its own opacity envelope offset by LINE_STAGGER,
+    // which is what produces the "disappear line by line" effect.
+    const yT = virtualY / vh;
+    for (const { lines, sched } of titleData) {
+      let ty;
+      if      (yT <= sched.enterStart) ty =  vh * TITLE_TRAVEL;
+      else if (yT <  sched.enterEnd)   ty =  vh * TITLE_TRAVEL * (1 - smoothstep((yT - sched.enterStart) / (sched.enterEnd - sched.enterStart)));
+      else if (yT <= sched.exitStart)  ty =  0;
+      else if (yT <  sched.exitEnd)    ty = -vh * TITLE_TRAVEL * smoothstep((yT - sched.exitStart) / (sched.exitEnd - sched.exitStart));
+      else                             ty = -vh * TITLE_TRAVEL;
+      const tyStr = `translateY(${ty.toFixed(2)}px)`;
+      for (let j = 0; j < lines.length; j++) {
+        const s  = j * LINE_STAGGER;
+        const es = sched.enterStart + s;
+        const ee = sched.enterEnd   + s;
+        const xs = sched.exitStart  + s;
+        const xe = sched.exitEnd    + s;
+        let op;
+        if      (yT <= es) op = 0;
+        else if (yT <  ee) op = smoothstep((yT - es) / (ee - es));
+        else if (yT <= xs) op = 1;
+        else if (yT <  xe) op = 1 - smoothstep((yT - xs) / (xe - xs));
+        else               op = 0;
+        lines[j].style.transform = tyStr;
+        lines[j].style.opacity   = op.toFixed(3);
+      }
+    }
+
+    // ——— Active section index ———
+    const centers = [0.5, 2.5, 4.5, 6.5];
+    let activeIdx = 0;
+    let bestDist  = Infinity;
+    for (let i = 0; i < 4; i++) {
+      const d = Math.abs(virtualY / vh - centers[i]);
+      if (d < bestDist) { bestDist = d; activeIdx = i; }
+    }
+    if (activeIdx !== lastIdx) {
+      indexItems.forEach((d, i) => d.classList.toggle('active', i === activeIdx));
+      lastIdx = activeIdx;
+    }
+  }
+
+  function springsSettled() {
+    for (const s of jiggleState.values()) {
+      if (Math.abs(s.vrz) > JIGGLE_REST_V) return false;
+      if (Math.abs(s.vtx) > JIGGLE_REST_V) return false;
+      if (Math.abs(s.vty) > JIGGLE_REST_V) return false;
+    }
+    return true;
+  }
+
+  function tick() {
+    const diff = targetY - virtualY;
+    const scrollDone = Math.abs(diff) < EPSILON;
+    if (scrollDone) virtualY = targetY;
+    else            virtualY += diff * LERP;
+    paint();
+    if (scrollDone && springsSettled()) {
+      rafId = null;
+      return;
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function schedule() {
+    if (rafId === null) rafId = requestAnimationFrame(tick);
+  }
+
+  window.addEventListener('scroll', () => {
+    targetY = window.scrollY;
+    schedule();
+  }, { passive: true });
+
+  window.addEventListener('mousemove', (e) => {
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+    schedule();
+  }, { passive: true });
+
+  window.addEventListener('resize', () => {
+    maxR = maxRadius();
+    targetY = window.scrollY;
+    schedule();
+  });
+
+  // Initial paint — no glide on load
+  paint();
+
+  // ============================================================
+  // AMBIENT PARTICLES (sparse, slow — atmospheric not fizzy)
+  // ============================================================
+  document.querySelectorAll('[data-bubbles]').forEach(container => {
+    const n = parseInt(container.dataset.bubbles, 10) || 10;
+    for (let i = 0; i < n; i++) {
+      const b = document.createElement('div');
+      b.className = 'bubble';
+      const size = 4 + Math.random() * 22;
+      b.style.width = b.style.height = size + 'px';
+      b.style.left = (Math.random() * 100) + 'vw';
+      b.style.animationDuration = (18 + Math.random() * 26) + 's';
+      b.style.animationDelay = (-Math.random() * 30) + 's';
+      b.style.setProperty('--drift', ((Math.random() - 0.5) * 60) + 'px');
+      b.style.opacity = 0.15 + Math.random() * 0.4;
+      container.appendChild(b);
+    }
+  });
+
+  // ============================================================
+  // INDEX CLICK → JUMP TO SECTION
+  // ============================================================
+  indexItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const i = parseInt(item.dataset.i, 10);
+      const targetVH = [0.2, 2.2, 4.2, 6.2][i];
+      window.scrollTo({ top: targetVH * window.innerHeight, behavior: 'smooth' });
+      // rAF loop will catch the scrollend updates and ease the circle into place
+      schedule();
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>นโยบายความเป็นส่วนตัว · Ijek</title>
+<meta name="robots" content="index,follow" />
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
+<style>
+  :root{--bg:#05080f;--surface:#131c2e;--border:#243149;--text:#f1f5f9;--muted:#94a3b8;--dim:#64748b;--accent:#a3e635;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);line-height:1.7;font-family:"Sukhumvit Set","IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:760px;margin:0 auto;padding:0 22px;}
+  header{border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(5,8,15,.8);backdrop-filter:blur(10px);}
+  .hin{display:flex;align-items:center;justify-content:space-between;height:60px;}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;}
+  .mark{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;background:#0b1220;border:1px solid #364463;}
+  .mark svg{width:16px;height:16px;}
+  a{color:var(--accent);text-decoration:none;}
+  a.muted{color:var(--muted);font-weight:600;font-size:14px;}
+  a.muted:hover{color:var(--text);}
+  .doc{padding:46px 0 80px;}
+  .doc h1{font-size:32px;font-weight:900;letter-spacing:-0.02em;}
+  .updated{color:var(--dim);font-size:13.5px;margin-top:8px;}
+  .note{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:10px;padding:14px 16px;margin:24px 0;color:var(--muted);font-size:14px;}
+  .doc h2{font-size:19px;font-weight:800;margin:30px 0 8px;letter-spacing:-0.01em;}
+  .doc p,.doc li{color:#cbd5e1;font-size:15px;margin-top:8px;}
+  .doc ul{padding-left:22px;}
+  .doc b{color:var(--text);}
+  footer{border-top:1px solid var(--border);padding:26px 0;color:var(--dim);font-size:13px;}
+  .ph{color:#fbbf24;}
+</style>
+</head>
+<body>
+<header><div class="wrap hin">
+  <a class="brand" href="landing.html"><span class="mark"><svg viewBox="92 158 368 252"><path d="M200 202 L300 402 H100 Z" fill="#4f6e29"/><path d="M322 166 L452 402 H192 Z" fill="#a3e635"/></svg></span> Ijek</a>
+  <a class="muted" href="landing.html">← กลับหน้าหลัก</a>
+</div></header>
+
+<main class="wrap doc">
+  <h1>นโยบายความเป็นส่วนตัว</h1>
+  <div class="updated">ปรับปรุงล่าสุด: 28 มิถุนายน 2026</div>
+
+  <p>นโยบายนี้อธิบายว่า Ijek (“Train With Myself”, “เรา”) เก็บและใช้ข้อมูลของคุณอย่างไรเมื่อคุณใช้แอปและเว็บไซต์ของเรา</p>
+
+  <h2>1. ข้อมูลที่เราเก็บ</h2>
+  <p>Ijek ออกแบบแบบ <b>local-first</b> คือ ข้อมูลการใช้งานหลักของคุณถูกเก็บไว้ในเครื่อง/เบราว์เซอร์ของคุณเอง (ผ่าน localStorage) ได้แก่ กิจกรรม ตาราง อวตาร ความคืบหน้า/สตรีค และการตั้งค่า (ภาษา การแจ้งเตือน แพ็กเกจที่เลือก) การล้างข้อมูลเบราว์เซอร์จะลบข้อมูลนี้ — เราแนะนำให้ใช้ฟังก์ชัน “ส่งออกข้อมูลสำรอง” เก็บไว้</p>
+  <p>เมื่อคุณ <b>สมัคร/เข้าสู่ระบบ หรือใช้ฟีเจอร์ที่ต้องมีบัญชี</b> (เพื่อน/ลีก, การแข่ง, หรือการซิงค์ข้ามอุปกรณ์ของ Pro) เราจะเก็บข้อมูลต่อไปนี้ไว้บนเซิร์ฟเวอร์ของเรา (โฮสต์โดย <b>Supabase</b>):</p>
+  <ul>
+    <li><b>บัญชี</b>: อีเมลและข้อมูลยืนยันตัวตน (จัดการโดยระบบ auth ของ Supabase)</li>
+    <li><b>โปรไฟล์</b>: ชื่อที่แสดง อวตาร และรหัสเพื่อน (friend code)</li>
+    <li><b>คะแนนรายวัน</b>: สรุปความคืบหน้าประจำวันของคุณ ซึ่งจะแชร์ให้ <b>เฉพาะเพื่อนที่เพิ่มกันแล้ว</b> เท่านั้น (และเฉพาะเมื่อคุณเปิดการแชร์) คุณปิดการแชร์และลบคะแนนของคุณออกจากกระดานเพื่อนได้ทุกเมื่อในการตั้งค่า</li>
+    <li><b>การซิงค์คลาวด์ (Pro)</b>: หากคุณเปิดใช้ สถานะแอปของคุณจะถูกเก็บสำรองไว้บนเซิร์ฟเวอร์เพื่อใช้ข้ามอุปกรณ์ โดยมองเห็นได้เฉพาะบัญชีของคุณเอง</li>
+  </ul>
+
+  <h2>2. บริการภายนอก (third-party)</h2>
+  <p>เราใช้ผู้ให้บริการภายนอกเท่าที่จำเป็นในการให้บริการ:</p>
+  <ul>
+    <li><b>Supabase</b> — โฮสต์ระบบบัญชี ฐานข้อมูล และฟังก์ชันเซิร์ฟเวอร์ (เก็บข้อมูลตามข้อ 1) โดยเซิร์ฟเวอร์ตั้งอยู่ที่ <b>ออสเตรเลีย (ซิดนีย์)</b></li>
+    <li><b>Anthropic (Claude)</b> — <b>เฉพาะเมื่อคุณใช้ฟีเจอร์ผู้ช่วย AI ของแพ็กเกจ Pro</b> เนื้อหาบางส่วน (ชื่อกิจกรรมและโน้ตที่คุณพิมพ์เอง) จะถูกส่งให้ Anthropic ซึ่งให้บริการอยู่ใน <b>สหรัฐอเมริกา</b> เพื่อสร้างข้อความโค้ช ข้อมูลนี้ไม่ถูกนำไปใช้เทรนโมเดล หากคุณไม่ใช้ฟีเจอร์ AI จะไม่มีการส่งข้อมูลนี้</li>
+    <li><b>Lemon Squeezy</b> — ผู้ประมวลผลการชำระเงินและผู้ขายอย่างเป็นทางการ (Merchant of Record) สำหรับแพ็กเกจ Pro (ดูข้อ 4)</li>
+    <li><b>unpkg.com</b> — CDN สาธารณะสำหรับไลบรารีที่แอปใช้ (เช่น React) การเรียกไฟล์อาจทำให้ผู้ให้บริการ CDN เห็น IP address ตามมาตรฐานเว็บทั่วไป</li>
+  </ul>
+  <p>เรา <b>ไม่</b> ใช้เครื่องมือติดตามโฆษณาและ <b>ไม่</b> ขายข้อมูลของคุณ</p>
+  <p><b>การโอนข้อมูลข้ามพรมแดน:</b> เนื่องจากเซิร์ฟเวอร์ของผู้ให้บริการข้างต้นตั้งอยู่นอกประเทศไทย (Supabase: ออสเตรเลีย; Anthropic: สหรัฐฯ เฉพาะฟีเจอร์ AI) ข้อมูลของคุณจึงถูกจัดเก็บ/ประมวลผลในต่างประเทศ ผู้ให้บริการเหล่านี้มีมาตรการคุ้มครองข้อมูลตามมาตรฐานสากลและมีข้อตกลงการประมวลผลข้อมูล (DPA) กับเรา</p>
+
+  <h2>3. การแจ้งเตือน (Notifications)</h2>
+  <p>หากคุณเปิดการแจ้งเตือน เบราว์เซอร์จะขออนุญาตจากคุณ การแจ้งเตือนทำงานในเครื่องของคุณเอง เราไม่เห็นเนื้อหาการแจ้งเตือน คุณปิดได้ทุกเมื่อจากการตั้งค่าแอปหรือเบราว์เซอร์</p>
+
+  <h2>4. การชำระเงิน</h2>
+  <p>การชำระเงินสำหรับแพ็กเกจ Pro ดำเนินการผ่าน <b>Lemon Squeezy</b> ซึ่งทำหน้าที่เป็นผู้ขายอย่างเป็นทางการ (Merchant of Record) — รับชำระด้วยบัตรเครดิต/เดบิตและ PayPal และจัดการภาษีที่เกี่ยวข้องแทนเรา เรา <b>ไม่ได้</b> เก็บหรือประมวลผลข้อมูลบัตรของคุณเอง ข้อมูลการชำระเงินถูกจัดการโดย Lemon Squeezy ตามนโยบายความเป็นส่วนตัวของผู้ให้บริการนั้น เราเก็บเพียงบันทึกว่าการสมัครสมาชิกสำเร็จและสิทธิ Pro ของบัญชีคุณหมดอายุเมื่อใด (ไม่มีข้อมูลบัตร)</p>
+
+  <h2>5. สิทธิของคุณ</h2>
+  <p>คุณ <b>เข้าถึง แก้ไข ส่งออก และลบ</b> ข้อมูลได้เองตลอดเวลา: ส่งออกผ่าน “สำรองข้อมูล” ในการตั้งค่า ส่วน “รีเซ็ตข้อมูล” จะลบข้อมูลการใช้งานของคุณ (กิจกรรม ตาราง คะแนน รูป และสถานะที่ซิงค์บนคลาวด์) แต่ <b>ยังคงเก็บบัญชีและอีเมลของคุณไว้</b> เพื่อให้คุณยังเข้าสู่ระบบได้ หากต้องการ <b>ลบบัญชีและอีเมลออกถาวร</b> โปรดติดต่อเราที่อีเมลด้านล่าง แล้วเราจะดำเนินการลบให้ หากมีคำถามเกี่ยวกับสิทธิตาม พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล (PDPA) หรือ GDPR ติดต่อเราได้</p>
+
+  <h2>6. เด็กและเยาวชน</h2>
+  <p>Ijek ไม่ได้มุ่งเป้าไปที่เด็ก และเราไม่จงใจเก็บข้อมูลจากเด็กอายุต่ำกว่า 13 ปี ตาม พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล (PDPA) ของไทย ผู้เยาว์ (อายุต่ำกว่า 20 ปีบริบูรณ์) ควรได้รับความยินยอมจากผู้ปกครองก่อนใช้งาน โดยเฉพาะการสมัครแพ็กเกจ Pro ซึ่งมีค่าใช้จ่าย หากคุณเชื่อว่าเด็กได้ให้ข้อมูลกับเราโดยไม่ได้รับความยินยอม กรุณาติดต่อเพื่อให้เราลบออก</p>
+
+  <h2>7. การเปลี่ยนแปลงนโยบาย</h2>
+  <p>เราอาจปรับปรุงนโยบายนี้เป็นครั้งคราว โดยจะอัปเดตวันที่ด้านบน การใช้แอปต่อหลังการเปลี่ยนแปลงถือว่ายอมรับนโยบายฉบับใหม่</p>
+
+  <h2>8. ติดต่อเรา</h2>
+  <p>มีคำถามเรื่องความเป็นส่วนตัว ติดต่อ: <a href="mailto:monmon7735@gmail.com">monmon7735@gmail.com</a> · ผู้ดูแลข้อมูล: Ijek by Patipan (ประเทศไทย)</p>
+</main>
+
+<footer><div class="wrap">© 2026 Ijek · <a class="muted" href="terms.html">ข้อกำหนดการใช้งาน</a></div></footer>
+</body>
+</html>

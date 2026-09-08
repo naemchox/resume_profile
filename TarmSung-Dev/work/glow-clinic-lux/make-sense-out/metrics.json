@@ -1,0 +1,91 @@
+{
+  "url": "http://localhost:8099/work/glow-clinic-lux/",
+  "viewport": "1440x900",
+  "pageHeight": 5708,
+  "screensLong": 6.3,
+  "headingLeft": {
+    "camp": {
+      "x": 100,
+      "centered": false
+    },
+    "pitch": {
+      "x": 100,
+      "centered": false
+    },
+    "svc": {
+      "x": 100,
+      "centered": false
+    },
+    "promo": {
+      "x": 100,
+      "centered": false
+    },
+    "doctors": {
+      "x": 100,
+      "centered": false
+    },
+    "reviews": {
+      "x": 100,
+      "centered": false
+    },
+    "book": {
+      "x": 434,
+      "centered": true
+    }
+  },
+  "headingsAligned": true,
+  "pinnedSections": [],
+  "sectionPadding": {
+    "camp": 48,
+    "pitch": 144,
+    "svc": 224,
+    "sec": 224,
+    "promo": 224,
+    "doctors": 224,
+    "reviews": 224,
+    "book": 208
+  },
+  "raggedColumns": [],
+  "hiddenButRendered": [],
+  "gridRowSpill": [],
+  "overflowByScreen": [
+    {
+      "y": 0,
+      "overflow": 0
+    },
+    {
+      "y": 765,
+      "overflow": 0
+    },
+    {
+      "y": 1530,
+      "overflow": 0
+    },
+    {
+      "y": 2295,
+      "overflow": 0
+    },
+    {
+      "y": 3060,
+      "overflow": 0
+    },
+    {
+      "y": 3825,
+      "overflow": 0
+    },
+    {
+      "y": 4590,
+      "overflow": 0
+    }
+  ],
+  "desktopShots": 7,
+  "maxOverflowDesktop": 0,
+  "errorsDesktop": [],
+  "mobilePageHeight": 7003,
+  "mobileShots": 9,
+  "maxOverflowMobile": 0,
+  "errorsMobile": [],
+  "hiddenUnderReducedMotion": 0,
+  "errorsReduced": [],
+  "flags": []
+}

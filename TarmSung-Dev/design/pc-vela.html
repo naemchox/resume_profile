@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8">
+<title>VELA — ระบบนัดหมายและจองคิวออนไลน์</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600&family=Noto+Sans+Thai:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* =============================================================================
+   VELA — แลนดิ้งเพจระบบจองคิว (หน้าเดียว 1440x900 สำหรับจอคอมในปก)
+
+   รอบสองของหน้านี้ ทำตาม website_building.md ทีละข้อ เพราะรอบแรก "จืด":
+   สีแบนชั้นเดียว เงาชั้นเดียว ระยะห่างกะเอาเป็นเลขคี่ (26px/13.5px/9px) และ
+   ไม่มีจุดไหนที่ตาไปพักเลยนอกจากพาดหัว
+
+   §2 tokens — โทเคน 3 ชั้น (primitive → semantic → component) เขียนด้วย OKLCH,
+     neutral ramp ผสมเขียวจางๆ (เทาล้วน "ตาย"), 60-30-10: ครีม 60 / เขียว 30 / ทราย 10
+   §2 type — สเกลเดียว อัตรา ~1.25, ลำดับชั้นด้วย "น้ำหนัก + สี" ไม่ใช่ขนาดอย่างเดียว,
+     บรรทัดยาว ~66ch, ฟอนต์ display หนึ่ง + body หนึ่ง สามน้ำหนัก
+   §2 spacing — 4/8/12/16/24/32/48/64/96 เท่านั้น ไม่มีเลขกะเอา
+   §2 elevation — เงาสองชั้นทุกใบ (คมติดขอบ + ฟุ้งไกล) แสงมาจากข้างบน
+   §5 focal — จุดโฟกัสเดียวคือพาดหัว+ปุ่ม ที่เหลือเป็นตัวหนุน ไม่แย่งกันพูด
+   §5 premium tells — ขอบชนกันจริง, ไอคอน stroke 1.75 ทุกตัว, ปุ่มชุดเดียวทั้งหน้า
+
+   ข้อบังคับของ "ที่ที่มันจะไปอยู่": มือถือสองเครื่องในปกทับจอด้านซ้าย ~10%
+   ทุกอย่างจึงจัดกึ่งกลาง และของที่ลอยออกนอกการ์ดอยู่ทางขวาเสมอ
+   ========================================================================== */
+*{margin:0;padding:0;box-sizing:border-box}
+a{text-decoration:none;color:inherit}
+
+:root{
+  /* ---- 1 · primitive ---------------------------------------------------- */
+  --jade-900:oklch(0.30 0.062 168); --jade-700:oklch(0.44 0.093 168);
+  --jade-600:oklch(0.52 0.108 167); --jade-500:oklch(0.62 0.113 166);
+  --jade-100:oklch(0.93 0.043 166); --jade-50:oklch(0.968 0.021 166);
+  --sand-600:oklch(0.72 0.145 72);  --sand-300:oklch(0.88 0.088 78);
+  --sand-50:oklch(0.972 0.026 82);
+  /* neutral ramp มีเขียวจางๆ 0.008–0.012 chroma — เทาล้วนจะดูตาย */
+  --ink-900:oklch(0.24 0.017 168); --ink-600:oklch(0.47 0.014 168);
+  --ink-400:oklch(0.62 0.012 168); --ink-200:oklch(0.90 0.010 168);
+  --ink-100:oklch(0.955 0.008 168); --paper:oklch(0.995 0.003 168);
+
+  /* ---- 2 · semantic ----------------------------------------------------- */
+  --bg:var(--paper); --surface:var(--paper); --surface-sunk:var(--ink-100);
+  --line:var(--ink-200); --line-soft:color-mix(in oklch, var(--ink-200) 55%, transparent);
+  --text:var(--ink-900); --text-muted:var(--ink-600); --text-faint:var(--ink-400);
+  --action:var(--jade-600); --action-strong:var(--jade-700);
+  --action-wash:var(--jade-50); --on-action:var(--paper);
+  --accent:var(--sand-600); --accent-wash:var(--sand-50);
+
+  /* ---- 3 · component ---------------------------------------------------- */
+  --btn-radius:999px; --card-radius:24px; --card-radius-inner:14px;
+  --field-radius:12px;
+
+  /* type — ratio 1.25 จาก 16 */
+  --t-xs:12px; --t-sm:14px; --t-md:16px; --t-lg:20px; --t-xl:25px;
+  --t-2xl:31px; --t-4xl:49px; --t-5xl:61px;
+  --font-d:"Noto Sans Thai",sans-serif; --font-b:"Anuphan","Noto Sans Thai",sans-serif;
+
+  /* spacing — ไม่มีค่าอื่นนอกลิสต์นี้ */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px;
+  --s8:64px; --s9:96px;
+
+  /* elevation — สองชั้นเสมอ: คมติดขอบ + ฟุ้งไกล */
+  --e1:0 1px 2px oklch(0.30 0.03 168 / .06), 0 4px 12px oklch(0.30 0.03 168 / .06);
+  --e2:0 2px 4px oklch(0.30 0.03 168 / .07), 0 12px 28px oklch(0.30 0.03 168 / .10);
+  --e3:0 4px 8px oklch(0.30 0.03 168 / .08), 0 32px 64px oklch(0.30 0.03 168 / .16);
+  --e-action:0 2px 4px oklch(0.44 0.09 168 / .22), 0 12px 24px oklch(0.44 0.09 168 / .28);
+}
+
+body{width:1440px;height:900px;overflow:hidden;position:relative;
+  color:var(--text);font-family:var(--font-b);font-size:var(--t-md);background:var(--bg)}
+/* พื้นหลังสามชั้น: ไอน้ำเขียวบนกลาง, แดดทรายบนขวา, และตารางจุดที่จางหายก่อนถึงเนื้อหา
+   — ชั้นเดียวคือสิ่งที่ทำให้รอบแรกแบน */
+body::before{content:"";position:absolute;inset:0;z-index:-2;
+  background:
+    radial-gradient(58% 46% at 50% -4%, var(--jade-100) 0%, transparent 68%),
+    radial-gradient(38% 34% at 92% 6%, var(--sand-50) 0%, transparent 74%),
+    radial-gradient(46% 30% at 50% 96%, var(--jade-50) 0%, transparent 70%)}
+body::after{content:"";position:absolute;inset:0;z-index:-1;opacity:.5;
+  background-image:radial-gradient(var(--ink-200) 1px, transparent 1px);
+  background-size:24px 24px;
+  -webkit-mask-image:radial-gradient(62% 44% at 50% 4%, #000 0%, transparent 72%)}
+
+/* ---- nav ---------------------------------------------------------------- */
+nav{height:72px;display:flex;align-items:center;gap:var(--s6);padding:0 var(--s7)}
+.logo{display:flex;align-items:center;gap:var(--s3);font-family:var(--font-d);
+  font-weight:700;font-size:var(--t-lg);letter-spacing:.06em}
+.logo .m{width:32px;height:32px;border-radius:10px;background:var(--action);
+  display:grid;place-items:center;box-shadow:var(--e1)}
+.logo .m svg{width:18px;height:18px}
+nav .lk{display:flex;gap:var(--s5);font-size:var(--t-sm);color:var(--text-muted);font-weight:500}
+nav .rt{margin-left:auto;display:flex;align-items:center;gap:var(--s4);font-size:var(--t-sm)}
+nav .rt .in{color:var(--text-muted);font-weight:500}
+
+/* ปุ่มชุดเดียวใช้ทั้งหน้า — ปุ่มคนละแบบต่อหน้าคือ tell ของงานสมัครเล่น */
+.btn{display:inline-flex;align-items:center;gap:var(--s2);border-radius:var(--btn-radius);
+  font-weight:600;font-family:var(--font-b);white-space:nowrap}
+.btn svg{width:1.05em;height:1.05em;flex:none}
+.btn--primary{background:var(--action);color:var(--on-action);box-shadow:var(--e-action)}
+.btn--ghost{background:var(--surface);color:var(--text);box-shadow:var(--e1);
+  border:1px solid var(--line)}
+.btn--sm{font-size:var(--t-sm);padding:10px var(--s4)}
+.btn--lg{font-size:var(--t-md);padding:14px var(--s5)}
+/* ไอคอนทุกตัวในหน้า stroke 1.75 เท่ากันหมด */
+svg{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---- hero --------------------------------------------------------------- */
+.hero{text-align:center;padding-top:var(--s3)}
+.eyebrow{display:inline-flex;align-items:center;gap:var(--s2);background:var(--action-wash);
+  border:1px solid color-mix(in oklch, var(--jade-100) 70%, transparent);
+  color:var(--action-strong);font-size:var(--t-sm);font-weight:600;
+  padding:var(--s1) var(--s4) var(--s1) var(--s1);border-radius:var(--btn-radius)}
+.eyebrow b{background:var(--action);color:var(--on-action);font-size:var(--t-xs);
+  font-weight:600;padding:3px 10px;border-radius:var(--btn-radius)}
+h1{font-family:var(--font-d);font-weight:800;font-size:var(--t-5xl);line-height:1.18;
+  letter-spacing:-.015em;margin-top:var(--s3)}
+h1 .hl{position:relative;color:var(--action-strong);white-space:nowrap}
+/* ขีดเน้นเป็นแถบไล่สีที่จบไม่เท่ากันสองข้าง เหมือนลากด้วยปากกาเมจิก
+   ไม่ใช่สี่เหลี่ยมทึบซึ่งอ่านเป็นกล่องพื้นหลัง */
+h1 .hl::after{content:"";position:absolute;left:-.06em;right:-.04em;bottom:.06em;height:.16em;
+  z-index:-1;border-radius:999px;
+  background:linear-gradient(90deg, transparent, var(--sand-300) 12% 88%, transparent)}
+.sub{font-size:var(--t-lg);line-height:1.6;color:var(--text-muted);
+  max-width:60ch;margin:var(--s3) auto 0}
+.act{display:flex;justify-content:center;gap:var(--s3);margin-top:var(--s4)}
+.proof{display:flex;justify-content:center;align-items:center;gap:var(--s3);
+  margin-top:var(--s3);font-size:var(--t-sm);color:var(--text-faint)}
+.proof .avs{display:flex}
+.proof .avs i{width:28px;height:28px;border-radius:50%;border:2px solid var(--paper);
+  margin-right:-10px;display:grid;place-items:center;font-size:var(--t-xs);font-weight:600;
+  font-style:normal;color:var(--paper)}
+.proof b{color:var(--text);font-weight:600}
+.proof .stars{color:var(--accent);letter-spacing:.06em}
+
+/* ---- stat strip --------------------------------------------------------- */
+.stats{display:flex;justify-content:center;gap:var(--s7);margin-top:var(--s4)}
+.stats div{text-align:center;padding-inline:var(--s5);border-right:1px solid var(--line-soft)}
+.stats div:last-child{border-right:0}
+.stats b{display:block;font-family:var(--font-d);font-weight:700;font-size:var(--t-xl);
+  color:var(--action-strong);line-height:1.2}
+.stats span{display:block;font-size:var(--t-xs);color:var(--text-faint);margin-top:var(--s1)}
+
+/* ---- app card ----------------------------------------------------------- */
+.stage{position:relative;margin-top:var(--s5)}
+/* แสงใต้การ์ด: ทำให้การ์ดดู "วางอยู่บนแสง" แทนที่จะแปะบนพื้นขาว */
+.stage::before{content:"";position:absolute;left:50%;translate:-50% 0;top:var(--s5);
+  width:1120px;height:220px;z-index:-1;border-radius:50%;
+  background:radial-gradient(50% 50% at 50% 50%, var(--jade-100), transparent 72%);
+  filter:blur(28px)}
+.app{width:1088px;margin-inline:auto;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--card-radius) var(--card-radius) 0 0;box-shadow:var(--e3);
+  overflow:hidden;display:flex;height:400px}
+.rail{width:196px;flex:none;border-right:1px solid var(--line);background:var(--surface-sunk);
+  padding:var(--s4) var(--s3)}
+.rail p{font-size:var(--t-xs);letter-spacing:.12em;color:var(--text-faint);font-weight:600;
+  padding:0 var(--s3) var(--s3)}
+.rail a{display:flex;align-items:center;gap:var(--s3);font-size:var(--t-sm);
+  color:var(--text-muted);font-weight:500;padding:var(--s2) var(--s3);
+  border-radius:var(--field-radius)}
+.rail a svg{width:16px;height:16px;color:var(--text-faint)}
+.rail a.on{background:var(--surface);color:var(--text);font-weight:600;box-shadow:var(--e1)}
+.rail a.on svg{color:var(--action)}
+.pane{flex:1;padding:var(--s4) var(--s5);min-width:0}
+.wk{display:flex;gap:var(--s2)}
+.wk .d{flex:1;text-align:center;border:1px solid var(--line);border-radius:var(--field-radius);
+  padding:var(--s2) 0}
+.wk .d small{display:block;font-size:var(--t-xs);color:var(--text-faint);font-weight:600}
+.wk .d b{display:block;font-family:var(--font-d);font-weight:700;font-size:var(--t-lg);
+  line-height:1.15}
+.wk .d span{display:block;font-size:var(--t-xs);color:var(--text-faint)}
+.wk .d.on{background:var(--action);border-color:var(--action);color:var(--on-action);
+  box-shadow:var(--e-action)}
+.wk .d.on small,.wk .d.on span{color:color-mix(in oklch, var(--paper) 78%, transparent)}
+.rowhd{display:flex;align-items:baseline;margin:var(--s4) 0 var(--s3)}
+.rowhd h2{font-family:var(--font-d);font-weight:700;font-size:var(--t-sm)}
+.rowhd span{margin-left:auto;font-size:var(--t-xs);color:var(--text-faint)}
+.bk{display:flex;align-items:center;gap:var(--s3);border:1px solid var(--line);
+  border-radius:var(--field-radius);padding:var(--s3);margin-bottom:var(--s2);
+  background:var(--surface)}
+.bk .t{font-family:var(--font-d);font-weight:700;font-size:var(--t-sm);width:52px;flex:none}
+.bk .av{width:30px;height:30px;border-radius:50%;flex:none;display:grid;place-items:center;
+  font-size:var(--t-xs);font-weight:600;color:var(--action-strong);background:var(--action-wash)}
+.bk .who{flex:1;min-width:0}
+.bk .who b{display:block;font-size:var(--t-sm);font-weight:600}
+.bk .who small{display:block;font-size:var(--t-xs);color:var(--text-faint)}
+.pill{display:inline-flex;align-items:center;gap:var(--s1);font-size:var(--t-xs);
+  font-weight:600;padding:var(--s1) var(--s3);border-radius:var(--btn-radius)}
+.pill i{width:6px;height:6px;border-radius:50%;background:currentColor;display:block}
+.pill--ok{background:var(--action-wash);color:var(--action-strong)}
+.pill--wait{background:var(--accent-wash);color:oklch(0.48 0.10 72)}
+
+/* ของที่ลอยอยู่ทางขวาเสมอ — ซ้ายคือฝั่งที่มือถือในปกทับ */
+.float{position:absolute;background:var(--ink-900);color:var(--paper);
+  border-radius:var(--card-radius-inner);box-shadow:var(--e3);display:flex;gap:var(--s3);
+  align-items:flex-start;padding:var(--s3) var(--s4)}
+.float .ic{width:30px;height:30px;border-radius:9px;background:var(--action);flex:none;
+  display:grid;place-items:center}
+.float .ic svg{width:16px;height:16px}
+.float b{display:block;font-size:var(--t-sm);font-weight:600}
+.float small{display:block;font-size:var(--t-xs);line-height:1.5;margin-top:2px;
+  color:color-mix(in oklch, var(--paper) 62%, transparent)}
+.float--toast{right:88px;top:548px;width:286px}
+</style></head><body>
+
+<nav>
+  <span class="logo"><span class="m"><svg viewBox="0 0 24 24" style="color:#fff"><path d="M5 8h9M5 12h14M5 16h6"/><circle cx="18" cy="16" r="2.4"/></svg></span>VELA</span>
+  <span class="lk"><span>ฟีเจอร์</span><span>ราคา</span><span>ลูกค้าของเรา</span><span>ช่วยเหลือ</span></span>
+  <span class="rt"><span class="in">เข้าสู่ระบบ</span>
+    <a class="btn btn--primary btn--sm" href="#">ทดลองฟรี 14 วัน
+      <svg viewBox="0 0 24 24"><path d="M5 12h13M13 6.5 18.5 12 13 17.5"/></svg></a></span>
+</nav>
+
+<section class="hero">
+  <span class="eyebrow"><b>ใหม่</b> แจ้งเตือนลูกค้าผ่าน LINE อัตโนมัติ</span>
+  <h1>คิวเต็มทั้งวัน<br>โดย<span class="hl">ไม่ต้องรับสายสักสาย</span></h1>
+  <p class="sub">ลูกค้าจองเองผ่านลิงก์เดียว ระบบยืนยันคิว เตือนก่อนถึงนัด และเก็บประวัติให้ครบ
+    — คุณเหลือแค่ทำงานที่ถนัด</p>
+
+  <div class="act">
+    <a class="btn btn--primary btn--lg" href="#">เริ่มใช้ฟรี · ไม่ต้องใช้บัตร
+      <svg viewBox="0 0 24 24"><path d="M5 12h13M13 6.5 18.5 12 13 17.5"/></svg></a>
+    <a class="btn btn--ghost btn--lg" href="#">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="m10.4 9.2 4.4 2.8-4.4 2.8z"/></svg>
+      ดูเดโม 2 นาที</a>
+  </div>
+
+  <div class="proof">
+    <span class="avs">
+      <i style="background:var(--jade-600)">ก</i><i style="background:var(--sand-600)">ม</i>
+      <i style="background:var(--ink-600)">พ</i><i style="background:var(--jade-500)">น</i>
+    </span>
+    <span><b>2,400+ ร้านบริการ</b> รับคิวด้วย VELA ทุกวัน</span>
+    <span class="stars">★★★★★</span>
+    <span>4.9 จาก 380 รีวิว</span>
+  </div>
+
+  <div class="stats">
+    <div><b>1.2 ล้าน</b><span>นัดหมายที่จองผ่านระบบ</span></div>
+    <div><b>−68%</b><span>สายโทรเข้าเพื่อจองคิว</span></div>
+    <div><b>10 นาที</b><span>ตั้งค่าเสร็จ เปิดรับคิวได้เลย</span></div>
+  </div>
+</section>
+
+<div class="stage">
+  <div class="app">
+    <aside class="rail">
+      <p>จัดการคิว</p>
+      <a class="on" href="#"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="16" rx="3"/><path d="M8 3v3M16 3v3M3.5 10h17"/></svg>ตารางวันนี้</a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>นัดหมายทั้งหมด</a>
+      <a href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 19.5a6.5 6.5 0 0 1 13 0"/></svg>ลูกค้า</a>
+      <a href="#"><svg viewBox="0 0 24 24"><rect x="3.5" y="7.5" width="17" height="12" rx="3"/><path d="M9 7.5V5.5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>พนักงาน &amp; ห้อง</a>
+      <a href="#"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V4M16 19v-6M21 19H3"/></svg>รายงานรายได้</a>
+    </aside>
+    <div class="pane">
+      <div class="wk">
+        <span class="d"><small>จ</small><b>18</b><span>6 คิว</span></span>
+        <span class="d"><small>อ</small><b>19</b><span>9 คิว</span></span>
+        <span class="d on"><small>พ</small><b>20</b><span>12 คิว</span></span>
+        <span class="d"><small>พฤ</small><b>21</b><span>8 คิว</span></span>
+        <span class="d"><small>ศ</small><b>22</b><span>14 คิว</span></span>
+        <span class="d"><small>ส</small><b>23</b><span>17 คิว</span></span>
+        <span class="d"><small>อา</small><b>24</b><span>5 คิว</span></span>
+      </div>
+      <div class="rowhd"><h2>คิววันนี้ · พุธ 20 สิงหาคม</h2><span>ว่างอีก 3 ช่วง</span></div>
+      <div class="bk"><span class="t">10:30</span><span class="av">ณ</span>
+        <span class="who"><b>ณิชา พงษ์ไพบูลย์</b><small>สปาหน้า 60 นาที · คุณแอน</small></span>
+        <span class="pill pill--ok"><i></i>ยืนยันแล้ว</span></div>
+      <div class="bk"><span class="t">11:45</span><span class="av">ก</span>
+        <span class="who"><b>กรกช อินทรสุข</b><small>ตัด + สระไดร์ · คุณโบว์</small></span>
+        <span class="pill pill--ok"><i></i>ยืนยันแล้ว</span></div>
+      <div class="bk"><span class="t">13:00</span><span class="av">ว</span>
+        <span class="who"><b>วรินทร ธนะโชติ</b><small>ทำเล็บเจล · คุณมิ้น</small></span>
+        <span class="pill pill--wait"><i></i>รอยืนยัน</span></div>
+      <div class="bk"><span class="t">15:15</span><span class="av">ธ</span>
+        <span class="who"><b>ธนัช เรืองวิทย์</b><small>นวดคอบ่าไหล่ 45 นาที · คุณเจน</small></span>
+        <span class="pill pill--ok"><i></i>ยืนยันแล้ว</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="float float--toast">
+  <span class="ic"><svg viewBox="0 0 24 24" style="color:#fff"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span>
+  <span><b>จองใหม่จาก LINE</b><small>ปาริชาต ก. · ศุกร์ 22 ส.ค. 15:30<br>ระบบยืนยันและส่งนัดเตือนให้แล้ว</small></span>
+</div>
+
+</body></html>

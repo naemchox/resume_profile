@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self'; font-src 'self'" />
+  <title>Gloss — hover</title>
+  <link rel="stylesheet" href="../shared/pos-badge.css" />
+  <link rel="stylesheet" href="hover.css" />
+</head>
+<body>
+  <!-- The word under the cursor, outlined the way a highlighter would. -->
+  <div id="mark" hidden></div>
+
+  <!-- The bubble. Built once and moved/refilled, never recreated: recreating it restarts the CSS
+       transition and the popup flickers on every word. -->
+  <div id="bubble" hidden>
+    <!-- The SAME two lines as the snip Translation Bar (renderer/snip/snip.html › #preview): what it
+         means on top, in the reader's own language and at reading weight, with the word-class chip
+         after it; the text that was actually on screen underneath, small and muted, as the "am I
+         looking at the word I think I am" check. Pointing at a word and boxing a word are the same
+         question asked two ways, and they answered it in two different shapes until now
+         (jek, 2026-08-13). -->
+    <div class="head">
+      <div id="gloss" class="gloss"></div>
+      <!-- Kept, or not. A star and nothing else: this window is a glance, and "☆ press Alt+K" would
+           be a line of instructions sitting over the game every time you looked at a word. The key is
+           named once, by the pill, when the mode starts. -->
+      <div id="keep" class="keep" hidden>★</div>
+    </div>
+    <!-- The other parts of speech, when the word has more than one and Settings › "Other meanings"
+         is on — the SAME row, from the SAME helper (shared/pos-badge.js › fillSenseChips), that the
+         card and the Type bar draw. This window used to be a dictionary page and was cut down to one
+         line for good reason (jek, 2026-08-09: "มันดูใหญ่มาก"); this is not that page coming back. It is
+         one extra line, only for a word that genuinely has a second word class, and it is the line
+         the Translation Bar was already showing for the same word — which is the whole complaint it
+         answers (jek, 2026-08-15: "อยากให้มัน consistent"). -->
+    <div id="senses" class="senses" hidden></div>
+    <div id="term" class="term"></div>
+    <div id="tail" class="tail"></div>
+  </div>
+
+  <script src="../shared/pos-badge.js"></script>
+  <script src="hover.js"></script>
+</body>
+</html>

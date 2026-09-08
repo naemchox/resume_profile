@@ -1,0 +1,70 @@
+<!-- =============================================================================
+     booking-form.html — โครงฟอร์มจอง (แหล่งเดียว) · แก้ที่นี่แล้วก๊อปไปวางในเดโม
+     ส่วนที่ "ต้องแก้ต่อใบ" มีแค่ 3 จุด: ตัวเลือกโซน · ช่วงเวลา · เบอร์/ไลน์สำรอง
+     data-endpoint = URL ของ Apps Script ของลูกค้า · เว้นว่าง = โหมดเดโม (ไม่ส่งออก)
+     ========================================================================== -->
+<form class="book-form" data-book-form data-endpoint="" novalidate>
+  <div class="book-slip">
+    <div class="book-body">
+      <h3>จองโต๊ะออนไลน์</h3>
+      <p class="book-lead">กรอกแล้วส่งได้เลย ไม่ต้องรอเวลาทำการ ร้านจะโทรยืนยันอีกครั้ง</p>
+
+      <div class="book-grid">
+        <div class="book-field">
+          <label for="bk-name">ชื่อผู้จอง</label>
+          <input id="bk-name" name="name" type="text" required autocomplete="name" maxlength="60">
+        </div>
+        <div class="book-field">
+          <label for="bk-phone">เบอร์โทร</label>
+          <input id="bk-phone" name="phone" type="tel" required inputmode="tel"
+                 autocomplete="tel" pattern="[0-9 \-]{9,15}" maxlength="15">
+          <span class="book-hint">ใช้โทรยืนยันเท่านั้น</span>
+        </div>
+        <div class="book-field">
+          <label for="bk-people">จำนวนคน</label>
+          <select id="bk-people" name="people" required>
+            <option value="">เลือก</option>
+            <option>1</option><option>2</option><option>3</option><option>4</option>
+            <option>5</option><option>6</option><option>7</option><option>8</option>
+            <option value="9+">9 คนขึ้นไป</option>
+          </select>
+        </div>
+        <div class="book-field">
+          <label for="bk-date">วันที่</label>
+          <input id="bk-date" name="date" type="date" required>
+        </div>
+        <div class="book-field">
+          <label for="bk-time">เวลา</label>
+          <select id="bk-time" name="time" required>
+            <option value="">เลือก</option>
+            <!-- แก้ช่วงเวลาให้ตรงเวลาเปิด-ปิดของร้านนั้น -->
+          </select>
+        </div>
+        <div class="book-field">
+          <label for="bk-zone">โซนที่อยากนั่ง</label>
+          <select id="bk-zone" name="zone">
+            <option value="">ไม่เกี่ยง</option>
+            <!-- แก้โซนให้ตรงร้านนั้น -->
+          </select>
+        </div>
+        <div class="book-field book-field--wide">
+          <label for="bk-note">อยากบอกอะไรเพิ่ม (ไม่บังคับ)</label>
+          <textarea id="bk-note" name="note" maxlength="300"></textarea>
+        </div>
+      </div>
+
+      <div class="book-actions">
+        <button class="btn btn--primary" type="submit" data-book-submit>ส่งคำขอจอง</button>
+        <span class="book-alt">ข้อมูลใช้เพื่อยืนยันการจองเท่านั้น · หรือโทร <a href="tel:">081-xxx-xxxx</a></span>
+      </div>
+    </div>
+
+    <p class="book-status" data-book-status role="status" aria-live="polite"></p>
+
+    <div class="book-done">
+      <h3>ส่งคำขอจองแล้ว</h3>
+      <p class="book-lead">ร้านจะโทรกลับยืนยันภายในเวลาทำการ ถ้าด่วนโทรได้เลยที่ <a href="tel:">081-xxx-xxxx</a></p>
+      <ul class="book-recap" data-book-recap></ul>
+    </div>
+  </div>
+</form>

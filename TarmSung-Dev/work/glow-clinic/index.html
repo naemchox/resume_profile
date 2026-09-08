@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="th" class="no-js">
+<head>
+<meta charset="utf-8">
+<!-- คืนตำแหน่งที่อ่านค้างไว้เอง ไม่รอเบราว์เซอร์ (ที่มา: work/_JANK-REFRESH.md)
+     Safari คืนตำแหน่ง scroll หลังอีเวนต์ load เท่านั้น — วัดแล้ว DCL/load ยังอยู่ที่ y=0
+     ทั้งคู่ คนที่รีเฟรชกลางหน้าจึงเห็น "ฮีโร่แวบ" ตั้งแต่เฟรมแรกจนกว่าไฟล์สุดท้ายจะโหลดจบ
+     (เน็ตช้า = ค้างนานเป็นวินาที) สคริปต์นี้เก็บตำแหน่งไว้เองใน sessionStorage แล้ววาง
+     กลับตั้งแต่เฟรมแรกที่ความสูงหน้าพอ — เร็วกว่ารอ load หลายเท่าและไม่ต้องรอรูป
+     หยุดทันทีถ้าผู้ใช้ขยับเอง (wheel/touch/key/pointer) จะได้ไม่แย่งมือกับคนอ่าน -->
+<script>
+(function () {
+  try {
+    if (!("scrollRestoration" in history)) return;
+    history.scrollRestoration = "manual";
+    var key = "ts:y:" + location.pathname;
+    var want = parseInt(sessionStorage.getItem(key) || "0", 10) || 0;
+    var timer = 0;
+    var save = function () { try { sessionStorage.setItem(key, String(Math.round(window.scrollY))); } catch (e) {} };
+    addEventListener("scroll", function () {
+      if (timer) return;
+      timer = setTimeout(function () { timer = 0; save(); }, 200);
+    }, { passive: true });
+    addEventListener("pagehide", save);
+    /* แถบเมนูต้องไม่ "โผล่" ตอนหน้าเปิดมากลางหน้าอยู่แล้ว (jek 25/8/26 · the-bed)
+       แถบมีสองชั้นที่ไล่เข้าเอง — พื้นทึบบน .nav-shell::before (opacity 300ms) กับเส้นทอง
+       บน border-color (400ms) — พอคืนตำแหน่ง scroll ปุ๊บ สคริปต์แถบเมนูใส่คลาส scrolled
+       ทั้งสองชั้นจึงไล่ให้เห็นทุกครั้งที่รีเฟรช ทั้งที่ผู้ใช้ไม่ได้เลื่อนอะไรเลย
+       ระหว่างช่วงคืนตำแหน่ง จึงปิดทรานซิชันของหัวเว็บไว้ = แถบอยู่ในสถานะสุดท้ายตั้งแต่
+       เฟรมแรก · เปิดคืนทันทีที่ผู้ใช้ขยับเอง (หรืออย่างช้า 900ms) การเลื่อนของจริงจึงยังลื่น */
+    if (want) {
+      var root = document.documentElement;
+      root.className += " nav-instant";
+      var st = document.createElement("style");
+      st.textContent = "html.nav-instant .nav-shell,html.nav-instant .nav-shell::before," +
+        "html.nav-instant .site-header,html.nav-instant header,html.nav-instant header > *," +
+        "html.nav-instant header > * > *{transition:none !important}";
+      (document.head || document.documentElement).appendChild(st);
+      var unlock = function () { root.className = root.className.replace(/\s*nav-instant/, ""); };
+      ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+        addEventListener(ev, unlock, { passive: true, once: true });
+      });
+      setTimeout(unlock, 900);
+    }
+    if (!want || location.hash) return;
+    var stop = false;
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+      addEventListener(ev, function () { stop = true; }, { passive: true, once: true });
+    });
+    var t0 = (performance.now ? performance.now() : 0);
+    var now = function () { return performance.now ? performance.now() : t0; };
+    var done = false;
+    var put = function () {
+      if (stop || done) return true;
+      var el = document.scrollingElement || document.documentElement;
+      if (!el || el.scrollHeight - window.innerHeight < want) return false;   /* หน้ายังสูงไม่พอ ค่อยลองใหม่ */
+      if (Math.round(window.scrollY) !== want) {
+        var prev = el.style.scrollBehavior;      /* html { scroll-behavior: smooth } จะทำให้การวางกลับกลายเป็นการไถ */
+        el.style.scrollBehavior = "auto";
+        window.scrollTo(0, want);
+        el.style.scrollBehavior = prev;
+      }
+      done = Math.round(window.scrollY) === want;
+      /* ใส่สถานะ "เลื่อนแล้ว" ให้หัวเว็บทันทีในจังหวะเดียวกับที่คืนตำแหน่ง — ไม่ต้องรอสคริปต์
+         ของหน้ามันเองซึ่งอยู่ท้าย <body> (วัดแล้วช้ากว่ากันราว 20ms = เห็นแถบเปล่าได้ 1 เฟรม)
+         เกณฑ์คนละค่าเพราะแต่ละที่ตั้งไว้ไม่เท่ากัน: .site-header > 8px · .nav-shell > 40px
+         (ดู js/main.js กับสคริปต์ท้ายหน้าเดโม) สคริปต์ของหน้าจะคำนวณซ้ำเองอยู่แล้ว ค่าจึงตรงกัน */
+      if (done) {
+        var mark = function (sel, cls, min) {
+          if (want <= min) return;
+          var n = document.querySelectorAll(sel);
+          for (var i = 0; i < n.length; i++) n[i].classList.add(cls);
+        };
+        /* หัวเว็บของแต่ละใบใช้คนละคลาสคนละเกณฑ์ (ของเดิมเป็นแบบนั้นมาก่อนแล้ว):
+           .site-header.scrolled >8px (เว็บเรา) · .nav-shell.scrolled >40px (the-bed)
+           .site-header.stuck (the-terrace ใช้ sentinel ไม่ใช่ตัวเลข — 80px คือค่าประมาณ)
+           header.small >120px (homecraft/lumen/glow-clinic ผ่าน js/nav-response.js)
+           เดาพลาดไม่เป็นไร สคริปต์ของหน้าคำนวณทับให้ในเฟรมถัดไป และช่วงนี้ทรานซิชันถูกปิดอยู่
+           การแก้จึงเป็นการสลับทันที ไม่ใช่การไล่สีให้เห็น */
+        mark(".site-header", "scrolled", 8);
+        mark(".nav-shell", "scrolled", 40);
+        mark(".site-header, header[data-header]", "stuck", 80);
+        mark("header, .site-header", "small", 120);
+      }
+      return done;
+    };
+    /* ลองทุกทางที่มาถึงก่อน: setTimeout(0) มักได้ก่อนเฟรมแรกด้วยซ้ำ · rAF ทำงานก่อนวาด
+       · readystatechange/DOMContentLoaded คือจุดที่ body ครบแล้วแน่ๆ
+       เหตุที่ไม่พอถ้าใช้ rAF อย่างเดียว: วัดแล้วบางหน้า (หน้าแรกของเว็บเรา) เฟรมแรก
+       มาก่อนที่ความสูงจะพอ ทำให้เลื่อนไม่ได้ แล้วต้องรอ rAF รอบถัดไป = เห็นหัวเว็บ 1 เฟรม */
+    /* สองสายแยกกัน สายละหนึ่งนัด — ถ้าให้สายเดียวนัดทั้ง setTimeout และ rAF
+       จำนวนนัดจะเพิ่มเป็นสองเท่าทุกรอบ (2^n) ภายในไม่กี่ร้อยมิลลิวินาที */
+    var tick = function () { if (put() || stop) return; if (now() - t0 < 3000) setTimeout(tick, 0); };
+    var frame = function () { if (put() || stop) return; if (now() - t0 < 3000) requestAnimationFrame(frame); };
+    tick();
+    frame();
+    document.addEventListener("readystatechange", put);
+    addEventListener("DOMContentLoaded", put);
+    addEventListener("load", put);
+  } catch (e) {}
+})();
+</script>
+  <!-- เดโมสาธิต ไม่ใช่ธุรกิจจริง: ห้ามให้เสิร์ชเอนจินเก็บเข้าดัชนี ไม่งั้นจะมีหน้า
+       ที่ดูเหมือนร้านจริง (มีชื่อ ราคา เบอร์โทร) ลอยอยู่บน Google ในชื่อโดเมนของเรา -->
+  <meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>โกลว์ คลินิก — คลินิกผิวพรรณและความงาม ทองหล่อ</title>
+  <link rel="canonical" href="https://tarmsung.pages.dev/work/glow-clinic/">
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "MedicalClinic",
+  "name": "โกลว์ คลินิก",
+  "description": "คลินิกผิวพรรณโดยแพทย์เฉพาะทาง ประเมินผิวฟรีก่อนเริ่มทุกโปรแกรม จองคิวล่วงหน้าได้ทางโทรศัพท์และไลน์",
+  "url": "https://tarmsung.pages.dev/work/glow-clinic/",
+  "inLanguage": "th",
+  "image": "https://tarmsung.pages.dev/assets/work/glow-clinic.webp"
+}
+  </script>
+  <!-- การ์ดพรีวิวตอนวางลิงก์ในแชท (22/8/26): ส่งลิงก์เฉยๆ แล้ว LINE/เฟซบุ๊กจะขึ้นรูป
+       ให้เอง ไม่ต้องแนบภาพหรือคลิปเพิ่ม รูปที่ใช้คือปกเดียวกับที่โชว์ในพอร์ต -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="โกลว์ คลินิก — คลินิกผิวพรรณและความงาม ทองหล่อ">
+  <meta property="og:description" content="คลินิกผิวพรรณโดยแพทย์เฉพาะทาง ประเมินผิวฟรีก่อนเริ่มทุกโปรแกรม จองคิวล่วงหน้าได้ทางโทรศัพท์และไลน์">
+  <meta property="og:image" content="https://tarmsung.pages.dev/assets/work/glow-clinic.webp">
+  <meta name="twitter:card" content="summary_large_image">
+<meta name="description" content="คลินิกผิวพรรณโดยแพทย์เฉพาะทาง ประเมินผิวฟรีก่อนเริ่มทุกโปรแกรม จองคิวล่วงหน้าได้ทางโทรศัพท์และไลน์">
+<script>document.documentElement.classList.replace("no-js","js");</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- preload ฟอนต์หัวเรื่อง (Trirong) — คู่กับ display=optional ข้างล่าง
+     optional เฉยๆ แปลว่าคนที่เข้าครั้งแรกได้ฟอนต์สำรองทั้งหน้า preload ทำให้ไฟล์
+     มาทันช่วงต้นเกือบทุกครั้ง · มีสองไฟล์เพราะ Google เสิร์ฟ Chrome กับ Safari คนละตัว
+     (เติมอัตโนมัติด้วย playbook/fix-font-flash.mjs) -->
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/trirong/v17/7r3DqXNgp8wxdOdOlyAKzb1B59H-.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/trirong/v17/7r3DqXNgp8wxdOdOlyAKzalB5w.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/trirong/v17/7r3GqXNgp8wxdOdOn58o2JZg.woff2" />
+<link href="https://fonts.googleapis.com/css2?family=Trirong:wght@300;400;500&family=Anuphan:wght@500;600&family=Noto+Sans+Thai:wght@400;500;600&display=optional" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/styles.css">
+<style>
+/* =============================================================================
+   รอบ "แก้จืด" ครั้งที่ 2 — 22/8/26 (playbook/PROMPT-JUED.md)
+   ===========================================================================
+   AUDIT ก่อนแก้: ไล่ css/styles.css + tokens.css ซ้ำอีกรอบ (grep rgba alpha ต่ำ,
+   blur, opacity ต่ำ, box-shadow) ไม่เจอของตกแต่งที่ประกาศไว้แล้วจางจนไม่ขึ้นจอ
+   เพิ่มจากรอบ 21/8/26 เลย — .hero-photo ไม่มี blur/alpha ต่ำเลย ยืนยันตรงกับที่
+   jek วัดมาว่าความจืดของหน้านี้คือ "นิ่ง" (@keyframes 2 อัน) ไม่ใช่ "ของจาง"
+
+   งานรอบนี้จึงเป็นชั้น 3 ล้วนๆ — เพิ่ม motion จากภาษาของคลินิกผิวพรรณจริง
+   (แสง / เวลานัด / จำนวนครั้งของคอร์ส) ไม่ใช่ fade ทั่วไป และให้ "ตรงนี้" บนเส้น
+   เวลาใช้ท่าหมุดเต้นเดียวกับหมุดบนแผนที่ซอย (gc-pin เดิม) — ของชนิดเดียวกัน
+   (จุดบอกตำแหน่ง/สถานะปัจจุบัน) ต้องใช้กลไกเดียวกัน ไม่ใช่เขียนใหม่คนละแบบ
+   -------------------------------------------------------------------------- */
+
+/* ---- 1) แสงตกกระทบผิวช้าๆ ตอนเปิดหน้า --------------------------------------
+   ภาพฮีโร่ซูมเข้าเบาๆ ครั้งเดียวตอนโหลด เหมือนกล้องคลินิกค่อยๆ โฟกัสเข้าที่ผิว
+   ไม่ใช่ zoom วนตลอด (ของที่วนตลอดบนภาพหลักอ่านเป็นแบนเนอร์โฆษณา) */
+.hero { overflow: hidden; }
+.hero-photo { animation: gc-focus 7s cubic-bezier(.16,.7,.24,1) both; transform-origin: 50% 38%; }
+@keyframes gc-focus { from { transform: scale(1.07); } to { transform: scale(1); } }
+
+/* ---- 2) เส้นเวลานัดหมายที่เดินจริง ------------------------------------------
+   เดิมเส้น/จุดของแต่ละนาทีบน #visit-flow ขึ้นมาพร้อมกันหมดตอน .tl เข้าจอ
+   ตอนนี้แต่ละท่อนยืดลงมาไล่ตามลำดับนาที แล้วจุดของนาทีนั้นค่อยติดตามหลัง —
+   อ่านเป็น "เวลาที่กำลังเดิน" ตรงกับเนื้อหาที่เป็นนาฬิกาการมาคลินิกอยู่แล้ว */
+.js .tl li::before { transform: scaleY(0); transform-origin: top; transition: transform 900ms var(--ease); }
+.js .tl.in li::before { transform: scaleY(1); }
+.js .tl li::after { transform: scale(0); transition: transform 340ms var(--ease); }
+.js .tl.in li::after { transform: scale(1); }
+.js .tl.in li:nth-child(1)::before, .js .tl.in li:nth-child(1)::after { transition-delay: 120ms; }
+.js .tl.in li:nth-child(2)::before, .js .tl.in li:nth-child(2)::after { transition-delay: 380ms; }
+.js .tl.in li:nth-child(3)::before, .js .tl.in li:nth-child(3)::after { transition-delay: 640ms; }
+.js .tl.in li:nth-child(4)::before, .js .tl.in li:nth-child(4)::after { transition-delay: 900ms; }
+.js .tl.in li:nth-child(5)::before, .js .tl.in li:nth-child(5)::after { transition-delay: 1160ms; }
+/* "ตรงนี้" คือจุดที่คนไข้ตัดสินใจอยู่ตอนนี้ — ใช้หมุดเต้นเดียวกับหมุดบนแผนที่ซอย
+   (gc-pin ที่ประกาศไว้แล้วใน styles.css) ของชนิดเดียวกันไม่เขียนกลไกที่สอง */
+.js .tl.in li:nth-child(4)::after { animation: gc-pin 1.1s var(--ease) 2 1.4s; transform-origin: center; }
+
+/* ---- 3) จุดจำนวนครั้งของคอร์สทยอยติด ---------------------------------------
+   แถบจุดใน .rx-course แทน "ครั้งที่ 1, 2, 3..." ของคอร์สจริง เดิมโผล่มาพร้อมกัน
+   ทั้งแถบ ตอนนี้ติดทีละจุดตามจำนวนครั้ง จำลองจังหวะการนับครั้งของทรีตเมนต์ */
+.js .rx-dots i { transform: scale(0); transition: transform 380ms var(--ease); }
+.js .rx.in .rx-dots i { transform: scale(1); }
+.js .rx.in .rx-dots i:nth-child(1) { transition-delay: 260ms; }
+.js .rx.in .rx-dots i:nth-child(2) { transition-delay: 380ms; }
+.js .rx.in .rx-dots i:nth-child(3) { transition-delay: 500ms; }
+.js .rx.in .rx-dots i:nth-child(4) { transition-delay: 620ms; }
+
+/* ---- ปิดได้จริงสองทาง: media query ของระบบ และ .still ที่ main.js ติดให้เมื่อ
+   เปิดด้วย ?reduce=1 (ทางที่สคริปต์ถ่ายภาพใช้) ------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .hero-photo { animation: none !important; }
+  .js .tl li::before, .js .tl li::after { transform: none !important; transition: none !important; animation: none !important; }
+  .js .rx-dots i { transform: none !important; transition: none !important; }
+}
+.still .hero-photo { animation: none !important; }
+.still .tl li::before, .still .tl li::after { transform: none !important; transition: none !important; animation: none !important; }
+.still .rx-dots i { transform: none !important; transition: none !important; }
+</style>
+</head>
+<body>
+<!-- ไอคอนชุดเดียวของหน้านี้ (สร้างด้วย playbook/make-icons.mjs) -->
+<svg class="sr-only" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0"><defs>
+  <symbol id="i-icon1" viewBox="0 0 220 10"><path pathLength="1" d="M2 6c26-5 52-5 78 0s52 5 78 0 40-4 60 1" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-icon2" viewBox="0 0 32 34"><path d="M15.4 3.2c6.4 6.2 9.2 10.6 9.2 14.6a9.2 9.2 0 0 1-18.4 0c0-4 2.8-8.4 9.2-14.6Z"/><path d="M15.4 3.2c-2.6 6.4-2.6 12.8 0 19.2"/><circle cx="24.8" cy="7.4" r="1.9" fill="currentColor" stroke="none"/></symbol>
+</defs></svg>
+<a class="skip" href="#main">ข้ามไปเนื้อหา</a>
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a class="brand" href="#top">
+      <span class="mark" aria-hidden="true"><svg viewBox="0 0 32 34" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><use href="#i-icon2"/></svg></span>
+      <span>โกลว์ คลินิก<small>GLOW CLINIC</small></span>
+    </a>
+    <nav class="nav-links" aria-label="เมนูหลัก">
+      <a href="#programs">โปรแกรม</a>
+      <a href="#compare">เทียบโปรแกรม</a>
+      <a href="#doctor">ทีมแพทย์</a>
+      <a href="#visit">ที่ตั้ง</a>
+    </nav>
+    <a class="btn btn--primary btn--sm nav-cta" href="tel:">จองคิว</a>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero on-photo" aria-labelledby="hero-title" id="top">
+    <img class="hero-photo" src="img/hero.jpg" alt="ลูกค้ากำลังรับทรีตเมนต์บำรุงผิวหน้าในห้องทรีตเมนต์" width="1400" height="933" fetchpriority="high">
+    <div class="wrap hero-copy">
+      <p class="rule-label reveal">คลินิกผิวพรรณ<span class="hr" aria-hidden="true"></span>ทองหล่อ ซอย xx</p>
+      <h1 id="hero-title" class="reveal d1"><span class="nb">ผิวดีขึ้นได้</span><br><span class="nb">ตั้งแต่ครั้งแรก</span></h1>
+      <p class="lead reveal d2">แพทย์เฉพาะทางดูแลทุกเคส ประเมินสภาพผิวฟรีก่อนเริ่มทุกโปรแกรม</p>
+      <div class="hero-cta reveal d3">
+        <a class="btn btn--primary" href="tel:">จองคิว · 02-xxx-xxxx</a>
+        <a class="btn btn--ghost" href="#programs">ดูโปรแกรมทั้งหมด</a>
+      </div>
+      <p class="chips reveal d3">
+        <span><span class="star" aria-hidden="true">★</span> <span class="num" data-count="4.9" data-dec="1">4.9</span> จาก <span class="num" data-count="860">860</span> รีวิว</span>
+        <span>แพทย์ผิวหนังประจำคลินิก</span>
+        <span>จอดรถฟรี 2 ชม.</span>
+      </p>
+    </div>
+  </section>
+
+  <section class="section" id="programs" aria-labelledby="programs-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">โปรแกรมยอดนิยม</p>
+        <h2 id="programs-title"><span class="w"><span>เลือกตามปัญหาผิว</span></span> <span class="w"><span>ไม่ใช่ตามโปรโมชัน</span></span></h2>
+        <svg class="rule" viewBox="0 0 220 10" fill="none" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+        <p>ทุกโปรแกรมแจ้งราคาชัดก่อนทำ ไม่มีขายคอร์สหน้างาน</p>
+      </div>
+      <!-- ใบสั่งการรักษา ไม่ใช่การ์ด 3 ใบต่อแถว — คนไข้ไม่ได้เลือกโปรแกรมจากรูปสวย
+           แต่เลือกจาก "ต้องมากี่ครั้ง หน้าแดงกี่วัน จ่ายเท่าไหร่" แถบจุดคือจำนวนครั้งของคอร์ส
+           ซึ่งเป็นของที่มีแต่หน้าคลินิกเท่านั้นที่ต้องบอก (ดู playbook/audit-sameness.mjs
+           — 21/8/26 เดโมของเราใช้ "การ์ด 3 ใบ" เหมือนกันทุกหน้าจนแยกไม่ออกว่าคนละธุรกิจ)
+           ตัวเลขทุกตัวตรงกับตารางเทียบข้างล่างของหน้านี้เอง ไม่มีตัวไหนแต่งใหม่ -->
+      <div class="rx-list">
+        <article class="rx reveal">
+          <img src="img/care-1.jpg" alt="ผลิตภัณฑ์บำรุงผิวบนผ้าสีขาว" width="760" height="507" loading="lazy">
+          <div class="rx-body">
+            <h3>เลเซอร์หน้าใส</h3>
+            <p class="rx-desc">ลดรอยแดง รูขุมขนกระชับ ทำแล้วกลับไปทำงานต่อได้</p>
+            <p class="rx-course"><span class="rx-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></span>4 ครั้ง · ห่างกัน 2 สัปดาห์</p>
+            <dl class="rx-facts">
+              <div><dt>เวลาต่อครั้ง</dt><dd>45 นาที</dd></div>
+              <div><dt>พักฟื้น</dt><dd>หน้าแดง 2–3 ชม.</dd></div>
+              <div><dt>ราคา</dt><dd class="rx-price">฿1,900 <span>/ ครั้ง</span></dd></div>
+            </dl>
+          </div>
+        </article>
+        <article class="rx reveal">
+          <img src="img/care-2.jpg" alt="ลูกค้ากำลังพักระหว่างทำทรีตเมนต์" width="760" height="507" loading="lazy">
+          <div class="rx-body">
+            <h3>ทรีตเมนต์ลดสิว</h3>
+            <p class="rx-desc">กดสิว + ยาเฉพาะจุด คุมมันได้จริงใน 3 ครั้ง</p>
+            <p class="rx-course"><span class="rx-dots" aria-hidden="true"><i></i><i></i><i></i><i data-off="1"></i></span>3 ครั้ง · ห่างกัน 1 สัปดาห์</p>
+            <dl class="rx-facts">
+              <div><dt>เวลาต่อครั้ง</dt><dd>60 นาที</dd></div>
+              <div><dt>พักฟื้น</dt><dd>ไม่ต้องพักฟื้น</dd></div>
+              <div><dt>ราคา</dt><dd class="rx-price">฿1,290 <span>/ ครั้ง</span></dd></div>
+            </dl>
+          </div>
+        </article>
+        <article class="rx reveal">
+          <img src="img/care-3.jpg" alt="หลอดครีมบำรุงผิววางบนผ้าสีขาว" width="760" height="507" loading="lazy">
+          <div class="rx-body">
+            <h3>ฟิลเลอร์ร่องแก้ม</h3>
+            <p class="rx-desc">ฟิลเลอร์แท้ มีใบรับรอง เปิดกล่องต่อหน้า</p>
+            <p class="rx-course"><span class="rx-dots" aria-hidden="true"><i></i><i data-off="1"></i><i data-off="1"></i><i data-off="1"></i></span>ครั้งเดียว · อยู่ได้ 9–12 เดือน</p>
+            <dl class="rx-facts">
+              <div><dt>เวลาต่อครั้ง</dt><dd>30 นาที</dd></div>
+              <div><dt>พักฟื้น</dt><dd>บวมช้ำได้ 3–5 วัน</dd></div>
+              <div><dt>ราคา</dt><dd class="rx-price">฿9,900 <span>/ ซีซี</span></dd></div>
+            </dl>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ตารางเทียบโปรแกรม: การ์ดสามใบข้างบนบอกว่ามีอะไรขายและราคาเท่าไหร่ แต่คำถาม
+       ที่คนไข้ถามจริงก่อนตัดสินใจคือ "ต้องมากี่ครั้ง ครั้งละนานไหม หน้าแดงกี่วัน"
+       สามข้อนี้ไม่เคยมีอยู่บนหน้าเลย และเป็นสามข้อที่ทำให้คนกล้าจอง -->
+  <section class="section section--tint" id="compare" aria-labelledby="compare-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">เทียบก่อนตัดสินใจ</p>
+        <h2 id="compare-title"><span class="w"><span>กี่ครั้ง</span></span> <span class="w"><span>นานแค่ไหน</span></span> <span class="w"><span>พักฟื้นกี่วัน</span></span></h2>
+        <svg class="rule" viewBox="0 0 220 10" fill="none" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+        <p>ตัวเลขจากเคสทั่วไป — แพทย์จะประเมินหน้างานอีกครั้ง บางผิวใช้น้อยกว่านี้</p>
+      </div>
+      <div class="table-wrap reveal">
+        <table class="cmp">
+          <thead><tr><th scope="col">โปรแกรม</th><th scope="col">แก้ปัญหา</th><th scope="col">จำนวนครั้ง</th><th scope="col">เวลาต่อครั้ง</th><th scope="col">พักฟื้น</th><th scope="col">ราคา</th></tr></thead>
+          <tbody>
+          <tr class="reveal">
+            <th scope="row">เลเซอร์หน้าใส</th><td data-l="แก้ปัญหา">รูขุมขนกว้าง ผิวหมองคล้ำ</td><td data-l="จำนวนครั้ง">4 ครั้ง ห่างกัน 2 สัปดาห์</td>
+            <td data-l="เวลาต่อครั้ง">45 นาที</td><td data-l="พักฟื้น">ไม่ต้องพักฟื้น หน้าแดง 2-3 ชม.</td><td data-l="ราคา"><b>฿1,900 / ครั้ง</b></td>
+          </tr>
+          <tr class="reveal">
+            <th scope="row">ทรีตเมนต์ลดสิว</th><td data-l="แก้ปัญหา">สิวอุดตัน สิวอักเสบ</td><td data-l="จำนวนครั้ง">3 ครั้ง ห่างกัน 1 สัปดาห์</td>
+            <td data-l="เวลาต่อครั้ง">60 นาที</td><td data-l="พักฟื้น">ไม่ต้องพักฟื้น</td><td data-l="ราคา"><b>฿1,290 / ครั้ง</b></td>
+          </tr>
+          <tr class="reveal">
+            <th scope="row">ฟิลเลอร์ร่องแก้ม</th><td data-l="แก้ปัญหา">ร่องแก้มลึก ใบหน้าดูโทรม</td><td data-l="จำนวนครั้ง">ครั้งเดียว อยู่ได้ 9-12 เดือน</td>
+            <td data-l="เวลาต่อครั้ง">30 นาที</td><td data-l="พักฟื้น">บวมช้ำได้ 3-5 วัน</td><td data-l="ราคา"><b>฿9,900 / ซีซี</b></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="menu-note reveal">ยังไม่แน่ใจว่าผิวตัวเองต้องทำอันไหน — ปรึกษาแพทย์ก่อนได้ ไม่มีค่าใช้จ่าย</p>
+    </div>
+  </section>
+
+  <!-- มาถึงแล้วเจออะไร: ความกลัวอันดับหนึ่งของคนไข้ใหม่คือโดนขายคอร์สตั้งแต่นาทีแรก
+       สี่ขั้นนี้คือคำสัญญาว่าจะไม่เจอแบบนั้น เขียนเป็นลำดับเวลาให้เห็นว่าจ่ายเงินตอนไหน -->
+  <!-- ราคาเต็ม: หน้าเดิมบอกราคาแค่สามโปรแกรมยอดนิยม คนที่มาหาคำว่า "โบท็อกซ์ราคา"
+       หรือ "ร้อยไหมเท่าไหร่" จึงไม่เจออะไรเลยแล้วกลับไปหาคลินิกที่บอกราคา -->
+  <section class="section" id="price" aria-labelledby="price-title">
+    <div class="wrap">
+      <div class="section-head section-head--mid reveal">
+        <p class="kicker">ราคาทุกบริการ</p>
+        <h2 id="price-title"><span class="w"><span>ราคาทั้งหมดอยู่ตรงนี้</span></span> <span class="w"><span>ไม่ต้องทักมาถาม</span></span></h2>
+        <svg class="rule" viewBox="0 0 220 10" fill="none" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+        <p>ราคานี้คือราคาที่จ่ายจริง รวมค่าแพทย์และค่ายาชาแล้ว ไม่มีบวกเพิ่มหน้าเคาน์เตอร์</p>
+      </div>
+      <div class="table-wrap reveal">
+        <table class="cmp">
+          <thead><tr><th scope="col">บริการ</th><th scope="col">ราคาต่อครั้ง</th><th scope="col">แพ็กเกจคอร์ส</th><th scope="col">เหมาะกับใคร</th></tr></thead>
+          <tbody>
+            <tr class="reveal"><th scope="row">ปรึกษาแพทย์ + ตรวจผิว</th><td data-l="ราคาต่อครั้ง"><b>ฟรี</b></td><td data-l="แพ็กเกจคอร์ส">—</td><td data-l="เหมาะกับใคร">มาครั้งแรก ยังไม่รู้ว่าควรทำอะไร</td></tr>
+            <tr class="reveal"><th scope="row">เลเซอร์หน้าใส</th><td data-l="ราคาต่อครั้ง"><b>฿1,900</b></td><td data-l="แพ็กเกจคอร์ส">5 ครั้ง ฿7,900</td><td data-l="เหมาะกับใคร">รอยแดง รูขุมขนกว้าง ผิวหมองคล้ำ</td></tr>
+            <tr class="reveal"><th scope="row">ทรีตเมนต์ลดสิว</th><td data-l="ราคาต่อครั้ง"><b>฿1,290</b></td><td data-l="แพ็กเกจคอร์ส">3 ครั้ง ฿3,400</td><td data-l="เหมาะกับใคร">สิวอุดตัน สิวอักเสบ หน้ามัน</td></tr>
+            <tr class="reveal"><th scope="row">เลเซอร์ลดรอยสิว (พิโคเลเซอร์)</th><td data-l="ราคาต่อครั้ง"><b>฿3,500</b></td><td data-l="แพ็กเกจคอร์ส">5 ครั้ง ฿14,900</td><td data-l="เหมาะกับใคร">รอยดำรอยแดงหลังสิวยุบ</td></tr>
+            <tr class="reveal"><th scope="row">โบท็อกซ์ลดริ้วรอย</th><td data-l="ราคาต่อครั้ง"><b>฿90 / ยูนิต</b></td><td data-l="แพ็กเกจคอร์ส">หน้าผาก 20 ยูนิต ฿1,700</td><td data-l="เหมาะกับใคร">ริ้วรอยหน้าผาก หางตา ขมวดคิ้ว</td></tr>
+            <tr class="reveal"><th scope="row">ฟิลเลอร์ร่องแก้ม</th><td data-l="ราคาต่อครั้ง"><b>฿9,900 / ซีซี</b></td><td data-l="แพ็กเกจคอร์ส">2 ซีซี ฿18,900</td><td data-l="เหมาะกับใคร">ร่องแก้มลึก ใต้ตาคล้ำเป็นร่อง</td></tr>
+            <tr class="reveal"><th scope="row">ร้อยไหมยกกระชับ</th><td data-l="ราคาต่อครั้ง"><b>฿990 / เส้น</b></td><td data-l="แพ็กเกจคอร์ส">10 เส้น ฿8,900</td><td data-l="เหมาะกับใคร">แก้มหย่อน เหนียงใต้คาง</td></tr>
+            <tr class="reveal"><th scope="row">IPL กำจัดขนถาวร (รักแร้)</th><td data-l="ราคาต่อครั้ง"><b>฿890</b></td><td data-l="แพ็กเกจคอร์ส">6 ครั้ง ฿4,500</td><td data-l="เหมาะกับใคร">ขนดก ขนคุด รอยดำจากการโกน</td></tr>
+            <tr class="reveal"><th scope="row">ทรีตเมนต์บำรุงผิวหน้า</th><td data-l="ราคาต่อครั้ง"><b>฿790</b></td><td data-l="แพ็กเกจคอร์ส">10 ครั้ง ฿6,900</td><td data-l="เหมาะกับใคร">ผิวแห้ง อยากบำรุงต่อเนื่องรายเดือน</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="menu-note reveal">แพ็กเกจคอร์สใช้ได้ 1 ปี · โอนสิทธิ์ให้คนในครอบครัวได้ · ยังไม่ได้ใช้ครบขอคืนส่วนที่เหลือได้ตามสัดส่วน</p>
+    </div>
+  </section>
+
+  <section class="section" id="visit-flow" aria-labelledby="visit-flow-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">มาถึงแล้วเจออะไร</p>
+        <h2 id="visit-flow-title"><span class="w"><span>ตรวจก่อน</span></span> <span class="w"><span>คุยก่อน</span></span> <span class="w"><span>ค่อยตัดสินใจ</span></span></h2>
+        <svg class="rule" viewBox="0 0 220 10" fill="none" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+      </div>
+      <!-- ไทม์ไลน์ตามนาทีที่ผ่านไป ไม่ใช่ steps สี่ช่องเรียง — ความกลัวของคนไข้ใหม่คือ
+           "จะโดนขายคอร์สตอนไหน" คำตอบที่ตรงคำถามที่สุดคือเส้นเวลา ว่านาทีไหนเกิดอะไร
+           และจุดจ่ายเงินอยู่ตรงไหนของเส้น -->
+      <ol class="tl reveal">
+        <li><span class="tl-t">นาทีที่ 0</span><div><b>ลงทะเบียน 5 นาที</b><span>กรอกประวัติแพ้ยา/ยาที่ใช้อยู่ ถ้ามีรูปผิวช่วงที่เป็นหนักให้เอามาด้วย</span></div></li>
+        <li><span class="tl-t">นาทีที่ 5</span><div><b>แพทย์ตรวจผิว</b><span>ส่องผิวจริง ถามพฤติกรรม ไม่ใช่พนักงานขายเดินมาเสนอคอร์ส</span></div></li>
+        <li><span class="tl-t">นาทีที่ 20</span><div><b>ได้แผน + ราคาเป็นลายลักษณ์อักษร</b><span>บอกครบว่าต้องกี่ครั้ง ห่างกันเท่าไหร่ รวมเท่าไหร่ ก่อนจ่ายเงินสักบาท</span></div></li>
+        <li><span class="tl-t">ตรงนี้</span><div><b>จะทำวันนี้หรือกลับไปคิดก็ได้</b><span>ไม่ทำวันนี้ก็ไม่มีค่าปรึกษา แผนที่ให้ไปใช้เทียบกับที่อื่นได้</span></div></li>
+        <li data-end="1"><span class="tl-t">หลังจากนั้น</span><div><b>นัดดูผลหลังทำทุกครั้ง</b><span>ถ้าผลไม่เป็นไปตามที่คุยกันไว้ แพทย์ปรับแผนให้โดยไม่คิดเพิ่ม</span></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section section--tint" id="prep" aria-labelledby="prep-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">ก่อนทำ · หลังทำ</p>
+        <h2 id="prep-title"><span class="w"><span>สิ่งที่ต้องรู้</span></span> <span class="w"><span>ก่อนมาและหลังกลับ</span></span></h2>
+        <svg class="rule" viewBox="0 0 220 10" fill="none" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+        <p>พยาบาลจะทวนให้ฟังอีกครั้งหน้างาน แต่อ่านไว้ก่อนได้ จะได้วางแผนวันที่มาถูก</p>
+      </div>
+      <div class="duo">
+        <div class="duo-col reveal">
+          <h3>ก่อนมาทำ</h3>
+          <ul>
+            <li>งดยาละลายลิ่มเลือดและวิตามินอี 5 วัน (ถ้ามียาประจำตัว แจ้งก่อน อย่าหยุดเอง)</li>
+            <li>งดแอลกอฮอล์ 24 ชั่วโมง ลดโอกาสช้ำหลังฉีด</li>
+            <li>งดผลัดเซลล์ผิว กรดผลไม้ และเรตินอล 3 วันก่อนทำเลเซอร์</li>
+            <li>มาแบบไม่แต่งหน้าได้ยิ่งดี ถ้าแต่งมา เรามีที่ล้างหน้าให้</li>
+            <li>กำลังตั้งครรภ์หรือให้นมบุตร แจ้งก่อนเสมอ บางหัตถการต้องเลื่อน</li>
+          </ul>
+        </div>
+        <div class="duo-col reveal d1">
+          <h3>หลังทำ</h3>
+          <ul>
+            <li>หน้าแดงและร้อน 2–3 ชั่วโมงเป็นเรื่องปกติ ประคบเย็นได้</li>
+            <li>ทาครีมกันแดด SPF30 ขึ้นไปทุกวัน 7 วันแรก แม้อยู่ในร่ม</li>
+            <li>งดซาวน่า ออกกำลังหนัก และว่ายน้ำ 48 ชั่วโมง</li>
+            <li>ห้ามนวดหรือกดบริเวณที่ฉีดฟิลเลอร์ 2 สัปดาห์</li>
+            <li>มีอาการผิดปกติ ทักไลน์ได้ทุกวันถึงเที่ยงคืน พยาบาลตอบเอง</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band deep" id="doctor" aria-labelledby="doctor-title">
+    <svg class="brandmark" viewBox="0 0 32 34" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><use href="#i-icon2"/></svg>
+    <div class="wrap">
+      <h2 id="doctor-title" class="reveal"><span class="w"><span>ตรวจโดยแพทย์ทุกเคส</span></span> <span class="w"><span>ไม่ใช่พนักงานขาย</span></span></h2>
+        <svg class="rule" viewBox="0 0 220 10" fill="none" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+      <p class="reveal d1">แพทย์ผิวหนังประจำคลินิกทุกวัน ประเมินผิวให้ก่อน แล้วค่อยตัดสินใจว่าจะทำหรือไม่ทำ</p>
+      <!-- ทั้งสามตัวอยู่บนหน้านี้อยู่ก่อนแล้ว: 4.9 กับ 860 อยู่ใน hero,
+           ฿0 คือ "ปรึกษาแพทย์ก่อนได้ ไม่มีค่าใช้จ่าย" ที่เขียนไว้ใต้ตารางเทียบ -->
+      <div class="stat-row reveal d2">
+        <div class="stat"><b><span class="num" data-count="4.9" data-dec="1">4.9</span></b><span>คะแนนเฉลี่ย</span></div>
+        <div class="stat"><b><span class="num" data-count="860">860</span></b><span>รีวิวจากคนไข้</span></div>
+        <div class="stat"><b>฿<span class="num" data-count="0">0</span></b><span>ค่าปรึกษาแพทย์</span></div>
+      </div>
+      <div class="hero-cta reveal d3">
+        <a class="btn btn--primary" href="https://line.me/R/ti/p/@glowclinic.demo">ทักไลน์ปรึกษาฟรี</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="visit" aria-labelledby="visit-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">ที่ตั้ง</p>
+        <h2 id="visit-title"><span class="w"><span>ทองหล่อ</span></span> <span class="w"><span>ซอย</span></span> <span class="w"><span>xx</span></span> <span class="w"><span>ตรงข้ามคอมมูนิตี้มอลล์</span></span></h2>
+        <svg class="rule" viewBox="0 0 220 10" fill="none" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+        <p>อยู่ฝั่งเดียวกับร้านกาแฟ ขึ้นลิฟต์ชั้น 3 ไม่ต้องผ่านล็อบบี้โรงแรม</p>
+      </div>
+      <!-- วาดเป็นเส้น ไม่ฝัง iframe ของ Google: หน้าเว็บคลินิกลากตัวติดตามของ
+           บุคคลที่สามเข้ามาไม่ได้โดยไม่มีเหตุผล ปุ่มนำทางข้างล่างทำงานเดียวกัน -->
+      <div class="soi reveal">
+        <svg class="soi-map" viewBox="0 0 320 190" role="img"
+             aria-label="แผนผังซอย: คลินิกอยู่ในทองหล่อ ซอย xx ตรงข้ามคอมมูนิตี้มอลล์ เดินจากสถานีบีทีเอสทองหล่อประมาณ 10 นาที">
+          <path class="road" d="M0 40H320" stroke-width="13"/>
+          <path class="road" d="M196 40V182" stroke-width="9"/>
+          <rect class="block" x="108" y="92" width="66" height="54" rx="5"/>
+          <rect class="block" x="52" y="54" width="20" height="20" rx="3"/>
+          <text class="label" x="232" y="28">ถ.ทองหล่อ</text>
+          <text class="label" x="206" y="76">ซอย xx</text>
+          <text class="label" x="34" y="90">BTS ทองหล่อ</text>
+          <text class="label" x="112" y="124">คอมมูนิตี้มอลล์</text>
+          <path class="route" pathLength="1" d="M62 54V34H203V124h14"/>
+          <circle class="here" cx="220" cy="124" r="7"/>
+          <text class="here-label" x="234" y="128">โกลว์ คลินิก</text>
+        </svg>
+        <div class="soi-facts">
+          <div><b>เปิดทุกวัน</b><span>11:00–20:00 · นัดล่วงหน้าได้ทางไลน์</span></div>
+          <div><b>เดินจาก BTS</b><span>ทองหล่อ ทางออก 3 ประมาณ 10 นาที</span></div>
+          <div><b>ที่จอดรถ</b><span>ในอาคาร ฟรี 2 ชั่วโมงสำหรับคนไข้</span></div>
+          <div><b>โทรนัดหมาย</b><span><a href="tel:">02-xxx-xxxx</a></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="result" aria-labelledby="result-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">ผลลัพธ์ตามจริง</p>
+        <h2 id="result-title"><span class="w"><span>เห็นผลเมื่อไหร่</span></span> <span class="w"><span>และต้องทำกี่ครั้ง</span></span></h2>
+        <svg class="rule" viewBox="0 0 220 10" fill="none" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+        <p>ตัวเลขข้างล่างคือค่าเฉลี่ยจากคนไข้จริงของคลินิก ไม่ใช่คำโฆษณา — บางคนเร็วกว่า บางคนช้ากว่า แพทย์จะบอกให้ตั้งแต่วันประเมิน</p>
+      </div>
+      <div class="table-wrap reveal">
+        <table class="cmp">
+          <thead><tr><th scope="col">หัตถการ</th><th scope="col">เริ่มเห็นผล</th><th scope="col">ผลเต็มที่</th><th scope="col">ทำซ้ำเมื่อไหร่</th></tr></thead>
+          <tbody>
+            <tr class="reveal"><th scope="row">เลเซอร์หน้าใส</th><td data-l="เริ่มเห็นผล">หลังครั้งแรก 3–5 วัน</td><td data-l="ผลเต็มที่">ครั้งที่ 3–5</td><td data-l="ทำซ้ำเมื่อไหร่">ทุก 4 สัปดาห์</td></tr>
+            <tr class="reveal"><th scope="row">ทรีตเมนต์ลดสิว</th><td data-l="เริ่มเห็นผล">7–10 วัน</td><td data-l="ผลเต็มที่">ครั้งที่ 3</td><td data-l="ทำซ้ำเมื่อไหร่">ทุก 1 สัปดาห์ ช่วงแรก</td></tr>
+            <tr class="reveal"><th scope="row">โบท็อกซ์</th><td data-l="เริ่มเห็นผล">3–5 วัน</td><td data-l="ผลเต็มที่">14 วัน</td><td data-l="ทำซ้ำเมื่อไหร่">ทุก 4–6 เดือน</td></tr>
+            <tr class="reveal"><th scope="row">ฟิลเลอร์</th><td data-l="เริ่มเห็นผล">ทันทีหลังฉีด</td><td data-l="ผลเต็มที่">หลังยุบบวม 7 วัน</td><td data-l="ทำซ้ำเมื่อไหร่">ทุก 9–12 เดือน</td></tr>
+            <tr class="reveal"><th scope="row">ร้อยไหม</th><td data-l="เริ่มเห็นผล">ทันที (ยกขึ้นทางกล)</td><td data-l="ผลเต็มที่">4–6 สัปดาห์</td><td data-l="ทำซ้ำเมื่อไหร่">ทุก 12 เดือน</td></tr>
+            <tr class="reveal"><th scope="row">IPL กำจัดขน</th><td data-l="เริ่มเห็นผล">หลังครั้งที่ 2</td><td data-l="ผลเต็มที่">ครั้งที่ 6</td><td data-l="ทำซ้ำเมื่อไหร่">เก็บปีละ 1–2 ครั้ง</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- section "ขั้นตอน" ถูกตัดทิ้ง 21/8/26 — มันพูดเรื่องเดียวกับไทม์ไลน์ข้างบนคำต่อคำ
+       ("รู้ราคาและแผนก่อน ค่อยตัดสินใจ" กับ "ตรวจก่อน คุยก่อน ค่อยตัดสินใจ") ด้วยเครื่องมือ
+       เดียวกัน คือพูดซ้ำสองรอบ ผิด ENGINE §1b ข้อ 10 (ทุก section ต้องตอบคนละคำถาม)
+       ข้อเดียวที่มีแต่ section นี้พูดคือ "นัดดูผลทุกครั้ง ปรับแผนให้ฟรีถ้าไม่เป็นไปตามที่คุย"
+       ย้ายไปเป็นบรรทัดสุดท้ายของไทม์ไลน์แล้ว -->
+
+  <section class="section" id="safe" aria-labelledby="safe-title">
+    <div class="wrap">
+      <div class="section-head section-head--mid reveal">
+        <p class="kicker">ความปลอดภัย</p>
+        <h2 id="safe-title"><span class="w"><span>เครื่องมือ ยา และคน</span></span> <span class="w"><span>ที่อยู่หลังผลลัพธ์</span></span></h2>
+        <svg class="rule" viewBox="0 0 220 10" fill="none" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+        <p>เรื่องที่คลินิกส่วนใหญ่ไม่พูดถึง แต่เป็นสิ่งที่ทำให้ราคาต่างกันจริงๆ</p>
+      </div>
+      <div class="facts">
+        <div class="fact reveal"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M4.4 2.8h15.2v18.4H4.4Z"/><path pathLength="1" d="M7.6 7.4h8.8M7.6 11h8.8M7.6 14.6h5.2"/><circle pathLength="1" cx="16.6" cy="16.6" r="2.6"/></svg></div><div><b>ใบอนุญาตสถานพยาบาล</b><span>เลขที่ 10101002566 ติดไว้หน้าเคาน์เตอร์ ตรวจสอบกับกรมสนับสนุนบริการสุขภาพได้</span></div></div>
+        <div class="fact reveal d1"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M3.6 7.4 12 3.2l8.4 4.2v9.2L12 20.8 3.6 16.6Z"/><path pathLength="1" d="M3.6 7.4 12 11.6l8.4-4.2M12 11.6v9.2"/></svg></div><div><b>ยาและฟิลเลอร์มี อย. ทุกตัว</b><span>เปิดกล่องต่อหน้าคนไข้เสมอ ถ่ายรูปล็อตและวันหมดอายุเก็บไว้ในเวชระเบียนของคุณ</span></div></div>
+        <div class="fact reveal d2"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M13.4 4.2 19.8 10.6"/><path pathLength="1" d="M11.2 6.4 17.6 12.8 9.4 21 3 14.6Z"/><path pathLength="1" d="M6.6 11.2 9.8 14.4M9.4 8.4l3.2 3.2"/></svg></div><div><b>แพทย์เป็นคนฉีดเอง</b><span>ไม่มีการให้ผู้ช่วยฉีดแทน ทุกหัตถการมีชื่อแพทย์ผู้ทำในใบเสร็จ</span></div></div>
+        <div class="fact reveal"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M4.4 3.6h15.2v16.8H4.4Z"/><path pathLength="1" d="M4.4 8.2h15.2"/><path pathLength="1" d="M8.2 13.2l2.6 2.6 5-5"/></svg></div><div><b>เข็มและหัวเลเซอร์ใช้ครั้งเดียว</b><span>แกะซองใหม่ทุกครั้ง หัวทรีตเมนต์ที่ใช้ซ้ำได้ผ่านหม้อนึ่งความดันทุกวัน</span></div></div>
+        <div class="fact reveal d1"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M2.8 7.6h18.4v12.8H2.8Z"/><path pathLength="1" d="M8.6 7.6V4.8h6.8v2.8"/><path pathLength="1" d="M12 11.4v5.2M9.4 14h5.2"/></svg></div><div><b>มีชุดกู้ชีพและยาแก้ฟิลเลอร์</b><span>ไฮยาลูรอนิเดสพร้อมใช้ตลอดเวลาทำการ สำหรับกรณีฉุกเฉินจากการฉีด</span></div></div>
+        <div class="fact reveal d2"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M3.4 5.2h17.2v11.2H10.2L5.6 20.4v-4H3.4Z"/><path pathLength="1" d="M8 9.2h8M8 12.4h5"/></svg></div><div><b>ปรึกษาหลังทำไม่มีค่าใช้จ่าย</b><span>กลับมาให้แพทย์ดูซ้ำได้ตลอดคอร์ส ไม่ว่าจะซื้อคอร์สหรือทำครั้งเดียว</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="voices" aria-labelledby="voices-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">เสียงจากคนไข้</p>
+        <h2 id="voices-title"><span class="w"><span>สิ่งที่คนไข้เล่าหลังครบคอร์ส</span></span></h2>
+        <svg class="rule" viewBox="0 0 220 10" fill="none" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+      </div>
+      <div class="quotes">
+        <blockquote class="quote reveal">
+          <p class="stars" aria-label="ให้ 5 ดาว">★★★★★</p>
+          <p>ชอบที่หมอบอกตรงๆ ว่าอันไหนยังไม่ต้องทำ ไม่ได้ขายคอร์สตั้งแต่วันแรก</p>
+          <footer>คุณพิม · เลเซอร์หน้าใส 4 ครั้ง</footer>
+        </blockquote>
+        <blockquote class="quote reveal d1">
+          <p class="stars" aria-label="ให้ 5 ดาว">★★★★★</p>
+          <p>สิวอักเสบหายภายในเดือนเดียว ที่สำคัญคือมีคนตอบไลน์ตอนกลางคืนตอนที่กังวล</p>
+          <footer>คุณอาร์ต · ทรีตเมนต์ลดสิว</footer>
+        </blockquote>
+        <blockquote class="quote reveal d2">
+          <p class="stars" aria-label="ให้ 4 ดาว">★★★★☆</p>
+          <p>คิวแน่นช่วงเย็น ต้องจองล่วงหน้า แต่ถึงคิวแล้วไม่รู้สึกว่าถูกเร่ง</p>
+          <footer>คุณจูน · ฟิลเลอร์ร่องแก้ม</footer>
+        </blockquote>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="faq" aria-labelledby="faq-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="kicker">คำถามที่พบบ่อย</p>
+        <h2 id="faq-title"><span class="w"><span>เรื่องที่ควรถามก่อนตัดสินใจ</span></span></h2>
+        <svg class="rule" viewBox="0 0 220 10" fill="none" aria-hidden="true" focusable="false"><use href="#i-icon1"/></svg>
+      </div>
+      <div class="faq reveal">
+        <details><summary>ราคาที่แจ้งบวกเพิ่มทีหลังไหม</summary><p>ไม่บวก ราคาที่คุยก่อนทำคือราคาที่จ่าย ถ้าต้องเพิ่มอะไรจะถามก่อนเสมอ</p></details>
+        <details><summary>เจ็บไหม พักฟื้นนานหรือเปล่า</summary><p>เลเซอร์หน้าใสรู้สึกอุ่นๆ กลับไปทำงานต่อได้เลย ฟิลเลอร์อาจบวมเล็กน้อย 1-2 วัน</p></details>
+        <details><summary>รู้ได้ยังไงว่าฟิลเลอร์เป็นของแท้</summary><p>เปิดกล่องต่อหน้าคนไข้ทุกครั้ง มีเลขล็อตให้ถ่ายรูปเก็บไว้ได้</p></details>
+        <details><summary>ตรวจโดยแพทย์ทุกเคสจริงไหม</summary><p>จริง แพทย์ผิวหนังอยู่ประจำทุกวันทำการ ไม่มีเคสไหนที่พนักงานขายเป็นคนประเมิน</p></details>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p><strong>โกลว์ คลินิก</strong> · 25/xx ซอยทองหล่อ xx คลองตันเหนือ วัฒนา กรุงเทพฯ 10110</p>
+    <p>หน้านี้เป็นงานตัวอย่างของ ตามสั่ง (TarmSung) — คลินิกในภาพเป็นแบรนด์สมมติ</p>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script src="js/nav-response.js" defer></script>
+<script src="/work/_demo-badge.js" defer></script>
+</body>
+</html>

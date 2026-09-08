@@ -1,0 +1,33 @@
+{
+  "name": "ijek-desktop",
+  "version": "1.0.0",
+  "description": "Ijek — Train With Myself (desktop)",
+  "main": "main.js",
+  "author": "Ijek by Patipan",
+  "scripts": {
+    "start": "electron .",
+    "icon": "node -e \"require('png-to-ico')('icon-512.png').then(b=>require('fs').writeFileSync('icon.ico',b)).then(()=>console.log('icon.ico written'))\"",
+    "dist": "electron-builder --win"
+  },
+  "build": {
+    "appId": "app.ijek.desktop",
+    "productName": "Ijek",
+    "directories": { "output": "out" },
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "shortcutName": "Ijek"
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "png-to-ico": "^2.1.8"
+  }
+}

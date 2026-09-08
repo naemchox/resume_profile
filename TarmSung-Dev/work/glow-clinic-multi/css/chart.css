@@ -1,0 +1,353 @@
+/* =============================================================================
+   โกลว์ คลินิก — ระบบดีไซน์ "เวชระเบียน" (23 ส.ค. 2026)
+
+   ทำไมไม่ใช่สปา: ของเดิมเป็นรูปสต็อกสปาเต็มจอ + ชมพูเข้ม ซึ่งเป็นค่าเริ่มต้นที่
+   คลินิกความงามทุกเจ้าใช้ ข้อโต้แย้งของร้านนี้คือ "แพทย์ตรวจก่อน ไม่ใช่พนักงานขาย"
+   หน้าเว็บจึงควรหน้าตาเหมือนเอกสารที่หมอกรอก ไม่ใช่โบรชัวร์ที่เซลส์แจก
+   ภาษาที่หยิบมาคือใบเวชระเบียนจริง: กระดาษ · เส้นไกด์บาง · ป้ายช่องตัวเล็ก ·
+   ตัวเลขพิมพ์ดีดชิดขวา · ปากกาน้ำเงินสำหรับของที่กรอกทีหลัง · ตรายางแดงหนึ่งดวงต่อหน้า
+
+   คุมโทนเดียว (กระดาษ) ตั้งใจ ไม่ทำโหมดมืด — ใบเวชระเบียนไม่มีเวอร์ชันกลางคืน
+   จึงต้องระบายพื้นกับสีตัวอักษรเองทุกจุด ไม่พึ่งค่าเริ่มต้นของ host
+   ========================================================================== */
+
+:root {
+  --paper:    #FBFAF6;   /* กระดาษฟอร์ม */
+  --field:    #F1EEE5;   /* ช่องที่ถูกกรอก */
+  --ink:      #191C1E;   /* หมึกพิมพ์ */
+  --ink-2:    #565A5F;
+  /* 24/8/69 ยกคอนทราสต์สองตัวนี้หลัง designer วัดของเดิม: --ink-3 ได้ ~3.3:1
+     (ต่ำกว่าเกณฑ์อ่านง่าย 4.5:1) ทำให้ป้ายช่องทุกป้ายในเว็บจาง และ --rule ได้ ~1.15:1
+     ทำให้กรอบกล่องแทบมองไม่เห็น กล่องทุกใบเลยลอยอยู่บนกระดาษเดียวกันแยกไม่ออก
+     สองตัวนี้เป็น token ที่ทั้งเว็บใช้ร่วม แก้ที่นี่ที่เดียวจึงกระทบครบทุกหน้า */
+  --ink-3:    #63676B;
+  --rule:     #B9B2A2;   /* เส้นไกด์ */
+  --rule-2:   #EAE5D9;
+  --guide:    #F0ECE1;   /* เส้นไกด์บนพื้นกระดาษ จางกว่าเส้นขอบ ไม่งั้นอ่านเป็นลายทาง */
+  --pen:      #23456B;   /* ปากกาน้ำเงิน = ของที่หมอกรอก/ลิงก์ */
+  --stamp:    #B03A22;   /* ตรายาง = หนึ่งดวงต่อหน้า ห้ามใช้พร่ำเพรื่อ */
+  --stamp-bg: #F6E7E2;
+
+  --shell: 76rem;
+  --s1:.4rem; --s2:.8rem; --s3:1.2rem; --s4:1.8rem; --s5:2.8rem; --s6:4.4rem;
+
+  --serif: "Trirong", Georgia, serif;
+  --sans:  "IBM Plex Sans Thai", system-ui, sans-serif;
+  --mono:  "IBM Plex Mono", ui-monospace, monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 1rem/1.75 var(--sans);
+  /* เส้นไกด์จางแนวนอนแบบกระดาษฟอร์ม — ระยะ 2rem ตรงกับ line-height ของเนื้อความ
+     เพื่อให้บรรทัดนั่งบนเส้น ไม่ใช่ลอยคร่อม */
+  background-image: repeating-linear-gradient(
+    to bottom, transparent 0 calc(2rem - 1px), var(--guide) calc(2rem - 1px) 2rem);
+  background-attachment: local;
+}
+
+.wrap { width: min(100% - 2.4rem, var(--shell)); margin-inline: auto; }
+
+/* ---- ตัวหนังสือ ----------------------------------------------------------- */
+h1, h2, h3 { font-family: var(--serif); font-weight: 500; line-height: 1.25; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(2rem, 1.3rem + 2.6vw, 3.4rem); letter-spacing: -.01em; }
+h2 { font-size: clamp(1.45rem, 1.1rem + 1.3vw, 2.1rem); }
+h3 { font-size: 1.15rem; }
+p  { margin: 0 0 var(--s3); max-width: 62ch; }
+a  { color: var(--pen); text-underline-offset: .22em; text-decoration-thickness: 1px; }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--stamp); outline-offset: 3px; }
+
+/* ขนาดตัวเล็กสุดในเว็บนี้คือ .79rem (~12.6px) ไม่ต่ำกว่านั้น — ใบฟอร์มจริงพิมพ์
+   เล็กกว่านี้ได้เพราะถือห่างตา 30 ซม. แต่บนมือถือ 9-11px คืออ่านไม่ออก
+   (audit-mobile ฟ้อง 9.9px ตอนวัดจริง 23/8/26) ภาษาของฟอร์มอยู่ที่ระยะตัวอักษร
+   กับฟอนต์พิมพ์ดีด ไม่ใช่ที่ความเล็ก
+   ป้ายช่องบนฟอร์ม — ตัวเล็ก พิมพ์ดีด ระยะห่างตัวอักษรกว้าง อ่านเป็น "ชื่อช่อง" ไม่ใช่หัวเรื่อง */
+.lab {
+  font: 500 .79rem/1.25 var(--mono); letter-spacing: .15em;
+  text-transform: uppercase; color: var(--ink-3);
+  display: block; margin-bottom: var(--s2);
+}
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* ---- ตรายาง: หนึ่งดวงต่อหน้า --------------------------------------------- */
+.stamp {
+  display: inline-block; transform: rotate(-2.4deg);
+  border: 2px solid var(--stamp); color: var(--stamp); background: var(--stamp-bg);
+  padding: .35rem .8rem; border-radius: 3px;
+  font: 600 .8rem/1.3 var(--mono); letter-spacing: .06em;
+}
+
+/* ---- แถบหัวเว็บ ----------------------------------------------------------- */
+.top { border-bottom: 1px solid var(--rule); background: var(--paper); position: sticky; top: 0; z-index: 50; }
+.top__in { display: flex; align-items: center; gap: var(--s4); padding: var(--s2) 0; }
+.brand { display: flex; flex-direction: column; justify-content: center; min-height: 44px; text-decoration: none; color: var(--ink); line-height: 1.2; }
+.brand b { font: 500 1.15rem/1.2 var(--serif); }
+.brand span { font: 500 .79rem/1.3 var(--mono); letter-spacing: .2em; color: var(--ink-3); }
+.nav { margin-left: auto; display: flex; gap: var(--s3); flex-wrap: wrap; }
+/* min-width ด้วย ไม่ใช่แค่ min-height — คำสั้นอย่าง "รีวิว" กว้างแค่ 24px
+   สูงพอแต่แคบเกินกดพลาด (audit-mobile จับได้ 23/8/26) ตัวยาวไม่กระทบเพราะกว้างเกิน 44 อยู่แล้ว */
+.nav a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; font-size: .95rem; text-decoration: none; color: var(--ink-2); padding: .2rem 0; border-bottom: 2px solid transparent; }
+.nav a:hover { color: var(--ink); border-bottom-color: var(--rule); }
+.nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--stamp); }
+
+.btn {
+  display: inline-flex; align-items: center; gap: .5rem; min-height: 44px;
+  padding: .55rem 1.1rem; border: 1px solid var(--ink); background: var(--ink); color: var(--paper);
+  font: 500 .95rem/1 var(--sans); text-decoration: none; border-radius: 2px; cursor: pointer;
+}
+.btn:hover { background: var(--pen); border-color: var(--pen); }
+.btn--ghost { background: transparent; color: var(--ink); }
+.btn--ghost:hover { background: var(--field); color: var(--ink); border-color: var(--ink); }
+
+/* ---- ช่องกรอกแบบฟอร์ม: ป้ายนั่งคร่อมเส้นขอบ ------------------------------ */
+.field { border: 1px solid var(--rule); background: var(--paper); padding: var(--s4); position: relative; border-radius: 2px; }
+.field > .lab {
+  position: absolute; top: -.62rem; left: var(--s3);
+  background: var(--paper); padding-inline: .5rem; margin: 0;
+}
+
+/* ---- ส่วนหน้า ------------------------------------------------------------- */
+.sec { padding-block: var(--s6); border-top: 1px solid var(--rule-2); }
+.sec:first-of-type { border-top: 0; }
+.sec__head { margin-bottom: var(--s4); }
+
+/* ---- ตารางข้อมูล: ตัวเลขชิดขวา เรียงเป็นคอลัมน์ให้กวาดตาลงได้ ------------- */
+.tbl { width: 100%; border-collapse: collapse; font-size: .95rem; }
+.tbl caption { text-align: left; margin-bottom: var(--s2); color: var(--ink-2); font-size: .9rem; }
+.tbl th, .tbl td { padding: .6rem .7rem; border-bottom: 1px solid var(--rule-2); text-align: left; vertical-align: top; }
+.tbl th { font: 500 .79rem/1.5 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); border-bottom-color: var(--rule); }
+/* .n = ตัวเลขล้วน ใช้ฟอนต์พิมพ์ดีดให้หลักตรงกันทั้งคอลัมน์
+   .r = ชิดขวาแต่เป็นข้อความไทย ต้องอยู่ฟอนต์ปกติ — mono กับอักษรไทยระยะเพี้ยน
+   สระบนล่างชนกัน อ่านยากกว่าเดิม (เจอตอนดูจริง 23/8/26) */
+.tbl td.n, .tbl th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tbl td.r, .tbl th.r { text-align: right; white-space: nowrap; }
+.tbl th.r { font: 500 .79rem/1.5 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+/* ลิงก์ในตารางสูงตามตัวอักษรแค่ ~25px นิ้วกดพลาดง่าย — ขยายเขตกดด้วย padding
+   แล้วหักกลับด้วย margin ติดลบเท่ากัน แถวจึงสูงเท่าเดิมทุกพิกเซล แต่พื้นที่กดถึง 44px
+   (วิธีเดียวกับที่ audit-mobile ยอมรับ: มันวัด offsetHeight ของตัวลิงก์เอง) */
+.tbl td a { display: inline-block; padding-block: .6rem; margin-block: -.6rem; }
+.tbl tbody tr:hover { background: var(--field); }
+.scroll-x { overflow-x: auto; }
+
+/* ลิงก์ "ไปต่อ" ที่ยืนเดี่ยวท้ายส่วน — เป็น CTA จริง ไม่ใช่ลิงก์ในเนื้อความ
+   จึงต้องมีเขตกด 44px เหมือนปุ่ม ใช้ padding+margin หักล้างเหมือนลิงก์ในตาราง */
+.more { display: inline-block; padding-block: .55rem; margin-block: -.55rem; font-weight: 500; }
+
+/* ---- ตัวเลือกปัญหา (หัวใจของหน้าแรก) ------------------------------------- */
+/* 6 ใบ ต้องลงเป็นสี่เหลี่ยมเต็มทุกความกว้าง ห้ามเหลือใบเดียวค้างแถวล่าง
+   (website_building.md Step 5 "No orphan in a grid") — auto-fit ให้ 5+1 ที่ 1440px
+   จึงต้องกำหนดจำนวนคอลัมน์ที่หาร 6 ลงตัวเองทุกช่วง */
+.picker { display: grid; gap: var(--s2); grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 900px) { .picker { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .picker { grid-template-columns: 1fr; } }
+/* ตัวเลือกปัญหาคือของที่ทั้งเว็บมีไว้ขาย (ที่ว่างของตลาด 0/5 ตาม BRIEF) แต่เดิม
+   หน้าตาเหมือนกล่องข้อความ .field ทุกประการ สายตาจึงแยกไม่ออกว่าอันไหนกดได้
+   ให้พื้นต่างจากกระดาษ + ขอบหนากว่า + มีหัวลูกศรบอกว่ากดแล้วมีอะไรตามมา */
+.pick {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  border: 2px solid var(--rule); background: var(--field); border-radius: 2px;
+  position: relative; padding-right: 2.4rem;
+  padding: .85rem 1rem; font: 400 1rem/1.4 var(--sans); color: var(--ink);
+}
+.pick b { display: block; font-weight: 600; }
+.pick small { display: block; color: var(--ink-3); font-size: .86rem; line-height: 1.5; margin-top: .2rem; }
+.pick::after { content: "→"; position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+  font-family: var(--mono); color: var(--ink-3); transition: transform .18s ease; }
+.pick:hover { border-color: var(--pen); background: var(--paper); }
+.pick:hover::after { transform: translateY(-50%) translateX(3px); color: var(--pen); }
+.pick[aria-pressed="true"]::after { content: "✓"; color: var(--stamp); }
+.pick[aria-pressed="true"] { border-color: var(--stamp); background: var(--stamp-bg); box-shadow: inset 3px 0 0 var(--stamp); }
+
+.result { margin-top: var(--s4); }
+.result__none { color: var(--ink-3); font-style: italic; }
+
+/* ---- การ์ดรายการ --------------------------------------------------------- */
+.rows { display: grid; gap: var(--s3); }
+.row { border: 1px solid var(--rule); border-radius: 2px; padding: var(--s4); background: var(--paper); }
+.row h3 { margin-bottom: .3rem; }
+.row p { margin-bottom: var(--s2); }
+.meta { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); font: 400 .85rem/1.7 var(--mono); color: var(--ink-2); }
+.meta b { color: var(--ink); font-weight: 600; }
+
+.grid2 { display: grid; gap: var(--s3); grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr)); }
+/* 3 ใบ = 3 คอลัมน์ หรือ 1 คอลัมน์ ไม่มีช่วงที่เป็น 2+1 */
+.grid3 { display: grid; gap: var(--s3); grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 860px) { .grid3 { grid-template-columns: 1fr; } }
+
+/* ---- รีวิว: เก็บ "ที่มา" ไว้ให้เห็น เพราะแหล่งคือสิ่งที่ทำให้เชื่อ ------------ */
+.rev { border: 1px solid var(--rule); border-radius: 2px; padding: var(--s3) var(--s4); background: var(--paper); }
+.rev__src { font: 500 .79rem/1.3 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--paper); background: var(--ink-2); padding: .25rem .5rem; border-radius: 2px; }
+.rev__who { font: 400 .84rem/1.7 var(--mono); color: var(--ink-3); }
+.rev p { margin: var(--s2) 0 0; font-size: .95rem; }
+
+/* ---- รูปแบบเอกสาร: กรอบบาง + คำบรรยายใต้ภาพ ------------------------------ */
+figure { margin: 0; }
+/* ทุก figure ต้องมีสัดส่วนบังคับ ไม่ใช่ปล่อยตามไฟล์ — รูปสต็อกมีทั้งแนวนอน 1400x933
+   และแนวตั้ง 1400x2100 ปนกัน ปล่อยตามไฟล์แล้วรูปแนวตั้งจะสูง 1,700-1,800px กลางหน้า
+   (สคริปต์ตรวจที่วัดแค่ naturalWidth มองไม่เห็น ต้องวัดกล่องที่ render จริงถึงจับได้ 24/8/69)
+   3:2 คือค่าตั้งต้น ส่วนที่ต้องการอย่างอื่นเขียนทับเป็นรายคลาสด้านล่าง */
+figure img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover;
+  object-position: 50% 35%; border: 1px solid var(--rule); border-radius: 2px;
+  filter: saturate(.72) contrast(1.03);
+  /* เพดานความสูง: สัดส่วนอย่างเดียวไม่พอ เพราะกล่องเนื้อหากว้าง 1,156px คูณ 3:2
+     ก็ยังได้รูปสูง 771px = เกือบเต็มจอหนึ่งจอสำหรับรูปประกอบบทความใบเดียว
+     26rem คือความสูงที่ยังเห็นบรรยากาศครบแต่ไม่แย่งที่จากเนื้อหา */
+  max-height: 26rem; }
+figcaption { font: 400 .82rem/1.7 var(--mono); color: var(--ink-3); margin-top: .45rem; }
+
+/* ---- รูปแบบเอกสาร: กรอบ + คำบรรยาย ------------------------------------
+   คลินิกจริงที่นับมา (SLC 160 รูป · Timeless 96 · รมย์รวินท์ 8) นำหน้าแรกด้วยภาพทั้งหมด
+   ของเดิมที่นี่มี 0 รูป — รูปจึงไม่ใช่ของประดับในเว็บนี้ แต่เป็นของที่ขาดไม่ได้
+   สิ่งที่คุมไว้คือ "บทบาท" ของรูป: ภาพประกอบเอกสาร มีกรอบบาง มีคำบรรยายที่เป็น
+   ข้อเท็จจริง ไม่ใช่ภาพเต็มจอไร้ขอบแบบโบรชัวร์ */
+.figwide { margin-block: var(--s4); }
+/* 24/8/69 — 3:1 แคบเกินไปตอนแหล่งเป็นรูปแนวตั้ง: รูปห้องตรวจเป็น 1400x2100 และของดี
+   (เตียงตรวจ เครื่องมือ) อยู่ครึ่งล่าง พอบีบลงกรอบ 3:1 แล้วครอปที่ 35% จากบน
+   สิ่งที่เหลือคือเพดานกับผนัง = ฮีโร่ที่ไม่บอกว่าเป็นคลินิก
+   16:9 เห็นห้องได้ทั้งห้อง และ object-position 62% เล็งไปที่ของจริงในภาพ ไม่ใช่เพดาน */
+.figwide img { aspect-ratio: 16 / 9; object-fit: cover; object-position: 50% 62%; max-height: 32rem; }
+
+/* การ์ดโปรแกรม — รูปนำ ตามด้วยชื่อ เงื่อนไข และราคา เรียงเป็นคอลัมน์เดียวกันทุกใบ
+   6 ใบ ต้องลงเต็มแถว ไม่มีใบกำพร้า */
+.cards { display: grid; gap: var(--s3); grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 980px) { .cards { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .cards { grid-template-columns: 1fr; } }
+.card {
+  display: flex; flex-direction: column; gap: .35rem;
+  border: 1px solid var(--rule); border-radius: 2px; background: var(--paper);
+  padding: var(--s2); text-decoration: none; color: var(--ink);
+}
+/* height:auto จำเป็น ไม่ใช่ของแถม — <img height="933"> ใน HTML ถูกแปลงเป็น
+   height:933px แล้วชนะ aspect-ratio (เพราะระบุทั้งกว้างและสูง) ผลคือรูปสูง 933px
+   ทุกใบ ดันการ์ดแถวล่างหลุดจอจน lazy-load ไม่ยิง = กล่องว่างเรียงกัน
+   figure img มี height:auto อยู่แล้วเลยไม่พัง — ของชนิดเดียวกันต้องใช้กลไกเดียวกัน
+   (วัดได้ 24/8/69: กล่อง 365x933 ทั้งที่ควรเป็น 365x243) */
+.card img { width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; border: 1px solid var(--rule-2); border-radius: 2px; filter: saturate(.78) contrast(1.02); margin-bottom: .5rem; }
+.card b { font: 500 1.02rem/1.35 var(--serif); }
+.card span { font: 400 .85rem/1.5 var(--mono); color: var(--ink-3); }
+.card em { font-style: normal; font-weight: 600; color: var(--pen); margin-top: auto; padding-top: .4rem; }
+.card:hover { border-color: var(--pen); }
+.card:hover b { text-decoration: underline; text-underline-offset: .2em; }
+
+/* รูปย่อในตาราง — ช่วยให้กวาดตาหาโปรแกรมได้จากภาพ ไม่ต้องอ่านชื่อทุกบรรทัด */
+.thumbcell a { display: flex; align-items: center; gap: .7rem; padding-block: .35rem; margin-block: -.35rem; text-decoration: none; }
+.thumbcell a span { text-decoration: underline; text-underline-offset: .2em; }
+.thumb { width: 66px; height: 44px; object-fit: cover; border: 1px solid var(--rule-2); border-radius: 2px; flex: 0 0 auto; filter: saturate(.78); }
+
+/* แถวที่มีรูปอยู่ข้าง — โปรโมชั่นและประวัติแพทย์ */
+.row--img { display: grid; gap: var(--s4); grid-template-columns: 15rem 1fr; align-items: start; }
+/* object-position ต้องเป็น "ค่อนบน" ไม่ใช่กลาง — รูปคนเป็นแนวตั้ง (1400x2100)
+   พอบังคับลงกรอบ 4:3 แล้ว cover เอากลางภาพ จะได้ลำตัวกับมือ ส่วนหัวหลุดออกนอกกรอบ
+   หน้าแพทย์ทั้งหน้ามีไว้ให้คนเชื่อว่า "คุยกับหมอจริง" การครอปหน้าทิ้งจึงล้มจุดประสงค์
+   ของหน้านั้นทั้งหน้า (designer จับได้ 24/8/69 — และของชนิดเดียวกันทั้งหมดต้องแก้พร้อมกัน) */
+.row--img figure img { aspect-ratio: 3 / 4; object-fit: cover; object-position: 50% 22%; }
+/* เอา .figwide ออกจากกฎนี้ — มันถูกเขียนไว้หลัง .figwide img จึงทับค่าที่ตั้งไว้ก่อน
+   ทำให้ฮีโร่ครอปเอาส่วนบนของภาพ (เพดาน) แทนที่จะเป็นตัวห้อง
+   ลำดับในไฟล์ CSS มีความหมาย ของที่ตั้งใจให้เจาะจงต้องอยู่หลัง ไม่ใช่ก่อน */
+.card img, .person img { object-position: 50% 35%; }
+@media (max-width: 760px) { .row--img { grid-template-columns: 1fr; } .row--img figure img { aspect-ratio: 3 / 1.5; } }
+
+/* รูปในการ์ด "ต่างจากที่อื่น" — เตี้ยกว่าปกติ ไม่ให้แย่งความสนใจจากหัวข้อ */
+.field > figure { margin-bottom: var(--s3); }
+.field > figure img { aspect-ratio: 3 / 1.6; object-fit: cover; }
+
+/* ---- คนหล่อสวย: กริดภาพลูกค้า ---------------------------------------------
+   4 คอลัมน์ × 2 แถว = 8 ใบลงเต็มสี่เหลี่ยมพอดี ไม่มีใบกำพร้าทุกช่วงความกว้าง */
+.people { display: grid; gap: var(--s3); grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 1000px) { .people { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 520px)  { .people { grid-template-columns: 1fr; } }
+.person { border: 1px solid var(--rule); border-radius: 2px; padding: var(--s2); background: var(--paper); }
+.person img { width: 100%; height: auto; aspect-ratio: 3 / 4; object-fit: cover; }
+.person figcaption { margin-top: .6rem; }
+.person b { display: block; font: 500 1.02rem/1.3 var(--serif); color: var(--ink); }
+.person span { display: block; font: 400 .82rem/1.6 var(--mono); color: var(--ink-3); }
+.person q { display: block; margin-top: .5rem; font-size: .9rem; color: var(--ink-2); quotes: "“" "”"; }
+
+/* การ์ดเครื่องมือ — ไม่มีรูปเครื่อง จึงให้ข้อมูลทำหน้าที่แทน ป้าย "เข้าใหม่" คือของที่
+   เปลี่ยนบ่อยที่สุดในหน้านี้ ต้องเห็นก่อนอย่างอื่น */
+.card--mach { padding: var(--s4); }
+/* .79rem คือพื้นตัวเล็กสุดของเว็บนี้ (ดูหมายเหตุที่ .lab) ป้ายนี้เคยตั้ง .7rem
+   = 11.2px แล้วด่านมือถือฟ้อง — ของใหม่ที่เพิ่มทีหลังต้องเดินตามพื้นเดิม ไม่ใช่ตั้งใหม่เอง */
+.tagnew { font-style: normal; font: 600 .79rem/1.2 var(--mono); letter-spacing: .09em;
+  color: var(--paper); background: var(--stamp); padding: .28rem .5rem; border-radius: 2px; vertical-align: middle; margin-left: .4rem; }
+
+/* ---- รายการติ๊ก ----------------------------------------------------------- */
+.ticks { list-style: none; padding: 0; margin: 0; display: grid; gap: .5rem; }
+.ticks li { padding-left: 1.5rem; position: relative; font-size: .95rem; }
+.ticks li::before { content: "—"; position: absolute; left: 0; color: var(--stamp); font-family: var(--mono); }
+
+/* ---- แบบฟอร์มนัดหมาย ------------------------------------------------------
+   qc วัดมา: ทั้งเว็บเดิมมี 0 form 0 input ขณะที่ Timeless มีช่องกรอก 25 ช่อง
+   SLC มี 50 — เว็บคลินิกที่กดนัดไม่ได้คือเว็บที่ทำหน้าที่ไม่ครบ */
+.bookform { display: grid; gap: var(--s3); grid-template-columns: repeat(2, 1fr); }
+.bookform label { display: flex; flex-direction: column; gap: .35rem;
+  font: 500 .82rem/1.5 var(--mono); letter-spacing: .04em; color: var(--ink-2); }
+.bookform label.wide, .bookform button, .formnote { grid-column: 1 / -1; }
+.bookform input, .bookform select, .bookform textarea {
+  font: 400 1rem/1.6 var(--sans); color: var(--ink); background: var(--paper);
+  border: 1px solid var(--rule); border-radius: 2px; padding: .6rem .7rem; min-height: 44px; width: 100%;
+}
+.bookform textarea { min-height: 5.5rem; resize: vertical; }
+.bookform input:focus-visible, .bookform select:focus-visible, .bookform textarea:focus-visible {
+  outline: 2px solid var(--pen); outline-offset: 1px; border-color: var(--pen); }
+.bookform button { justify-self: start; }
+.bookform button[disabled] { opacity: .55; cursor: default; }
+.formnote { margin: 0; font-size: .95rem; }
+.formnote--ok  { color: var(--pen); }
+.formnote--err { color: var(--stamp); }
+@media (max-width: 640px) { .bookform { grid-template-columns: 1fr; } }
+
+/* แผนที่ — หน้าที่ชื่อ "ที่ตั้ง" ต้องมีของให้กดนำทาง ไม่ใช่แค่ที่อยู่เป็นตัวหนังสือ */
+.mapbox { border: 1px solid var(--rule); border-radius: 2px; overflow: hidden; aspect-ratio: 16 / 7; }
+.mapbox iframe { width: 100%; height: 100%; border: 0; display: block; filter: saturate(.85); }
+@media (max-width: 640px) { .mapbox { aspect-ratio: 4 / 3; } }
+
+/* ช่องทางโซเชียลใน footer */
+.social { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .6rem; }
+.social a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 .7rem;
+  border: 1px solid var(--rule); border-radius: 2px; text-decoration: none;
+  font: 500 .79rem/1 var(--mono); letter-spacing: .06em; color: var(--ink-2); }
+.social a:hover { border-color: var(--pen); color: var(--pen); }
+
+/* ---- ท้ายเว็บ ------------------------------------------------------------- */
+.foot { border-top: 1px solid var(--rule); margin-top: var(--s6); padding-block: var(--s5); font-size: .92rem; color: var(--ink-2); }
+/* ลิงก์ใน footer ก็เป็นลิงก์ที่นิ้วต้องกด ใช้กลไกขยายเขตกดตัวเดียวกับ .more
+   และ .tbl td a — ของชนิดเดียวกันต้องทำงานเหมือนกัน ไม่ใช่แก้เฉพาะตัวที่ด่านฟ้อง */
+.foot a { color: var(--pen); display: inline-block; padding-block: .6rem; margin-block: -.6rem; }
+.foot .social a { padding-block: 0; margin-block: 0; }
+
+/* ---- เผยตอนเลื่อน: เบามาก เพราะเอกสารไม่ควรเต้น ------------------------- */
+.rv { opacity: 0; transform: translateY(10px); transition: opacity .5s ease, transform .5s ease; }
+.js .rv.in, .no-js .rv { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .rv { opacity: 1; transform: none; transition: none; } }
+
+@media (max-width: 860px) {
+  /* qc วัดได้ว่าหัวเว็บ sticky สูง 241px บนจอ 844px = กินจอ 29% ทุกหน้าตลอดเวลา
+     สาเหตุคือเมนู 8 อันตัดขึ้นสองบรรทัดแล้วปุ่มดำกินเต็มความกว้าง
+     แก้โดยให้เมนูเลื่อนแนวนอนแถวเดียว แทนที่จะพับลงมา — ไม่ต้องมีปุ่มแฮมเบอร์เกอร์
+     ซึ่งจะซ่อนชื่อหน้าที่เป็นตัวขายของเว็บนี้ (โปรโมชั่น · คนหล่อสวย) ไปอยู่หลังปุ่ม */
+  .top__in { flex-wrap: wrap; gap: var(--s1) var(--s2); padding-block: var(--s1); }
+  .brand { flex: 1 1 auto; }
+  .top__in > .btn { order: 2; }
+  .nav {
+    order: 3; margin-left: 0; width: 100%; gap: 0 var(--s3);
+    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
+    border-top: 1px solid var(--rule-2); padding-top: .1rem;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  /* 44px ไม่ใช่ 40 — เกณฑ์เขตกดของทั้งรีโปคือ 44 การลดลงมาเพื่อประหยัดความสูงหัวเว็บ
+     คือการแลกกับสิ่งที่ด่านห้ามไว้ ยอมสูงเพิ่ม 4px ดีกว่ากดพลาด */
+  .nav a { flex: 0 0 auto; min-height: 44px; white-space: nowrap; }
+}
+
+@media (max-width: 640px) {
+  .sec { padding-block: var(--s5); }
+}

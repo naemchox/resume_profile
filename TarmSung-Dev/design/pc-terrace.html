@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8">
+<title>เดอะ เทอเรส — เวนิวจัดงานแต่งและงานเลี้ยงบริษัท</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600&family=Noto+Sans+Thai:wght@600;700;800&family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* =============================================================================
+   เดอะ เทอเรส — เว็บไซต์ธุรกิจบริการ (หน้าเดียว 1440x900 สำหรับจอคอมกลางปก)
+
+   เป็นเว็บ "โชว์บริการ" แบบเดียวกับครัวบ้านสวนและโกลว์คลินิกที่อยู่บนมือถือข้างๆ
+   ต่างกันแค่มันเป็นเลย์เอาต์ที่มีแต่จอคอมทำได้: ภาพเต็มความกว้าง + แพ็กเกจสามใบ
+   เรียงกันในแถวเดียว ซึ่งบนมือถือต้องซ้อนกันเป็นสามจอ
+
+   หมวดธุรกิจเลือกไม่ให้ชนของเดิมบนปก (โรงแรม / ร้านอาหาร / คลินิก / ร้านค้า)
+   และรูปทุกใบเลือกจากที่ยังไม่โผล่บนปก — รูปซ้ำสองที่ในภาพเดียวคือ tell ของงานปลอม
+
+   ทำตาม website_building.md เหมือนหน้า VELA: โทเคนสามชั้น (OKLCH), สเกลระยะห่าง
+   เดียว, เงาสองชั้น, ปุ่มชุดเดียวทั้งหน้า, ไอคอน stroke เดียว, โฟกัสจุดเดียว
+   ข้อบังคับของที่ที่มันไปอยู่: มือถือในปกทับจอซ้าย ~10% ทุกอย่างจึงจัดกึ่งกลาง
+   ========================================================================== */
+*{margin:0;padding:0;box-sizing:border-box}
+a{text-decoration:none;color:inherit}
+svg{fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+
+:root{
+  /* 1 · primitive */
+  --forest-950:oklch(0.19 0.024 158); --forest-900:oklch(0.25 0.031 158);
+  --forest-700:oklch(0.40 0.045 158); --forest-100:oklch(0.93 0.020 158);
+  --brass-600:oklch(0.72 0.108 76); --brass-400:oklch(0.82 0.086 80);
+  --brass-100:oklch(0.94 0.035 84);
+  --stone-800:oklch(0.32 0.008 100); --stone-600:oklch(0.52 0.008 100);
+  --stone-400:oklch(0.68 0.007 100); --stone-200:oklch(0.89 0.006 100);
+  --cream:oklch(0.981 0.006 90); --paper:oklch(0.995 0.002 90);
+  /* 2 · semantic */
+  --bg:var(--cream); --surface:var(--paper); --line:var(--stone-200);
+  --text:var(--forest-950); --text-muted:var(--stone-600); --text-faint:var(--stone-400);
+  --action:var(--forest-900); --on-action:var(--paper);
+  --accent:var(--brass-600); --accent-wash:var(--brass-100);
+  --on-photo:var(--paper);
+  /* 3 · component */
+  --btn-radius:999px; --card-radius:20px; --field-radius:12px;
+  --t-xs:12px; --t-sm:14px; --t-md:16px; --t-lg:20px; --t-xl:25px; --t-2xl:31px;
+  --t-4xl:49px; --t-5xl:61px;
+  --font-d:"Noto Sans Thai",sans-serif; --font-b:"Anuphan","Noto Sans Thai",sans-serif;
+  --font-s:"Cormorant Garamond",serif;   /* ตัวเอียงฝรั่งไว้ใช้คำเดียว ไม่ใช่ทั้งหน้า */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:64px; --s9:96px;
+  --e1:0 1px 2px oklch(0.25 0.03 158 / .07), 0 4px 12px oklch(0.25 0.03 158 / .07);
+  --e2:0 2px 4px oklch(0.25 0.03 158 / .08), 0 14px 30px oklch(0.25 0.03 158 / .12);
+  --e3:0 4px 8px oklch(0.25 0.03 158 / .10), 0 30px 60px oklch(0.25 0.03 158 / .20);
+}
+
+body{width:1440px;height:900px;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:var(--font-b);font-size:var(--t-md);position:relative}
+
+/* ---- top bar ------------------------------------------------------------ */
+header{position:absolute;inset:0 0 auto;height:76px;z-index:3;display:flex;align-items:center;
+  gap:var(--s7);padding:0 var(--s7);color:var(--on-photo)}
+.brand{display:flex;flex-direction:column;line-height:1.05}
+.brand b{font-family:var(--font-d);font-weight:700;font-size:var(--t-lg);letter-spacing:.02em}
+.brand span{font-family:var(--font-s);font-size:var(--t-sm);letter-spacing:.28em;
+  color:color-mix(in oklch, var(--paper) 72%, transparent);text-transform:uppercase}
+header .lk{display:flex;gap:var(--s5);font-size:var(--t-sm);font-weight:500;
+  color:color-mix(in oklch, var(--paper) 86%, transparent)}
+header .rt{margin-left:auto;display:flex;align-items:center;gap:var(--s4);font-size:var(--t-sm)}
+
+.btn{display:inline-flex;align-items:center;gap:var(--s2);border-radius:var(--btn-radius);
+  font-weight:600;white-space:nowrap}
+.btn svg{width:1.05em;height:1.05em;flex:none}
+.btn--sm{font-size:var(--t-sm);padding:10px var(--s4)}
+.btn--lg{font-size:var(--t-md);padding:14px var(--s5)}
+.btn--brass{background:var(--accent);color:var(--forest-950);box-shadow:var(--e1)}
+.btn--solid{background:var(--paper);color:var(--forest-950);box-shadow:var(--e2)}
+.btn--outline{border:1px solid color-mix(in oklch, var(--paper) 55%, transparent);
+  color:var(--on-photo)}
+
+/* ---- hero --------------------------------------------------------------- */
+.hero{position:relative;height:500px;overflow:hidden}
+.hero img{width:120%;max-width:none;margin-left:-19%;height:100%;object-fit:cover;display:block;
+  filter:saturate(1.06) contrast(1.04)}
+/* เกรนบางๆ ทับรูป: ไล่สีล้วนๆ บนภาพถ่ายจะดูเป็นพลาสติก เกรนทำให้มันเป็น "ภาพ" */
+.hero .grain{position:absolute;inset:0;z-index:1;opacity:.10;mix-blend-mode:overlay;
+  background-image:radial-gradient(oklch(0.19 0.02 158) 1px, transparent 1px);
+  background-size:3px 3px}
+/* ม่านสองชั้น: ชั้นบนสำหรับเมนู ชั้นล่างสำหรับตัวหนังสือ ไม่ใช่ผ้าดำผืนเดียวคลุมทั้งรูป
+   ซึ่งจะฆ่ารายละเอียดของสถานที่ที่เป็นสินค้าจริงๆ ของธุรกิจนี้ */
+.hero::after{content:"";position:absolute;inset:0;
+  background:
+    linear-gradient(180deg, oklch(0.19 0.02 158 / .62) 0%, oklch(0.19 0.02 158 / .12) 26%),
+    linear-gradient(0deg, oklch(0.19 0.02 158 / .78) 0%, oklch(0.19 0.02 158 / .20) 44%,
+      oklch(0.19 0.02 158 / 0) 62%)}
+.hero .copy{position:absolute;left:50%;translate:-50% 0;bottom:var(--s9);z-index:2;
+  width:900px;text-align:center;color:var(--on-photo)}
+.kicker{display:inline-flex;align-items:center;gap:var(--s2);font-size:var(--t-sm);
+  font-weight:600;letter-spacing:.14em;color:var(--brass-400);text-transform:uppercase}
+.kicker i{width:22px;height:1px;background:currentColor;display:block}
+h1{font-family:var(--font-d);font-weight:800;font-size:var(--t-5xl);line-height:1.2;
+  letter-spacing:-.015em;margin-top:var(--s3);text-shadow:0 2px 24px oklch(0.19 0.02 158 / .5)}
+h1 em{font-style:normal;color:var(--brass-400)}
+.lede{font-size:var(--t-lg);line-height:1.6;margin:var(--s4) auto 0;max-width:56ch;
+  color:color-mix(in oklch, var(--paper) 84%, transparent)}
+.act{display:flex;justify-content:center;gap:var(--s3);margin-top:var(--s4)}
+.slots{display:inline-flex;align-items:center;gap:var(--s2);margin-top:var(--s4);
+  background:oklch(0.19 0.02 158 / .42);border:1px solid color-mix(in oklch,var(--paper) 28%,transparent);
+  color:var(--paper);font-size:var(--t-sm);font-weight:600;padding:var(--s1) var(--s4);
+  border-radius:var(--btn-radius);backdrop-filter:blur(6px)}
+.slots i{width:7px;height:7px;border-radius:50%;background:var(--brass-400);display:block;
+  box-shadow:0 0 0 3px color-mix(in oklch,var(--brass-400) 35%,transparent)}
+
+/* ---- service packages --------------------------------------------------- */
+.svc{position:relative;z-index:2;margin-top:-56px;display:flex;justify-content:center;
+  gap:var(--s5);padding-inline:var(--s7)}
+.card{width:340px;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--card-radius);box-shadow:var(--e3);padding:var(--s5);position:relative}
+.card--pick{border-color:var(--accent);box-shadow:var(--e3),0 0 0 3px var(--accent-wash);
+  margin-top:-12px;padding-bottom:var(--s5)}
+.card--pick::before{content:"";position:absolute;left:var(--s5);right:var(--s5);top:0;height:3px;
+  border-radius:0 0 3px 3px;background:linear-gradient(90deg,var(--brass-400),var(--accent))}
+.card .tag{position:absolute;top:calc(var(--s5) * -1 + 8px);left:50%;translate:-50% 0;
+  background:var(--accent);color:var(--forest-950);font-size:var(--t-xs);font-weight:700;
+  padding:var(--s1) var(--s3);border-radius:var(--btn-radius);letter-spacing:.04em}
+.card .ic{width:38px;height:38px;border-radius:11px;background:var(--forest-100);
+  color:var(--forest-700);display:grid;place-items:center}
+.card .ic svg{width:19px;height:19px}
+.card h2{font-family:var(--font-d);font-weight:700;font-size:var(--t-lg);margin-top:var(--s3)}
+.card p{font-size:var(--t-sm);color:var(--text-muted);line-height:1.6;margin-top:var(--s1)}
+.card .price{display:flex;align-items:baseline;gap:var(--s2);margin-top:var(--s4);
+  padding-top:var(--s4);border-top:1px solid var(--line)}
+.card .price b{font-family:var(--font-d);font-weight:700;font-size:var(--t-2xl);
+  color:var(--forest-900);line-height:1}
+.card .price span{font-size:var(--t-sm);color:var(--text-faint)}
+.card ul{list-style:none;margin-top:var(--s3);display:flex;flex-direction:column;gap:var(--s2)}
+.card li{display:flex;gap:var(--s2);align-items:flex-start;font-size:var(--t-sm);
+  color:var(--text-muted)}
+.card li svg{width:15px;height:15px;color:var(--accent);flex:none;margin-top:3px}
+.card .go{display:flex;align-items:center;gap:var(--s2);margin-top:var(--s4);padding-top:var(--s3);
+  border-top:1px solid var(--line);font-size:var(--t-sm);font-weight:600;color:var(--forest-900)}
+.card .go svg{width:15px;height:15px}
+
+/* ---- proof bar ---------------------------------------------------------- */
+.bar{display:flex;justify-content:center;align-items:center;gap:var(--s7);margin-top:var(--s6);
+  padding:var(--s4) 0;background:var(--surface);border-top:1px solid var(--line);
+  font-size:var(--t-sm);color:var(--text-muted)}
+.bar div{display:flex;align-items:center;gap:var(--s2)}
+.bar b{font-family:var(--font-d);font-weight:700;font-size:var(--t-lg);color:var(--text)}
+.bar .stars{color:var(--accent);letter-spacing:.08em}
+.bar .sep{width:1px;height:22px;background:var(--line)}
+</style></head><body>
+
+<header>
+  <span class="brand"><b>เดอะ เทอเรส</b><span>The Terrace</span></span>
+  <span class="lk"><span>แพ็กเกจจัดงาน</span><span>สถานที่</span><span>รีวิวลูกค้า</span><span>คำถามที่พบบ่อย</span></span>
+  <span class="rt">
+    <a class="btn btn--outline btn--sm" href="#">
+      <svg viewBox="0 0 24 24"><path d="M6.5 4.5h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4.5 6.7 2 2 0 0 1 6.5 4.5z"/></svg>
+      02-118-4499</a>
+    <a class="btn btn--brass btn--sm" href="#">ขอใบเสนอราคา
+      <svg viewBox="0 0 24 24"><path d="M5 12h13M13 6.5 18.5 12 13 17.5"/></svg></a>
+  </span>
+</header>
+
+<section class="hero">
+  <img src="../work/summit/collection-camp.webp" alt="ห้องจัดเลี้ยงริมน้ำของเดอะ เทอเรส">
+  <span class="grain"></span>
+  <div class="copy">
+    <span class="kicker"><i></i>เวนิวจัดงาน · ทองหล่อ</span>
+    <h1>จัดงานให้จบในที่เดียว<br>ตั้งแต่โต๊ะแรก ถึง<em>เพลงสุดท้าย</em></h1>
+    <p class="lede">ห้องริมน้ำสองห้อง ครัวของเราเอง ทีมดูแลหน้างานตลอดคืน
+      — คุณเลือกแค่วัน ที่เหลือเราจัดให้ครบ</p>
+    <span class="slots"><i></i>เหลือ 3 เสาร์ว่างในเดือนตุลาคม</span>
+    <div class="act">
+      <a class="btn btn--solid btn--lg" href="#">นัดชมสถานที่ฟรี
+        <svg viewBox="0 0 24 24"><path d="M5 12h13M13 6.5 18.5 12 13 17.5"/></svg></a>
+      <a class="btn btn--outline btn--lg" href="#">
+        <svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M8 3.5v3M16 3.5v3M3.5 10h17"/></svg>
+        เช็กวันว่าง</a>
+    </div>
+  </div>
+</section>
+
+<section class="svc">
+  <article class="card">
+    <span class="ic"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V4M16 19v-6M21 19H3"/></svg></span>
+    <h2>ประชุม &amp; สัมมนา</h2>
+    <p>ห้องเงียบ อินเทอร์เน็ตสำรอง เบรกสองมื้อ</p>
+    <div class="price"><b>฿690</b><span>/ ท่าน · ครึ่งวัน–เต็มวัน</span></div>
+    <ul>
+      <li><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>โปรเจกเตอร์ 4K + ไมค์ลอย 4 ตัว</li>
+      <li><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>อาหารว่าง 2 มื้อ + อาหารกลางวัน</li>
+      <li><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>ที่จอดรถฟรี 60 คัน</li>
+    </ul>
+    <span class="go">ดูรายละเอียดแพ็กเกจ
+      <svg viewBox="0 0 24 24"><path d="M5 12h13M13 6.5 18.5 12 13 17.5"/></svg></span>
+  </article>
+
+  <article class="card card--pick">
+    <span class="tag">จองมากที่สุด</span>
+    <span class="ic"><svg viewBox="0 0 24 24"><rect x="3.5" y="8.5" width="17" height="11" rx="2.5"/><path d="M9 8.5V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2.5M3.5 13h17"/></svg></span>
+    <h2>งานเลี้ยงบริษัท</h2>
+    <p>ปาร์ตี้ปีใหม่ ฉลองยอด งานขอบคุณลูกค้า</p>
+    <div class="price"><b>฿890</b><span>/ ท่าน · เริ่มต้น 40 ท่าน</span></div>
+    <ul>
+      <li><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>บุฟเฟต์ 12 รายการ + ซุ้มเครื่องดื่ม</li>
+      <li><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>เครื่องเสียง จอ LED และพิธีกร</li>
+      <li><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>ออกใบกำกับภาษีเต็มรูปแบบ</li>
+    </ul>
+    <span class="go">ดูรายละเอียดแพ็กเกจ
+      <svg viewBox="0 0 24 24"><path d="M5 12h13M13 6.5 18.5 12 13 17.5"/></svg></span>
+  </article>
+
+  <article class="card">
+    <span class="ic"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7-4.3-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11.5c0 4.7-7 9-7 9z"/></svg></span>
+    <h2>งานแต่งริมน้ำ</h2>
+    <p>พิธีเช้า–เลี้ยงเย็นในที่เดียว ไม่ต้องย้ายแขก</p>
+    <div class="price"><b>฿1,290</b><span>/ ท่าน · เริ่มต้น 80 ท่าน</span></div>
+    <ul>
+      <li><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>อาหาร 9 รายการ + เครื่องดื่มไม่อั้น</li>
+      <li><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>ดอกไม้ ซุ้ม และแสงเวที</li>
+      <li><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>เวดดิ้งแพลนเนอร์ประจำงาน</li>
+    </ul>
+    <span class="go">ดูรายละเอียดแพ็กเกจ
+      <svg viewBox="0 0 24 24"><path d="M5 12h13M13 6.5 18.5 12 13 17.5"/></svg></span>
+  </article>
+</section>
+
+<section class="bar">
+  <div><b>480+</b><span>งานที่จัดมาแล้วตั้งแต่ปี 2562</span></div>
+  <span class="sep"></span>
+  <div><b>40–300</b><span>ที่นั่งต่อหนึ่งงาน</span></div>
+  <span class="sep"></span>
+  <div><span class="stars">★★★★★</span><b>4.9</b><span>จาก 216 รีวิวคู่บ่าวสาว</span></div>
+</section>
+
+</body></html>

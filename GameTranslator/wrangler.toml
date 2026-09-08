@@ -1,0 +1,21 @@
+# Cloudflare Pages config for the Gloss website.
+#
+# The site is deployed straight from this repo (no git integration on the Pages side), so the KV
+# binding the signup endpoint needs has to be declared here — set it in the dashboard instead and the
+# next `wrangler pages deploy` from a fresh checkout drops it, which brings back the silent-discard
+# bug that functions/notify.js was written to end.
+name = "gloss"
+pages_build_output_dir = "website"
+# Kept a few days behind: Cloudflare rejects a date its own edge has not reached yet, and this repo
+# is edited from two machines in different time zones — a date set from the machine that is already
+# on tomorrow fails the deploy for the other one.
+compatibility_date = "2026-08-01"
+
+# Read the collected addresses with — and the --remote matters:
+#   npx wrangler kv key list --namespace-id a837797a0ad04cccb1776ed9537b2a9f --remote
+# Without it wrangler reads a LOCAL store and prints [], which looks exactly like "nobody signed up"
+# rather than "you asked the wrong copy". Cost 10 minutes of believing the endpoint was broken on the
+# day it was written.
+[[kv_namespaces]]
+binding = "GLOSS_LEADS"
+id = "a837797a0ad04cccb1776ed9537b2a9f"

@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Pitch Document — 33 pages</title>
+<!--
+  เด็ค 33 หน้า สไตล์ Swiss/International Typographic (ทำใหม่จาก GIF ต้นฉบับ)
+
+  โครงสร้าง
+  • ข้อความทั้งเด็คอยู่ใน DECK ด้านล่าง (แก้ที่เดียว) · รูปอยู่ใน SRCN (คีย์ = ลำดับหน้า)
+  • คลิกแก้ข้อความบนหน้าเว็บได้ตรงๆ (contenteditable ที่หัวข้อ/ย่อหน้าหลัก)
+  • คีย์บอร์ด: ← → / Space เลื่อนหน้า · เลข 1-6 กระโดดตามบท
+  • Cmd+P = PDF หน้าละสไลด์ (margin None)
+
+  หน่วยขนาด
+  • ทุกขนาดผูกกับตัวแปรเดียว --u = min(1cqw, 1.7778svh) → ไม่ล้นทั้งจอกว้างและจอเตี้ย
+  • ห้ามใช้ container-type:size บน .s — Chrome จะไม่วาดรูปในคอนเทนเนอร์นั้น (เจอจริง 24 ส.ค. 2026)
+
+  รูป
+  • ที่มา: Lorem Picsum (คลังภาพ Unsplash) ใช้เชิงพาณิชย์ได้ ไม่ต้องให้เครดิต
+  • ไฟล์ใน img/ ถูกอบ (bake) เป็นขาวดำ + ปรับความสว่างตามธีมของสไลด์ไว้แล้ว → ไม่ต้องใช้ CSS filter
+    ต้นฉบับสียังอยู่ที่ img/_orig/ ถ้าจะปรับใหม่
+  • สลับเป็นรูปตัวเอง: วางไฟล์ใน img/ แล้วแก้เลขใน SRCN (ลำดับ = ลำดับช่องรูปในสไลด์นั้น)
+  • ยังไม่มีรูปหน้าคนสตูดิโอ (headshot) เพราะแหล่งฟรีที่ไม่ต้องมี API key ไม่มีให้ —
+    หน้า 25-28 จึงใช้ภาพบรรยากาศแทน ถ้าจะใช้ headshot จริงต้องเอารูปทีมมาใส่เอง
+
+  Motion (ตาม website_building.md Step 11)
+  • transform/opacity เท่านั้น · 360ms ease-out · hover ที่รูป/แถวใหญ่ · แถบความคืบหน้าบนสุด
+  • เคารพ prefers-reduced-motion (ปิดทุก transition)
+  • มี failsafe: ถ้า IntersectionObserver ไม่ยิง สไลด์ที่อยู่ในจอจะถูกบังคับให้โชว์
+-->
+<style>
+:root{
+  --red:#ff3b21; --dark:#1b1b1b; --deep:#111; --paper:#efece4;
+  --cream:#f1eee6; --grey:#8c8c8c; --ink:#141414;
+  --line:rgba(0,0,0,.22); --lineL:rgba(255,255,255,.22);
+  --sans:"Helvetica Neue",Helvetica,Inter,Arial,"Noto Sans Thai",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-snap-type:y mandatory;scroll-behavior:smooth;background:#dcdcda}
+body{font-family:var(--sans);-webkit-font-smoothing:antialiased;color:var(--ink)}
+li{list-style:none}
+
+/* ---------- shell ---------- */
+.stage{display:flex;flex-direction:column}
+.s{
+  container-type:inline-size;   /* size = Chrome ไม่วาดรูปในคอนเทนเนอร์นี้ (เจอจริง 24 ส.ค.) */
+  --u:min(1cqw,1.7778svh);     /* หน่วยเดียว ผูกกับด้านที่แคบกว่า -> ไม่ล้นทั้งจอกว้างและจอเตี้ย */
+  --pad:calc(3.2*var(--u));
+  position:relative;
+  width:100vw;
+  height:100svh;
+  overflow:hidden;
+  scroll-snap-align:center;
+  background:var(--paper);
+  display:flex;flex-direction:column;
+}
+.s.dark{background:var(--dark);color:var(--cream)}
+.s.deep{background:var(--deep);color:var(--cream)}
+.s.red{background:var(--red);color:var(--cream)}
+.s.grey{background:var(--grey);color:var(--cream)}
+.s.white{background:#fff}
+.s.dark,.s.deep,.s.red,.s.grey{--line:var(--lineL)}
+
+/* ---------- chrome ---------- */
+.chrome{
+  display:grid;grid-template-columns:1fr 1fr 6fr auto;
+  gap:calc(1*var(--u));padding:var(--pad) var(--pad) 0;
+  font-size:calc(1.02*var(--u));line-height:1.45;letter-spacing:.01em;flex:0 0 auto;
+}
+.chrome b{font-weight:600}
+.chrome .dot::before{content:"";display:inline-block;width:calc(.5*var(--u));height:calc(.5*var(--u));border-radius:50%;
+  background:currentColor;margin-right:calc(.6*var(--u));vertical-align:calc(.1*var(--u))}
+.chrome .globe{opacity:.75;font-size:calc(1.5*var(--u));justify-self:end}
+.rule{height:1px;background:var(--line);margin:calc(1.6*var(--u)) var(--pad) 0}
+.head{display:grid;grid-template-columns:calc(7*var(--u)) 1fr;gap:0 calc(2*var(--u));padding:calc(1.4*var(--u)) var(--pad) 0;align-items:start}
+.head .no{font-size:calc(2.1*var(--u));letter-spacing:-.02em;opacity:.42}
+.head h2{font-size:calc(2.1*var(--u));font-weight:500;letter-spacing:-.01em}
+.head .sub{font-size:calc(2.1*var(--u));font-weight:500;letter-spacing:-.01em;opacity:.42;display:block}
+.body{flex:1 1 auto;display:flex;min-height:0;padding:0 var(--pad) var(--pad)}
+.grow{flex:1 1 auto}
+
+/* ---------- type ---------- */
+.word{font-size:calc(15*var(--u));line-height:.74;font-weight:500;letter-spacing:-.038em;white-space:nowrap}
+.big{font-size:calc(6.6*var(--u));line-height:.92;font-weight:500;letter-spacing:-.028em}
+.mid{font-size:calc(3.1*var(--u));line-height:1.12;font-weight:500;letter-spacing:-.018em}
+.numeral{font-size:calc(34*var(--u));line-height:.72;font-weight:500;letter-spacing:-.04em}
+.stmt{font-size:calc(2.55*var(--u));line-height:1.18;font-weight:500;letter-spacing:-.015em;opacity:.45;text-transform:uppercase}
+.p{font-size:calc(1.12*var(--u));line-height:1.42}
+.lede{font-size:calc(1.18*var(--u));line-height:1.4;max-width:calc(34*var(--u))}
+.cap{font-size:calc(.92*var(--u));letter-spacing:.06em;text-transform:uppercase;opacity:.5}
+.tiny{font-size:calc(.92*var(--u));line-height:1.6}
+.lab{font-size:calc(.92*var(--u));letter-spacing:.02em;opacity:.55}
+.ghost{color:color-mix(in srgb,currentColor 18%,transparent)}
+.caret::before{content:"↓ ";opacity:.6}
+
+/* ---------- placeholder image ---------- */
+.ph{position:relative;background:#cfcdc7;overflow:hidden;flex:1 1 auto}
+.dark .ph,.deep .ph{background:#2a2a2a}
+.ph::before,.ph::after{content:"";position:absolute;background:rgba(0,0,0,.16)}
+.ph::before{left:50%;top:44%;width:1px;height:6%}
+.ph::after{left:47%;top:47%;width:6%;height:1px}
+.dark .ph::before,.dark .ph::after,.deep .ph::before,.deep .ph::after{background:rgba(255,255,255,.18)}
+.ph img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.ph.has::before,.ph.has::after{content:none}
+.ph.sil{background:#8c8c8c}
+.ph.sil svg{position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:100%}
+
+/* ---------- reusable rows/cols ---------- */
+.rows{display:flex;flex-direction:column;width:100%}
+.row{display:grid;grid-template-columns:calc(4*var(--u)) 1fr calc(22*var(--u));gap:calc(2*var(--u));align-items:start;
+  border-top:1px solid var(--line);padding:calc(1*var(--u)) 0}
+.row .n{opacity:.35}
+.rows.giant .row{align-items:center;padding:calc(.5*var(--u)) 0}
+.rows.giant .n{font-size:calc(4.4*var(--u));line-height:1;opacity:.3}
+.rows.giant .nm{font-size:calc(4.4*var(--u));line-height:1;font-weight:500;letter-spacing:-.025em}
+.cols{display:grid;gap:calc(2*var(--u));width:100%}
+.bullets li{padding-left:calc(1*var(--u));position:relative;font-size:calc(.92*var(--u));line-height:1.55}
+.bullets li::before{content:"•";position:absolute;left:0;opacity:.6}
+.kv{border-top:1px solid var(--line);padding:calc(.5*var(--u)) 0;display:flex;justify-content:space-between;
+  font-size:calc(.92*var(--u));gap:calc(1*var(--u))}
+.stat{font-size:calc(4.6*var(--u));line-height:1;font-weight:500;letter-spacing:-.025em}
+.stat.g{font-size:calc(6.2*var(--u));color:color-mix(in srgb,currentColor 16%,transparent)}
+.bar{height:calc(1.5*var(--u));background:currentColor;opacity:.9}
+.pk .kv{padding:calc(.24*var(--u)) 0}
+.qr{width:calc(5*var(--u));height:calc(5*var(--u));background:
+  repeating-conic-gradient(currentColor 0 25%,transparent 0 50%) 0 0/calc(1*var(--u)) calc(1*var(--u));opacity:.9}
+
+/* ---------- motion (Step 11: transform/opacity, <=400ms, ease-out, เคารพ reduced-motion) ----------
+   กลไก: element ที่จะขยับติดคลาส .anim (+ ท่า) แล้ว JS เติม .on เมื่อสไลด์เข้าจอ
+   คุมสถานะที่ตัวมันเอง ไม่พึ่งคลาสบน section -> ไม่มีปัญหา specificity กับ :hover */
+:root{--ease:cubic-bezier(.16,1,.3,1)}
+.bar-progress{position:fixed;left:0;top:0;height:2px;width:100%;background:currentColor;color:#111;
+  transform:scaleX(0);transform-origin:0 50%;z-index:10;opacity:.35;transition:transform .18s linear}
+
+.anim{opacity:0;transform:translateY(14px);
+  transition:opacity .34s var(--ease) var(--d,0ms),transform .34s var(--ease) var(--d,0ms)}
+.anim.right{transform:translateX(16px)}
+.anim.zoom{transform:scale(1.06)}
+.anim.rise{opacity:1;transform:translateY(102%);transition:transform .42s var(--ease) var(--d,0ms)}
+.anim.on{opacity:1;transform:none}
+.a-mask{overflow:hidden}
+.barfill{transform:scaleX(0);transform-origin:0 50%;
+  transition:transform .4s var(--ease) var(--d,0ms),opacity .2s ease-out}
+.barfill.on{transform:scaleX(1)}
+
+/* ---------- hover: ต้องอยู่หลัง .anim.on เพื่อให้ชนะ (specificity เท่ากัน ตัวหลังชนะ) ---------- */
+.ph img{transition:transform .4s var(--ease)}
+.ph:hover img{transform:scale(1.045)}
+.stat,.qcell,.svccol,.tier,.cityrow,.chip,.qr,.tcell,.person,.field,.listcol,.gcell,
+.idxline,.kv,.barrow,.contact,.word,.numeral,.rows .row{
+  transition:transform .26s var(--ease),opacity .22s ease-out}
+.svccol:hover{transform:translateY(calc(-.45*var(--u)))}
+.svccol:hover .stat.ghost{opacity:.5}
+.qcell:hover{transform:translateY(calc(-.35*var(--u)))}
+.qcell:hover .stat{opacity:1}
+.gcell:hover{transform:scale(1.035)}
+.tier:hover{transform:translateX(calc(.5*var(--u)))}
+.cityrow:hover{transform:translateX(calc(.6*var(--u)))}
+.cityrow:hover .ghost{opacity:.85}
+.chip:hover{transform:scale(1.07)}
+.qr:hover{transform:scale(1.08)}
+.tcell:hover,.person:hover{transform:translateY(calc(-.35*var(--u)))}
+.field:hover .lab{opacity:1}
+.listcol:hover{transform:translateY(calc(-.25*var(--u)))}
+.stat:hover{transform:translateY(calc(-.2*var(--u)))}
+.idxline:hover{transform:translateX(calc(.4*var(--u)));opacity:.65}
+.kv:hover{opacity:.5}
+.rows.giant .row:hover{transform:translateX(calc(.7*var(--u)))}
+.barrow:hover{transform:translateX(calc(.5*var(--u)))}
+.barrow:hover .barfill{opacity:1}
+.contact:hover{opacity:1;transform:translateX(calc(.4*var(--u)))}
+.word:hover{transform:translateY(calc(-.25*var(--u)))}
+.s:hover .numeral{transform:translateY(calc(-.3*var(--u)))}
+
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+  .anim{opacity:1!important;transform:none!important}
+  .barfill{transform:scaleX(1)!important}
+  .svccol,.qcell,.gcell,.tier,.cityrow,.chip,.qr,.tcell,.person,.listcol,.stat,
+  .idxline,.barrow,.contact,.word,.numeral,.rows .row{transform:none!important}
+  html{scroll-behavior:auto}
+  .bar-progress{display:none}
+}
+
+/* ---------- fixed ui ---------- */
+.hud{position:fixed;right:1.2vw;top:1.2vh;z-index:9;font-size:11px;letter-spacing:.08em;
+  color:#5b5b58;mix-blend-mode:difference;font-variant-numeric:tabular-nums}
+[contenteditable]:focus{outline:1px dashed rgba(128,128,128,.7);outline-offset:3px}
+@media print{
+  @page{size:landscape;margin:0}
+  html{scroll-snap-type:none;background:#fff}
+  .stage{gap:0;padding:0}.hud{display:none}
+  .s{width:100%;height:100vh;aspect-ratio:auto;break-after:page}
+}
+</style>
+</head>
+<body>
+<div class="hud" id="hud">01 / 33</div>
+<main class="stage" id="stage"></main>
+
+<script>
+/* ============ ข้อความทั้งเด็คอยู่ในนี้ ============ */
+const BRAND = 'Studio Noteform®', DOC = 'Pitch Document', YEAR = '© 2026', CLIENT = 'Client Name';
+
+const TOC = [['1.1','Introduction'],['1.2','Our Studio'],['1.3','Services'],
+['2.1','Problem'],['2.2','Opportunity'],['2.3','Solution'],['2.4','Process'],['2.5','Proof'],
+['3.1','Case Study 1'],['3.2','Case Study 2'],['3.3','Case Study 3'],['3.4','Case Study 4'],
+['4.1','Metrics 1'],['4.2','Metrics 2'],['4.3','Metrics 3'],['4.4','Metrics 4'],['4.5','Metrics 5'],
+['5.1','Team Profile 1'],['5.2','Team Profile 2'],['5.3','Team Double Profile'],['5.4','Team Expanded'],
+['6.1','Packages'],['6.2','Testimonial'],['6.3','Investment']];
+
+const AWARDS = ['5× European Design Awards','4× D&AD Pencils','3× Red Dot Awards','3× Awwwards',
+'3× Webby Awards','2× ADC Awards','2× One Show Pencils','2× Communication Arts','2× CSS Design Awards',
+'1× LIA','1× Cannes Lions','1× Effie Awards'];
+
+const OVERVIEW = `Run Formtype® launched a limited collection of branded essentials designed by designers, for designers — merging practical utility with typographic clarity.
+What was the objective or need?
+How did the studio respond with tone, and material choices?
+What shifted in the community or audience response?`;
+
+const DECK = [
+/* 01 */ {t:'cover',theme:'grey',word:'Pitch',
+  lede:"Choose a cover layout that aligns with your brand's tone — bold and graphic, or minimal and restrained. Add your brand name or tagline",
+  place:'Goodslab, Los Angeles'},
+/* 02 */ {t:'brandcover',theme:'red',word:'Noteform',toc:TOC},
+/* 03 */ {t:'divider',theme:'red',n:'1',title:'ABOUT',
+  lede:'Use this section to walk through a single project in detail. Structure the story across multiple slides: define the problem, frame the opportunity, introduce the solution, explain the process, and present proof. Each part should build logically from insight to outcome. Focus on clarity, relevance, and how the work addressed a real need.',
+  index:[['1.1','Introduction'],['1.2','Our Studio'],['1.3','Services']]},
+/* 04 */ {t:'statement',theme:'deep',no:'1.1',title:'INTRODUCTION',
+  stmt:'Set the stage for your offer and make the rest of the deck feel like a natural progression.',
+  cols:[{label:'Services',text:"This slide acts as your written elevator pitch. Begin by summarising what your business or project is in a single sentence — who you are, what you do, and who it's for. Then, use a follow-up line to define what differentiates your approach. This is a great place to use a large headline and short supporting paragraph, or a side-by-side layout with brand text on one side and a supporting image on the other.",more:'Read More'}],
+  imgLabel:'Image description / credit'},
+/* 05 */ {t:'studio',theme:'deep',no:'1.2',title:'OUR STUDIO',
+  stmt:"Explain not just what you do, but what future you're trying to enable. Focus on ideals, direction, and brand ambition.",
+  lists:[{label:'Services',items:['Art Direction','Brand Identity','Visual Systems','Editorial Design','Social Content','Campaign Strategy','Web & Product Design','Packaging','Motion & Interaction','Naming & Verbal Identity','Creative Direction','Consulting']},
+         {label:'Awards',items:AWARDS}],
+  imgLabel:'Image description / credit'},
+/* 06 */ {t:'services',theme:'paper',no:'1.3',title:'SERVICES',
+  cols:[{n:'1',name:'Brand Strategy',desc:'Defining market position',inc:['Brand platform','Category creation','Verbal identity','Audience insights','Positioning']},
+        {n:'2',name:'Narrative Systems',desc:'Story-led frameworks',inc:['Messaging matrix','Value propositions','Origin story','Campaign messaging','Tagline development']},
+        {n:'3',name:'Design Systems',desc:'Visual tools for cohesion',inc:['Logo system','Typography','Standards','Color palette','Layout grids']},
+        {n:'4',name:'Execution Playbooks',desc:'Rolling out the brand',inc:['Brand guidelines','Launch strategy','Content templates','Asset management','Training sessions']}]},
+/* 07 */ {t:'divider',theme:'red',n:'2',title:'PROJECT',
+  lede:'Use this section to walk through a single project in detail. Structure the story across multiple slides: define the problem, frame the opportunity, introduce the solution, explain the process, and present proof. Each part should build logically from insight to outcome. Focus on clarity, relevance, and how the work addressed a real need.',
+  index:[['2.1','Problem'],['2.2','Opportunity'],['2.3','Solution'],['2.4','Process'],['2.5','Proof']]},
+/* 08 */ {t:'rows',theme:'white',no:'2.1',title:'PROBLEM',img:'left',heads:['Stage','Name','Includes'],
+  rows:[{n:'1',nm:'USER INSIGHT',d:'Customers are frustrated by a lack of transparency at key decision points'},
+        {n:'2',nm:'MARKET SHIFT',d:'Direct-to-consumer competitors have reset customer expectations around service speed'},
+        {n:'3',nm:'LIMITATIONS',d:'Current infrastructure does not support seamless omni-channel experiences'},
+        {n:'4',nm:'FRICTION POINTS',b:['Lack of visibility during shipping','Fragmented customer service interactions','Limited personalization at checkout']}]},
+/* 09 */ {t:'rows',theme:'white',no:'2.2',title:'OPPORTUNITY',img:'right',heads:['Stage','Name','Includes'],mid:true,
+  rows:[{n:'1',nm:'GAP',b:['Remote-first work reshapes professional life.','Consumers demand ethical, transparent brands.','AI reshapes workflows across industries.','Luxury codes evolve toward function over flash.','Social platforms reward story-driven brands.']},
+        {n:'2',nm:'SHIFT',b:['Remote-first work reshapes professional life.','Consumers demand ethical, transparent brands.','AI reshapes workflows across industries.','Luxury codes evolve toward function over flash.','Social platforms reward story-driven brands.']}]},
+/* 10 */ {t:'solution',theme:'white',no:'2.3',title:'SOLUTION',
+  stmt:"Explain not just what you do, but what future you're trying to enable. Focus on ideals, direction.",
+  list:['Structure','Boldness','Precision','Automation','Clarity','Mystery','Signal','Material','Reflection']},
+/* 11 */ {t:'giant',theme:'deep',no:'2.4',title:'PROCESS',heads:['Stage','Name','Includes'],
+  rows:[{n:'1',nm:'DISCOVER',d:"Surface insights that frame the opportunity. Through research, auditing, and analysis, we define the context, competitors, and audience behavior shaping the environment we're building for."},
+        {n:'2',nm:'DIRECTION',d:'Establish a strategic foundation. We align stakeholders around a core idea, messaging framework, and tonal direction that will guide creative execution across all brand and business touchpoints.'},
+        {n:'3',nm:'DESIGN',d:'Translate strategy into systems. We develop the key visuals, modular frameworks, and brand artifacts that bring the vision to life with precision, flexibility, and future-proof structure.'},
+        {n:'4',nm:'DELIVERY',d:'Finalize assets and enable execution. We prepare guidelines, file libraries, and rollout documentation — equipping internal teams or partners with the tools to activate the brand consistently.'}]},
+/* 12 */ {t:'giant',theme:'paper',no:'2.5',title:'PROOF',heads:['Stage','Name','Includes'],
+  rows:[{n:'1',nm:'IMAGINE',b:['Hybrid living environments tailored for modern work and personal life.','Spaces that reflect functionality and stanley.','Brands that evolve as quickly as culture itself.']},
+        {n:'2',nm:'BUILD',b:['Modular systems that adapt across use cases.','Empower creators to act without friction.','Visual languages that bridge clarity with emotional resonance.']},
+        {n:'3',nm:'MEASURE',b:['Brand strength through adaptability.','Engagement by usefulness, not vanity metrics.','Success through cultural alignment, not just quarterly numbers.']}]},
+/* 13 */ {t:'divider',theme:'red',n:'3',title:'CASE STUDIES',
+  lede:'Use this space to walk through selected client or internal projects. Each study should include context (objective or challenge), execution (what was done), and result (what changed). Keep visuals clean and narrative structured. Aim to show not just what was made, but how it worked.',
+  index:[['3.1','Case Study 1'],['3.2','Case Study 2'],['3.3','Case Study 3'],['3.4','Case Study 4']]},
+/* 14 */ {t:'case',theme:'deep',no:'3.1',title:'RUNFORM LA',year:'2028',imgs:1},
+/* 15 */ {t:'case',theme:'white',no:'3.2',title:'BIKEFORM NYC',year:'2024',imgs:1},
+/* 16 */ {t:'case',theme:'deep',no:'3.3',title:'ARTFORM',year:'2026',imgs:4},
+/* 17 */ {t:'gallery',theme:'deep',no:'3.3(2)',title:'ARTFORM',year:'2026',imgs:3},
+/* 18 */ {t:'divider',theme:'red',n:'4',title:'METRICS',
+  lede:"Present measurable outcomes that support your positioning or proof. Include only what's most relevant — growth stats, engagement, sales impact, reach, or conversion rates. Use short labels and clear typography. Optional: group into categories like performance, audience, or efficiency.",
+  index:[['4.1','Metrics 1'],['4.2','Metrics 2'],['4.3','Metrics 3'],['4.4','Metrics 4'],['4.5','Metrics 5']]},
+/* 19 */ {t:'dense',theme:'deep',no:'4.1',title:'METRICS',
+  top:[{label:'Average monthly impressions',v:'2.1M'},{label:'Average social media followers',v:'55K'},{label:'Email list',v:'12'}],
+  mid:[{label:'Number of daily visits',v:'72K'},{label:'Audience age',chips:['18-24','25-34','35-49','50+']},{label:'Traffic by device',chips:['Desktop','Mobile']}],
+  bot:{label:'Total no. of visits in 2026',v:'3M',genderLabel:'Audience gender',gender:'MALE',
+    citiesLabel:'Top traffic cities',cities:[['NEW YORK','33%'],['LOS ANGELES','22%'],['MIAMI','11%'],['LONDON','7%'],['PARIS','1%']]}},
+/* 20 */ {t:'quad',theme:'white',no:'4.2',title:'METRICS',img:'left',
+  cells:[{h:'Average Monthly Impressions',p:'Choose 3–5 stats that support your narrative. These could be audience reach, growth, engagement, conversions, partnerships — anything that demonstrates credibility',v:'2.06M'},
+         {h:'Average Social Media Followers',p:'Choose 3–5 stats that support your narrative. These could be audience reach, growth, engagement, conversions, partnerships — anything that demonstrates credibility',v:'160K'},
+         {h:'Email List',p:'Start with a short framing sentence or two: what is your product, service, or idea? Then break it into components — the modules that make up your solution.',v:'55K'},
+         {h:'Partnerships',p:'Start with a short framing sentence or two: what is your product, service, or idea? Then break it into components — the modules that make up your solution.',v:'12'}]},
+/* 21 */ {t:'quad',theme:'deep',no:'4.3',title:'METRICS',solid:true,
+  cells:[{h:'Average Monthly Impressions',p:'Choose 3–5 stats that support your narrative. These could be audience reach, growth, engagement, conversions, partnerships — anything that demonstrates credibility',v:'2.06M'},
+         {h:'Average Social Media Followers',p:'Choose 3–5 stats that support your narrative. These could be audience reach, growth, engagement, conversions, partnerships — anything that demonstrates credibility',v:'160K'},
+         {h:'Email List',p:'Start with a short framing sentence or two: what is your product, service, or idea? Then break it into components — the modules that make up your solution.',v:'55K'},
+         {h:'Partnerships',p:'Start with a short framing sentence or two: what is your product, service, or idea? Then break it into components — the modules that make up your solution.',v:'12'}]},
+/* 22 */ {t:'single',theme:'white',no:'4.4',title:'METRICS',label:'Average social media followers',v:'254k',delta:'+61%',
+  barsLabel:'Social followers YOY',bars:[['FB',.42,'+20%'],['IG',.58,'+35%'],['TikTok',.74,'+70%']]},
+/* 23 */ {t:'bars',theme:'deep',no:'4.5',title:'METRICS',
+  rows:[['1','WOMEN',.55,'+64%'],['2','USA',.34,'+18%'],['3','TIKTOK',.44,'+24%'],['4','18-34',.62,'+72%']]},
+/* 24 */ {t:'divider',theme:'red',n:'5',title:'TEAM',
+  lede:'Use this section to introduce your core team members. Add portraits, roles, and short bios that highlight relevant expertise. Focus on clarity, not personality — titles should match function, and bios should connect each person to the work. Include links to portfolios or social accounts if applicable.',
+  index:[['5.1','Team Profile 1'],['5.2','Team Profile 2'],['5.3','Team Double Profile'],['5.4','Team Expanded']]},
+/* 25 */ {t:'profile',theme:'deep',no:'5.1',title:'CREATIVE TEAM',name:'RINA TAKEDA',role:'DESIGN DIRECTOR',
+  bio:'Rina Takeda ensures vision meets execution. As a producer with a background in fashion and digital production, she bridges creative ambition with operational precision. She leads timelines, builds relationships, and protects process — all while keeping the team aligned. Originally from Tokyo, she now lives in Amsterdam and curates an independent zine about materials and form.',
+  credits:AWARDS},
+/* 26 */ {t:'profile',theme:'white',no:'5.2',title:'CREATIVE TEAM',name:'ELIAS MOREAU',role:'DESIGN DIRECTOR',
+  bio:'Elias Moreau operates at the intersection of design and development. With a background in interaction design and front-end systems, he translates static ideas into responsive, real-time experiences. He is known for his minimalist logic, typographic fluency, and ability to prototype quickly without compromising detail. Elias is based in Montreal and spends his downtime experimenting with generative tools and modular synths.',
+  credits:AWARDS},
+/* 27 */ {t:'double',theme:'paper',no:'5.3',title:'CREATIVE TEAM',
+  people:[{name:'JONAS VARELA',role:'Strategy Lead',bio:'Jonas Varela blends business insight with brand intuition. With a background in design strategy and cultural analysis, he helps teams articulate the "why" behind the work — grounding visuals in narrative frameworks. He has worked with early-stage startups and global studios alike, aligning creative with context. Based in Berlin, Jonas also lectures on semiotics and design ethics.',
+    skills:['Design systems','Generative tools','Front-end logic','UI frameworks','Interactive prototyping']},
+    {name:'LEO MARTÍN',role:'Producer',bio:'Leo Martín works at the intersection of visual design and emerging technology. With a foundation in computational design and front-end development, he prototypes systems that translate concepts into scalable tools. His focus is on structure, clarity, and adaptability — often building internal frameworks that support creative freedom. Leo is based in Barcelona and writes occasionally about interface semantics and generative workflows.',
+    skills:['Design systems','Generative tools','Front-end logic','UI frameworks','Interactive prototyping']}]},
+/* 28 */ {t:'teamgrid',theme:'paper',no:'5.4',title:'TEAM',sub:'FULL STAFF',
+  people:[['First Surname','Job title'],['First Surname','Job title'],['First Surname','Job title'],
+          ['First Surname','Job title'],['First Surname','Job title'],['First Surname','Job title']]},
+/* 29 */ {t:'divider',theme:'red',n:'6',title:'ASK',
+  lede:"Use this section to outline what you're offering — and what you're asking for in return. Present packages, tiers, or deliverables clearly, with a focus on outcomes. If you're including pricing, position it relative to value, not just scope. For investment asks or proposals, be specific: what's needed, what it enables, and what the return looks like. Keep the layout clean and direct.",
+  index:[['6.1','Packages'],['6.2','Testimonial'],['6.3','Investment']]},
+/* 30 */ {t:'packages',theme:'paper',no:'6.1',title:'PACKAGES',
+  tiers:[{price:'$3,500 USD',name:'Core Package',inc:['Brand discovery session','Wordmark or logotype design','Core color and type system','Primary logo lockups (light/dark)','Brand usage guidelines (PDF)']},
+         {price:'$6,900 USD',name:'Extended Package',inc:['Everything in Core','Messaging hierarchy and brand tone','Expanded color and typographic system','Custom brand patterns or icons','Social and web templates']},
+         {price:'$12,000 USD',name:'Campaign / Launch Package',inc:['Everything in Extended','Campaign strategy or launch narrative','Multi-channel content templates','Rollout roadmap and asset plan','Packaging or environment mockups']}]},
+/* 31 */ {t:'quote',theme:'paper',no:'6.2',label:'Testimonial',
+  quote:'The clarity of the process, the strength of the thinking, and the quality of execution exceeded every expectation…',
+  attrib:'CLIENT NAME, TITLE, COMPANY'},
+/* 32 */ {t:'invest',theme:'deep',no:'6.3',title:'INVESTMENT',label:'Our ask',
+  lead:"We're raising $1.25M for 15% equity.",
+  rest:'Use of funds: hiring, product development and marketing."',
+  note:'Want to talk?<br>Reach out at [email] or scan the code.'},
+/* 33 */ {t:'thanks',theme:'deep',word:'Thanks',
+  contact:'Studio Noteform®<br>hello@noteform.studio<br>+1 213 555 0148'}
+];
+
+/* ============ renderers ============ */
+const E=(s)=>s==null?'':String(s);
+const ed=(cls,txt)=>`<div class="${cls}" contenteditable>${E(txt)}</div>`;
+let IMGQ=[];
+const ph=(cls='',label='',src='')=>{
+  const u=src||IMGQ.shift()||'';
+  return `<div class="ph ${cls}${u?' has':''}">${u?`<img src="${u}" alt="" decoding="async">`:''}</div>`;};
+const phBox=(label,cls='',flex='1')=>`<div style="display:flex;flex-direction:column;gap:calc(.6*var(--u));flex:${flex};min-width:0">
+  ${label?`<div class="cap caret">${label}</div>`:''}${ph(cls)}</div>`;
+const topbar=(d)=>`<div class="chrome">
+  <div><b>${BRAND}</b><br>${DOC}<br>${YEAR}</div>
+  <div class="dot">FAQ</div>
+  <div>${d.place||CLIENT}</div>
+  <div class="globe">✳</div></div>`;
+const head=(d)=>`<div class="head"><div class="no">${E(d.no)}</div>
+  <div><h2>${E(d.title)}</h2>${d.year?`<span class="sub">${d.year}</span>`:''}
+  ${d.sub?`<span class="sub">${d.sub}</span>`:''}
+  ${d.name?`<span class="sub" style="opacity:.55">${d.name}</span><span class="sub">${d.role}</span>`:''}</div></div>`;
+const heads=(hs)=>hs?`<div class="row" style="border:0;padding-bottom:calc(.2*var(--u))">
+  ${hs.map(h=>`<div class="cap caret">${h}</div>`).join('').replace('<div class="cap caret">','<div class="cap caret" style="grid-column:1">')}</div>`:'';
+const idx=(list)=>`<div style="display:flex;flex-direction:column;font-size:calc(.92*var(--u));line-height:1.6">
+  ${list.map(r=>`<div class="idxline" style="display:grid;grid-template-columns:calc(4*var(--u)) auto;gap:0 calc(3*var(--u))">
+    <span>${E(r[0])}</span><span>${E(r[1])}</span></div>`).join('')}</div>`;
+
+const R = {
+cover:d=>`${topbar(d)}
+  <div style="padding:calc(1.6*var(--u)) var(--pad) 0;position:relative;z-index:2">${ed('lede',d.lede)}</div>
+  <div class="grow"></div>
+  <h1 class="word" contenteditable style="padding:0 0 0 calc(1.4*var(--u));margin-bottom:calc(-.35*var(--u));position:relative;z-index:2">${d.word}</h1>
+  <div style="position:absolute;right:6%;top:0;bottom:0;width:52%;z-index:1;display:flex">
+    ${ph('','','')}
+  </div>`,
+
+brandcover:d=>`${topbar(d)}
+  <div style="position:absolute;right:var(--pad);top:var(--pad)">${idx(d.toc)}</div>
+  <div class="grow"></div>
+  <h1 class="word" contenteditable style="padding:0 0 0 calc(1.4*var(--u));margin-bottom:calc(-.35*var(--u))">${d.word}</h1>`,
+
+divider:d=>`${topbar(d)}<div class="rule"></div>
+  <div style="padding:calc(1.2*var(--u)) var(--pad) 0;position:relative;z-index:2">
+    <h2 class="mid" contenteditable>${d.title}</h2>${ed('lede',d.lede)}</div>
+  <div class="numeral" style="position:absolute;right:calc(1.6*var(--u));bottom:calc(-1.2*var(--u));opacity:.98">${d.n}</div>
+  <div class="grow"></div>
+  <div style="padding:0 var(--pad) var(--pad);position:relative;z-index:2">${idx(d.index)}</div>`,
+
+statement:d=>`${topbar(d)}<div class="rule"></div>
+  <div class="head"><div class="no">${d.no}</div>
+    <div><h2>${d.title}</h2><div class="stmt" contenteditable style="margin-top:calc(.4*var(--u))">${d.stmt}</div></div></div>
+  <div class="grow"></div>
+  <div class="rule" style="margin-bottom:0"></div>
+  <div class="body" style="gap:calc(2*var(--u));padding-top:calc(1*var(--u));align-items:stretch">
+    <div style="flex:0 0 calc(7*var(--u))"></div>
+    <div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column">
+      <div class="cap caret" style="margin-bottom:calc(.8*var(--u))">${d.cols[0].label}</div>
+      ${ed('p',d.cols[0].text)}
+      <div class="grow"></div><div class="tiny"><b>${d.cols[0].more}</b></div></div>
+    ${phBox(d.imgLabel,'','0 0 calc(24*var(--u))')}
+  </div>`,
+
+studio:d=>`${topbar(d)}<div class="rule"></div>${head(d)}
+  <div style="padding:calc(.4*var(--u)) var(--pad) 0 calc(var(--pad) + calc(9*var(--u)))"><div class="stmt" contenteditable>${d.stmt}</div></div>
+  <div class="grow"></div><div class="rule" style="margin-bottom:0"></div>
+  <div class="body" style="gap:calc(2*var(--u));padding-top:calc(1*var(--u))">
+    ${d.lists.map(l=>`<div class="listcol" style="flex:1 1 0;min-width:0">
+      <div class="cap caret" style="margin-bottom:calc(.6*var(--u))">${l.label}</div>
+      <div class="tiny"><b>${l.items.join('<br>')}</b></div></div>`).join('')}
+    ${phBox('Image description / credit','','0 0 calc(26*var(--u))')}
+  </div>`,
+
+services:d=>`${topbar(d)}<div class="rule"></div>${head(d)}<div class="rule"></div>
+  <div class="body" style="gap:calc(2*var(--u));padding-top:calc(1.4*var(--u))">
+    ${ph('','','')}
+    ${d.cols.map(c=>`<div class="svccol" style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:calc(.5*var(--u))">
+      <div class="stat ghost">${c.n}</div>
+      <div style="border-top:1px solid var(--line);padding-top:calc(.5*var(--u))">
+        <div class="tiny"><b>${c.name}</b></div><div class="tiny">${c.desc}</div></div>
+      <div class="grow"></div>
+      <div class="cap caret">Includes</div>
+      <div>${c.inc.map(i=>`<div class="kv"><span>${i}</span></div>`).join('')}</div>
+    </div>`).join('')}
+  </div>`,
+
+rows:d=>`${topbar(d)}<div class="rule"></div>${head(d)}<div class="rule"></div>
+  <div class="body" style="gap:calc(2.4*var(--u));padding-top:calc(1.2*var(--u));flex-direction:${d.img==='right'?'row-reverse':'row'}">
+    <div style="flex:0 0 calc(26*var(--u));display:flex">${ph()}</div>
+    <div class="rows" style="flex:1 1 0;min-width:0">
+      ${heads(d.heads)}
+      ${d.rows.map(r=>`<div class="row" style="${d.mid?'flex:1':''}">
+        <div class="stat ghost" style="font-size:calc(2.6*var(--u))">${r.n}</div>
+        <div class="mid" contenteditable>${r.nm}</div>
+        <div>${r.b?`<ul class="bullets">${r.b.map(x=>`<li>${x}</li>`).join('')}</ul>`:`<div class="tiny">${r.d}</div>`}</div>
+      </div>`).join('')}
+    </div>
+  </div>`,
+
+giant:d=>`${topbar(d)}<div class="rule"></div>${head(d)}<div class="rule"></div>
+  <div class="body" style="padding-top:calc(.8*var(--u))">
+    <div class="rows giant" style="width:100%;display:flex;flex-direction:column">
+      ${heads(d.heads)}
+      ${d.rows.map(r=>`<div class="row" style="flex:1;align-items:center">
+        <div class="n" style="font-size:calc(4.4*var(--u));line-height:1;opacity:.3">${r.n}</div>
+        <div class="nm" contenteditable>${r.nm}</div>
+        <div>${r.b?`<ul class="bullets">${r.b.map(x=>`<li>${x}</li>`).join('')}</ul>`:`<div class="tiny">${r.d}</div>`}</div>
+      </div>`).join('')}
+    </div>
+  </div>`,
+
+solution:d=>`${topbar(d)}<div class="rule"></div>${head(d)}
+  <div class="body" style="gap:calc(2.4*var(--u));padding-top:calc(1*var(--u))">
+    <div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column">
+      <div class="stmt" contenteditable style="opacity:.22">${d.stmt}</div>
+      <div class="grow"></div>
+      <div style="display:grid;grid-template-columns:calc(4*var(--u)) auto;gap:0 calc(3*var(--u));font-size:calc(.92*var(--u));line-height:1.6">
+        <div>${d.list.map((_,i)=>String(i+1).padStart(2,'0')).join('<br>')}</div>
+        <div><b>${d.list.join('<br>')}</b></div></div>
+    </div>
+    <div style="flex:0 0 calc(42*var(--u));display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;gap:calc(.7*var(--u))">
+      ${Array.from({length:9},(_,i)=>`<div class="gcell" style="display:flex;flex-direction:column;gap:calc(.3*var(--u))">
+        <div class="cap">${String(i+1).padStart(2,'0')}</div>${ph()}</div>`).join('')}
+    </div>
+  </div>`,
+
+case:d=>`${topbar(d)}
+  <div style="display:flex;justify-content:flex-end;padding:calc(1*var(--u)) var(--pad) 0">
+    <div class="cap caret" style="flex:0 0 calc(34*var(--u))">Image description / credit</div></div>
+  <div class="rule" style="margin-top:calc(.6*var(--u))"></div>${head(d)}
+  <div class="body" style="gap:calc(2.4*var(--u));padding-top:calc(1.2*var(--u))">
+    <div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:calc(1*var(--u));padding-left:0">
+      ${[['Overview',OVERVIEW.split('\n').join('<br>')],['Credits','Designed by<br>Aiden Lowe and Marisol Tsang'],['Links','www.runformtype.com'],['Tags','Website<br>Instagram<br>Threads']]
+        .map(([l,v])=>`<div class="field" style="display:grid;grid-template-columns:calc(8*var(--u)) 1fr;gap:calc(2*var(--u))">
+          <div class="lab">(${l})</div><div class="tiny"><b>${v}</b></div></div>`).join('')}
+      <div class="grow"></div>
+    </div>
+    <div style="flex:0 0 calc(34*var(--u));display:grid;gap:calc(.7*var(--u));${d.imgs===4?'grid-template-columns:1fr 1fr;grid-auto-rows:1fr':''}">
+      ${Array.from({length:d.imgs},()=>ph()).join('')}
+    </div>
+  </div>`,
+
+gallery:d=>`${topbar(d)}<div class="rule"></div>${head(d)}
+  <div class="body" style="gap:calc(1*var(--u));padding-top:calc(1.2*var(--u))">
+    ${['Image description / credit','Image description / credit','Image description / credit']
+      .map((l,i)=>`<div style="flex:${i===0?'2':'1'} 1 0;display:flex;flex-direction:column;gap:calc(.5*var(--u));min-width:0">
+        <div class="cap caret">${l}</div>${ph()}</div>`).join('')}
+  </div>`,
+
+dense:d=>`${topbar(d)}<div class="rule"></div>
+  <div class="body" style="gap:calc(2*var(--u));padding-top:calc(1*var(--u))">
+    <div style="flex:0 0 calc(24*var(--u));display:flex">${ph()}</div>
+    <div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:calc(2*var(--u));align-items:end">
+        <h2 class="mid">${d.title}</h2>
+        ${d.top.map(s=>`<div><div class="cap caret">${s.label}</div><div class="stat" style="font-size:calc(2.6*var(--u))">${s.v}</div></div>`).join('')}
+      </div>
+      <div class="rule" style="margin:calc(1*var(--u)) 0 0"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:calc(2*var(--u));margin-top:calc(1*var(--u));align-items:end">
+        <div></div>
+        ${d.mid.map(s=>`<div><div class="cap caret">${s.label}</div>
+          ${s.v?`<div class="stat" style="font-size:calc(2.6*var(--u))">${s.v}</div>`:
+          `<div style="display:flex;gap:calc(.4*var(--u));margin-top:calc(.6*var(--u))">${s.chips.map((c,i)=>
+            `<div class="chip" style="flex:1;padding:calc(.4*var(--u));font-size:calc(.8*var(--u));background:${i<2?'var(--red)':'#f1eee6'};color:${i<2?'#fff':'#111'}">${c}</div>`).join('')}</div>`}
+        </div>`).join('')}
+      </div>
+      <div class="grow"></div>
+      <div class="rule" style="margin:calc(1*var(--u)) 0"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 2fr;gap:calc(2*var(--u));align-items:end">
+        <div><div class="cap caret">${d.bot.label}</div><div class="stat" style="font-size:calc(2.6*var(--u))">${d.bot.v}</div>
+          <div class="cap caret" style="margin-top:calc(.8*var(--u))">${d.bot.genderLabel}</div>
+          <div class="stat" style="font-size:calc(2.6*var(--u))">${d.bot.gender}</div></div>
+        <div></div>
+        <div><div class="cap caret">${d.bot.citiesLabel}</div>
+          ${d.bot.cities.map(([c,p])=>`<div class="cityrow" style="display:flex;justify-content:space-between;align-items:baseline">
+            <div class="mid">${c}</div><div class="mid ghost">${p}</div></div>`).join('')}</div>
+      </div>
+    </div>
+  </div>`,
+
+quad:d=>`${topbar(d)}<div class="rule"></div>${head(d)}<div class="rule"></div>
+  <div class="body" style="gap:calc(2.4*var(--u));padding-top:calc(1.2*var(--u))">
+    ${d.img==='left'?`<div style="flex:0 0 calc(24*var(--u));display:flex">${ph()}</div>`:''}
+    <div style="flex:1 1 0;min-width:0;display:grid;grid-template-columns:1fr 1fr;gap:calc(1.4*var(--u)) calc(2.4*var(--u))">
+      ${d.cells.map(c=>`<div class="qcell" style="display:flex;flex-direction:column;gap:calc(.4*var(--u));border-top:1px solid var(--line);padding-top:calc(.6*var(--u))">
+        <div class="tiny"><b>${c.h}</b></div><div class="tiny" style="opacity:.75">${c.p}</div>
+        <div class="grow"></div><div class="stat ${d.solid?'':'g'}">${c.v}</div></div>`).join('')}
+    </div>
+  </div>`,
+
+single:d=>`${topbar(d)}
+  <div style="display:flex;justify-content:flex-end;padding:calc(1*var(--u)) var(--pad) 0">
+    <div class="cap caret" style="flex:0 0 calc(30*var(--u))">Image description / credit</div></div>
+  <div class="rule" style="margin-top:calc(.6*var(--u))"></div>${head(d)}
+  <div class="body" style="gap:calc(2.4*var(--u));padding-top:calc(1.4*var(--u))">
+    <div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column">
+      <div class="cap">(${d.label})</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--line);padding-bottom:calc(.4*var(--u))">
+        <div class="stat g">${d.v}</div><div class="tiny">(${d.delta})</div></div>
+      <div class="cap" style="margin-top:calc(1.6*var(--u))">(${d.barsLabel})</div>
+      ${d.bars.map(([n,w,p])=>`<div style="display:grid;grid-template-columns:calc(6*var(--u)) 1fr calc(4*var(--u));gap:calc(1*var(--u));align-items:center;border-top:1px solid var(--line);padding:calc(.5*var(--u)) 0">
+        <div class="tiny" style="opacity:.6">${n}</div>
+        <div style="background:color-mix(in srgb,currentColor 12%,transparent);height:calc(1.2*var(--u))">
+          <div class="barfill" style="width:${w*100}%;height:100%;background:color-mix(in srgb,currentColor 22%,transparent)"></div></div>
+        <div class="tiny">${p}</div></div>`).join('')}
+      <div class="grow"></div>
+    </div>
+    <div style="flex:0 0 calc(30*var(--u));display:flex">${ph()}</div>
+  </div>`,
+
+bars:d=>`${topbar(d)}<div class="rule"></div>${head(d)}<div class="rule"></div>
+  <div class="body" style="padding-top:calc(.8*var(--u))">
+    <div style="width:100%;display:flex;flex-direction:column">
+      ${d.rows.map(([n,nm,w,p])=>`<div class="barrow" style="flex:1;display:grid;grid-template-columns:calc(4*var(--u)) calc(22*var(--u)) 1fr;gap:calc(2*var(--u));
+        align-items:center;border-top:1px solid var(--line)">
+        <div style="font-size:calc(4.4*var(--u));opacity:.3">${n}</div>
+        <div style="font-size:calc(4.4*var(--u));letter-spacing:-.025em">${nm}</div>
+        <div style="display:flex;align-items:center;gap:calc(1*var(--u))">
+          <div style="flex:1;height:calc(3.4*var(--u));background:color-mix(in srgb,currentColor 8%,transparent)">
+            <div class="barfill" style="width:${w*100}%;height:100%;background:var(--cream);opacity:.92"></div></div>
+          <div class="tiny" style="width:calc(4*var(--u))">(${p})</div></div>
+      </div>`).join('')}
+    </div>
+  </div>`,
+
+profile:d=>`${topbar(d)}
+  <div style="display:flex;justify-content:flex-end;padding:calc(1*var(--u)) var(--pad) 0">
+    <div class="cap caret" style="flex:0 0 calc(34*var(--u))">Image description / credit</div></div>
+  <div class="rule" style="margin-top:calc(.6*var(--u))"></div>${head(d)}
+  <div class="body" style="gap:calc(2.4*var(--u));padding-top:calc(1.4*var(--u))">
+    <div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:calc(1.2*var(--u))">
+      <div class="field" style="display:grid;grid-template-columns:calc(8*var(--u)) 1fr;gap:calc(2*var(--u))">
+        <div class="lab">(Overview)</div><div class="tiny"><b>${d.bio}</b></div></div>
+      <div class="field" style="display:grid;grid-template-columns:calc(8*var(--u)) 1fr;gap:calc(2*var(--u))">
+        <div class="lab">(Credits)</div><div class="tiny"><b>${d.credits.join('<br>')}</b></div></div>
+      <div class="grow"></div>
+    </div>
+    <div style="flex:0 0 calc(30*var(--u));display:flex">${ph()}</div>
+  </div>`,
+
+double:d=>`${topbar(d)}<div class="rule"></div>${head(d)}<div class="rule"></div>
+  <div class="body" style="gap:calc(3*var(--u));padding-top:calc(1.2*var(--u))">
+    ${d.people.map(p=>`<div class="person" style="flex:1 1 0;min-width:0;display:flex;gap:calc(1.4*var(--u))">
+      <div style="flex:0 0 calc(13*var(--u));display:flex;flex-direction:column;gap:calc(.5*var(--u))">
+        <div class="tiny dot"><b>${p.name}</b></div>${ph()}</div>
+      <div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column">
+        <div class="cap">(${p.role})</div>
+        <div class="tiny" style="margin-top:calc(.5*var(--u))"><b>${p.bio}</b></div>
+        <div class="grow"></div>
+        ${p.skills.map(s=>`<div class="kv"><span>+ ${s}</span></div>`).join('')}
+      </div></div>`).join('')}
+  </div>`,
+
+teamgrid:d=>`${topbar(d)}<div class="rule"></div>${head(d)}
+  <div class="body" style="gap:calc(2.4*var(--u));padding-top:calc(1.2*var(--u))">
+    <div style="flex:1 1 0"></div>
+    <div style="flex:0 0 calc(46*var(--u));display:grid;grid-template-columns:repeat(3,1fr);gap:calc(1*var(--u))">
+      ${d.people.map(([n,t])=>`<div class="tcell" style="display:flex;flex-direction:column;gap:calc(.4*var(--u))">
+        <div style="display:flex;justify-content:space-between;gap:calc(.5*var(--u))">
+          <div class="tiny dot"><b>${n}</b></div><div class="cap">(${t})</div></div>
+        <div style="aspect-ratio:1/1;display:flex">${ph()}</div></div>`).join('')}
+    </div>
+  </div>`,
+
+packages:d=>`${topbar(d)}
+  <div style="display:flex;justify-content:flex-end;padding:calc(1*var(--u)) var(--pad) 0">
+    <div class="cap caret" style="flex:0 0 calc(30*var(--u))">Image description / credit</div></div>
+  <div class="rule" style="margin-top:calc(.6*var(--u))"></div>${head(d)}<div class="rule"></div>
+  <div class="body pk" style="gap:calc(2.4*var(--u));padding-top:calc(.8*var(--u))">
+    <div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:calc(.7*var(--u))">
+      ${d.tiers.map(t=>`<div class="tier" style="display:grid;grid-template-columns:calc(10*var(--u)) calc(14*var(--u)) 1fr;gap:calc(2*var(--u))">
+        <div><div class="cap caret">Starting at</div><div class="tiny"><b>${t.price}</b></div></div>
+        <div><div class="cap caret">Package name</div><div class="tiny"><b>${t.name}</b></div></div>
+        <div><div class="cap caret">Includes</div>
+          ${t.inc.map((i,k)=>`<div class="kv"><span style="opacity:.5;width:calc(1.6*var(--u));display:inline-block">${'ABCDE'[k]}</span>
+            <span style="flex:1">${i}</span></div>`).join('')}</div>
+      </div>`).join('')}
+      <div class="grow"></div>
+    </div>
+    <div style="flex:0 0 calc(30*var(--u));display:flex">${ph()}</div>
+  </div>`,
+
+quote:d=>`${topbar(d)}
+  <div style="padding:calc(1.2*var(--u)) var(--pad) 0"><div class="cap caret">${d.label}</div></div>
+  <div class="rule" style="margin-top:calc(.4*var(--u))"></div>
+  <div style="display:grid;grid-template-columns:calc(7*var(--u)) 1fr;gap:0 calc(2*var(--u));padding:calc(1.2*var(--u)) var(--pad) 0">
+    <div class="no" style="font-size:calc(2.1*var(--u));opacity:.42">${d.no}</div>
+    <div class="big" contenteditable style="font-size:calc(3.4*var(--u))">${d.quote}</div></div>
+  <div class="grow"></div>
+  <div style="display:grid;grid-template-columns:calc(7*var(--u)) 1fr;gap:0 calc(2*var(--u));padding:0 var(--pad) calc(1.2*var(--u))">
+    <div style="font-size:calc(1.6*var(--u))">→</div>
+    <div class="mid ghost" style="opacity:.32">${d.attrib}</div></div>
+  <div style="flex:0 0 34%;display:flex">${ph()}</div>`,
+
+invest:d=>`${topbar(d)}
+  <div style="display:flex;justify-content:flex-end;padding:calc(1*var(--u)) var(--pad) 0">
+    <div class="cap caret" style="flex:0 0 calc(30*var(--u))">Image description / credit</div></div>
+  <div class="rule" style="margin-top:calc(.6*var(--u))"></div>${head(d)}
+  <div class="body" style="gap:calc(2.4*var(--u));padding-top:calc(1.4*var(--u))">
+    <div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column">
+      <div class="cap caret">${d.label}</div>
+      <div class="rule" style="margin:calc(.4*var(--u)) 0 calc(1*var(--u))"></div>
+      <div class="stmt" style="opacity:1" contenteditable>${d.lead}</div>
+      <div class="stmt" contenteditable>${d.rest}</div>
+      <div class="grow"></div>
+      <div class="qr"></div>
+      <div class="tiny" style="margin-top:calc(.6*var(--u));opacity:.7">${d.note}</div>
+    </div>
+    <div style="flex:0 0 calc(30*var(--u));display:flex">${ph()}</div>
+  </div>`,
+
+thanks:d=>`${topbar(d)}<div class="rule"></div>
+  <div style="padding:calc(1.2*var(--u)) var(--pad) 0"><div class="contact tiny" style="opacity:.7">${d.contact}</div></div>
+  <div class="grow"></div>
+  <h1 class="word" contenteditable style="padding:0 0 0 calc(1.4*var(--u));margin-bottom:calc(-.35*var(--u))">${d.word}</h1>`
+};
+
+/* ============ รูปจริง: แผนที่ไฟล์ต่อสไลด์ (เลข = ลำดับหน้า) ============
+   ที่มา: Lorem Picsum (คลังภาพ Unsplash) — ใช้ได้ฟรีเชิงพาณิชย์ ไม่ต้องให้เครดิต
+   สลับเป็นรูปตัวเอง: วางไฟล์ใน img/ แล้วแก้ชื่อในลิสต์นี้ ลำดับ = ลำดับช่องรูปในสไลด์ */
+const I=n=>`img/px${n}.jpg`;
+const mapI=a=>a.map(I);
+const SRCN={
+  1:[331], 4:[525], 5:[508], 6:[348],
+  8:[36], 9:[119],
+  10:[26,60,48,180,403,435,366,527,370],
+  14:[453], 15:[372], 16:[418,354,296,483], 17:[274,516,322],
+  19:[494], 20:[317], 22:[487],
+  25:[447], 26:[208], 27:[305,429],
+  28:[152,401,439,164,251,253],
+  30:[355], 31:[42], 32:[490]
+};
+const SRC=Object.fromEntries(Object.entries(SRCN).map(([k,v])=>[k,mapI(v)]));
+
+/* ============ mount ============ */
+const stage=document.getElementById('stage');
+stage.innerHTML=DECK.map((d,i)=>{
+  const fn=R[d.t]; if(!fn){console.warn('no renderer',d.t);return '';}
+  IMGQ=(SRC[i+1]||[]).slice();
+  const html=fn(d);
+  if(IMGQ.length)console.warn('slide',i+1,'มีรูปเหลือไม่ได้ใช้',IMGQ.length);
+  return `<section class="s ${d.theme}" data-i="${i+1}" data-t="${d.t}">${html}</section>`;
+}).join('');
+
+const secs=[...document.querySelectorAll('.s')], hud=document.getElementById('hud');
+const pad=n=>String(n).padStart(2,'0');
+hud.textContent=`01 / ${pad(secs.length)}`;
+let cur=0;
+new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){
+  cur=secs.indexOf(e.target); hud.textContent=`${pad(cur+1)} / ${pad(secs.length)}`;}})},
+  {threshold:.55}).observe && secs.forEach(s=>{});
+const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){
+  cur=secs.indexOf(e.target); hud.textContent=`${pad(cur+1)} / ${pad(secs.length)}`;}})},{threshold:.55});
+secs.forEach(s=>io.observe(s));
+const go=i=>{i=Math.max(0,Math.min(secs.length-1,i));secs[i].scrollIntoView({block:'center'})};
+const CH=[0,2,6,12,17,23,28];
+addEventListener('keydown',e=>{
+  if(e.target.isContentEditable)return;
+  if(['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();go(cur+1)}
+  else if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();go(cur-1)}
+  else if(/^[1-6]$/.test(e.key)){e.preventDefault();go(CH[+e.key])}
+});
+/* ---------- choreography: แต่ละชนิดสไลด์มีท่าเข้าของตัวเอง ---------- */
+const D=(el,ms)=>el.style.setProperty('--d',Math.min(ms,430)+'ms');
+const maskRise=(el,delay)=>{                    // ตัวหนังสือเลื่อนขึ้นจากใต้กรอบบัง
+  const w=document.createElement('div'); w.className='a-mask';
+  el.parentNode.insertBefore(w,el); w.appendChild(el);
+  el.classList.add('anim','rise'); D(el,delay);
+};
+
+secs.forEach(sec=>{
+  const q=sel=>[...sec.querySelectorAll(sel)];
+
+  /* 1) หัวเรื่องมาก่อน */
+  q(':scope > .head').forEach(h=>{h.classList.add('anim'); D(h,0)});
+
+  /* 2) ลูกของ .body ไล่ทีละชิ้น (ไม่ใช่เฟดทั้งก้อน) — ใช้ได้ทุกชนิดสไลด์ */
+  const kids=q(':scope > .body > *');
+  if(kids.length) kids.forEach((k,i)=>{k.classList.add('anim'); D(k,60+i*65)});
+
+  /* 3) บล็อกอื่นที่ไม่ได้อยู่ใน .body (หน้าปก · หน้าคั่น · คำพูดลูกค้า) */
+  q(':scope > div:not(.chrome):not(.rule):not(.grow):not(.body)')
+    .forEach((b,i)=>{b.classList.add('anim'); D(b,i*55)});
+
+  /* 4) คำใหญ่ / ตัวเลขบท */
+  q(':scope > .word').forEach(w=>{w.classList.add('anim'); D(w,110)});
+  const num=sec.querySelector('.numeral');
+  if(num){num.classList.add('anim','zoom'); D(num,140)}
+
+  /* 5) ประโยคใหญ่: เลื่อนขึ้นจากใต้กรอบบัง */
+  q('.stmt, .big').forEach((el,i)=>maskRise(el,120+i*70));
+
+  /* 6) รายการย่อยในแต่ละบล็อก */
+  q('.idxline').forEach((el,i)=>{el.classList.add('anim','right'); D(el,140+i*22)});
+  q('.rows .row, .tier, .field, .cityrow, .qcell, .svccol, .tcell, .person, .listcol, .barrow')
+    .forEach((el,i)=>{el.classList.add('anim'); D(el,150+i*55)});
+  q('.chip').forEach((el,i)=>{el.classList.add('anim','zoom'); D(el,220+i*45)});
+  q('.body .ph, .gcell .ph').forEach((el,i)=>{el.classList.add('anim','zoom'); D(el,100+i*45)});
+  q('.gcell').forEach((el,i)=>{const r=Math.floor(i/3),c=i%3; el.classList.add('anim'); D(el,120+(r+c)*60)});
+  q('.barfill').forEach((el,i)=>D(el,220+i*80));
+  q('.qr').forEach(el=>{el.classList.add('anim','zoom'); D(el,300)});
+});
+
+/* ตัวเลขนับขึ้น (เน้นข้อมูล ไม่ใช่ประดับ) */
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const countUp=el=>{
+  const raw=el.textContent.trim();
+  const m=raw.match(/^([\d.]+)([A-Za-z%]*)$/); if(!m)return;      // ข้ามคำที่ไม่ใช่เลข เช่น MALE
+  const end=parseFloat(m[1]), suf=m[2], dec=(m[1].split('.')[1]||'').length;
+  const t0=performance.now(), dur=400;
+  const step=now=>{
+    const k=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-k,3);
+    el.textContent=(end*e).toFixed(dec)+suf;
+    if(k<1)requestAnimationFrame(step); else el.textContent=raw;
+  };
+  el.textContent=(0).toFixed(dec)+suf; requestAnimationFrame(step);
+};
+
+const shown=new WeakSet();
+const showSlide=sec=>{
+  if(shown.has(sec))return; shown.add(sec);
+  sec.classList.add('in');
+  sec.querySelectorAll('.anim,.barfill').forEach(e=>e.classList.add('on'));
+  if(!RM)setTimeout(()=>sec.querySelectorAll('.stat').forEach(countUp),160);
+};
+
+const revealIO=new IntersectionObserver(es=>es.forEach(e=>{
+  if(e.isIntersecting)showSlide(e.target);
+}),{threshold:.05});
+secs.forEach(s=>revealIO.observe(s));
+showSlide(secs[0]);
+/* กันเหนียว: ถ้า IntersectionObserver ไม่ยิง สไลด์ที่อยู่ในจอต้องโชว์อยู่ดี */
+const ensureIn=()=>secs.forEach(s=>{const r=s.getBoundingClientRect();
+  if(r.top<innerHeight*.92&&r.bottom>innerHeight*.08)showSlide(s)});
+addEventListener('scroll',ensureIn,{passive:true});
+addEventListener('resize',ensureIn);
+setTimeout(ensureIn,400);
+/* กันเหนียวชั้นสอง: 2.5 วิ ยังไม่โชว์ = โชว์เลย ยอมเสียอนิเมชันดีกว่าหน้าว่าง */
+setTimeout(()=>secs.forEach(showSlide),2500);
+
+/* แถบความคืบหน้า (transform เท่านั้น) */
+const prog=document.createElement('div');prog.className='bar-progress';document.body.appendChild(prog);
+const onScroll=()=>{
+  const max=document.documentElement.scrollHeight-innerHeight;
+  prog.style.transform=`scaleX(${max>0?scrollY/max:0})`;
+};
+addEventListener('scroll',onScroll,{passive:true});onScroll();
+
+console.log('[deck] slides rendered:',secs.length);
+</script>
+</body>
+</html>

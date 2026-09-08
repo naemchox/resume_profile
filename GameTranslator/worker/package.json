@@ -1,0 +1,11 @@
+{
+  "name": "gloss-api",
+  "private": true,
+  "type": "module",
+  "description": "Licence check + Claude proxy so Gloss works without the buyer owning an Anthropic key.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  }
+}

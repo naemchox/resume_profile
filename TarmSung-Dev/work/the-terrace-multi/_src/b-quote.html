@@ -1,0 +1,40 @@
+<section class="section" id="quote" aria-labelledby="quote-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="kicker"><i aria-hidden="true"></i>คิดให้ดูก่อนโทร</span>
+        <h2 id="quote-title"><span class="w"><span>งานของคุณ</span></span> <span class="w"><span>ราวๆ เท่าไหร่</span></span></h2>
+        <svg class="rule" viewBox="0 0 132 8" aria-hidden="true" focusable="false"><use href="#i-icon2"/></svg>
+        <p>เลื่อนจำนวนแขกแล้วเห็นตัวเลขทันที — เป็นราคาประเมินจากราคาต่อท่านที่ประกาศไว้ ใบเสนอราคาจริงแจกแจงรายบรรทัดอีกที</p>
+      </div>
+
+      <div class="calc reveal" data-calc>
+        <fieldset class="calc-kind">
+          <legend>ประเภทงาน</legend>
+          <label><input type="radio" name="kind" value="meeting" data-rate="690" data-min="1" checked><span>ประชุม &amp; สัมมนา<b>฿690 / ท่าน</b></span></label>
+          <label><input type="radio" name="kind" value="party" data-rate="890" data-min="40"><span>งานเลี้ยงบริษัท<b>฿890 / ท่าน</b></span></label>
+          <label><input type="radio" name="kind" value="wedding" data-rate="1290" data-min="80"><span>งานแต่ง<b>฿1,290 / ท่าน</b></span></label>
+        </fieldset>
+
+        <div class="calc-guests">
+          <label for="guests">จำนวนแขก</label>
+          <output for="guests" data-guests>120</output>
+          <input id="guests" type="range" min="40" max="300" step="10" value="120" data-range>
+          <p class="calc-scale" aria-hidden="true"><span>40</span><span>300 ที่นั่ง</span></p>
+        </div>
+
+        <div class="calc-out" aria-live="polite">
+          <p class="calc-line"><span data-detail>฿690 × 120 ท่าน</span></p>
+          <p class="calc-total"><span>ประเมินทั้งงาน</span><b data-total>฿82,800</b></p>
+          <p class="calc-note" data-note>ราคานี้รวมอาหาร เครื่องดื่ม จัดโต๊ะ เครื่องเสียงพื้นฐาน และทีมดูแลหน้างานแล้ว</p>
+        </div>
+
+        <div class="act">
+          <a class="btn btn--solid" href="tel:">ขอใบเสนอราคาจริง
+            <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon3"/></svg></a>
+          <!-- btn--line ไม่ใช่ btn--outline: outline ถูกออกแบบมาให้วางบนรูป (ตัวหนังสือขาว)
+               พอมาอยู่บนพื้นสว่างของการ์ดจะขาวบนขาว หน้านี้มีตัวสำหรับพื้นสว่างอยู่แล้ว -->
+          <a class="btn btn--line" href="{{R}}#compare">ดูว่ารวมอะไรบ้าง</a>
+        </div>
+      </div>
+    </div>
+  </section>

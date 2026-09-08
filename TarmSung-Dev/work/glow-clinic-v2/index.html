@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>โกลว์ คลินิก — ใบประเมินเบื้องต้น (แบบร่าง v2)</title>
+<meta name="description" content="บอกปัญหาผิว แล้วเห็นทั้งใบ — กี่ครั้ง พักฟื้นกี่วัน ต่อครั้งเท่าไหร่ รวมเท่าไหร่ ก่อนตัดสินใจทัก">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   แบบร่าง v2 — แนวคิด: หน้าแรกคือ "ใบประเมิน" ที่ถูกกรอกต่อหน้า
+   ของจริงอยู่ที่ ../glow-clinic-multi/ ใบนี้ไม่แตะของนั้น
+   ตัวเลขทุกตัวคัดจาก _src/data.mjs ของใบจริง ไม่ได้แต่งขึ้น
+   ───────────────────────────────────────────────────────────── */
+:root{
+  --paper:#F7F4F0; --paper-2:#FFFFFF; --ink:#141210; --ink-2:#5C554E; --ink-3:#8B837A;
+  --line:#E0D9D1; --line-2:#CFC6BC;
+  --seal:#1B4D3E;          /* เขียวคลินิก = ผ่าน/ปลอดภัย/แพทย์ */
+  --clay:#B4472F;          /* ดินเผา = วันพักฟื้น/ข้อควรระวัง */
+  --f-d:"Noto Serif Thai",Georgia,serif;
+  --f-s:"IBM Plex Sans Thai",system-ui,sans-serif;
+  --w:1180px; --r:4px;
+  --ease:cubic-bezier(.2,.7,.2,1);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;scroll-padding-top:88px}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-s);font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}
+a{color:inherit}
+h1,h2,h3{font-family:var(--f-d);font-weight:600;line-height:1.2;margin:0;letter-spacing:-.01em}
+.wrap{width:min(100% - 2.5rem,var(--w));margin-inline:auto}
+.eyebrow{font-size:.75rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.num{font-family:var(--f-d);font-variant-numeric:tabular-nums;font-feature-settings:"tnum";letter-spacing:-.02em}
+
+/* ── แถบหัว ────────────────────────────────────────────────── */
+.top{position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--paper) 92%,transparent);
+     backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:1.25rem;min-height:64px}
+.brand{font-family:var(--f-d);font-weight:700;font-size:1.1rem;line-height:1.1;text-decoration:none}
+.brand small{display:block;font-family:var(--f-s);font-weight:500;font-size:.6rem;letter-spacing:.24em;color:var(--ink-3)}
+.top nav{margin-left:auto;display:none;gap:1.5rem;font-size:.9rem}
+.top nav a{color:var(--ink-2);text-decoration:none;min-height:44px;display:inline-flex;align-items:center;border-bottom:2px solid transparent}
+.top nav a:hover{color:var(--ink);border-bottom-color:var(--seal)}
+.tel{margin-left:auto;font-weight:600;text-decoration:none;font-size:.92rem;display:inline-flex;align-items:center;min-height:44px}
+.top nav ~ .tel{margin-left:0}
+@media(min-width:940px){.top nav{display:flex}}
+
+/* ── ฮีโร่ = ใบประเมิน ─────────────────────────────────────── */
+.sheet-sec{padding-block:clamp(2.5rem,6vw,5rem) clamp(3rem,7vw,5.5rem)}
+.sheet-grid{display:grid;gap:clamp(2rem,4vw,3.5rem)}
+@media(min-width:960px){.sheet-grid{grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);align-items:start}}
+h1{font-size:clamp(2.15rem,1.2rem + 3.4vw,3.9rem)}
+h1 .w{display:inline-block;overflow:hidden;vertical-align:bottom}
+h1 .w>span{display:inline-block;transform:translateY(110%);will-change:transform}
+.ready h1 .w>span{transform:none;transition:transform 900ms var(--ease)}
+.ready h1 .w:nth-child(2)>span{transition-delay:70ms}
+.ready h1 .w:nth-child(3)>span{transition-delay:140ms}
+.lede{margin:1.15rem 0 0;max-width:38ch;color:var(--ink-2);font-size:1.03rem}
+
+/* ปุ่มเลือกปัญหา */
+.ask{margin-top:2rem}
+.ask>p{margin:0 0 .8rem;font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:.5rem;padding:0;margin:0;list-style:none}
+.chip{appearance:none;font:inherit;cursor:pointer;background:var(--paper-2);color:var(--ink);
+      border:1px solid var(--line-2);border-radius:999px;padding:.6rem 1.05rem;min-height:44px;
+      font-size:.95rem;font-weight:500;transition:border-color 180ms var(--ease),background 180ms var(--ease),color 180ms var(--ease)}
+.chip:hover{border-color:var(--seal)}
+.chip[aria-pressed="true"]{background:var(--seal);border-color:var(--seal);color:#fff}
+.chip:focus-visible{outline:2px solid var(--seal);outline-offset:3px}
+.note{margin:1rem 0 0;font-size:.9rem;color:var(--ink-3);min-height:2.6em}
+/* สามบรรทัดนี้อยู่คอลัมน์ซ้ายเพราะใบขวาสูงกว่า 230px ปล่อยไว้จะเป็นรูโบ๋ (วัดด้วย audit)
+   และเป็นเนื้อหาที่ควรอยู่ข้างคำถามอยู่แล้ว ไม่ใช่ของถมช่องว่าง */
+.why{list-style:none;margin:2rem 0 0;padding:1.25rem 0 0;border-top:1px solid var(--line)}
+.why li{position:relative;padding-left:1.6rem;margin-top:.7rem;font-size:.93rem;color:var(--ink-2)}
+.why li:first-child{margin-top:0}
+.why li b{color:var(--ink);font-weight:600}
+.why li::before{content:"";position:absolute;left:.3rem;top:.62em;width:7px;height:7px;border-radius:50%;background:var(--seal)}
+
+/* ใบจริง */
+.sheet{background:var(--paper-2);border:1px solid var(--line-2);border-radius:var(--r);
+       box-shadow:0 1px 0 var(--line),0 18px 40px -34px rgba(20,18,16,.5)}
+.sheet-head{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;
+            padding:1rem 1.35rem;border-bottom:1px solid var(--line)}
+.sheet-head b{font-family:var(--f-d);font-size:1.05rem}
+.sheet-head span{font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.total{padding:1.5rem 1.35rem 1.35rem;border-bottom:1px solid var(--line);background:
+       linear-gradient(180deg,color-mix(in srgb,var(--seal) 4%,transparent),transparent)}
+.total dt{font-size:.85rem;color:var(--ink-2);margin:0}
+.total dd{margin:.15rem 0 0;display:flex;align-items:baseline;gap:.5rem}
+.total .big{font-size:clamp(2.6rem,1.4rem + 4vw,4rem);font-weight:700;line-height:1}
+.total .unit{font-size:.95rem;color:var(--ink-2)}
+.rows{margin:0;padding:.35rem 0}
+.row{display:flex;align-items:center;justify-content:space-between;gap:1rem;
+     padding:.75rem 1.35rem;border-bottom:1px dotted var(--line)}
+.row:last-child{border-bottom:0}
+.row .who{min-width:0}
+.row .nm{display:block;font-weight:600;font-size:.97rem}
+.row .meta{display:block;font-size:.83rem;color:var(--ink-3)}
+.row .price{flex:none;text-align:right}
+.row .price b{display:block;font-family:var(--f-d);font-size:1.22rem;font-weight:600;letter-spacing:-.01em}
+.row .price small{display:block;font-size:.78rem;color:var(--ink-3)}
+.row.enter{opacity:0;transform:translateY(6px)}
+.row.enter.in{opacity:1;transform:none;transition:opacity 420ms var(--ease),transform 420ms var(--ease)}
+.sheet-foot{padding:1rem 1.35rem;font-size:.85rem;color:var(--ink-2);background:var(--paper);
+            border-top:1px solid var(--line);border-radius:0 0 var(--r) var(--r)}
+.sheet-foot b{color:var(--ink)}
+
+/* ── แถบรูปบาง ─────────────────────────────────────────────── */
+.band{background:var(--seal);color:#EAF1EE;padding-block:clamp(2.5rem,5vw,4rem)}
+.band-eb{color:#8FBFAF;margin:0 0 .9rem;letter-spacing:.06em}
+.band-head{margin:0;color:#fff;font-family:var(--f-d);font-weight:600;line-height:1.28;
+        font-size:clamp(1.4rem,1rem + 1.9vw,2.5rem);max-width:30ch}
+.steps{list-style:none;counter-reset:s;margin:2rem 0 0;padding:0;display:grid;gap:1px;
+       background:rgba(255,255,255,.16);border-block:1px solid rgba(255,255,255,.16)}
+@media(min-width:820px){.steps{grid-template-columns:repeat(3,1fr)}}
+.steps li{counter-increment:s;background:var(--seal);padding:1.1rem 0;font-size:.94rem;color:#CFE2DA}
+@media(min-width:820px){.steps li{padding:1.1rem 1.2rem}.steps li:first-child{padding-left:0}}
+.steps li::before{content:counter(s,decimal-leading-zero);display:block;margin-bottom:.35rem;
+       font-family:var(--f-d);font-size:.95rem;color:#8FBFAF;letter-spacing:.06em}
+
+/* ── แถบหมอ ────────────────────────────────────────────────── */
+.doc{background:var(--seal);color:#DCE8E3;padding-block:clamp(2.5rem,5vw,4.5rem)}
+.doc-grid{display:grid;gap:clamp(1.75rem,3vw,3rem);align-items:center}
+@media(min-width:900px){.doc-grid{grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr)}}
+.doc-fig{margin:0;border-radius:var(--r);overflow:hidden;aspect-ratio:4 / 5;background:#123B31}
+.doc-fig img{width:100%;height:100%;object-fit:cover;object-position:50% 30%}
+.doc h2{color:#fff;font-size:clamp(1.5rem,1.05rem + 1.9vw,2.4rem);margin-top:.5rem}
+.doc blockquote{margin:1.15rem 0 0;padding-left:1rem;border-left:2px solid #4E8B79;
+  color:#CFE2DA;font-size:1rem;max-width:52ch}
+.docs{display:grid;gap:1px;margin-top:1.75rem;background:rgba(255,255,255,.16);
+  border-block:1px solid rgba(255,255,255,.16)}
+@media(min-width:640px){.docs{grid-template-columns:1fr 1fr}}
+.doc-one{display:flex;gap:.85rem;align-items:center;background:var(--seal);padding:1rem .1rem}
+@media(min-width:640px){.doc-one{padding:1rem}.doc-one:first-child{padding-left:0}}
+.doc-one img{width:56px;height:56px;flex:none;border-radius:50%;object-fit:cover;object-position:50% 25%}
+.doc-one b{display:block;color:#fff;font-family:var(--f-d);font-size:.98rem}
+.doc-one span{display:block;font-size:.82rem;color:#A9C6BC;margin-top:.15rem}
+
+/* ── ความปลอดภัย ───────────────────────────────────────────── */
+.facts{list-style:none;margin:0;padding:0;display:grid;gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+@media(min-width:680px){.facts{grid-template-columns:1fr 1fr}}
+@media(min-width:1000px){.facts{grid-template-columns:repeat(3,1fr)}}
+.facts li{background:var(--paper-2);padding:1.3rem 1.35rem}
+.facts b{display:block;font-family:var(--f-d);font-size:1.02rem;margin-bottom:.4rem}
+.facts b::before{content:"";display:inline-block;width:9px;height:9px;margin-right:.55rem;
+  border-radius:2px;background:var(--seal);vertical-align:.06em}
+.facts span{font-size:.91rem;color:var(--ink-2)}
+
+/* ── เครื่อง ────────────────────────────────────────────────── */
+.mach{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);
+  border-radius:var(--r);overflow:hidden}
+@media(min-width:700px){.mach{grid-template-columns:1fr 1fr}}
+.mach-one{background:var(--paper-2);padding:1.35rem}
+.mach-one b{font-family:var(--f-d);font-size:1.1rem}
+.mach-meta{display:block;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:600;margin-top:.2rem}
+.mach-one p{margin:.7rem 0 .6rem;font-size:.92rem;color:var(--ink-2)}
+.mach-use{display:inline-block;font-size:.83rem;color:var(--seal);font-weight:600}
+
+/* ── ตารางเทียบ ────────────────────────────────────────────── */
+.sec{padding-block:clamp(3rem,7vw,5.5rem)}
+.sec-head{max-width:46ch;margin-bottom:clamp(1.75rem,3vw,2.5rem)}
+.sec-head h2{font-size:clamp(1.6rem,1.1rem + 1.8vw,2.5rem);margin-top:.4rem}
+.sec-head p{margin:.7rem 0 0;color:var(--ink-2)}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line-2);border-radius:var(--r);background:var(--paper-2)}
+table{width:100%;min-width:720px;border-collapse:collapse;font-size:.94rem}
+caption{text-align:left}
+th,td{text-align:left;padding:.9rem 1rem;border-bottom:1px solid var(--line)}
+thead th{font-size:.76rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:600;
+         position:sticky;top:0;background:var(--paper-2);border-bottom:1px solid var(--line-2)}
+tbody tr:last-child td{border-bottom:0}
+td.nm{font-weight:600}
+td.nm small{display:block;font-weight:400;font-size:.8rem;color:var(--ink-3)}
+td.n{text-align:right;font-family:var(--f-d);font-variant-numeric:tabular-nums;font-size:1.02rem}
+td.n b{font-weight:600}
+/* แท่งวันพักฟื้น — เทียบด้วยตาแทนการอ่านตัวเลขทีละบรรทัด */
+.dt{display:flex;align-items:center;gap:.55rem;min-width:132px}
+.dt i{display:block;height:8px;border-radius:2px;background:var(--clay);flex:none}
+.dt.zero i{width:8px;background:var(--seal)}
+.dt span{font-size:.86rem;color:var(--ink-2);white-space:nowrap}
+
+/* ── ใครไม่ควรทำ ───────────────────────────────────────────── */
+.notfit{background:var(--ink);color:#F2EDE7}
+.notfit .sec-head h2,.notfit .sec-head .eyebrow{color:#fff}
+.notfit .sec-head p{color:#B9B0A6}
+.nf-grid{display:grid;gap:1px;background:#2B2521;border:1px solid #2B2521;border-radius:var(--r);overflow:hidden}
+@media(min-width:700px){.nf-grid{grid-template-columns:1fr 1fr}}
+@media(min-width:1040px){.nf-grid{grid-template-columns:repeat(3,1fr)}}
+.nf{background:var(--ink);padding:1.4rem 1.35rem}
+.nf h3{font-size:1.02rem;color:#fff}
+.nf p{margin:.5rem 0 0;font-size:.92rem;color:#B9B0A6}
+.nf .tag{display:inline-block;margin-bottom:.6rem;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;
+         color:#E8A08D;font-weight:600}
+
+/* ── ปิดท้าย ───────────────────────────────────────────────── */
+.close{padding-block:clamp(3.5rem,8vw,6rem);text-align:center}
+.close h2{font-size:clamp(1.7rem,1.1rem + 2.2vw,2.8rem);max-width:20ch;margin-inline:auto;text-wrap:balance}
+.close p{color:var(--ink-2);max-width:42ch;margin:1rem auto 0}
+.acts{display:flex;flex-wrap:wrap;gap:.75rem;justify-content:center;margin-top:1.75rem}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 1.5rem;
+     border-radius:999px;text-decoration:none;font-weight:600;font-size:.98rem;border:1px solid transparent;
+     transition:background 180ms var(--ease),border-color 180ms var(--ease),color 180ms var(--ease)}
+.btn--go{background:var(--seal);color:#fff}
+.btn--go:hover{background:#163E32}
+.btn--gh{border-color:var(--line-2);color:var(--ink)}
+.btn--gh:hover{border-color:var(--ink)}
+footer{border-top:1px solid var(--line);padding-block:2rem;font-size:.86rem;color:var(--ink-3)}
+footer .wrap{display:flex;flex-wrap:wrap;gap:.6rem 1.5rem}
+.flag{margin-left:auto}
+
+/* ── เข้าจอ ────────────────────────────────────────────────── */
+.rv{opacity:0;transform:translateY(14px)}
+.ready .rv.in{opacity:1;transform:none;transition:opacity 700ms var(--ease),transform 700ms var(--ease)}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  h1 .w>span,.ready h1 .w>span{transform:none!important;transition:none!important}
+  .rv,.rv.in,.row.enter,.row.enter.in{opacity:1!important;transform:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#top">โกลว์ คลินิก<small>GLOW CLINIC</small></a>
+    <nav aria-label="เมนูหลัก">
+      <a href="#assess">ใบประเมิน</a>
+      <a href="#doctors">แพทย์</a>
+      <a href="#prices">ราคาทั้งหมด</a>
+      <a href="#safe">ความปลอดภัย</a>
+      <a href="#notfit">ใครไม่ควรทำ</a>
+    </nav>
+    <a class="tel" href="tel:02XXXXXXX">02-XXX-XXXX</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ── ฮีโร่ = ใบประเมินที่ถูกกรอกต่อหน้า ─────────────────── -->
+  <section class="sheet-sec" id="assess" aria-labelledby="h1">
+    <div class="wrap sheet-grid">
+
+      <div>
+        <p class="eyebrow">ใบประเมินเบื้องต้น · ไม่ต้องทักไลน์</p>
+        <h1 id="h1"><span class="w"><span>บอกปัญหาผิว</span></span> <span class="w"><span>แล้วเห็นทั้งใบ</span></span></h1>
+        <p class="lede">กี่ครั้ง · พักฟื้นกี่วัน · ต่อครั้งเท่าไหร่ · รวมเท่าไหร่ — ตัวเลขจริงจากตารางราคาของคลินิก ไม่ใช่ราคาเริ่มต้นที่ยังไม่รวมอะไร</p>
+
+        <div class="ask">
+          <p>ปัญหาผิวของคุณคือ</p>
+          <ul class="chips" id="chips"></ul>
+          <p class="note" id="note"></p>
+        </div>
+
+        <ul class="why">
+          <li><b>ประเมินครั้งแรกไม่มีค่าใช้จ่าย</b> ไม่มีการขายคอร์สหน้างาน</li>
+          <li><b>แพทย์ผิวหนังตรวจทุกเคส</b> ไม่ใช่ผู้ช่วยประเมินแทน</li>
+          <li><b>ราคารวมแจ้งครบก่อนเริ่ม</b> จอดรถฟรี 2 ชม.</li>
+        </ul>
+      </div>
+
+      <div class="sheet" id="sheet" aria-live="polite">
+        <div class="sheet-head">
+          <b id="sheetTitle">หลุมสิว</b>
+          <span id="sheetCount">3 โปรแกรม</span>
+        </div>
+        <dl class="total">
+          <dt>คอร์สที่ถูกที่สุดสำหรับปัญหานี้ ตลอดคอร์ส</dt>
+          <dd><span class="num big" id="big">฿0</span><span class="unit" id="bigNote">—</span></dd>
+        </dl>
+        <div class="rows" id="rows"></div>
+        <p class="sheet-foot"><b>ราคานี้คือราคาที่จ่ายจริง</b> — แจ้งครบก่อนเริ่ม ไม่มีบวกหน้างาน แพทย์ส่องผิวก่อนแล้วบอกว่าเคสของคุณอยู่ตรงไหนของกรอบนี้ ถ้าไม่ตรงเราบอกก่อนเริ่ม</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── แถบหมอ ────────────────────────────────────────────
+       เคยเป็นแถบตัวอักษรล้วน ผลคือหน้าอ่านเหมือนหน้าคำนวณราคา ไม่เหมือนคลินิก
+       สิ่งที่บอกว่า "นี่คือสถานพยาบาล" ไม่ใช่รูปสวย แต่คือหน้าหมอ + วุฒิบัตร + ใบอนุญาต -->
+  <section class="doc" id="doctors" aria-labelledby="h-doc">
+    <div class="wrap doc-grid">
+      <figure class="doc-fig">
+        <img src="../glow-clinic-multi/img/dr-chanikan.jpg" alt="พญ. ชนิกานต์ วรพัฒน์ แพทย์ผิวหนัง ผู้ก่อตั้งคลินิก" width="1400" height="933" loading="lazy" decoding="async">
+      </figure>
+      <div>
+        <p class="eyebrow band-eb">คนที่จะตรวจคุณ</p>
+        <h2 id="h-doc">แพทย์ผิวหนังตรวจเอง<br>ทุกเคสที่เดินเข้ามา</h2>
+        <blockquote>“คนไข้ที่เดินเข้ามาส่วนใหญ่รู้ว่าตัวเองมีปัญหาอะไร แต่ไม่รู้ว่ามันชื่ออะไรและต้องทำกี่ครั้ง หน้าที่แรกของเราคือแปลให้ฟังก่อน แล้วค่อยคุยว่าจะทำหรือไม่ทำ”</blockquote>
+        <div class="docs">
+          <div class="doc-one">
+            <img src="../glow-clinic-multi/img/dr-chanikan.jpg" alt="พญ. ชนิกานต์ วรพัฒน์" width="1400" height="933" loading="lazy" decoding="async">
+            <div><b>พญ. ชนิกานต์ วรพัฒน์</b><span>วุฒิบัตรตจวิทยา · เลเซอร์ 12 ปี · ตรวจเองทุกเคสในวันที่ลงตาราง</span></div>
+          </div>
+          <div class="doc-one">
+            <img src="../glow-clinic-multi/img/dr-piyaphong.jpg" alt="นพ. ปิยพงศ์ อริยะกุล" width="1400" height="933" loading="lazy" decoding="async">
+            <div><b>นพ. ปิยพงศ์ อริยะกุล</b><span>วุฒิบัตรตจวิทยา · งานแผลเป็นและคีลอยด์ · ออกตรวจ อังคาร พฤหัส เสาร์</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  </div>
+
+  <!-- ── ตารางราคาทั้งหมด ─────────────────────────────────── -->
+  <section class="sec" id="prices" aria-labelledby="h-prices">
+    <div class="wrap">
+      <div class="sec-head rv">
+        <p class="eyebrow">ทั้งหมดที่มี · 6 โปรแกรม</p>
+        <h2 id="h-prices">ตารางเดียวจบ ไม่ต้องกดเข้าไปทีละหน้า</h2>
+        <p>แท่งสีคือจำนวนวันพักฟื้น เทียบด้วยตาได้เลยว่าอันไหนกระทบชีวิตประจำวันมากกว่ากัน</p>
+      </div>
+      <div class="tbl-wrap rv">
+        <table>
+          <caption class="eyebrow" style="padding:.9rem 1rem 0">ราคาต่อครั้งและราคาตลอดคอร์ส · อัปเดตตามตารางราคาหน้าร้าน</caption>
+          <thead><tr>
+            <th scope="col">โปรแกรม</th><th scope="col">แก้ปัญหา</th><th scope="col">จำนวนครั้ง</th>
+            <th scope="col">พักฟื้น</th><th scope="col" style="text-align:right">ต่อครั้ง</th><th scope="col" style="text-align:right">ตลอดคอร์ส</th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ── ความปลอดภัยที่ตรวจสอบได้ ─────────────────────────── -->
+  <section class="sec" id="safe" aria-labelledby="h-safe">
+    <div class="wrap">
+      <div class="sec-head rv">
+        <p class="eyebrow">สิ่งที่ทำให้ราคาต่างกันจริงๆ</p>
+        <h2 id="h-safe">เรื่องที่ตรวจสอบได้ ไม่ใช่เรื่องที่พูดเอาเอง</h2>
+      </div>
+      <ul class="facts rv">
+        <li><b>ใบอนุญาตสถานพยาบาล</b><span>เลขที่ 10101002566 ติดไว้หน้าเคาน์เตอร์ ตรวจสอบกับกรมสนับสนุนบริการสุขภาพได้</span></li>
+        <li><b>ยาและฟิลเลอร์มี อย. ทุกตัว</b><span>เปิดกล่องต่อหน้าคนไข้เสมอ ถ่ายรูปล็อตและวันหมดอายุเก็บไว้ในเวชระเบียนของคุณ</span></li>
+        <li><b>แพทย์เป็นคนฉีดเอง</b><span>ไม่มีการให้ผู้ช่วยฉีดแทน ทุกหัตถการมีชื่อแพทย์ผู้ทำในใบเสร็จ</span></li>
+        <li><b>เข็มและหัวเลเซอร์ใช้ครั้งเดียว</b><span>แกะซองใหม่ทุกครั้ง หัวทรีตเมนต์ที่ใช้ซ้ำได้ผ่านหม้อนึ่งความดันทุกวัน</span></li>
+        <li><b>มีชุดกู้ชีพและยาแก้ฟิลเลอร์</b><span>ไฮยาลูรอนิเดสพร้อมใช้ตลอดเวลาทำการ สำหรับกรณีฉุกเฉินจากการฉีด</span></li>
+        <li><b>ปรึกษาหลังทำไม่มีค่าใช้จ่าย</b><span>กลับมาให้แพทย์ดูซ้ำได้ตลอดคอร์ส ไม่ว่าจะซื้อคอร์สหรือทำครั้งเดียว</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ── เครื่องที่ใช้จริง ─────────────────────────────────── -->
+  <section class="sec" id="machines" aria-labelledby="h-mach">
+    <div class="wrap">
+      <div class="sec-head rv">
+        <p class="eyebrow">เครื่องในห้องหัตถการ · 4 เครื่อง</p>
+        <h2 id="h-mach">เครื่องอะไร มาจากไหน เข้ามาเมื่อไหร่</h2>
+        <p>คลินิกกับร้านเสริมสวยต่างกันที่ตรงนี้ เราจึงเขียนรุ่นและปีที่เครื่องเข้าไว้ให้ตรวจสอบ</p>
+      </div>
+      <div class="mach rv">
+        <article class="mach-one"><b>Pico Genesis</b>
+          <span class="mach-meta">สหรัฐอเมริกา · เข้าคลินิก ก.พ. 2569</span>
+          <p>ความยาวคลื่น 755 นาโนเมตร · ปล่อยพลังงานช่วงพิโควินาที</p>
+          <span class="mach-use">ฝ้าตื้น · กระแดด · รอยสัก</span></article>
+        <article class="mach-one"><b>Potenza RF</b>
+          <span class="mach-meta">เกาหลีใต้ · เข้าคลินิก มิ.ย. 2569</span>
+          <p>เข็มไมโครนีดเดิล 49 เข็ม · คลื่นวิทยุ monopolar และ bipolar</p>
+          <span class="mach-use">หลุมสิว · รูขุมขนกว้าง</span></article>
+        <article class="mach-one"><b>Fractional CO₂</b>
+          <span class="mach-meta">เยอรมนี · เข้าคลินิก 2567</span>
+          <p>เลเซอร์คาร์บอนไดออกไซด์ 10,600 นาโนเมตร แบบแยกลำเป็นตาราง</p>
+          <span class="mach-use">หลุมสิวลึก · แผลเป็น</span></article>
+        <article class="mach-one"><b>HIFU</b>
+          <span class="mach-meta">เกาหลีใต้ · เข้าคลินิก 2568</span>
+          <p>คลื่นเสียงความถี่สูงโฟกัส ระดับความลึก 1.5 · 3.0 · 4.5 มม.</p>
+          <span class="mach-use">แก้มตก · กรอบหน้าเบลอ</span></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ใครไม่ควรทำ ──────────────────────────────────────── -->
+  <section class="sec notfit" id="notfit" aria-labelledby="h-notfit">
+    <div class="wrap">
+      <div class="sec-head rv">
+        <p class="eyebrow">สิ่งที่คลินิกอื่นไม่เขียนไว้</p>
+        <h2 id="h-notfit">ใครไม่ควรทำ</h2>
+        <p>ถ้าคุณอยู่ในข้อไหนข้อหนึ่งนี้ อย่าเพิ่งจอง โทรมาคุยก่อน — เราจะเสียเวลาคุณน้อยกว่าให้มาถึงแล้วทำไม่ได้</p>
+      </div>
+      <div class="nf-grid rv" id="nfGrid"></div>
+    </div>
+  </section>
+
+  <!-- ── ปิดท้าย ──────────────────────────────────────────── -->
+  <section class="close">
+    <div class="wrap">
+      <h2 class="rv">ยังไม่ต้องตัดสินใจวันนี้</h2>
+      <p class="rv">ประเมินผิวครั้งแรกไม่มีค่าใช้จ่าย ไม่มีการขายคอร์สหน้างาน ถ้าผิวคุณยังไม่ควรทำอะไร แพทย์จะบอกตรงๆ ว่ายัง</p>
+      <div class="acts rv">
+        <a class="btn btn--go" href="tel:02XXXXXXX">นัดประเมินผิว · 02-XXX-XXXX</a>
+        <a class="btn btn--gh" href="#prices">ดูราคาทั้งหมดก่อน</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>โกลว์ คลินิก · ทองหล่อ ซอย 13 คลองตันเหนือ วัฒนา กรุงเทพฯ 10110</span>
+    <span>จันทร์–เสาร์ 11:00–20:00 · อาทิตย์ 12:00–19:00</span>
+    <span class="flag">แบบร่าง v2 · งานสาธิต แบรนด์สมมติ</span>
+  </div>
+</footer>
+
+<script>
+/* ข้อมูลคัดจาก ../glow-clinic-multi/_src/data.mjs ตรงตัว ไม่ได้แต่งตัวเลขเพิ่ม */
+const PROBLEMS = [
+  {id:"acne-scar", label:"หลุมสิว",       note:"รอยบุ๋มที่เหลือหลังสิวหาย ผิวไม่เรียบเวลาโดนแสงข้าง"},
+  {id:"melasma",   label:"ฝ้า · กระ",     note:"ปื้นสีน้ำตาลบนโหนกแก้ม เข้มขึ้นเวลาโดนแดด"},
+  {id:"scar",      label:"รอยแผลเป็น",    note:"แผลนูนหรือแผลคีลอยด์จากอุบัติเหตุหรือผ่าตัด"},
+  {id:"pore",      label:"รูขุมขนกว้าง",  note:"ผิวหน้ามันและรูเปิดกว้างบริเวณแก้มกับจมูก"},
+  {id:"sagging",   label:"ผิวหย่อนคล้อย", note:"กรอบหน้าไม่ชัด แก้มตก ร่องแก้มลึกขึ้นตามอายุ"},
+  {id:"tattoo",    label:"รอยสัก",        note:"ต้องการลบรอยสักเดิม ทั้งสีดำและสีผสม"},
+];
+const PROGRAMS = [
+  {slug:"potenza",  name:"Potenza RF Microneedling", for:["acne-scar","pore"], rounds:4, gap:"ทุก 4 สัปดาห์",     down:"2 วัน",        days:2, per:8000,  total:32000,
+   notfit:"ผิวที่กำลังมีสิวอักเสบรุนแรง กำลังกินยาไอโซเตรทติโนอิน หรือตั้งครรภ์"},
+  {slug:"subcision",name:"Subcision ร่วมกับฟิลเลอร์", for:["acne-scar"],        rounds:2, gap:"ห่างกัน 6 สัปดาห์", down:"5 วัน",        days:5, per:12000, total:24000,
+   notfit:"ผู้ที่มีภาวะเลือดออกง่าย หรือใช้ยาต้านการแข็งตัวของเลือด"},
+  {slug:"pico",     name:"Pico Laser",                for:["melasma","tattoo"], rounds:5, gap:"ทุก 3 สัปดาห์",     down:"ไม่ต้องพัก",   days:0, per:3900,  total:19500,
+   notfit:"ผิวที่เพิ่งโดนแดดจัดภายใน 2 สัปดาห์ หรือมีแผลเปิดบริเวณที่จะยิง"},
+  {slug:"co2",      name:"Fractional CO₂ Laser",      for:["acne-scar","scar","pore"], rounds:3, gap:"ทุก 6 สัปดาห์", down:"7 วัน",   days:7, per:6000,  total:18000,
+   notfit:"ผู้ที่มีประวัติแผลเป็นนูนคีลอยด์ หรือกำลังมีเริมกำเริบ"},
+  {slug:"scar-injection",name:"ฉีดยาแผลเป็นนูน",       for:["scar"],             rounds:4, gap:"ทุก 4 สัปดาห์",     down:"ไม่ต้องพัก",   days:0, per:2500,  total:10000,
+   notfit:"หญิงตั้งครรภ์ ผู้ที่ติดเชื้อบริเวณแผล"},
+  {slug:"hifu",     name:"HIFU ยกกระชับ",             for:["sagging"],          rounds:1, gap:"ทำซ้ำได้ปีละครั้ง", down:"ไม่ต้องพัก",   days:0, per:26000, total:26000,
+   notfit:"ผู้ที่ผิวบางมาก มีโลหะฝังบริเวณใบหน้า หรือน้ำหนักตัวเปลี่ยนแปลงมากในช่วงนี้"},
+];
+
+const $  = (s,r)=>(r||document).querySelector(s);
+const $$ = (s,r)=>[...(r||document).querySelectorAll(s)];
+const baht = n => "฿" + n.toLocaleString("th-TH");
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const labelOf = id => (PROBLEMS.find(p=>p.id===id)||{}).label || id;
+
+/* ── ปุ่มเลือกปัญหา ── */
+$("#chips").innerHTML = PROBLEMS.map(p =>
+  `<li><button class="chip" type="button" data-id="${p.id}" aria-pressed="false">${p.label}</button></li>`).join("");
+
+/* ── นับเลขขึ้น ── */
+let countToken = 0;
+function countTo(el, target){
+  const token = ++countToken;
+  if (REDUCED) { el.textContent = baht(target); return; }
+  const from = 0, dur = 620, t0 = performance.now();
+  const step = now => {
+    if (token !== countToken) return;
+    const k = Math.min(1, (now - t0) / dur);
+    const e = 1 - Math.pow(1 - k, 3);
+    el.textContent = baht(Math.round(from + (target - from) * e));
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+/* ── กรอกใบ ── */
+function fill(id){
+  const list = PROGRAMS.filter(p => p.for.includes(id))
+                       .sort((a,b) => a.total - b.total);
+  const prob = PROBLEMS.find(p => p.id === id);
+
+  $$(".chip").forEach(c => c.setAttribute("aria-pressed", String(c.dataset.id === id)));
+  $("#note").textContent = prob.note;
+  $("#sheetTitle").textContent = prob.label;
+  $("#sheetCount").textContent = list.length + " โปรแกรม";
+
+  const cheapest = list[0];
+  countTo($("#big"), cheapest.total);
+  $("#bigNote").textContent = cheapest.name + " · " + cheapest.rounds + " ครั้ง · พักฟื้น " + cheapest.down;
+
+  $("#rows").innerHTML = list.map(p => `
+    <div class="row enter">
+      <span class="who"><span class="nm">${p.name}</span><span class="meta">${p.rounds} ครั้ง · ${p.gap} · พักฟื้น ${p.down}</span></span>
+      <span class="price"><b class="num">${baht(p.total)}</b><small>${baht(p.per)} ต่อครั้ง</small></span>
+    </div>`).join("");
+
+  const rows = $$("#rows .row");
+  if (REDUCED) rows.forEach(r => r.classList.add("in"));
+  else rows.forEach((r,i) => setTimeout(() => r.classList.add("in"), 60 + i*70));
+}
+
+$("#chips").addEventListener("click", e => {
+  const b = e.target.closest(".chip");
+  if (b) fill(b.dataset.id);
+});
+
+/* ── ตารางทั้งหมด ── */
+const maxDays = Math.max(...PROGRAMS.map(p => p.days));
+$("#tbody").innerHTML = PROGRAMS.map(p => `
+  <tr>
+    <td class="nm">${p.name}<small>${p.gap}</small></td>
+    <td>${p.for.map(labelOf).join(" · ")}</td>
+    <td>${p.rounds} ครั้ง</td>
+    <td><span class="dt${p.days ? "" : " zero"}">
+      <i style="width:${p.days ? Math.round(p.days / maxDays * 92) + 8 : 8}px"></i>
+      <span>${p.down}</span></span></td>
+    <td class="n">${baht(p.per)}</td>
+    <td class="n"><b>${baht(p.total)}</b></td>
+  </tr>`).join("");
+
+/* ── ใครไม่ควรทำ ── */
+$("#nfGrid").innerHTML = PROGRAMS.map(p => `
+  <article class="nf">
+    <span class="tag">${p.name}</span>
+    <h3>ยังไม่ควรทำ ถ้า</h3>
+    <p>${p.notfit}</p>
+  </article>`).join("");
+
+/* ── เข้าจอ ── */
+document.documentElement.classList.add("js");
+const io = new IntersectionObserver((es, o) => {
+  es.forEach(en => { if (en.isIntersecting) { en.target.classList.add("in"); o.unobserve(en.target); } });
+}, { rootMargin: "0px 0px -12% 0px" });
+$$(".rv").forEach(el => io.observe(el));
+
+/* หัวข้อเริ่มวิ่งหลังฟอนต์มาถึง — ไม่งั้นเล่นจบบนฟอนต์สำรองแล้วค่อย reflow */
+const go = () => { document.body.classList.add("ready"); fill("acne-scar"); };
+if (document.fonts && document.fonts.ready) {
+  Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1200))]).then(go);
+} else go();
+</script>
+</body>
+</html>

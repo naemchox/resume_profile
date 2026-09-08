@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "puppeteer-core": "^23.11.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.29.7",
+    "@babel/preset-react": "^7.29.7"
+  }
+}

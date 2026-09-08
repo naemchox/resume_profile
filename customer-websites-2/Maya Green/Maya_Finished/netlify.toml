@@ -1,0 +1,225 @@
+# ══════════════════════════════════════════════════════════════════
+#  MAYA GREEN — Netlify deploy configuration
+#
+#  Netlify reads this file from the site's BASE DIRECTORY. In the
+#  Netlify UI you MUST set:
+#
+#      Base directory    :  Maya Green/Maya_Finished
+#      Publish directory :  Maya Green/Maya_Finished
+#      Build command     :  (leave empty)
+#
+#  Without a base directory Netlify publishes the repository ROOT,
+#  which contains a second client's site. See SECURITY.md §7.
+#
+#  THIS DIRECTORY IS AN ALLOWLIST. It holds only the files the public
+#  site actually needs — the two pages, one stylesheet, one script and
+#  the thirteen images they reference. The working copy one level up
+#  keeps the internal documents (FACTS.md, SECURITY.md,
+#  assets/img/README.md), the review screenshots in assets/Web
+#  pictures/, the original photography in assets/images/, and the
+#  unused logo-hero.jpg. None of that is here, so none of it can be
+#  published by forgetting a rule — the fix SECURITY.md §7.1 asks for.
+#
+#  It is a COPY, so it does not follow edits made upstairs. Rebuild it
+#  when the site changes.
+# ══════════════════════════════════════════════════════════════════
+
+[build]
+  publish = "."
+  # No build command. A static site needs no build step, and an empty
+  # command means there is no place for an attacker to run code during
+  # deploy even if the repo is compromised.
+
+[build.processing]
+  # Netlify's post-processing rewrites HTML and JS. That changes the
+  # bytes of the two inline <script> blocks in each page, which
+  # invalidates the CSP sha256 hashes below and silently kills every
+  # inline script. Leave all of this off.
+  skip_processing = true
+
+
+# ── Security headers ──────────────────────────────────────────────
+# Applied to every response.
+#
+# Do NOT also create a _headers file. When both exist Netlify merges
+# them and the result is hard to reason about. This file is the single
+# source of truth.
+
+[[headers]]
+  for = "/*"
+
+  [headers.values]
+
+    # Hashes are the real SHA-256 values of this site's inline scripts,
+    # recomputed 2026-07-26 when menu.html and visit.html were merged
+    # into index.html:
+    #   1. the <head> reveal watchdog
+    #   2. index.html  JSON-LD  (the former index + visit blocks, merged)
+    # The two separate JSON-LD hashes are gone with the two pages.
+    # ANY edit to those blocks — including whitespace — changes the hash.
+    # Re-run the check in SECURITY.md §9 before deploying HTML changes.
+    Content-Security-Policy = """\
+      default-src 'self'; \
+      script-src 'self' \
+        'sha256-PD+P/igz3aaX1dLrpaHp0hGHt+xal15RziV5xSAdzCI=' \
+        'sha256-0OEUvLIxC7co3c0zLbOyq0XFIQC6FRq+QGhBjLJCdHY='; \
+      style-src 'self' https://fonts.googleapis.com; \
+      style-src-attr 'unsafe-inline'; \
+      font-src 'self' https://fonts.gstatic.com; \
+      img-src 'self' data:; \
+      frame-src https://www.google.com; \
+      connect-src 'self'; \
+      base-uri 'none'; \
+      form-action 'none'; \
+      object-src 'none'; \
+      frame-ancestors 'none'; \
+      upgrade-insecure-requests\
+      """
+
+    # Netlify provisions the certificate and the HTTP->HTTPS redirect
+    # (via the "Force HTTPS" toggle), but it does NOT send HSTS. This is
+    # the only place it gets set.
+    # Start at max-age=300, confirm nothing breaks, then raise to a year.
+    # Add "; preload" only when you are certain — it is hard to undo.
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options        = "DENY"
+    Referrer-Policy        = "strict-origin-when-cross-origin"
+    Permissions-Policy     = "geolocation=(), camera=(), microphone=(), payment=(), usb=(), interest-cohort=()"
+    Cross-Origin-Opener-Policy   = "same-origin"
+    Cross-Origin-Resource-Policy = "same-origin"
+
+    # NOT set, deliberately:
+    #   Cross-Origin-Embedder-Policy — breaks the Google Maps iframe
+    #                                  and the Google Fonts requests.
+    #   X-XSS-Protection             — removed from modern browsers and
+    #                                  historically a vulnerability itself.
+
+
+# ── Caching ───────────────────────────────────────────────────────
+# HTML must revalidate so a fix (or a rollback after an incident)
+# reaches visitors immediately. Static assets can be cached hard.
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/assets/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/assets/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/assets/img/*"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+
+
+# ── Block internal files ──────────────────────────────────────────
+#
+# CRITICAL NETLIFY BEHAVIOUR: an existing static file normally WINS
+# over a redirect rule. These blocks only work because of
+# `force = true`. Without it every rule below is silently ignored and
+# the files are served in full.
+#
+# NOW BELT-AND-BRACES, NOT THE DEFENCE. The allowlist described at the
+# top of this file is what actually keeps internal documents off the
+# CDN: none of the files named below exist in this directory any more.
+# They are kept so that anything dropped in by hand later — a stray
+# README, a .DS_Store — is still refused rather than served. Do not
+# read them as permission to put private files in this folder.
+
+[[redirects]]
+  from = "/FACTS.md"
+  to = "/index.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/SECURITY.md"
+  to = "/index.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/netlify.toml"
+  to = "/index.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/assets/img/README.md"
+  to = "/index.html"
+  status = 404
+  force = true
+
+# Original photography and unrelated desktop screenshots (~62 MB).
+# Only the derivatives in /assets/img/ are meant to be public.
+[[redirects]]
+  from = "/assets/images/*"
+  to = "/index.html"
+  status = 404
+  force = true
+
+# Catch-all for editor and OS droppings.
+[[redirects]]
+  from = "/.DS_Store"
+  to = "/index.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/*.md"
+  to = "/index.html"
+  status = 404
+  force = true
+
+
+# ── Deploy previews and branch deploys ────────────────────────────
+#
+# Every deploy preview and branch deploy gets its own PUBLIC URL on
+# *.netlify.app. It is not password protected on the free tier and it
+# is crawlable. Before launch that means an unfinished site — with a
+# menu and prices for a regulated product — can be indexed under a URL
+# nobody is watching.
+#
+# These contexts inherit the headers above and add noindex on top.
+
+[context.deploy-preview]
+  [[context.deploy-preview.headers]]
+    for = "/*"
+    [context.deploy-preview.headers.values]
+      X-Robots-Tag = "noindex, nofollow"
+
+[context.branch-deploy]
+  [[context.branch-deploy.headers]]
+    for = "/*"
+    [context.branch-deploy.headers.values]
+      X-Robots-Tag = "noindex, nofollow"
+
+
+# ── After the custom domain is attached ───────────────────────────
+#
+# The <site-name>.netlify.app address stays live and public forever
+# alongside the custom domain. Left alone it is a second, unmonitored
+# copy of the site that Google will index as duplicate content.
+#
+# Uncomment and set the real domain at launch:
+#
+# [[redirects]]
+#   from = "https://<site-name>.netlify.app/*"
+#   to = "https://<domain>/:splat"
+#   status = 301
+#   force = true

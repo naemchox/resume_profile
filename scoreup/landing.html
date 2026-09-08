@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ScoreUp — ติว TOEIC ให้ได้คะแนนที่ HR อ่านออก</title>
+<style>
+/* ============================================================
+   ScoreUp landing — "the score report"
+   Ground: ink blue-black / bone. One accent: signal gold.
+   Type: heavy system grotesque for display, monospace for every
+   number and label — the instrument voice.
+   ============================================================ */
+:root{
+  --ink:#0a0c12;
+  --ink-2:#11141d;
+  --raise:#161a25;
+  --line:#232838;
+  --hair:#1a1e2b;
+  --fg:#f2f3f7;
+  --fg-2:#b4bacb;
+  --fg-3:#767e94;
+  --gold:#f0b429;
+  --gold-2:#ffcf5c;
+  --gold-dim:#2a2010;
+  --ok:#4fbb85;
+  --inv-bg:#f4f2ec;
+  --inv-fg:#0a0c12;
+  --inv-fg-2:#4a4f5e;
+  --inv-line:#ddd9cd;
+  --ease:cubic-bezier(.2,.75,.25,1);
+}
+@media (prefers-color-scheme:light){
+  :root{
+    --ink:#f6f5f1; --ink-2:#efeee8; --raise:#ffffff;
+    --line:#dedbd1; --hair:#e7e5dc;
+    --fg:#0d0f16; --fg-2:#454a5b; --fg-3:#767c8d;
+    --gold:#8a5d05; --gold-2:#6d4a04; --gold-dim:#f7eeda;
+    --ok:#1f7a52;
+    --inv-bg:#0a0c12; --inv-fg:#f2f3f7; --inv-fg-2:#a8aec0; --inv-line:#242939;
+  }
+}
+:root[data-theme="light"]{
+  --ink:#f6f5f1; --ink-2:#efeee8; --raise:#ffffff;
+  --line:#dedbd1; --hair:#e7e5dc;
+  --fg:#0d0f16; --fg-2:#454a5b; --fg-3:#767c8d;
+  --gold:#8a5d05; --gold-2:#6d4a04; --gold-dim:#f7eeda;
+  --ok:#1f7a52;
+  --inv-bg:#0a0c12; --inv-fg:#f2f3f7; --inv-fg-2:#a8aec0; --inv-line:#242939;
+}
+:root[data-theme="dark"]{
+  --ink:#0a0c12; --ink-2:#11141d; --raise:#161a25;
+  --line:#232838; --hair:#1a1e2b;
+  --fg:#f2f3f7; --fg-2:#b4bacb; --fg-3:#767e94;
+  --gold:#f0b429; --gold-2:#ffcf5c; --gold-dim:#2a2010;
+  --ok:#4fbb85;
+  --inv-bg:#f4f2ec; --inv-fg:#0a0c12; --inv-fg-2:#4a4f5e; --inv-line:#ddd9cd;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; -webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--ink); color:var(--fg); overflow-x:hidden;
+  font:400 17px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Thai",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace; font-variant-numeric:tabular-nums}
+
+/* ---------- scroll rail : the score climbs as you read ---------- */
+.rail{
+  position:fixed; left:0; top:0; bottom:0; width:64px; z-index:40;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:14px; pointer-events:none; mix-blend-mode:normal;
+}
+.rail-track{
+  position:relative; width:2px; flex:1; max-height:46vh; background:var(--hair); border-radius:2px;
+}
+.rail-fill{
+  position:absolute; left:0; top:0; width:100%; height:0%;
+  background:linear-gradient(180deg,var(--fg-3),var(--gold)); border-radius:2px;
+}
+.rail-num{
+  font:700 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace; font-variant-numeric:tabular-nums;
+  color:var(--gold); letter-spacing:.04em;
+}
+.rail-cap{
+  writing-mode:vertical-rl; font:600 9.5px/1 ui-monospace,Menlo,monospace;
+  letter-spacing:.28em; text-transform:uppercase; color:var(--fg-3);
+}
+@media (max-width:900px){ .rail{display:none} }
+
+/* ---------- shell ---------- */
+.w{max-width:1080px; margin:0 auto; padding:0 26px}
+@media (min-width:901px){ .w{padding-left:82px} }
+.band{padding:96px 0; border-top:1px solid var(--hair)}
+.band:first-of-type{border-top:none}
+
+/* asymmetric editorial grid: marker column + content column */
+.grid{display:grid; grid-template-columns:132px minmax(0,1fr); gap:0 40px; align-items:start}
+@media (max-width:760px){ .grid{grid-template-columns:1fr; gap:18px} }
+.marker{position:sticky; top:36px}
+@media (max-width:760px){ .marker{position:static} }
+.marker .big{
+  display:block; font:800 30px/1 ui-monospace,SFMono-Regular,Menlo,monospace; font-variant-numeric:tabular-nums;
+  color:var(--gold); letter-spacing:-.03em;
+}
+.marker .lab{
+  display:block; margin-top:8px; font:600 10px/1.5 ui-monospace,Menlo,monospace;
+  letter-spacing:.2em; text-transform:uppercase; color:var(--fg-3);
+}
+
+/* ---------- type ---------- */
+h1{
+  margin:0; font-size:clamp(38px,7.4vw,78px); line-height:1.02; font-weight:800;
+  letter-spacing:-.035em; text-wrap:balance;
+}
+h1 .l{display:block; overflow:hidden}
+h1 .l>span{display:block}
+h1 .dim{color:var(--fg-3)}
+h2{
+  margin:0 0 20px; font-size:clamp(25px,3.9vw,40px); line-height:1.12; font-weight:800;
+  letter-spacing:-.028em; text-wrap:balance;
+}
+h3{margin:0 0 6px; font-size:17px; font-weight:700; letter-spacing:-.01em}
+p{margin:0 0 17px; color:var(--fg-2); max-width:60ch}
+p:last-child{margin-bottom:0}
+.lede{font-size:clamp(18px,2.1vw,21px); line-height:1.6; color:var(--fg-2); max-width:52ch}
+strong{color:var(--fg); font-weight:700}
+.kicker{
+  font:600 10.5px/1 ui-monospace,Menlo,monospace; letter-spacing:.26em;
+  text-transform:uppercase; color:var(--gold);
+}
+
+/* ---------- hero ---------- */
+.hero{padding:clamp(80px,15vh,150px) 0 84px; position:relative}
+.hero .kicker{margin-bottom:34px}
+.hero .lede{margin-top:30px}
+
+/* meter: where you are vs where the job is */
+.meter{margin-top:58px; border-top:1px solid var(--line); padding-top:26px}
+.meter-head{
+  display:flex; justify-content:space-between; align-items:baseline; gap:16px; flex-wrap:wrap;
+  font:600 10.5px/1 ui-monospace,Menlo,monospace; letter-spacing:.2em; text-transform:uppercase; color:var(--fg-3);
+}
+.meter-num{
+  font:800 clamp(52px,11vw,104px)/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-variant-numeric:tabular-nums; letter-spacing:-.05em; color:var(--gold);
+  margin:14px 0 4px; display:flex; align-items:baseline; gap:12px;
+}
+.meter-num small{font-size:.26em; font-weight:600; color:var(--fg-3); letter-spacing:.06em}
+.bar{position:relative; height:3px; background:var(--hair); margin-top:26px}
+.bar i{position:absolute; left:0; top:0; height:100%; width:0; background:var(--gold)}
+.bar .tick{position:absolute; top:-5px; width:1px; height:13px; background:var(--line)}
+.bar .tick.on{background:var(--fg-3)}
+.pins{position:relative; height:56px; margin-top:12px}
+.pin{position:absolute; top:0; transform:translateX(-50%); width:130px; text-align:center}
+.pin b{display:block; font:700 14px/1.3 ui-monospace,Menlo,monospace; font-variant-numeric:tabular-nums}
+.pin span{display:block; font-size:12px; line-height:1.45; color:var(--fg-3); margin-top:3px}
+.pin.a b{color:var(--fg-2)} .pin.b b{color:var(--gold)}
+@media (max-width:520px){ .pin{width:104px} .pin span{font-size:11px} }
+
+/* ---------- stat strip ---------- */
+.stats{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  border-top:1px solid var(--line); border-left:1px solid var(--line); margin-top:34px;
+}
+.stat{border-right:1px solid var(--line); border-bottom:1px solid var(--line); padding:22px 20px}
+.stat b{
+  display:block; font:800 32px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-variant-numeric:tabular-nums; letter-spacing:-.035em;
+}
+.stat span{display:block; margin-top:9px; font-size:13.5px; line-height:1.5; color:var(--fg-3)}
+
+/* ---------- split table : app vs tutor ---------- */
+.split{margin-top:36px; border-top:1px solid var(--line)}
+.split-head{
+  display:grid; grid-template-columns:1fr 1fr; gap:0;
+  font:600 10.5px/1 ui-monospace,Menlo,monospace; letter-spacing:.18em; text-transform:uppercase;
+}
+.split-head div{padding:15px 22px 15px 0}
+.split-head div:last-child{padding-left:26px; color:var(--gold)}
+.split-head div:first-child{color:var(--fg-3)}
+.srow{display:grid; grid-template-columns:1fr 1fr; gap:0; border-top:1px solid var(--hair)}
+.srow>div{padding:22px 22px 22px 0}
+.srow>div:last-child{padding-left:26px; border-left:1px solid var(--hair)}
+.srow p{margin:0; font-size:15.5px; line-height:1.62; max-width:none}
+.srow .a p{color:var(--fg-3)}
+.srow .b p{color:var(--fg)}
+@media (max-width:700px){
+  .split-head{display:none}
+  .srow{grid-template-columns:1fr}
+  .srow>div{padding:18px 0}
+  .srow>div:last-child{padding-left:18px; border-left:2px solid var(--gold)}
+  .srow>div:first-child::before{content:"แอปทำได้"; display:block; font:600 10px/1 ui-monospace,Menlo,monospace; letter-spacing:.18em; text-transform:uppercase; color:var(--fg-3); margin-bottom:8px}
+  .srow>div:last-child::before{content:"ต้องมีคนสอน"; display:block; font:600 10px/1 ui-monospace,Menlo,monospace; letter-spacing:.18em; text-transform:uppercase; color:var(--gold); margin-bottom:8px}
+}
+
+/* ---------- inverted feature band : the proof ---------- */
+.invert{background:var(--inv-bg); color:var(--inv-fg); border-top:none}
+.invert h2{color:var(--inv-fg)}
+.invert p{color:var(--inv-fg-2)}
+.invert strong{color:var(--inv-fg)}
+.invert .marker .lab{color:var(--inv-fg-2)}
+.invert .kicker{color:var(--gold-2)}
+.specimen{
+  margin-top:30px; border:1px solid var(--inv-line); background:transparent;
+  display:flex; flex-direction:column;
+}
+.specimen .sh{
+  padding:12px 20px; border-bottom:1px solid var(--inv-line);
+  font:600 10px/1 ui-monospace,Menlo,monospace; letter-spacing:.2em; text-transform:uppercase; color:var(--inv-fg-2);
+}
+.specimen .ln{
+  padding:14px 20px; font:14.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;
+  border-bottom:1px solid var(--inv-line); display:flex; gap:14px; align-items:flex-start;
+}
+.specimen .ln:last-child{border-bottom:none}
+.specimen .ln .m{flex-shrink:0; font-weight:700; width:14px}
+.specimen .cut{color:var(--inv-fg-2); text-decoration:line-through; text-decoration-thickness:1px}
+.specimen .cut .m{color:#b4442f; text-decoration:none}
+.specimen .keep .m{color:var(--ok)}
+.specimen .keep{color:var(--inv-fg)}
+
+/* ---------- steps ---------- */
+.steps{margin:34px 0 0; padding:0; list-style:none; counter-reset:s}
+.steps li{
+  counter-increment:s; display:grid; grid-template-columns:auto 1fr; gap:22px;
+  padding:26px 0; border-top:1px solid var(--hair); align-items:start;
+}
+.steps li:first-child{border-top:1px solid var(--line)}
+.steps li::before{
+  content:counter(s,decimal-leading-zero);
+  font:700 13px/1 ui-monospace,Menlo,monospace; color:var(--gold); letter-spacing:.06em; padding-top:4px;
+}
+.steps p{margin:5px 0 0; font-size:15.5px}
+
+/* ---------- cta ---------- */
+.cta{padding:110px 0 120px}
+.cta h2{max-width:16ch}
+.btns{display:flex; flex-wrap:wrap; gap:12px; margin-top:38px}
+.btn{
+  display:inline-flex; align-items:center; gap:11px; padding:17px 28px; text-decoration:none;
+  font-weight:700; font-size:16px; letter-spacing:-.01em; border:1px solid transparent;
+  transition:transform .35s var(--ease), background .25s ease, color .25s ease, border-color .25s ease;
+}
+.btn .ar{font:400 15px/1 ui-monospace,Menlo,monospace; transition:transform .35s var(--ease)}
+.btn:hover .ar{transform:translateX(5px)}
+.btn.p{background:var(--gold); color:#0a0c12}
+.btn.p:hover{transform:translateY(-2px)}
+.btn.s{border-color:var(--line); color:var(--fg)}
+.btn.s:hover{border-color:var(--gold); color:var(--gold); transform:translateY(-2px)}
+.btn:focus-visible{outline:2px solid var(--gold); outline-offset:4px}
+.fine{margin-top:26px; font-size:13.5px; color:var(--fg-3)}
+
+footer{border-top:1px solid var(--hair); padding:40px 0 64px}
+footer p{font-size:13px; color:var(--fg-3); line-height:1.75; max-width:64ch}
+
+/* ---------- motion ---------- */
+.rise{opacity:0; transform:translateY(26px)}
+.rise.in{opacity:1; transform:none; transition:opacity .85s var(--ease), transform .85s var(--ease)}
+.rise.d1.in{transition-delay:.07s} .rise.d2.in{transition-delay:.14s}
+.rise.d3.in{transition-delay:.21s} .rise.d4.in{transition-delay:.28s}
+h1 .l>span{transform:translateY(105%); transition:transform 1s var(--ease)}
+h1.in .l>span{transform:none}
+h1.in .l:nth-child(2)>span{transition-delay:.1s}
+h1.in .l:nth-child(3)>span{transition-delay:.2s}
+.bar i{transition:width 1.6s var(--ease) .25s}
+.rail-fill{transition:height .18s linear}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .rise{opacity:1; transform:none; transition:none}
+  h1 .l>span{transform:none; transition:none}
+  .bar i{transition:none}
+  .btn,.btn .ar{transition:none}
+}
+</style>
+</head>
+<body>
+
+
+<!-- scroll rail: the reader's progress, read as a score -->
+<div class="rail" aria-hidden="true">
+  <span class="rail-cap">score</span>
+  <div class="rail-track"><div class="rail-fill" id="railFill"></div></div>
+  <span class="rail-num" id="railNum">450</span>
+</div>
+
+<main>
+
+<!-- ============ HERO ============ -->
+<section class="band hero">
+  <div class="w">
+    <div class="kicker rise">ติว TOEIC · ครูเจ๊ก</div>
+    <h1 id="h1">
+      <span class="l"><span>“ภาษาอังกฤษดี”</span></span>
+      <span class="l"><span>ในเรซูเม่</span></span>
+      <span class="l"><span class="dim">ไม่มีความหมายกับ HR</span></span>
+    </h1>
+    <p class="lede rise d2">แต่ <strong>“TOEIC 720”</strong> เทียบกับผู้สมัครคนอื่นได้ทันที — นั่นคือเหตุผลที่ TOEIC กลายเป็นด่านคัดกรองที่ถูกที่สุดของฝ่ายบุคคล และเป็นเหตุผลที่หลายคนตกรอบตั้งแต่ยังไม่ได้เข้าห้องสัมภาษณ์</p>
+
+    <div class="meter rise d3">
+      <div class="meter-head"><span>ช่องว่างที่ต้องปิด</span><span>สเกล 10 – 990</span></div>
+      <div class="meter-num"><span id="bigNum" class="mono">450</span><small>→ 720</small></div>
+      <div class="bar" id="bar">
+        <i></i>
+        <span class="tick on" style="left:0"></span>
+        <span class="tick" style="left:25%"></span>
+        <span class="tick" style="left:50%"></span>
+        <span class="tick" style="left:75%"></span>
+        <span class="tick on" style="left:calc(100% - 1px)"></span>
+      </div>
+      <div class="pins">
+        <div class="pin a" style="left:31%"><b>~450</b><span>คนไทยทั่วไป<br>ที่ไม่ได้เตรียมตัว</span></div>
+        <div class="pin b" style="left:73%"><b>700+</b><span>ช่วงที่งานดีๆ<br>เริ่มขอ</span></div>
+      </div>
+      <p style="margin-top:26px; font-size:15px; color:var(--fg-3)">ระยะห่างตรงนี้ไม่ได้ปิดด้วย “ขยันเรียนภาษาอังกฤษ” — มันปิดด้วยการรู้ว่าข้อสอบวัดอะไร แล้วเก็บคะแนนตรงจุดที่เก็บได้จริง</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE FREE TOOL ============ -->
+<section class="band">
+  <div class="w grid">
+    <div class="marker rise">
+      <span class="big mono">01</span>
+      <span class="lab">เริ่มที่นี่<br>ไม่มีค่าใช้จ่าย</span>
+    </div>
+    <div>
+      <h2 class="rise">ลองวัดตัวเองก่อน<br>ด้วยข้อสอบเสมือนเต็มรูปแบบ</h2>
+      <p class="rise d1">ScoreUp คือแอปที่ผมสร้างไว้ให้นักเรียนตัวเองใช้ — ทำข้อสอบเสมือน 200 ข้อ จับเวลาเหมือนห้องสอบจริง แล้วได้คะแนน /990 พร้อมบอกว่าคุณอ่อน Part ไหน <strong>ใช้ฟรี ไม่ต้องสมัคร</strong></p>
+
+      <div class="stats rise d2">
+        <div class="stat"><b class="mono count" data-to="1281">0</b><span>ข้อในคลัง<br>ครบทั้ง 7 Part</span></div>
+        <div class="stat"><b class="mono count" data-to="176">0</b><span>ไฟล์เสียงจริง<br>ไม่ใช่เสียงสังเคราะห์</span></div>
+        <div class="stat"><b class="mono count" data-to="200">0</b><span>ข้อต่อรอบ<br>สัดส่วนเท่าข้อสอบจริง</span></div>
+        <div class="stat"><b class="mono">/990</b><span>แปลงคะแนนตามเกณฑ์<br>+ ชี้จุดอ่อนรายพาร์ท</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ THE HONEST GAP ============ -->
+<section class="band">
+  <div class="w grid">
+    <div class="marker rise">
+      <span class="big mono">02</span>
+      <span class="lab">ความจริง<br>ที่ต้องบอกก่อน</span>
+    </div>
+    <div>
+      <h2 class="rise">แอปบอกได้ว่าคุณผิดตรงไหน<br>แต่บอกไม่ได้ว่าทำไมถึงผิดซ้ำ</h2>
+      <p class="rise d1">ผมเขียนแอปนี้เอง และผมรู้ดีที่สุดว่ามันทำอะไรไม่ได้ นี่คือเส้นแบ่งจริงๆ</p>
+
+      <div class="split rise d2">
+        <div class="split-head"><div>แอปทำให้ได้</div><div>ต้องมีคนสอน</div></div>
+        <div class="srow">
+          <div class="a"><p>บอกว่าคุณผิด Part 5 เยอะที่สุด</p></div>
+          <div class="b"><p>บอกว่าผิดเพราะไม่รู้ศัพท์ หรือเพราะอ่านโจทย์ผิดวิธี — ซึ่งแก้คนละทางกันสิ้นเชิง</p></div>
+        </div>
+        <div class="srow">
+          <div class="a"><p>จับเวลาให้ และบอกว่าคุณทำไม่ทัน</p></div>
+          <div class="b"><p>บอกว่าควรทิ้งข้อไหน ข้อไหนต้องเก็บให้ได้ — การวางแผนสละข้อคือสิ่งที่ดันคะแนนได้เร็วที่สุด</p></div>
+        </div>
+        <div class="srow">
+          <div class="a"><p>ให้ทำข้อสอบได้ไม่จำกัด</p></div>
+          <div class="b"><p>ทำให้คุณทำต่อเนื่องจนถึงวันสอบ — คนส่วนใหญ่ไม่ได้แพ้เพราะโง่ แต่แพ้เพราะหยุดไปกลางทาง</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PROOF (inverted band) ============ -->
+<section class="band invert">
+  <div class="w grid">
+    <div class="marker rise">
+      <span class="big mono">167</span>
+      <span class="lab">ข้อที่ผม<br>ลบทิ้ง</span>
+    </div>
+    <div>
+      <div class="kicker rise" style="margin-bottom:16px">ทำไมถึงเชื่อคลังโจทย์นี้ได้</div>
+      <h2 class="rise d1">ผมลบโจทย์ตัวเองทิ้ง 167 ข้อ<br>เพราะภาษามันไม่ถูก</h2>
+      <p class="rise d2">คลังโจทย์ TOEIC ที่หาได้ฟรีส่วนใหญ่ถูกปั๊มจากแม่แบบ — ประโยคเดิมเปลี่ยนแค่ตัวเลือก จนได้ภาษาอังกฤษที่เจ้าของภาษาอ่านแล้วงง ผมตรวจคลังตัวเองทั้งก้อนแล้วเจอแบบนั้น 167 ข้อ จึงลบทิ้งทั้งหมด</p>
+
+      <div class="specimen rise d3">
+        <div class="sh">ตัวอย่างที่ถูกตัดออก</div>
+        <div class="ln cut"><span class="m">✕</span><span>The results of the trial were highly affordable.</span></div>
+        <div class="ln cut"><span class="m">✕</span><span>The accountants announce the equipment on a daily basis.</span></div>
+        <div class="ln keep"><span class="m">✓</span><span>The results of the trial were highly accurate.</span></div>
+      </div>
+
+      <p class="rise d4" style="margin-top:26px">และอีก 83 ข้อในพาร์ทการฟัง ผมเขียนตัวเลือกใหม่ทั้งหมด เพราะของเดิมใช้คำเดียวกับที่ได้ยินในเสียงเป๊ะๆ — <strong>ซ้อมแบบนั้นคุณจะติดนิสัย “ฟังจับคำ” ซึ่งข้อสอบจริงตั้งใจหักด่านนี้โดยเฉพาะ</strong> ยิ่งซ้อมยิ่งพัง</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW ============ -->
+<section class="band">
+  <div class="w grid">
+    <div class="marker rise">
+      <span class="big mono">03</span>
+      <span class="lab">ถ้าอยาก<br>ให้ผมช่วย</span>
+    </div>
+    <div>
+      <h2 class="rise">คุยกันฟรีก่อน 20 นาที</h2>
+      <p class="rise d1">ผมไม่ขายคอร์สให้คนที่ยังไม่รู้ว่าตัวเองต้องการอะไร เราคุยกันก่อนว่าคุณต้องใช้คะแนนเท่าไหร่ เหลือเวลากี่เดือน แล้วผมบอกตรงๆ ว่าควรติวหรือฝึกเองพอ</p>
+
+      <ol class="steps">
+        <li class="rise d1"><div><h3>ทำข้อสอบเสมือน 1 รอบ</h3><p>ใช้แอปฟรี ไม่ต้องสมัคร ประมาณ 2 ชั่วโมง หรือเลือกแบบสั้น 25 นาทีก็ได้</p></div></li>
+        <li class="rise d2"><div><h3>ส่งผลมาให้ผมดู</h3><p>แคปหน้าคะแนนกับหน้าจุดอ่อนรายพาร์ทมา เท่านี้ผมเห็นภาพแล้ว</p></div></li>
+        <li class="rise d3"><div><h3>คุยกัน 20 นาที</h3><p>ผมบอกว่าคุณห่างเป้าเท่าไหร่ ควรเริ่มตรงไหน และตามจริงคือควรจ้างติวไหม</p></div></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<section class="band cta">
+  <div class="w">
+    <div class="kicker rise" style="margin-bottom:22px">ขั้นแรก</div>
+    <h2 class="rise d1">เริ่มจากรู้คะแนนตัวเองก่อน</h2>
+    <p class="rise d2" style="font-size:19px">ทุกอย่างเริ่มจากตัวเลขจริง ไม่ใช่ความรู้สึกว่า “ภาษาอังกฤษเราน่าจะพอได้”</p>
+    <div class="btns rise d3">
+      <a class="btn p" href="#" data-fill="app">เปิดแอป ทำข้อสอบฟรี <span class="ar">→</span></a>
+      <a class="btn s" href="#" data-fill="line">ทักไลน์คุยกับครูเจ๊ก <span class="ar">→</span></a>
+    </div>
+    <p class="fine rise d4">ไม่ต้องสมัครสมาชิก · ไม่ต้องกรอกอีเมล · ไม่มีการเก็บข้อมูลส่วนตัว</p>
+  </div>
+</section>
+
+<footer>
+  <div class="w">
+    <p>ScoreUp — เครื่องมือซ้อม TOEIC ที่ผมทำไว้ให้นักเรียนตัวเอง และเปิดให้ใช้ฟรี<br>
+    TOEIC เป็นเครื่องหมายการค้าจดทะเบียนของ ETS · หน้านี้และแอปนี้ไม่ได้มีความเกี่ยวข้องกับ ETS</p>
+  </div>
+</footer>
+
+</main>
+
+<script>
+(function(){
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---- reveal on scroll ---- */
+  var rise = [].slice.call(document.querySelectorAll('.rise'));
+  if(reduce || !('IntersectionObserver' in window)){
+    rise.forEach(function(el){ el.classList.add('in'); });
+    var h = document.getElementById('h1'); if(h) h.classList.add('in');
+  } else {
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, {rootMargin:'0px 0px -12% 0px', threshold:0.08});
+    rise.forEach(function(el){ io.observe(el); });
+  }
+
+  /* ---- hero sequence: headline lines lift, then the bar draws ---- */
+  function heroIn(){
+    var h = document.getElementById('h1'); if(h) h.classList.add('in');
+    var bar = document.getElementById('bar');
+    if(bar){ var f = bar.querySelector('i'); if(f) f.style.width = reduce ? '73%' : '73%'; }
+  }
+  if(reduce){ heroIn(); } else { requestAnimationFrame(function(){ setTimeout(heroIn, 90); }); }
+
+  /* ---- count-up: numbers settle like a score being tallied ---- */
+  function countTo(el, to, ms){
+    if(reduce){ el.textContent = to.toLocaleString(); return; }
+    var t0 = null;
+    function step(t){
+      if(t0===null) t0 = t;
+      var p = Math.min(1, (t - t0) / ms);
+      var e = 1 - Math.pow(1 - p, 3);              // ease-out cubic
+      el.textContent = Math.round(to * e).toLocaleString();
+      if(p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  var big = document.getElementById('bigNum');
+  if(big){
+    if(reduce){ big.textContent = '720'; }
+    else {
+      setTimeout(function(){
+        var from = 450, to = 720, t0 = null, ms = 1500;
+        requestAnimationFrame(function step(t){
+          if(t0===null) t0 = t;
+          var p = Math.min(1, (t - t0)/ms), e = 1 - Math.pow(1 - p, 3);
+          big.textContent = Math.round(from + (to - from) * e);
+          if(p < 1) requestAnimationFrame(step);
+        });
+      }, 420);
+    }
+  }
+
+  var counters = [].slice.call(document.querySelectorAll('.count'));
+  if(counters.length){
+    if(reduce || !('IntersectionObserver' in window)){
+      counters.forEach(function(el){ el.textContent = (+el.dataset.to).toLocaleString(); });
+    } else {
+      var cio = new IntersectionObserver(function(es){
+        es.forEach(function(e){
+          if(e.isIntersecting){ countTo(e.target, +e.target.dataset.to, 1250); cio.unobserve(e.target); }
+        });
+      }, {threshold:0.5});
+      counters.forEach(function(el){ cio.observe(el); });
+    }
+  }
+
+  /* ---- scroll rail: progress read as a rising score, 450 -> 990 ---- */
+  var fill = document.getElementById('railFill'), num = document.getElementById('railNum'), tick = false;
+  function onScroll(){
+    if(tick) return; tick = true;
+    requestAnimationFrame(function(){
+      tick = false;
+      var max = document.documentElement.scrollHeight - window.innerHeight;
+      var p = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+      if(fill) fill.style.height = (p * 100) + '%';
+      if(num) num.textContent = Math.round(450 + p * 540);
+    });
+  }
+  if(!reduce){ window.addEventListener('scroll', onScroll, {passive:true}); onScroll(); }
+})();
+</script>
+
+</body>
+</html>

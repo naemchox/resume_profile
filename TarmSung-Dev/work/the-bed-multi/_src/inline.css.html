@@ -1,0 +1,581 @@
+<script>
+  /* Every animation start state below is gated behind html.js, so if this script
+     never runs (or Tailwind's CDN is blocked) the page still reads as plain,
+     fully visible content instead of a blank white screen. */
+  document.documentElement.classList.add('js');
+</script>
+<!-- CSS นิ่งที่แช่มาจาก Tailwind CDN ด้วย playbook/freeze-tailwind.mjs
+     เดิมบรรทัดนี้คือ <script src="https://cdn.tailwindcss.com"> ซึ่งเป็น "ตัวคอมไพล์"
+     ที่วิ่งในเบราว์เซอร์ของคนดู หน้าจึงถูกจัดใหม่ทั้งหน้าหลังเรนเดอร์ไปแล้วหนึ่งรอบ
+     (วัดได้ CLS 0.077 · บล็อกสคริปต์นี้แล้วเหลือ 0.012 · เดโมใบอื่น ~0)
+     แก้ยูทิลิตี้ในหน้า = ต้องรัน freeze-tailwind.mjs ใหม่ ไม่ใช่แก้ไฟล์ css มือ -->
+<!-- ลิงก์ tailwind.css ย้ายไปอยู่ในเปลือก (_src/shell.html) เพราะพาธต้องเปลี่ยนตามความลึกของหน้า -->
+<script type="application/json" id="tailwind-config-เก็บไว้อ้างอิง">
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink:        '#0A0908',
+          coal:       '#1C1917',
+          stone:      '#44403C',
+          /* #78716C เดิมวัดได้ 4.26:1 บนพื้นครีม — ต่ำกว่าเกณฑ์ตัวหนังสือปกติ 4.5:1
+             ตอนนี้ยังไม่มีที่ไหนในหน้าใช้สีนี้ จึงไม่ใช่บั๊กที่คนเห็นอยู่ แต่ปล่อยไว้
+             เท่ากับวางกับดักให้คนหยิบไปใช้วันหลัง — เปลี่ยนเป็น #6F6862 (4.87:1) */
+          ash:        '#6F6862',
+          paper:      '#FAFAF9',
+          cream:      '#F5F1EA',
+          gold:       '#C9A961',
+          goldlight:  '#E6CC8F',
+          /* Measured, not guessed. The old #CA8A04 sat at 2.61:1 on cream
+             (#F5F1EA) — under the 3:1 floor for large text and nowhere near the
+             4.5:1 small text needs, which is why every gold accent on the light
+             sections read as a smudge rather than a colour.
+             gilded  #A87103 = 3.71:1 -> display sizes only (>=24px).
+             burnish #8F6000 = 4.86:1 -> the 11-12px eyebrows and labels. */
+          gilded:     '#A87103',
+          burnish:    '#8F6000',
+        },
+        fontFamily: {
+          display: ['Cinzel', 'serif'],
+          sans:    ['Josefin Sans', 'sans-serif'],
+          editorial: ['"Cormorant Garamond"', 'serif'],
+        },
+      },
+    },
+  };
+</script>
+<style>
+  html { scroll-behavior: smooth; scroll-padding-top: 92px; }   /* แถบเมนู fixed 92px เป๊ะ (แก้จาก 96 = 84+12 ซึ่งทำให้ section ก่อนหน้าโผล่ 4px) — เหตุผลเต็มอยู่ที่ work/the-bed/index.html */
+  body {
+    background: #FAFAF9;
+    color: #0A0908;
+    font-family: 'Josefin Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection { background: #C9A961; color: #0A0908; }
+
+  .display { font-family: 'Cinzel', serif; letter-spacing: -0.01em; }
+  .editorial { font-family: 'Cormorant Garamond', serif; }
+
+  .mega {
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    font-size: clamp(3.25rem, 11vw, 11rem);
+    line-height: 0.92;
+    letter-spacing: -0.035em;
+  }
+
+  .hairline {
+    font-family: 'Josefin Sans', sans-serif;
+    font-weight: 300;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+  }
+  /* 0.42em tracking pushes these lines past a phone's edge */
+  @media (max-width: 767px) {
+    .hairline { letter-spacing: 0.26em; font-size: 0.66rem; }
+  }
+
+  .gold-rule {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #C9A961, transparent);
+  }
+
+  /* Gold underline link */
+  .nav-link {
+    position: relative;
+    transition: color 200ms ease;
+  }
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: -6px;
+    height: 1px;
+    background: #C9A961;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 350ms cubic-bezier(.2,.7,.2,1);
+  }
+  .nav-link:hover::after,
+  .nav-link:focus-visible::after { transform: scaleX(1); transform-origin: left; }
+
+  /* Hero — GPU-driven parallax (background-attachment:fixed stutters on macOS/touchpads) */
+  .hero { position: relative; isolation: isolate; overflow: hidden; }
+  .hero-layer {
+    position: absolute;
+    /* 24/8/26 เดิม inset: -12% 0 ทำให้กล่องภาพ = ความสูงฮีโร่ ซึ่งสูงตามเนื้อหา
+       ย่อจอทีเดียวตัวอักษรตัดบรรทัดใหม่ ฮีโร่สูงขึ้น ภาพ cover ถูกย่อ/ขยายใหม่ทั้งใบ
+       = ที่เจ้าของทักว่า 'ย่อจอแล้วภาพกระตุก' (ด่าน playbook/audit-resize.mjs วัดได้
+       ขยับ 34px) ใบหน้าเดียวแก้ไปแล้ว ใบหลายหน้าตกหล่น — ผูกความสูงกับจอเหมือนกัน
+       max() กับ 100% เผื่อวันที่เนื้อหายาวกว่า 130svh ภาพจะยังคลุมเต็มไม่โหว่ */
+    inset: -12% 0 auto 0;
+    height: max(130svh, 100%);
+    background-image: url('{{R}}img/exterior.jpg');
+    background-size: cover;
+    background-position: center;
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    z-index: -2;
+  }
+  .hero-veil {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(10,9,8,0.30) 0%, rgba(10,9,8,0.55) 60%, rgba(10,9,8,0.88) 100%);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  /* Marquee — seamless loop, compositor-only animation */
+  .marquee {
+    display: flex;
+    width: max-content;             /* total width = sum of children, so -50% lands exactly on the duplicate */
+    animation: marquee 38s linear infinite;
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+  .marquee-group {
+    display: flex;
+    align-items: center;
+    gap: 4rem;
+    padding-right: 4rem;            /* identical trailing space in both copies = no seam jump */
+    flex-shrink: 0;
+  }
+  @keyframes marquee {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-50%, 0, 0); }
+  }
+  .marquee:hover { animation-play-state: paused; }
+
+  /* Reveal on scroll — compositor path.
+     Gated behind html.js: the old rule hid every section unconditionally, so a
+     visitor with JS off (or a crawler that does not run it) got a page of empty
+     white. will-change is dropped once the element has arrived — a permanent
+     will-change keeps a compositor layer alive for every section on the page. */
+  html.js .reveal {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0);
+    transition: opacity 1100ms var(--ease-quiet), transform 1100ms var(--ease-quiet);
+    transition-delay: calc(var(--i, 0) * 60ms);   /* siblings set --i to arrive in sequence */
+    will-change: opacity, transform;
+  }
+  html.js .reveal.in { opacity: 1; transform: translate3d(0, 0, 0); will-change: auto; }
+
+  /* Card image zoom */
+  .zoom-img {
+    transition: transform 900ms var(--ease-quiet);
+    /* 26/8/26 รอบสอง — เจ้าของ: "make it zoom with smoothness"
+       (.4,0,.25,1) ยังชะลอแรงช่วงท้าย = รู้สึกเป็น "วิ่งแล้วเบรก" ไม่ใช่ลื่นไหล
+       (.45,.05,.35,1) นุ่มทั้งหัวและท้าย ความชันตอนเริ่ม ~0.11 (ค่อยๆ ออกตัว)
+       26/8/26 พอกฎ .curtain ยอมให้ transform มี transition แล้ว เจ้าของบอกว่า 1800ms ช้าไป
+       จึงคืนกลับเป็น 900ms var(--ease-quiet) = ค่าที่ออกแบบไว้แต่แรก และเป็นจังหวะเดียว
+       กับม่านเปิดรูป (.curtain 900ms) กับปุ่มทอง — ของทั้งหน้าใช้เส้นความเร่งชุดเดียวกัน
+       ระยะซูมยังเท่าเดิม 1.06 — แตะเฉพาะจังหวะ ไม่แตะหน้าตาปลายทาง */
+    /* 26/8/26 เจ้าของ: "ชี้แล้วซูมเร็วเกินไป" — ต้นเหตุไม่ใช่ตัวเลข 900ms
+       แต่เป็นเส้นความเร่ง cubic-bezier(.2,.7,...) ซึ่งจุดคุมอยู่ที่ (x=.2, y=.7)
+       แปลว่า **วิ่งไป 70% ของระยะภายในเวลาแค่ 20% แรก** (=180ms) แล้วคืบช้าๆ
+       อีก 720ms ที่ตาแทบไม่เห็น คนจึงรู้สึกว่า "กระตุกแล้วจบ" ไม่ใช่ "ค่อยๆ ซูม"
+       รอบแรก-สองไล่ยืดเวลาไป 1400/1800ms ทั้งที่ transition ไม่เคยทำงาน (ดูกฎ .curtain)
+       ระยะซูมเท่าเดิม (1.06) เปลี่ยนแค่จังหวะ ไม่ได้เปลี่ยนหน้าตาปลายทาง */
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+  .group:hover .zoom-img { transform: scale3d(1.06, 1.06, 1); }
+
+  /* Button */
+  .btn-gold {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 1rem 1.75rem;
+    background: #0A0908;
+    color: #F5F1EA;
+    border: 1px solid #C9A961;
+    text-transform: uppercase;
+    letter-spacing: 0.28em;
+    font-size: 0.72rem;
+    font-weight: 500;
+    transition: all 300ms ease;
+    cursor: pointer;
+  }
+  .btn-gold::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: #C9A961;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 400ms cubic-bezier(.2,.7,.2,1);
+    z-index: 0;
+  }
+  .btn-gold:hover::before { transform: scaleX(1); transform-origin: left; }
+  .btn-gold:hover { color: #0A0908; }
+  .btn-gold > * { position: relative; z-index: 1; }
+
+  .btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 1rem 1.75rem;
+    border: 1px solid rgba(245, 241, 234, 0.4);
+    color: #F5F1EA;
+    text-transform: uppercase;
+    letter-spacing: 0.28em;
+    font-size: 0.72rem;
+    font-weight: 500;
+    transition: all 300ms ease;
+    cursor: pointer;
+  }
+  .btn-outline:hover { border-color: #C9A961; color: #C9A961; }
+
+  /* Number ticker style */
+  .num {
+    font-family: 'Cinzel', serif;
+    font-weight: 500;
+    font-size: clamp(3rem, 6vw, 4.5rem);
+    line-height: 1;
+    color: #C9A961;
+  }
+
+  /* Section eyebrow ornament */
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.85rem;
+  }
+  .eyebrow::before, .eyebrow::after {
+    content: '';
+    width: 28px;
+    height: 1px;
+    background: #C9A961;
+  }
+  .eyebrow.left::before  { display: none; }
+  .eyebrow.right::after { display: none; }
+
+  /* Suite card — the card and the section behind it are both #0A0908, so at
+     0.18 alpha the border did not separate them: three cards read as one dark
+     slab. 0.34 draws the edge; hover goes to 0.75 and lifts 3px, because on a
+     "quiet luxury" page the hover should feel like a page turning, not a bounce. */
+  .suite-card {
+    background: #0A0908;
+    color: #F5F1EA;
+    border: 1px solid rgba(201, 169, 97, 0.34);
+    transition: border-color 400ms ease, transform 400ms ease, box-shadow 400ms ease;
+  }
+  .suite-card:hover {
+    border-color: rgba(201, 169, 97, 0.75);
+    transform: translateY(-3px);
+    box-shadow: 0 18px 40px -28px rgba(201, 169, 97, 0.55);
+  }
+
+  /* Gallery bento */
+  .bento {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-auto-rows: 160px;
+    gap: 12px;
+  }
+  @media (max-width: 768px) {
+    .bento { grid-auto-rows: 120px; gap: 8px; }
+  }
+
+  /* Floating navbar */
+  .nav-shell {
+    transition: background-color 400ms ease, backdrop-filter 400ms ease, border-color 400ms ease;
+  }
+  .nav-shell.scrolled {
+    background-color: rgba(10, 9, 8, 0.78);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-color: rgba(201, 169, 97, 0.25);
+  }
+
+  /* Soft fade-in for hero */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-up    { animation: fadeUp 1200ms cubic-bezier(.2,.7,.2,1) both; }
+  .delay-100  { animation-delay: 120ms; }
+  .delay-200  { animation-delay: 260ms; }
+  .delay-300  { animation-delay: 420ms; }
+  .delay-400  { animation-delay: 580ms; }
+  .delay-500  { animation-delay: 740ms; }
+
+  /* Honor reduced motion.
+     Killing animation and transition is only half the job: anything whose resting
+     state is "hidden until a class arrives" stays hidden forever once the
+     transition that would have revealed it is gone. Every start state declared
+     above is therefore cleared here, not just shortened. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+    html.js .reveal          { opacity: 1; transform: none; }
+    html.js .split .wi       { transform: none; }
+    html.js .curtain > *     { clip-path: none; }
+    html.js .rule line       { stroke-dashoffset: 0; }
+    html.js .eyebrow::before,
+    html.js .eyebrow::after  { transform: scaleX(1); }
+    html.js .rate > i        { width: var(--fill); }
+    html.js .bar > span      { transform: scaleX(1); }
+    html.js .foot-mark > span { transform: none; }
+    html.js .hero-layer      { scale: 1; }
+    .hero-light              { display: none; }
+  }
+
+  /* Focus states */
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid #C9A961;
+    outline-offset: 3px;
+  }
+
+  /* Vertical divider with ornament */
+  .ornament {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px; height: 36px;
+    border: 1px solid #C9A961;
+    transform: rotate(45deg);
+  }
+  .ornament > span {
+    width: 6px; height: 6px;
+    background: #C9A961;
+  }
+  /* .ornament's own `display: inline-flex` above has the same specificity as
+     Tailwind's `.hidden{display:none}` and loads after it, so it silently wins
+     the cascade — the "hidden md:block" ornament in the hero was never actually
+     hidden below 768px. That's what pushed 390px 7px past the viewport edge
+     (`-top-6 -right-6` positioning it right at the boundary). Restore the hide
+     with a selector one specificity level up. */
+  @media (max-width: 767.98px) {
+    .hidden.ornament { display: none; }
+  }
+
+  /* Star rating */
+  .stars { color: #C9A961; letter-spacing: 0.15em; }
+
+  /* ==========================================================================
+     MOTION SYSTEM
+     One easing, one duration, five moves. Every move is drawn from what this
+     building actually does — light arriving, a curtain drawn, a line ruled on
+     paper, a number settling — rather than a generic fade, and every start state
+     is gated behind html.js and cleared under prefers-reduced-motion.
+     Animated properties are limited to transform / opacity / clip-path /
+     stroke-dashoffset / width so nothing triggers layout.
+     ========================================================================== */
+  :root {
+    --ease-quiet: cubic-bezier(.2,.7,.2,1);
+    /* ใช้ที่เดียวเท่านั้น = จังหวะคำในหัวข้อ (.split .wi) — 1100ms ทำให้คำท้ายของ
+       หัวข้อ 9 คำจบที่ 1,540ms ซึ่งช้ากว่าตาที่เลื่อนผ่านไปแล้ว เห็นเป็นคำเด้งทีละคำ */
+    --dur-quiet: 750ms;
+  }
+
+  /* 1. Words rise from a mask, one after another.
+     The wrapper is what clips; the inner span is what moves. Whitespace stays as
+     real text nodes between the wrappers, so selecting the heading still copies
+     a normal sentence. */
+  .w  { display: inline-block; overflow: hidden; vertical-align: bottom; }
+  .wi { display: inline-block; }
+  html.js .split .wi {
+    transform: translate3d(0, 108%, 0);
+    transition: transform var(--dur-quiet) var(--ease-quiet);
+    transition-delay: calc(var(--wi, 0) * 30ms);
+  }
+  html.js .split.in .wi { transform: translate3d(0, 0, 0); }
+  /* Descenders and the italic Cormorant would be shaved off by the mask at a
+     flush 0 — the wrapper is given room below and pulled back up. */
+  .split .w { padding-bottom: 0.14em; margin-bottom: -0.14em; }
+
+  /* 2. A curtain drawn on an image: revealed top to bottom, never faded.
+     Large surfaces are the one place fade is banned — recompositing a full-width
+     photograph under the grain layer every frame is what stutter is made of.
+     The clip is applied to the CHILD, never to the observed element itself:
+     IntersectionObserver measures the clipped rect, so an element that starts at
+     inset(0 0 100% 0) has an intersection ratio of exactly 0 forever and its own
+     reveal never fires. Measured: every curtain stayed hidden until this moved
+     down one level. */
+  html.js .curtain > * {
+    clip-path: inset(0 0 100% 0);
+    /* 26/8/26 ต้นเหตุจริงของ "ชี้แล้วรูปขยายทันทีไม่มีอนิเมชัน" -----------------
+       รูปในแกลเลอรีเป็นลูกตรงของ figure.curtain กฎนี้จึงจับมันด้วย และ
+       ค่าความเฉพาะเจาะจง (0,2,1) ชนะ .zoom-img (0,1,0)
+       transition เป็น shorthand = เขียนทับ "ทั้งรายการ" ไม่ใช่เติมเข้าไป
+       ผลคือ transform ของ .zoom-img ไม่มี transition เหลืออยู่เลย → ซูมกระโดดทันที
+       ที่ผ่านมาไล่ยืดเวลา 900→1400→1800ms จึงไม่มีผลอะไรสักครั้ง เพราะค่าที่แก้
+       ไม่เคยถูกใช้ · ใส่ transform เข้ามาในรายการเดียวกันแทนการไปสู้ specificity
+       ที่อื่น = ของทุกชิ้นใต้ .curtain ใช้กลไกเดียวกันหมด ไม่มีข้อยกเว้นลอยๆ
+       transition-delay สองค่า = clip-path หน่วงตาม --i (ม่านเปิดไล่กัน)
+       ส่วน transform ต้อง 0ms ไม่งั้นชี้แล้วรูปจะนิ่งไปครึ่งวินาทีก่อนค่อยขยับ */
+    transition: clip-path 900ms var(--ease-quiet),
+                transform 900ms var(--ease-quiet);
+    transition-delay: calc(var(--i, 0) * 45ms), 0ms;
+  }
+  html.js .curtain.in > * { clip-path: inset(0 0 0 0); }
+
+  /* 3. A rule is drawn, not switched on. SVG stroke-dashoffset, because a
+     border-bottom cannot be drawn — it can only appear. */
+  .rule { display: block; width: 100%; height: 2px; overflow: visible; }
+  .rule line { stroke: url(#goldFade); stroke-width: 2; }
+  html.js .rule line {
+    stroke-dasharray: 200;
+    stroke-dashoffset: 200;
+    transition: stroke-dashoffset 1500ms var(--ease-quiet) 120ms;
+  }
+  html.js .rule.in line { stroke-dashoffset: 0; }
+
+  /* 4. Eyebrow ticks grow out of the text they mark. */
+  html.js .eyebrow::before, html.js .eyebrow::after {
+    transform: scaleX(0);
+    transition: transform 900ms var(--ease-quiet) 260ms;
+  }
+  html.js .eyebrow::before { transform-origin: right; }
+  html.js .eyebrow::after  { transform-origin: left; }
+  html.js .in .eyebrow::before, html.js .in .eyebrow::after,
+  html.js .eyebrow.in::before, html.js .eyebrow.in::after { transform: scaleX(1); }
+
+  /* 5. Numbers arrive. tabular-nums or the count would change the column width
+     on every frame and drag the label under it sideways. */
+  .num, [data-count] { font-variant-numeric: tabular-nums; }
+
+  /* Aggregate rating — 4.7 was drawn as five full stars, which overstates it.
+     The gold row is clipped to the real fraction (4.7/5 = 94%) over a dim row. */
+  .rate {
+    --fill: 100%;
+    position: relative;
+    display: inline-block;
+    color: rgba(201, 169, 97, 0.28);
+    letter-spacing: 0.15em;
+    white-space: nowrap;
+  }
+  .rate > i {
+    position: absolute;
+    left: 0; top: 0;
+    overflow: hidden;
+    width: var(--fill);
+    color: #C9A961;
+    font-style: normal;
+    letter-spacing: 0.15em;
+    white-space: nowrap;
+  }
+  html.js .rate > i { width: 0; transition: width 1400ms var(--ease-quiet) 200ms; }
+  html.js .rate.in > i { width: var(--fill); }
+
+  /* Review histogram bars fill from the left rather than sitting pre-filled. */
+  html.js .bar > span {
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 1300ms var(--ease-quiet);
+    transition-delay: calc(var(--i, 0) * 90ms);
+  }
+  html.js .bar.in > span { transform: scaleX(1); }
+
+  /* ---- Hero: light arriving in a room ----
+     A warm band drifts once across the façade on load, and the photograph settles
+     out of a 6% overscale. The settle animates `scale`, not `transform`, because
+     the parallax script owns this element's transform — two writers on one
+     property is a fight the script always wins mid-animation. */
+  .hero-light {
+    position: absolute;
+    inset: -25% -35%;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(100deg,
+      transparent 34%,
+      rgba(230, 204, 143, 0.18) 47%,
+      rgba(230, 204, 143, 0.06) 57%,
+      transparent 68%);
+    animation: heroLight 4600ms var(--ease-quiet) 350ms both;
+  }
+  /* The band has to leave. Held at its end position (animation-fill-mode: both)
+     it parks a permanent bright wash over the façade and drops the gold eyebrow
+     under it to near-nothing — light passing through a room, not a spotlight. */
+  @keyframes heroLight {
+    from { transform: translate3d(-52%, 0, 0); }
+    to   { transform: translate3d(58%, 0, 0); }
+  }
+  /* 24/8/26 ถอด heroSettle ออก — สเกล 1.06 → 1 ที่วิ่ง 2.8 วินาทีตอนโหลด คนอ่านว่า
+     'refresh แล้วรูปฮีโร่เปลี่ยนขนาดเอง' ไม่ใช่รายละเอียดที่ดูแพงขึ้น (ใบหน้าเดียวถอดไปแล้ว)
+     แผ่นภาพมี inset -12% เผื่อ parallax อยู่แล้ว จึงไม่ต้องพึ่ง scale เพื่อกันขอบโหว่ */
+
+  /* ---- The mark, used large ----
+     The address is the identity: Soi Phatthanakan *20*. It is set as an outline
+     numeral behind the hero, at the scale of architecture rather than of an icon,
+     and clipped by the hero itself. */
+  .hero-numeral {
+    position: absolute;
+    right: -2vw;
+    bottom: -6vw;
+    z-index: -1;
+    pointer-events: none;
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    font-size: 44vw;
+    line-height: 0.72;
+    letter-spacing: -0.04em;
+    color: transparent;
+    -webkit-text-stroke: 1.5px rgba(201, 169, 97, 0.30);
+    text-stroke: 1.5px rgba(201, 169, 97, 0.30);
+  }
+  /* Browsers without text-stroke would render nothing at all; give them a very
+     faint fill instead so the numeral is still part of the composition. */
+  @supports not ((-webkit-text-stroke: 1px red) or (text-stroke: 1px red)) {
+    .hero-numeral { color: rgba(201, 169, 97, 0.14); }
+  }
+
+  /* Footer wordmark — the one English word at full width, lifted out of its own
+     frame. Transform only: a fade on a surface this wide is the exact case the
+     grain layer makes stutter. */
+  .foot-mark { overflow: hidden; line-height: 0.78; padding: 0 0 0.06em; }
+  .foot-mark > span {
+    display: block;
+    font-family: 'Cinzel', serif;
+    font-weight: 400;
+    font-size: 15.3vw;      /* measured: "THE BED" at Cinzel 400 lands at ~95% of
+                               the container at every width from 360px up */
+    letter-spacing: 0.012em;
+    white-space: nowrap;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(201, 169, 97, 0.45);
+    text-stroke: 1px rgba(201, 169, 97, 0.45);
+  }
+  @supports not ((-webkit-text-stroke: 1px red) or (text-stroke: 1px red)) {
+    .foot-mark > span { color: rgba(201, 169, 97, 0.22); }
+  }
+  html.js .foot-mark > span {
+    transform: translate3d(0, 110%, 0);
+    transition: transform 1400ms var(--ease-quiet);
+  }
+  html.js .foot-mark.in > span { transform: translate3d(0, 0, 0); }
+</style>
+<style id="ts-grain">
+  /* Paper grain, matched to the ตามสั่ง site so the whole portfolio shares one
+     surface. Same value as the studio site, which this page's stock matches.
+     This sat at z-index -1 and was invisible on every one of these pages: they each
+     paint an opaque body and then opaque sections on top of it, so "behind
+     everything" meant behind the page as well as behind the content. Measured on
+     flow: 11,378px of opaque surface over it. These are standalone demos with their
+     own stylesheets, so reaching into each one's backgrounds is not on — the layer
+     goes on top instead, the way film grain does, at the strength the studio site
+     ends up showing. pointer-events: none, so it never intercepts a click. */
+  body::after {
+    content: ""; position: fixed; inset: 0; z-index: 99999; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.22'/%3E%3C/svg%3E");
+    background-size: 160px 160px;
+    opacity: 0.5;
+  }
+</style>
+<style>/* ---- Safari: ภาพในการ์ดสั่น/เบลอเฉพาะตอนเลื่อนหน้า -------------------------
+   กลไกเดียวกับที่แก้ใน work/velvet-leaf/ (21/8/26): ภาพใหญ่ที่ครอปแบบ cover อยู่ใน
+   กรอบมุมมนที่ตัดขอบ ทำให้ Safari ต้องวาดกรอบใหม่ทุกเฟรมตอนสกรอลล์ หน้านี้มีภาพ
+   ชนิดเดียวกัน 12 ใบ จึงแก้ไปพร้อมกัน ไม่รอให้มีคนรายงานทีละหน้า
+   ใช้ backface-visibility + contain แทนการเขียน transform ทับ เพราะ .zoom-img
+   ที่นี่ถือ transform ของตัวเองอยู่แล้ว (.group:hover .zoom-img = scale3d) การใส่
+   translateZ(0) ทับจะไปแย่งพร็อพเพอร์ตี้เดียวกันกับเอฟเฟกต์ซูมตอนชี้ */
+img.object-cover{-webkit-backface-visibility:hidden;backface-visibility:hidden;will-change:transform}
+.overflow-hidden:has(>img.object-cover){contain:paint}
+</style></head>

@@ -1,0 +1,1095 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Gloss — read any English on your screen, in Thai</title>
+<meta name="description" content="Read any English on your screen in Thai — in a game, a PDF, a video, an app that will not let you copy. Hold two keys, sweep over the words, and the Thai appears where they sit. Windows." />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Gloss — read any English on your screen, in Thai" />
+<meta property="og:description" content="Read any English on your screen in Thai. Hold two keys, sweep over the words, and the Thai appears where they sit — over borderless fullscreen games too. Windows." />
+<!-- Rendered at exactly 1200x630 by scratchpad/shoot-og.js, not screenshotted: a social card is a
+     fixed-size surface and a scaled screenshot is soft at that size. ABSOLUTE, not relative: several
+     scrapers (Facebook, LINE, older Slack) refuse to resolve a relative og:image and show no preview
+     at all. If the site ever moves host, these three URLs move with it — which is exactly what did NOT happen
+     when the site moved to Cloudflare Pages: they kept pointing at the netlify host, where og.png had
+     stopped existing. Measured 2026-08-09, the day before the launch post: netlify 404, pages.dev 200.
+     A link posted that day would have shown a card with no picture. -->
+<meta property="og:url" content="https://gloss-6xm.pages.dev/" />
+<meta property="og:image" content="https://gloss-6xm.pages.dev/og.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="https://gloss-6xm.pages.dev/og.png" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20512%20512%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27t%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%23232833%27%2F%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%230e1015%27%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%27c%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%23a5e0fd%27%2F%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%2354bfec%27%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20x%3D%2724%27%20y%3D%2724%27%20width%3D%27464%27%20height%3D%27464%27%20rx%3D%27112%27%20fill%3D%27url%28%23t%29%27%2F%3E%3Ctext%20x%3D%27256%27%20y%3D%27330%27%20text-anchor%3D%27middle%27%20font-family%3D%27sans-serif%27%20font-size%3D%27230%27%20font-weight%3D%27800%27%20fill%3D%27%23dfe6ee%27%3E%E0%B8%81%3C%2Ftext%3E%3Cg%20fill%3D%27none%27%20stroke%3D%27url%28%23c%29%27%20stroke-width%3D%2724%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M118%20178%20L118%20118%20L178%20118%27%2F%3E%3Cpath%20d%3D%27M334%20118%20L394%20118%20L394%20178%27%2F%3E%3Cpath%20d%3D%27M394%20334%20L394%20394%20L334%20394%27%2F%3E%3Cpath%20d%3D%27M178%20394%20L118%20394%20L118%20334%27%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E" />
+<!-- Emoji from a web font, not from the device — the 📖 on the manual button is a flat outline on
+     one Mac and a colour book on another. Same rule tutorial.html follows. -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" />
+<!-- The .js class gates every hidden-until-revealed initial state in the stylesheet, and it used to
+     be set by the script at the END of the body. That is late enough to see: the headline painted
+     in place first, then jumped down behind its own mask when the class landed, and only then
+     animated back. Setting it here, before any of the page is painted, is the whole fix — and it
+     stays a script rather than a hardcoded attribute so a browser with JS off still gets the plain,
+     fully visible page the no-js path was written for. -->
+<script>document.documentElement.className += " js";</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+  :root {
+    --ground:#f6f7f9; --panel:#ffffff; --ink:#181b21; --ink-soft:#565c66; --ink-faint:#8b919c;
+    --line:#e6e9ee; --line-soft:#eff1f4; --accent:#0b9bd4; --accent-ink:#07698f;
+    --shadow:0 1px 2px rgba(20,22,28,.04), 0 10px 30px rgba(20,22,28,.06);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --ground:#0b0d11; --panel:#14171d; --ink:#eef0f3; --ink-soft:#a4abb6; --ink-faint:#6b7280;
+      --line:#242832; --line-soft:#1b1e25; --accent:#52c4ec; --accent-ink:#8fd8f4;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 34px rgba(0,0,0,.4); }
+  }
+  * { box-sizing:border-box; }
+  body{ margin:0; background:var(--ground); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Sarabun",system-ui,sans-serif,"Noto Color Emoji";
+    line-height:1.6; -webkit-font-smoothing:antialiased; }
+  .page{ max-width:760px; margin:0 auto; padding:0 26px 84px; }
+
+  .lang{ display:flex; gap:2px; justify-content:center; padding:18px 0 0; flex-wrap:wrap; }
+  .lang button{ appearance:none; border:none; background:transparent; cursor:pointer;
+    font:inherit; font-size:12.5px; font-weight:650; color:var(--ink-faint);
+    padding:6px 11px; border-radius:999px; transition:background .12s ease, color .12s ease; }
+  .lang button:hover{ color:var(--ink); background:var(--line-soft); }
+  .lang button.on{ color:var(--accent-ink); background:color-mix(in srgb,var(--accent) 14%,transparent); }
+
+  .hero{ text-align:center; padding:56px 0 20px; }
+  .hero .logo{ width:112px; height:112px; filter:drop-shadow(0 12px 30px rgba(0,0,0,.34)); }
+  h1{ font-size:clamp(34px,7vw,52px); margin:22px 0 0; letter-spacing:-.03em; font-weight:820; }
+  .tag{ font-size:clamp(18px,3.4vw,22px); color:var(--ink); margin:16px auto 0; max-width:19ch; font-weight:600; line-height:1.35; text-wrap:balance; }
+  .sub{ font-size:16px; color:var(--ink-soft); margin:14px auto 0; max-width:46ch; text-wrap:balance; }
+  .chips{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:26px; }
+  .chip{ font-size:13px; font-weight:600; padding:6px 13px; border-radius:999px; border:1px solid var(--line); background:var(--panel); color:var(--ink-soft); }
+  .chip.cy{ border-color:transparent; background:color-mix(in srgb,var(--accent) 14%,transparent); color:var(--accent-ink); }
+  .dl{ margin-top:30px; }
+  .dl-btn{ display:inline-block; margin:0 5px 10px; padding:13px 26px; border-radius:14px; font-size:15px; font-weight:700;
+    text-decoration:none; color:var(--ink); border:1px solid var(--line); background:var(--panel);
+    box-shadow:var(--shadow); transition:transform .12s ease, filter .12s ease; }
+  .dl-btn:hover{ transform:translateY(-1px); filter:brightness(1.12); }
+  .dl-btn.primary{ border-color:transparent; background:color-mix(in srgb,var(--accent) 22%,transparent); color:var(--accent-ink); }
+  .dl-note{ font-size:12.5px; color:var(--ink-soft); margin:6px 0 0; }
+  /* Shown only to visitors who are actually on Windows — see the note in the script. Secondary
+     weight, because the page's whole argument is that the Mac build is the one that doesn't exist
+     anywhere else. */
+  .dl-btn.dl-win[hidden]{ display:none; }
+
+  section{ margin-top:64px; }
+  .kicker{ font-size:12px; letter-spacing:.15em; text-transform:uppercase; color:var(--accent); font-weight:700; margin:0 0 14px; text-align:center; }
+  h2{ font-size:25px; letter-spacing:-.015em; margin:0 0 8px; font-weight:750; text-align:center; text-wrap:balance; }
+  .lead{ color:var(--ink-soft); font-size:16px; text-align:center; max-width:52ch; margin:0 auto 30px; text-wrap:balance; }
+
+  .feats{ display:flex; flex-direction:column; gap:14px; }
+  .feat{ display:flex; gap:16px; align-items:flex-start; background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:20px 22px; box-shadow:var(--shadow); }
+  .feat .ic{ flex:0 0 auto; width:40px; height:40px; border-radius:11px; display:grid; place-items:center;
+    background:color-mix(in srgb,var(--accent) 13%,transparent); color:var(--accent-ink); }
+  .feat .ic svg{ width:22px; height:22px; }
+  .feat h3{ margin:2px 0 4px; font-size:16.5px; }
+  .feat p{ margin:0; color:var(--ink-soft); font-size:14.5px; }
+
+  .steps{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  @media (max-width:600px){ .steps{ grid-template-columns:1fr; } }
+  .step{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:22px 20px; box-shadow:var(--shadow); }
+  .step .n{ font-size:13px; font-weight:800; color:#fff; background:var(--accent); width:26px; height:26px; border-radius:999px; display:grid; place-items:center; margin-bottom:12px; }
+  .step .k{ font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:13px; background:var(--line-soft); border:1px solid var(--line); border-radius:6px; padding:2px 7px; display:inline-block; margin-bottom:8px; }
+  .step h3{ margin:0 0 4px; font-size:15.5px; }
+  .step p{ margin:0; color:var(--ink-soft); font-size:14px; }
+
+  .langs{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .lang{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 18px; text-align:center; box-shadow:var(--shadow); min-width:96px; }
+  .lang b{ font-size:20px; display:block; }
+  .lang span{ font-size:12.5px; color:var(--ink-soft); }
+
+  .me{ margin-top:64px; background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:28px 30px; box-shadow:var(--shadow); }
+  .me p{ margin:0 0 12px; font-size:15.5px; color:var(--ink); }
+  .me p:last-child{ margin-bottom:0; }
+  .me .lbl{ font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint); font-weight:700; margin-bottom:14px; }
+
+  .someday{ margin-top:26px; border:1px dashed var(--line); border-radius:14px; padding:20px 24px; }
+  .someday h3{ margin:0 0 6px; font-size:15px; color:var(--ink-soft); font-weight:700; }
+  .someday p{ margin:0; font-size:14px; color:var(--ink-faint); }
+  .someday b{ color:var(--ink-soft); font-weight:650; }
+
+  .speed{ margin-top:60px; }
+  .bars{ display:flex; flex-direction:column; gap:20px; max-width:560px; margin:0 auto; }
+  .bar-row{ display:flex; flex-direction:column; gap:7px; }
+  .bar-head{ display:flex; justify-content:space-between; align-items:baseline; }
+  .bar-lbl{ font-size:14.5px; font-weight:680; color:var(--ink); }
+  .bar-time{ font-size:15px; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums; }
+  .bar{ background:var(--line-soft); border-radius:9px; height:30px; overflow:hidden; }
+  .bar .fill{ height:100%; border-radius:9px; }
+  .bar .fill.old{ background:var(--ink-faint); }
+  .bar .fill.new{ background:var(--accent); }
+  .bar-note{ font-size:12.5px; color:var(--ink-faint); }
+  .stat{ text-align:center; margin:30px auto 0; font-size:19px; max-width:32ch; text-wrap:balance; color:var(--ink); }
+  .stat b{ color:var(--accent-ink); font-weight:820; }
+  .stat small{ display:block; margin-top:8px; font-size:12.5px; color:var(--ink-faint); font-weight:400; }
+  .cites{ text-align:center; font-size:12.5px; color:var(--ink-faint); margin:22px auto 0; }
+  .cites a{ color:var(--ink-soft); }
+  footer{ margin-top:56px; text-align:center; color:var(--ink-faint); font-size:13px; }
+
+  /* ---- Motion -----------------------------------------------------------------------------------
+     Sections arrive as you reach them instead of being pre-stacked below the fold — the same
+     IntersectionObserver + class idiom as the Maya Green site. Kept to ONE gesture (rise + fade,
+     0.6s) because a landing page that animates six different ways reads as a template. The initial
+     state lives under .js so a browser with scripting off shows everything rather than a blank page,
+     and prefers-reduced-motion turns the whole thing into an instant reveal, not a broken one. */
+  .js .rv{ opacity:0; transform:translateY(18px); transition:opacity .6s ease, transform .6s cubic-bezier(.22,1,.36,1); }
+  .js .rv.in{ opacity:1; transform:none; }
+  .js .rv-d1{ transition-delay:.08s; } .js .rv-d2{ transition-delay:.16s; } .js .rv-d3{ transition-delay:.24s; }
+  @media (prefers-reduced-motion:reduce){
+    .js .rv{ opacity:1; transform:none; transition:none; }
+  }
+
+  /* ---- Masked word reveal ----------------------------------------------------------------------
+     The headline arrives a word at a time from behind its own baseline. Words are split here rather
+     than with GSAP's SplitText, which is a paid plugin; a wrapper per word with overflow:hidden is
+     the whole trick. Three things about this are load-bearing and were each measured on the TypeUI
+     build before landing here:
+       • will-change stays on FOREVER, not only while animating. Handing the compositor layer back at
+         the end makes the browser re-snap sub-pixel text to the pixel grid, which reads as the word
+         twitching once at the exact moment it settles — a move of 0px that everyone can see.
+       • no overshoot past ~1.25. A back.out that pokes out of the mask gets clipped, and one that
+         clears the mask collides with the next word ("design system." → "designsystem.").
+       • nothing starts until the real font is measured (see the fonts.ready gate in the script).
+         Playing on a fallback face and reflowing when the webfont lands moved words by up to 124px.
+     .no-js and reduced-motion never reach any of it: the words are plain text with no wrapper. */
+  /* The mask is TALLER than the line, by design. Thai stacks up to two marks above the consonant and
+     a vowel below it, and those sit outside the line box — so a mask clipped to the line box cut the
+     tops off ทับ/ไทย and the bottoms off ญ/ฐ. Measured on the phone capture 2026-09-08: the Thai
+     headline lost its upper vowels entirely and read as a different word. The padding buys the room
+     and the equal negative margin gives the layout back, so nothing below moves; the hidden offset
+     below is then 132% rather than 110% because the word now has further to travel to clear a mask
+     that is taller than it is. English is unaffected — it simply never used the extra space. */
+  /* Plain mask, no extra leading. Two passes of "the Thai headline is clipped" were chased here and
+     BOTH were the measuring rig, not the page: a hidden Electron window throttles requestAnimationFrame
+     to almost nothing, so GSAP's ticker crawls and every screenshot caught the words frozen part-way
+     out of their masks — which looks exactly like clipped text. Measured in a window that is actually
+     on screen, all nine words settle at offset 0 and nothing is cut. The padding and line-height
+     added to "fix" it were removed again: they were treating a symptom that does not exist, and the
+     leading they bought made the wrapped Thai headline visibly loose. */
+  .js .split .w{ display:inline-block; overflow:hidden; vertical-align:top; }
+  .js .split .wi{ display:inline-block; will-change:transform; transform:translateY(112%); }
+  .js .split.lit .wi{ transform:none; }
+  @media (prefers-reduced-motion:reduce){
+    .js .split .wi{ transform:none; }
+  }
+
+  /* ---- Hero field -------------------------------------------------------------------------------
+     A slow shader behind the hero, not an image: it has to sit under a headline in both themes and
+     stay honest at 390px, where a photographic background would just be noise behind small text.
+     Written straight against WebGL rather than pulling in three.js — this is two triangles and forty
+     lines of fragment shader, and the library would be 600KB to draw them.
+     It is decoration, so it is inert to everything: aria-hidden, pointer-events off, and the script
+     never creates it at all under reduced-motion or when the context is refused. */
+  .hero{ position:relative; }
+  .hero > *:not(.field){ position:relative; z-index:1; }
+  .field{ position:absolute; inset:-10% -26px auto; height:min(520px,64vh); z-index:0;
+    pointer-events:none; opacity:0; transition:opacity 1.2s ease; mask-image:radial-gradient(120% 82% at 50% 30%,#000 38%,transparent 78%);
+    -webkit-mask-image:radial-gradient(120% 82% at 50% 30%,#000 38%,transparent 78%); }
+  .field.on{ opacity:1; }
+  .field canvas{ width:100%; height:100%; display:block; }
+
+  /* The hero shot plays the app's own gesture once, on load: the box is drawn, then the card and the
+     pill rise out of it. It is the only thing on the page that animates for its own sake, and it
+     earns it — it IS the product, performed. */
+  .shot-src .boxed{ clip-path:inset(0 100% 0 0); }
+  .js .shot.play .boxed{ animation:draw .5s .35s cubic-bezier(.22,1,.36,1) forwards; }
+  .js .shot .mock-card, .js .shot .mock-pill{ opacity:0; transform:translateY(14px); }
+  .js .shot.play .mock-card{ animation:rise .5s .95s cubic-bezier(.34,1.4,.5,1) forwards; }
+  .js .shot.play .mock-pill{ animation:rise .5s 1.1s cubic-bezier(.34,1.4,.5,1) forwards; }
+  @keyframes draw{ to{ clip-path:inset(0 0 0 0); } }
+  @keyframes rise{ to{ opacity:1; transform:none; } }
+  @media (prefers-reduced-motion:reduce){
+    .shot-src .boxed{ clip-path:none; }
+    .js .shot .mock-card, .js .shot .mock-pill{ opacity:1; transform:none; }
+    .js .shot.play .boxed, .js .shot.play .mock-card, .js .shot.play .mock-pill{ animation:none; }
+  }
+
+  .signup{ margin-top:64px; text-align:center; }
+  .su-form{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:4px; }
+  .su-input{ flex:1 1 260px; max-width:320px; padding:13px 15px; font-size:15px; border-radius:12px;
+    border:1px solid var(--line); background:var(--panel); color:var(--ink); box-shadow:var(--shadow); }
+  .su-input:focus{ outline:none; border-color:var(--accent); }
+  .su-btn{ padding:13px 24px; font-size:15px; font-weight:700; border-radius:12px; cursor:pointer;
+    border:1px solid transparent; background:color-mix(in srgb,var(--accent) 22%,transparent);
+    color:var(--accent-ink); box-shadow:var(--shadow); transition:filter .12s ease; }
+  .su-btn:hover{ filter:brightness(1.12); }
+  /* Off-screen rather than display:none — some bots skip hidden fields, which defeats the trap. */
+  .su-hp{ position:absolute; left:-9999px; }
+  .su-note{ margin-top:14px; font-size:13px; color:var(--ink-faint); }
+  /* The QR is the checkout. It is a picture of a bank screen, so it gets a white card of its own:
+     on the dark page a transparent PNG of black modules would be unreadable, and a camera that
+     cannot read it is a sale that does not happen. */
+  .pay{ display:flex; gap:26px; align-items:center; justify-content:center; flex-wrap:wrap; margin:20px auto 0; max-width:700px; text-align:left; }
+  .pay-qr{ background:#fff; padding:8px; border-radius:14px; line-height:0; }
+  .pay-qr img{ width:230px; height:auto; display:block; }
+  .pay-side{ flex:1 1 300px; max-width:340px; }
+  /* The amount is the one thing a static PromptPay code cannot carry, so it is the loudest thing
+     beside it. It was inside step 1 first, where the list counter pushed it onto its own line and
+     the step read as three fragments. */
+  .pay-amt{ margin:0 0 2px; font-size:30px; font-weight:800; color:var(--ink); letter-spacing:-.5px; }
+  .pay-amt span{ font-size:14px; font-weight:600; color:var(--ink-faint); letter-spacing:0; }
+  .pay-steps{ counter-reset:pay; margin:10px 0 0; padding:0; list-style:none; font-size:14px; line-height:1.6; color:var(--ink-soft); }
+  .pay-steps li{ counter-increment:pay; padding-left:22px; position:relative; margin-bottom:7px; }
+  .pay-steps li::before{ content:counter(pay); position:absolute; left:0; top:0; width:16px; height:16px;
+    border-radius:50%; background:rgba(255,255,255,.09); color:var(--ink-faint); font-size:11px;
+    font-weight:700; display:grid; place-items:center; margin-top:3px; }
+  @media (max-width:520px){ .pay{ gap:16px; } .pay-qr img{ width:200px; } .pay-side{ max-width:none; } }
+  /* Empty by default, so it takes no room until it has something to say. */
+  .su-said{ margin-top:10px; font-size:13.5px; font-weight:600; min-height:0; }
+  .su-said.ok{ color:var(--accent-ink); }
+  .su-said.bad{ color:#d9534f; }
+  .su-note a, .dl-note a.q{ color:var(--ink-soft); }
+
+  /* ---- The shot ------------------------------------------------------------------------------
+     A download page for a thing you LOOK at had no picture of it. This is the app drawn in HTML
+     rather than a screenshot, for three reasons: a screenshot of a real session leaks whatever was
+     on the desk that day, a PNG is soft on a Retina display and heavy on a phone, and this file has
+     no build step or asset folder to put one in. It is built from the app's real numbers — 336×46
+     pill at 23px radius, 332px card at 18px — so it isn't an illustration of the app, it's the app's
+     own geometry. The one thing it does that a screenshot can't: the glass here is a live
+     backdrop-filter, because on an ordinary web page there IS something behind it to blur. */
+  .shot{ position:relative; margin:34px auto 0; max-width:560px; border-radius:20px; overflow:hidden;
+    border:1px solid var(--line); box-shadow:var(--shadow); aspect-ratio:16/10;
+    background:linear-gradient(160deg,#20304a 0%,#3b2f4d 46%,#4a2f38 100%); }
+  /* Suggestion of a scene behind the glass — soft lights, no detail. It only has to be something
+     for the pill to have a colour to pick up and a boundary to sit across. */
+  .shot::before{ content:''; position:absolute; inset:0;
+    background:
+      radial-gradient(38% 46% at 22% 26%, rgba(255,196,120,.42), transparent 70%),
+      radial-gradient(30% 36% at 78% 20%, rgba(120,200,255,.34), transparent 70%),
+      radial-gradient(52% 40% at 60% 92%, rgba(0,0,0,.5), transparent 70%); }
+  /* The stack sits just under the boxed line, not parked at the bottom of the frame: the page
+     promises the card "lands where the text is", and a picture that contradicts the sentence next
+     to it is worse than no picture. */
+  .shot-in{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:10px; padding:26% 16px 8%; }
+  /* The line the player is actually looking at, sitting in the scene where it would really be. */
+  .shot-src{ position:absolute; top:11%; left:0; right:0; text-align:center; color:rgba(255,255,255,.94);
+    font-size:clamp(15px,3.2vw,20px); font-weight:600; letter-spacing:.02em;
+    text-shadow:0 2px 10px rgba(0,0,0,.75); }
+  .shot-src .boxed{ padding:2px 8px; border:1.5px dashed rgba(125,211,252,.9); border-radius:7px;
+    background:rgba(125,211,252,.12); }
+
+  .mock-card, .mock-pill{ color:#f3f4f6; text-align:left;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Sarabun",system-ui,sans-serif;
+    background:rgba(18,20,26,.62); backdrop-filter:blur(18px) saturate(1.5);
+    -webkit-backdrop-filter:blur(18px) saturate(1.5);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.16), 0 0 0 1px rgba(0,0,0,.55), 0 4px 16px rgba(0,0,0,.4); }
+  .mock-card{ width:min(332px,86%); border:1.5px solid rgba(255,255,255,.28); border-radius:18px; padding:12px 14px; }
+  .mock-card .th{ font-size:15px; font-weight:700; line-height:1.45;
+    font-family:"Sarabun","Noto Sans Thai",system-ui,sans-serif; }
+  .mock-card .en{ margin-top:5px; font-size:12px; color:#9aa3b2; line-height:1.4; }
+  .mock-pill{ width:min(336px,86%); height:46px; border:1px solid rgba(255,255,255,.18); border-radius:23px;
+    display:flex; align-items:center; gap:9px; padding:0 13px; font-size:13.5px; font-weight:700; }
+  .mock-pill .dot{ width:11px; height:11px; border-radius:50%; background:#9aa3b2; flex:0 0 auto; }
+  .mock-pill .key{ margin-left:auto; font-size:12px; font-weight:600; color:#9aa3b2; }
+  .shot-cap{ text-align:center; font-size:12.5px; color:var(--ink-faint); margin:12px 0 0; }
+
+/* Pricing. Two cards, the paid one marked but not shouting — there is nothing to buy yet, and a
+   card styled like a checkout would be a promise the page cannot keep. */
+.pricing { max-width: 900px; margin: 0 auto; padding: 0 20px; }
+.price-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 22px 0 0; }
+.price-card { border: 1px solid rgba(255,255,255,.12); border-radius: 14px; padding: 18px 20px; background: rgba(255,255,255,.03); }
+.price-card--pro { border-color: rgba(165,224,253,.45); background: rgba(165,224,253,.06); }
+.price-card h3 { margin: 0; font-size: 14px; letter-spacing: .04em; text-transform: uppercase; opacity: .8; }
+.price-num { margin: 6px 0 12px; font-size: 30px; font-weight: 800; }
+.price-num small { font-size: 13px; font-weight: 600; opacity: .65; }
+.price-card ul { margin: 0; padding-left: 18px; }
+.price-card li { margin: 6px 0; line-height: 1.5; }
+.price-note { margin: 18px 0 0; padding: 12px 14px; border-radius: 10px; background: rgba(255,255,255,.05); line-height: 1.6; }
+
+  /* The tutorial link sits beside Download: same shape, no fill — it is the second thing to click,
+     never the first. */
+  .dl-btn.dl-tut{ background:transparent; color:var(--ink); border:1px solid var(--line); }
+  .dl-btn.dl-tut:hover{ border-color:var(--accent); color:var(--accent); }
+
+  /* One price: a single card centred, not a grid pretending there is a choice. */
+  .price-grid--one{ grid-template-columns:minmax(0,420px); justify-content:center; }
+  .price-was{ margin:-6px 0 12px; font-size:13px; color:var(--ink-faint); }
+  .price-cta{ display:block; text-align:center; margin-top:18px; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#232833"/><stop offset="1" stop-color="#0e1015"/></linearGradient>
+  <linearGradient id="cy" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a5e0fd"/><stop offset="1" stop-color="#54bfec"/></linearGradient>
+</defs></svg>
+
+<div class="page">
+
+  <!-- Language, first thing on the page. English is the SOURCE — it lives in the markup — and the
+       dictionary below carries only the other languages, so any string nobody has translated yet
+       simply stays English instead of going blank. -->
+  <nav class="lang" id="lang" aria-label="Language">
+    <!-- EN and TH only. The ja/zh/ko dictionaries below still describe the four-language app and are
+         kept for the day a second pair is watched working; showing them now would advertise, in three
+         languages, a product this build does not ship. -->
+    <button data-l="en" class="on">EN</button><button data-l="th">ไทย</button>
+  </nav>
+
+
+  <header class="hero">
+    <!-- Decoration only; the script fills it and skips it entirely under reduced motion. -->
+    <div class="field" aria-hidden="true"></div>
+    <svg class="logo" viewBox="0 0 512 512" role="img" aria-label="Gloss">
+      <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#tile)"/>
+      <rect x="24" y="24" width="464" height="464" rx="112" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="2"/>
+      <!-- The letter first, the snip frame over it: the picture of what the app does, mid-drag.
+           Every earlier mark spent half the tile on an arrow that vanished at 32px (文 → A, then
+           A over ก, then A → ก side by side). Two colours so the letter and the frame stay apart
+           when this is 16px wide. -->
+      <text x="256" y="330" text-anchor="middle" font-family="'Sarabun','Noto Sans Thai',sans-serif" font-size="230" font-weight="800" fill="#dfe6ee">ก</text>
+      <g fill="none" stroke="url(#cy)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M118 178 L118 118 L178 118"/><path d="M334 118 L394 118 L394 178"/>
+        <path d="M394 334 L394 394 L334 394"/><path d="M178 394 L118 394 L118 334"/></g>
+    </svg>
+    <h1 class="split">Gloss</h1>
+    <p class="tag split" data-i="tag">Read any English on your screen, in Thai.</p>
+    <!-- This used to argue with Textractor and LunaTranslator — two Windows tools for hooking text out
+         of Japanese visual novels. The reader now is a Thai person meeting English on their own Mac,
+         who has never heard of either. What they compare against is Google Translate in another tab. -->
+    <p class="sub" data-i="sub">English that will not let you copy it: a game, a PDF, a video, a menu inside an app. Hold two keys, sweep over it, and read the Thai where it sits — without leaving what you were doing.</p>
+    <div class="chips">
+      <!-- Said "Windows & Mac" until 2026-09-08. The Mac build that can validate a purchased key does
+           not exist yet — the newest dmg predates the licence path — so the page was promising a
+           buyer a file nobody could send them. Windows only until a Mac build ships. -->
+      <span class="chip cy" data-i="c1">Windows</span>
+      <span class="chip" data-i="c2">English → ไทย</span>
+      <!-- "Over fullscreen games" was the claim; what has been measured is BORDERLESS fullscreen.
+           Exclusive fullscreen has never been verified and probably cannot be overlaid at all. -->
+      <span class="chip" data-i="c3">Over borderless fullscreen games</span>
+      <span class="chip" data-i="c4">Invisible to recordings</span>
+    </div>
+    <!-- Show the thing before asking anyone to install it. See the .shot note in the stylesheet for
+         why this is drawn rather than screenshotted.
+         MOVED ABOVE THE BUTTON on 2026-09-08. It used to sit after three paragraphs of caveats, which
+         on a 390px phone put the only picture of the product on the SECOND screen — and the traffic
+         this page is being built for arrives from a 15-second video, on a phone, deciding inside one
+         thumb-length. The whole argument for this app is that you have to see it to understand it;
+         burying the seeing under the small print argued against the page's own case. -->
+    <div class="shot" role="img" aria-label="A game scene with a line of English text boxed, and the Gloss card showing the Thai translation just below it">
+      <p class="shot-src"><span class="boxed">Something is behind that door.</span></p>
+      <div class="shot-in">
+        <div class="mock-card">
+          <p class="th">มีบางอย่างอยู่หลังประตูบานนั้น</p>
+          <p class="en">Something is behind that door.</p>
+        </div>
+        <div class="mock-pill"><span class="dot"></span><span>EN&nbsp;→&nbsp;TH</span><span class="key">⌃⌥</span></div>
+      </div>
+    </div>
+    <p class="shot-cap" data-i="shotcap">The overlay floats over the game — the card lands where the text is.</p>
+
+    <div class="dl">
+      <!-- Downloads live in the public gloss-downloads repo, not this app's own (private) one: a
+           release asset on a private repo needs a logged-in account with access, so these buttons
+           404'd for everyone. Asset names are the real filenames in that release — a "latest/download"
+           URL that names a file the release doesn't have is another silent 404. -->
+      <!-- One dmg per architecture since 2026-08-09. Both used to be built under the single name
+           Gloss-mac.dmg, so the second overwrote the first and only Apple Silicon was ever released;
+           an Intel Mac had nothing to download at all. The old name is still in the release and still
+           works — nothing here points at it any more, but a link someone saved is not a 404. -->
+      <!-- The download link used to be the hero button, which gave away the one thing that can
+           actually be sold: a copy of the app. The AI quota is enforced by the worker; OCR, hover,
+           the word list and SRS all run locally and cannot be. So the link IS the product, and it now
+           arrives by email after payment. -->
+      <a class="dl-btn primary" href="#pricing" data-i="dl">Get Gloss — ฿149 once</a>
+      <!-- The manual, in Thai. Every function on one page — the site sells the gesture, this explains
+           the other eight things the app does that a 15-second video cannot fit. -->
+      <a class="dl-btn dl-tut" href="./tutorial.html" data-i="tut">📖&nbsp;How to use every function</a>
+      <!-- Was a free Windows download sitting next to a buy button — the page giving away the exact
+           thing it sells, to the visitors most likely to buy it. It is a line about the platform now,
+           not a way past the price. -->
+      <p class="dl-note win-only" id="dlWin" data-i="winhere" hidden>⊞ You are on Windows — that is the
+        build with nothing to allow. Your download link arrives with your key.</p>
+      <p class="dl-note win-only" id="winNote" data-i="winnote" hidden>The Windows build has been run on Windows 11
+        and reads English from the screen there. It is still new, so if
+        something breaks, telling me what happened is worth more to me than the sale.</p>
+      <!-- Windows named first on purpose: it is 67% of Thai desktops against Apple's 20%, and it is the
+           half where the app asks for no screen permission at all. The Mac caveat is real and stays,
+           but it is a caveat, not the headline. -->
+      <p class="dl-note" data-i="dlnote">One payment, yours forever · no subscription, nothing renews ·
+        <b>Windows 10/11</b> — nothing to allow, it just runs. The download link and the steps come
+        with your key.</p>
+      <!-- Split out of the line above on 2026-09-08 and made quiet on purpose. It was bold, and one
+           clause into the first paragraph under the button — so the second thing a Windows buyer read
+           was a paragraph about a platform they are not on. It has to stay (selling a Mac build that
+           cannot check its own key would be taking money for nothing) but it is a footnote, not an
+           argument, and weighting it like one talked the reader out of a purchase on someone else's
+           behalf. -->
+      <p class="dl-note dl-mac" data-i="dlmac">macOS is not on sale yet — that build cannot check a
+        licence key, so it is not being charged for.</p>
+    </div>
+
+  </header>
+
+  <section class="speed rv">
+    <p class="kicker" data-i="k1">Why it's faster</p>
+    <h2 data-i="h1">One glance, not a 20-second detour</h2>
+    <p class="lead" data-i="l1">The usual way to read a foreign line is to leave the game for Google Translate — and come back to a lost moment. Boxing the text where it sits skips the whole round-trip.</p>
+    <div class="bars">
+      <div class="bar-row">
+        <div class="bar-head"><span class="bar-lbl">Alt-tab to Google Translate</span><span class="bar-time">~20s</span></div>
+        <div class="bar"><div class="fill old" style="width:100%"></div></div>
+        <span class="bar-note">pause · screenshot or retype · paste · read · find your place again</span>
+      </div>
+      <div class="bar-row">
+        <div class="bar-head"><span class="bar-lbl">Gloss</span><span class="bar-time">~3s</span></div>
+        <div class="bar"><div class="fill new" style="width:15%"></div></div>
+        <span class="bar-note">drag a box, read it right there</span>
+      </div>
+    </div>
+    <p class="stat"><b>Around 7× less time</b> per line you look up — and you never leave the game.<small>Rough per-lookup comparison of the two workflows, not a lab measurement.</small></p>
+  </section>
+
+  <section>
+    <p class="kicker" data-i="k2">What it's for</p>
+    <h2 data-i="h2">No more alt-tabbing to Google Translate</h2>
+    <p class="lead" data-i="l2">The whole point is that you never leave what you're doing. Press a key, drag a box, keep playing.</p>
+    <div class="feats rv">
+      <div class="feat">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4"/></svg></span>
+        <div data-i="ft1"><h3>Drag a box, get the meaning</h3><p>Point at the words that stumped you — a boss's dialogue, an item description — and the translation pops up right where they sit.</p></div>
+      </div>
+      <div class="feat">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l-4 16M18 8l4 4-4 4M6 16l-4-4 4-4"/></svg></span>
+        <div data-i="ft2"><h3>Type it in when you'd rather</h3><p>Not everything is on screen. Type a word or a sentence straight into the pill and it translates it — no screenshot needed, no misreads.</p></div>
+      </div>
+      <div class="feat">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8l7-5 7 5M5 8v8l7 5 7-5V8"/></svg></span>
+        <div data-i="ft3"><h3>Stays out of the way</h3><p>When you're not using it, the pill quietly shrinks to a dim dot and stops moving, so nothing tugs at the corner of your eye. Click straight through it, and it never steals focus or pauses your game.</p></div>
+      </div>
+      <div class="feat">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/></svg></span>
+        <div data-i="ft4"><h3>Invisible when you record</h3><p>Flip one switch and the overlay vanishes from screen recordings and screenshots — so you can stream or capture your game with the translations there for you, but not for the video.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker" data-i="k3">How you use it</p>
+    <h2 data-i="h3">Three moves, that's it</h2>
+    <div class="steps rv">
+      <div class="step" data-i="st1"><div class="n">1</div><span class="k">⌃⌥</span><h3>Hold it down</h3><p>From inside the game or app — no need to switch windows first. Keep the keys held.</p></div>
+      <div class="step" data-i="st2"><div class="n">2</div><h3>Drag a box</h3><p>Draw a rectangle around the text you want, the way you'd select on your desktop.</p></div>
+      <div class="step" data-i="st3"><div class="n">3</div><h3>Read the card</h3><p>Let go, and the translation appears right where you boxed it.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <!-- This said "Four languages, into yours" and listed Chinese, Japanese and Korean. The menus did
+         offer 35 source/target combinations; exactly one of them had ever been watched working end to
+         end, two of the four source languages have no hover dictionary at all, and nobody here can
+         read Japanese well enough to tell a good card from a confident wrong one (LANGUAGE-MATRIX.md).
+         A promise you cannot check is not a feature. The app now ships the one pair and says so. -->
+    <p class="kicker" data-i="k4">Reads</p>
+    <h2 data-i="h4">English on screen, Thai in the card</h2>
+    <p class="lead" data-i="l3">One pair, done properly: it reads English anywhere on your screen — a game, a PDF, a video, an app that will not let you select text — and gives you Thai. Point at any word in the line and the dictionary opens on it: 77,000 English words, no internet needed.</p>
+    <div class="langs rv">
+      <div class="lang"><b>A</b><span>English</span></div>
+      <div class="lang"><b>ก</b><span>ไทย</span></div>
+    </div>
+  </section>
+
+  <section class="learn rv">
+    <p class="kicker" data-i="k5">A side effect: you learn</p>
+    <h2 data-i="h5">The words you meet while playing tend to stick</h2>
+    <p class="lead" data-i="l4">Language researchers keep finding the same thing: people pick up second-language vocabulary just by playing games and watching subtitled shows — and still remember it a week later. The more hours you put in, the more you absorb, without ever sitting down to "study".</p>
+    <p class="lead" data-i="l5">Gloss leans into that. Star any word you look up and it's saved to your own list — vocabulary pulled straight from the games you actually play.</p>
+    <p class="cites">Grounded in research on incidental vocabulary acquisition through <a href="https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2026.1798613/full" target="_blank" rel="noopener">digital games</a> and <a href="https://link.springer.com/article/10.1007/BF02299476" target="_blank" rel="noopener">subtitled television</a>.</p>
+  </section>
+
+  <div class="me rv">
+    <p class="lbl">Why it exists</p>
+    <p>I built this for myself. I got tired of pausing a game, screenshotting, and pasting into Google Translate just to understand one line — by the time I was back, the moment was gone.</p>
+    <p>So it's honest about what it is: a small, personal tool that does one thing well. <b>Reading the screen and translating it stays free</b> — that is the part I built for myself, and it is the part I keep giving away.</p>
+  </div>
+
+  <!-- The plan, in public, before there is anything to buy. The page used to say "maybe someday —
+       a paid half" while the app had a licence-key field and no way to get a key: two different
+       stories in two places. This section is the one story. It states the number now so that nobody
+       who downloads today can be surprised later, and it says plainly that nothing is for sale yet
+       rather than putting up a button that cannot take money. -->
+  <!-- One price, because two were dominated by their own top-up (PRICING-AI.md §15) and because a
+       single number is the only one a 15-second video can say. What is sold is the download link and
+       the AI quota — the two things the server can actually enforce. -->
+  <section class="pricing rv rv-d1" id="pricing">
+    <p class="kicker" data-i="k7">What it costs</p>
+    <h2 data-i="h7">One payment. Yours forever.</h2>
+    <p class="lead" data-i="l7">No subscription, nothing to renew, no feature held back for a later tier. You pay once and the app is yours — including every update.</p>
+
+    <div class="price-grid price-grid--one">
+      <div class="price-card price-card--pro">
+        <h3 data-i="pp">Gloss</h3>
+        <!-- Was "THB 390, launch price, first 50 — then THB 590". Both halves went on 2026-09-08 with
+             the price itself. A countdown that has to be maintained, and a "then" that has to be
+             honoured or quietly dropped, are two promises to keep in exchange for urgency nobody
+             asked for; and the same THB 149 has to hold for a top-up years from now, which a launch
+             price cannot. One number that never moves is also the only version of this the buyer can
+             repeat to someone else correctly, which is the whole distribution plan. -->
+        <p class="price-num">฿149 <small data-i="ponce">one payment</small></p>
+        <p class="price-was" data-i="pwas">Out of cards? Another 500 is ฿149 — the same price, always</p>
+        <ul>
+          <li data-i="pp1">Read English anywhere on screen → Thai, unlimited, forever</li>
+          <li data-i="pp2">Point at any word: 77,000-word dictionary, offline</li>
+          <li data-i="pp3">Live subtitles, voice input, word list, SRS review</li>
+          <li data-i="pp4">500 AI cards — pronunciation, meaning, word forms, an example</li>
+          <li data-i="pp5">Or bring your own Claude key: unlimited AI, nothing through us</li>
+        </ul>
+        <a class="dl-btn primary price-cta" href="#notify" data-i="pcta">Get it — ฿149</a>
+      </div>
+    </div>
+
+    <p class="price-note" data-i="pn"><b>How buying works right now:</b> scan the PromptPay code below, transfer ฿149, and leave your email — the download link and your key come back within 24 hours. Done by hand while this is small: no card, no account, nothing to cancel.</p>
+  </section>
+
+  <section class="signup rv" id="notify">
+    <p class="kicker" data-i="k6">How to buy</p>
+    <h2 data-i="h6">Scan, transfer ฿149, get your key</h2>
+    <p class="lead" data-i="l6">There is no checkout page, and at this size there does not need to be one — this is the checkout. Transfer with any Thai banking app, leave the address to send the key to, and the download link and licence follow within 24 hours. Your address is used for that and for nothing else, ever.</p>
+
+    <!-- The QR was an email round trip until 2026-09-07: leave an address, wait for a human to send
+         a picture back, then pay. Every hour of that gap is somewhere a person changes their mind.
+         It is a static account code, so the amount is typed by the payer — hence the amount being
+         the loudest thing next to it, and the reference box below for matching a transfer to a name. -->
+    <div class="pay">
+      <div class="pay-qr"><img src="promptpay.png" alt="PromptPay QR — Gloss" width="190" /></div>
+      <div class="pay-side">
+        <p class="pay-amt">฿149 <span data-i="payonce">one payment</span></p>
+        <ol class="pay-steps">
+          <li data-i="pay1">Scan with any Thai banking app and type the amount in yourself — the code carries the account, not the price.</li>
+          <li data-i="pay2">Leave your email below, with the time you transferred so I can match it.</li>
+          <li data-i="pay3">The download link and your licence key arrive within 24 hours — usually much sooner.</li>
+        </ol>
+      </div>
+    </div>
+
+    <form name="notify" method="POST" action="/notify" class="su-form" id="notifyForm">
+      <!-- Honeypot: a field a human never sees and a bot always fills. -->
+      <p class="su-hp"><label>Company <input name="company" /></label></p>
+      <input class="su-input" type="email" name="email" required placeholder="you@example.com" aria-label="Your email" />
+      <!-- Optional on purpose. A static PromptPay code carries no order id, so the only thing tying
+           a transfer to an address is what the payer says here; making it required would turn a
+           forgotten detail into a lost sale, and the bank statement plus the time is usually enough. -->
+      <input class="su-input" type="text" name="note" maxlength="120" placeholder="Transferred 20:35, ends 1234 (optional)" aria-label="When you transferred" data-i-ph="phnote" />
+      <button class="su-btn" type="submit" data-i="subtn">I have transferred — send my key</button>
+    </form>
+    <!-- Filled by the submit handler. Empty and silent until there is something to say: a signup that
+         gives back no sign it worked is the thing being fixed here, so it must never stay blank
+         after a press. -->
+    <p class="su-said" id="notifySaid" role="status" aria-live="polite"></p>
+    <p class="su-note" data-i="sunote">Not sure yet? Say what you would use it for and ask anything — same box, I read every one.</p>
+    <!-- "Tell me what breaks" stood here for weeks with nowhere to say it: no contact, no mailto, no
+         issue link anywhere on the site. This is the same box the app's Settings › Report a problem
+         posts to (/functions/report.js), kept here for the person whose app will not open at all —
+         the report that matters most is the one from someone who cannot reach a button inside it. -->
+    <form method="POST" action="/report" class="su-form" id="reportForm">
+      <input class="su-input" type="text" name="note" required placeholder="Something broken? Say what happened." aria-label="Report a problem" />
+      <button class="su-btn" type="submit">Send</button>
+    </form>
+    <p class="su-said" id="reportSaid" role="status" aria-live="polite"></p>
+  </section>
+
+  <footer>Gloss · a personal overlay for reading the screen · made with care</footer>
+
+</div>
+<script>
+  // Class on <html>, not <body>, and set before first paint — the initial hidden state is scoped to
+  // .js so anything without scripting (or with this script broken) gets the page fully visible
+  // instead of a column of invisible sections.
+  document.documentElement.className += ' js';
+  // A Windows visitor arriving on a page that offers only a Mac download is a dead end, and there IS
+  // a Windows build. Discord solves this by detecting the platform and leading with the right
+  // button; this does the same, except the Mac button always stays — the page's argument is that
+  // the Mac build is the one that exists nowhere else, so it is never demoted, only joined.
+  if (/Win(dows|32|64)/i.test(navigator.userAgent)) {
+    var w = document.getElementById('dlWin');
+    if (w) w.hidden = false;
+    // Same reveal for the honesty note: a Windows visitor should see the caveat next to the button,
+    // not discover it after the download. Mac visitors never see either.
+    var wn = document.getElementById('winNote');
+    if (wn) wn.hidden = false;
+  }
+  // Dictionary. English is NOT in here — it is the markup, which is what makes a missing string a
+  // no-op instead of a hole. Values with tags are set as innerHTML; the plain ones as text.
+  var DICT = {
+    th: {
+      suSending:'กำลังส่ง…', suOk:'เก็บอีเมลไว้แล้ว จะส่งเฉพาะตอนมีของใหม่ ไม่มีอย่างอื่น', suBad:'ส่งไม่สำเร็จ ลองอีกครั้งไหม',
+      tag:'อ่านภาษาอังกฤษบนจอ เป็นภาษาไทย',
+      tut:'📖&nbsp;วิธีใช้ทุกฟังก์ชัน',
+      dl:'ซื้อ Gloss — ฿149 จ่ายครั้งเดียว',
+      winhere:'⊞ คุณใช้ Windows อยู่ — เป็นฝั่งที่ไม่ต้องตั้งสิทธิ์อะไรเลย · ลิงก์ดาวน์โหลดจะส่งไปพร้อมคีย์',
+      winnote:'รุ่น Windows รันจริงบน Windows 11 แล้ว อ่านภาษาอังกฤษจากหน้าจอได้ · ยังใหม่อยู่ ถ้าเจออะไรพัง เล่าให้ฟังมีค่ากับผมมากกว่ายอดขาย',
+      dlnote:'จ่ายครั้งเดียว เป็นของคุณตลอดไป · ไม่มีรายเดือน ไม่มีต่ออายุ · <b>Windows 10/11</b> — ไม่ต้องตั้งสิทธิ์อะไรเลย เปิดแล้วใช้ได้ · ลิงก์โหลดและวิธีทำส่งไปพร้อมคีย์',
+      dlmac:'ฝั่ง macOS ยังไม่เปิดขาย — ตัว Mac ยังตรวจคีย์ไม่ได้ จึงยังไม่เก็บเงิน',
+      sub:'ภาษาอังกฤษที่ก๊อปไม่ได้ — ในเกม ในไฟล์ PDF ในวิดีโอ ในเมนูของโปรแกรม · กดสองปุ่มค้าง ลากคลุม แล้วอ่านคำแปลไทยตรงนั้นเลย ไม่ต้องออกจากสิ่งที่ทำอยู่',
+      c1:'Windows', c2:'อังกฤษ → ไทย', c3:'ทับเกมเต็มจอแบบ borderless ได้', c4:'ไม่ติดในวิดีโอที่อัด',
+      shotcap:'overlay ลอยอยู่เหนือเกม — การ์ดโผล่ตรงที่ข้อความอยู่',
+      k1:'ทำไมถึงเร็วกว่า', h1:'มองครั้งเดียว ไม่ใช่เสียเวลา 20 วินาที',
+      l1:'วิธีปกติของการอ่านประโยคภาษาต่างประเทศคือออกจากเกมไป Google Translate แล้วกลับมาเจอว่าจังหวะนั้นหายไปแล้ว การลากคลุมตรงที่มันอยู่ตัดขั้นตอนไป-กลับทั้งหมดทิ้ง',
+      k2:'มีไว้ทำอะไร', h2:'ไม่ต้อง alt-tab ไป Google Translate อีก',
+      l2:'ประเด็นทั้งหมดคือคุณไม่ต้องออกจากสิ่งที่กำลังทำ กดปุ่ม ลากกรอบ เล่นต่อ',
+      ft1:'<h3>ลากกรอบ แล้วได้ความหมาย</h3><p>ชี้ไปที่คำที่ทำให้คุณสะดุด — บทสนทนาของบอส คำอธิบายไอเทม — แล้วคำแปลจะเด้งขึ้นตรงที่มันอยู่</p>',
+      ft2:'<h3>หรือจะพิมพ์เอาก็ได้</h3><p>ไม่ใช่ทุกอย่างจะอยู่บนจอ พิมพ์คำหรือประโยคลงในแถบ pill ได้เลย ไม่ต้องแคปหน้าจอ ไม่มีการอ่านผิด</p>',
+      ft3:'<h3>หลบให้พ้นทาง</h3><p>ตอนไม่ได้ใช้ มันจะหดเป็นจุดจางๆ แล้วหยุดขยับ ไม่มีอะไรมาสะกิดหางตา คลิกทะลุผ่านมันได้ และมันไม่เคยแย่งโฟกัสหรือหยุดเกมของคุณ</p>',
+      ft4:'<h3>หายตัวตอนอัดจอ</h3><p>สลับสวิตช์เดียว overlay จะหายไปจากวิดีโอที่อัดและภาพหน้าจอ — สตรีมเกมได้โดยคำแปลอยู่กับคุณ แต่ไม่อยู่ในคลิป</p>',
+      k3:'ใช้ยังไง', h3:'สามท่า จบ',
+      st1:'<div class="n">1</div><span class="k">⌃⌥</span><h3>กดค้างจากตรงไหนก็ได้</h3><p>จากในเกมหรือในแอปเลย ไม่ต้องสลับหน้าต่างก่อน กดค้างไว้</p>',
+      st2:'<div class="n">2</div><h3>ลากกรอบ</h3><p>วาดสี่เหลี่ยมคลุมข้อความที่ต้องการ เหมือนลากเลือกบนเดสก์ท็อป</p>',
+      st3:'<div class="n">3</div><h3>อ่านการ์ด</h3><p>ปล่อยมือ แล้วคำแปลจะโผล่ตรงที่คุณลากคลุมไว้</p>',
+      k4:'อ่านได้', h4:'อังกฤษบนจอ ไทยในการ์ด',
+      l3:'คู่เดียว แต่ทำให้ดี — อ่านภาษาอังกฤษที่ไหนก็ได้บนจอ (เกม, PDF, วิดีโอ, แอปที่ก๊อปข้อความไม่ได้) แล้วให้คำแปลไทย · ชี้ที่คำไหนก็ได้ในบรรทัด พจนานุกรมเปิดที่คำนั้น 77,000 คำ ไม่ต้องต่อเน็ต',
+      k5:'ผลพลอยได้: คุณได้เรียนไปด้วย', h5:'คำที่เจอระหว่างเล่นมักจะติดหัว',
+      k7:'ราคา', h7:'จ่ายครั้งเดียว เป็นของคุณตลอดไป',
+      pwas:'ใบหมดแล้วเติมอีก 500 ใบ ฿149 — ราคาเดิมเสมอ', pcta:'ซื้อเลย — ฿149',
+      pp5:'หรือใส่ Claude key ของคุณเอง — AI ไม่จำกัด ไม่ผ่านเรา',
+      l7:'ไม่มีรายเดือน ไม่มีอะไรต้องต่ออายุ ไม่มีฟีเจอร์ไหนถูกกั๊กไว้ขายทีหลัง · จ่ายรอบเดียวแล้วแอปเป็นของคุณ รวมอัปเดตทุกรุ่น',
+
+      pp:'Gloss', ponce:'จ่ายครั้งเดียว',
+      pp1:'อ่านภาษาอังกฤษที่ไหนก็ได้บนจอ → ไทย ไม่จำกัด ตลอดไป',
+      pp2:'ชี้คำไหนก็ได้ — พจนานุกรม 77,000 คำ ไม่ต้องต่อเน็ต',
+      pp3:'ซับไตเติลสด · พูดใส่ไมค์ · คลังคำ · ทวนแบบ SRS',
+      pp4:'การ์ด AI 500 ใบ — คำอ่าน ความหมาย รูปคำ ประโยคตัวอย่าง',
+      pn:'<b>ตอนนี้ซื้อยังไง:</b> สแกน QR พร้อมเพย์ข้างล่าง โอน ฿149 แล้วทิ้งอีเมลไว้ · ลิงก์ดาวน์โหลดกับคีย์จะถึงภายใน 24 ชั่วโมง · ทำมือช่วงที่ยังเล็กอยู่ — ไม่ต้องมีบัตร ไม่ต้องสมัครอะไร ไม่มีอะไรต้องยกเลิกทีหลัง',
+      l4:'งานวิจัยด้านภาษาพบเรื่องเดียวกันซ้ำๆ: คนเก็บคำศัพท์ภาษาที่สองได้จากการเล่นเกมและดูซีรีส์ที่มีซับ แล้วยังจำได้อีกสัปดาห์ถัดมา ยิ่งใช้เวลากับมันมาก ยิ่งซึมซับมาก โดยไม่เคยนั่งลง "ท่อง" เลย',
+      l5:'Gloss ต่อยอดจากตรงนั้น กดดาวคำไหนที่คุณเปิดดู มันจะถูกเก็บเข้าคลังของคุณเอง — คำศัพท์ที่ดึงมาจากเกมที่คุณเล่นจริงๆ',
+      k6:'วิธีซื้อ', h6:'สแกน โอน ฿149 แล้วรับคีย์',
+      payonce:'จ่ายครั้งเดียว',
+      pay1:'สแกนด้วยแอปธนาคารไหนก็ได้ แล้วพิมพ์จำนวนเอง — QR นี้เก็บแค่เลขบัญชี ไม่ได้ล็อกราคาไว้',
+      pay2:'ทิ้งอีเมลไว้ข้างล่าง พร้อมเวลาที่โอน จะได้จับคู่กับสลิปถูก',
+      pay3:'ลิงก์ดาวน์โหลดกับคีย์จะถึงภายใน 24 ชั่วโมง (ปกติเร็วกว่านั้นมาก)',
+      phnote:'โอน 20:35 ลงท้าย 1234 (ใส่หรือไม่ใส่ก็ได้)',
+      subtn:'โอนแล้ว — ส่งคีย์ให้ผม',
+      sunote:'ยังไม่แน่ใจ? พิมพ์บอกว่าจะเอาไปใช้ทำอะไร หรือถามอะไรก็ได้ในช่องเดียวกันนี้ — ผมอ่านทุกข้อความ',
+      l6:'ไม่มีหน้าจ่ายเงินแยก และตอนนี้ยังไม่จำเป็นต้องมี — ตรงนี้คือหน้าจ่ายเงิน · โอนด้วยแอปธนาคารไหนก็ได้ ทิ้งอีเมลที่จะให้ส่งคีย์ไป แล้วลิงก์ดาวน์โหลดกับไลเซนส์จะตามไปภายใน 24 ชั่วโมง · อีเมลใช้เพื่อเรื่องนี้เท่านั้น ไม่มีอย่างอื่น'
+    },
+    ja: {
+      suSending:'送信中…', suOk:'登録しました。お知らせ以外は送りません。', suBad:'送信できませんでした。もう一度お試しください。',
+      tag:'Mac で使える、日本語ゲーム翻訳オーバーレイ',
+      sub:'Textractor と LunaTranslator は Windows 専用で、どちらもコンソールの映像やエミュレータは読めません。Gloss は画面に描かれたものを読みます。2つのキーを押したまま文字をなぞれば、その場で読めます。',
+      c1:'Mac · Apple Silicon / Intel', c2:'日本語 · 中国語 · 韓国語', c3:'フルスクリーンのゲームの上でも', c4:'録画には映りません',
+      shotcap:'オーバーレイはゲームの上に浮かび、カードは文字のある場所に出ます',
+      k1:'なぜ速いのか', h1:'20秒の寄り道ではなく、ひと目で',
+      l1:'外国語の一行を読むには、普通はゲームを離れて Google 翻訳へ行き、戻ってきた頃には流れが途切れています。その場で囲めば、往復そのものが消えます。',
+      k2:'何のためのものか', h2:'Google 翻訳へ alt-tab する必要はもうありません',
+      l2:'要点は、今していることから離れないことです。キーを押し、囲み、そのまま続ける。',
+      ft1:'<h3>囲めば意味が出る</h3><p>つまずいた言葉 — ボスの台詞、アイテムの説明 — を指し示せば、翻訳がその場所に現れます。</p>',
+      ft2:'<h3>打ち込んでもいい</h3><p>すべてが画面にあるとは限りません。単語でも文でもピルに直接入力できます。スクリーンショットも誤読もありません。</p>',
+      ft3:'<h3>邪魔をしない</h3><p>使っていないときは静かな点まで縮んで動きを止めるので、視界の隅で何かが引っ張ることはありません。そのままクリックが通り、フォーカスを奪うことも、ゲームを止めることもありません。</p>',
+      ft4:'<h3>録画では消える</h3><p>スイッチひとつで、画面録画や画面共有からオーバーレイが消えます。翻訳はあなたのために残り、映像には残りません。</p>',
+      k3:'使い方', h3:'3つの動作だけ',
+      st1:'<div class="n">1</div><span class="k">⌃⌥</span><h3>どこからでも押したまま</h3><p>ゲームやアプリの中から。先にウィンドウを切り替える必要はありません。押したままにします。</p>',
+      st2:'<div class="n">2</div><h3>囲む</h3><p>読みたい文字のまわりに四角を描きます。デスクトップで選択するのと同じ感覚です。</p>',
+      st3:'<div class="n">3</div><h3>カードを読む</h3><p>離すと、囲んだその場所に翻訳が出ます。</p>',
+      k4:'読める言語', h4:'4つの言語を、あなたの言語へ',
+      l3:'画面上のこれらを認識し、設定した言語へ翻訳します。',
+      k5:'副作用として、身につく', h5:'遊びながら出会った言葉は残りやすい',
+      l4:'言語習得の研究は同じことを繰り返し示しています。ゲームや字幕付きの番組を通じて、人は第二言語の語彙を自然に覚え、一週間後にも覚えている。時間をかけるほど、机に向かわずとも吸収していきます。',
+      l5:'Gloss はそこに乗ります。調べた語に星をつければ自分のリストに保存されます — 実際に遊んだゲームから出てきた語彙です。',
+      k6:'これから', h6:'次のお知らせの宛先を教えてください',
+      l6:'公開している間は無料です。使う人が十分に増えたら、きちんと署名して続けます — 言語の追加、カードの改善。そのときに連絡します。それ以外は送りません。'
+    },
+    zh: {
+      suSending:'发送中…', suOk:'已加入名单，只在有更新时通知你。', suBad:'没有发送成功，再试一次？',
+      tag:'Mac 上的日文游戏翻译悬浮层',
+      sub:'Textractor 和 LunaTranslator 只有 Windows 版，而且都读不了主机串流或模拟器画面。Gloss 读的是屏幕上画出来的内容：按住两个键，划过任意文字，就地阅读。',
+      c1:'Mac · Apple 芯片 / Intel', c2:'日语 · 中文 · 韩语', c3:'可覆盖全屏游戏', c4:'录屏时不出现',
+      shotcap:'悬浮层浮在游戏之上 — 卡片出现在文字所在的位置',
+      k1:'为什么更快', h1:'一眼看完，而不是绕路 20 秒',
+      l1:'读一行外语的常规做法是离开游戏去 Google 翻译，回来时那一刻已经过去了。就地框选，省掉整个来回。',
+      k2:'用来做什么', h2:'不必再 alt-tab 到 Google 翻译',
+      l2:'重点是你不用离开正在做的事。按键、框选、继续。',
+      ft1:'<h3>框一下，就有意思</h3><p>指向让你卡住的词 — Boss 的台词、道具说明 — 翻译就出现在它所在的位置。</p>',
+      ft2:'<h3>也可以直接打字</h3><p>不是所有内容都在屏幕上。把词或句子直接输入胶囊即可，无需截图，也不会读错。</p>',
+      ft3:'<h3>不挡路</h3><p>不用的时候它会缩成一个安静的圆点并停止移动，不会在余光里拉扯你。点击可以直接穿过，它从不抢焦点，也不会让游戏暂停。</p>',
+      ft4:'<h3>录屏时隐身</h3><p>一个开关，悬浮层就不再出现在录屏和共享画面中 — 翻译留给你，不留在视频里。</p>',
+      k3:'怎么用', h3:'三个动作，就这样',
+      st1:'<div class="n">1</div><span class="k">⌃⌥</span><h3>任何地方按住</h3><p>在游戏或应用里直接按住，不必先切换窗口。保持按住。</p>',
+      st2:'<div class="n">2</div><h3>框选文字</h3><p>在想读的文字周围画一个矩形，就像在桌面上拖选一样。</p>',
+      st3:'<div class="n">3</div><h3>读卡片</h3><p>松手，翻译就出现在你框选的地方。</p>',
+      k4:'能读', h4:'四种语言，译成你的语言',
+      l3:'它识别屏幕上的这些文字，并翻译成你设定的语言。',
+      k5:'附带的结果：你学会了', h5:'玩的时候遇到的词更容易记住',
+      l4:'语言习得研究反复得出同一结论：人们通过玩游戏、看带字幕的节目自然习得第二语言词汇，一周后仍然记得。投入的时间越多，吸收得越多，而无需坐下来“背”。',
+      l5:'Gloss 顺着这一点做。给查过的词标星，它就存进你自己的清单 — 词汇直接来自你真正在玩的游戏。',
+      k6:'接下来', h6:'留个地址，有进展告诉你',
+      l6:'公开期间免费。如果用的人够多，我会正式签名并继续做下去 — 更多语言、更好的词卡。到时候会通知你。除此之外不会发任何东西。'
+    },
+    ko: {
+      suSending:'보내는 중…', suOk:'등록했습니다. 새 소식이 있을 때만 알려드릴게요.', suBad:'전송하지 못했습니다. 다시 시도해 볼까요?',
+      tag:'Mac용 일본어 게임 번역 오버레이',
+      sub:'Textractor와 LunaTranslator는 Windows 전용이고, 둘 다 콘솔 스트림이나 에뮬레이터는 읽지 못합니다. Gloss는 화면에 그려진 것을 읽습니다. 두 키를 누른 채 텍스트를 훑으면 그 자리에서 읽힙니다.',
+      c1:'Mac · Apple Silicon / Intel', c2:'일본어 · 중국어 · 한국어', c3:'전체 화면 게임 위에서도', c4:'화면 녹화에는 안 나옴',
+      shotcap:'오버레이는 게임 위에 떠 있고, 카드는 글자가 있는 자리에 나타납니다',
+      k1:'왜 더 빠른가', h1:'20초 우회가 아니라, 한 번 보면 끝',
+      l1:'외국어 한 줄을 읽으려면 보통 게임을 나가 구글 번역으로 갔다가 돌아오는데, 그때쯤이면 그 순간은 지나가 있습니다. 그 자리에서 감싸면 왕복 자체가 사라집니다.',
+      k2:'무엇을 위한 것인가', h2:'더 이상 구글 번역으로 alt-tab 하지 않아도 됩니다',
+      l2:'핵심은 하던 일에서 벗어나지 않는 것입니다. 키를 누르고, 감싸고, 계속하세요.',
+      ft1:'<h3>감싸면 뜻이 나옵니다</h3><p>막히게 만든 단어 — 보스의 대사, 아이템 설명 — 를 가리키면 번역이 그 자리에 뜹니다.</p>',
+      ft2:'<h3>직접 입력해도 됩니다</h3><p>모든 게 화면에 있는 건 아닙니다. 단어든 문장이든 필에 바로 입력하세요. 스크린샷도, 잘못 읽는 일도 없습니다.</p>',
+      ft3:'<h3>길을 막지 않습니다</h3><p>쓰지 않을 때는 조용한 점으로 줄어들고 움직임을 멈춰, 시야 구석에서 잡아끄는 게 없습니다. 클릭은 그대로 통과하고, 포커스를 뺏거나 게임을 멈추지 않습니다.</p>',
+      ft4:'<h3>녹화에서는 사라집니다</h3><p>스위치 하나로 오버레이가 화면 녹화와 화면 공유에서 사라집니다 — 번역은 당신에게 남고, 영상에는 남지 않습니다.</p>',
+      k3:'사용법', h3:'세 동작, 그게 전부',
+      st1:'<div class="n">1</div><span class="k">⌃⌥</span><h3>어디서든 누른 채로</h3><p>게임이나 앱 안에서 바로. 창을 먼저 바꿀 필요 없습니다. 계속 누르고 있으세요.</p>',
+      st2:'<div class="n">2</div><h3>영역 감싸기</h3><p>읽고 싶은 글자 주위에 사각형을 그립니다. 바탕화면에서 드래그해 선택하듯이.</p>',
+      st3:'<div class="n">3</div><h3>카드 읽기</h3><p>손을 떼면 감싼 그 자리에 번역이 나타납니다.</p>',
+      k4:'읽는 언어', h4:'네 가지 언어를, 당신의 언어로',
+      l3:'화면의 이 글자들을 인식해 설정한 언어로 번역합니다.',
+      k5:'부수적으로: 배우게 됩니다', h5:'놀면서 만난 단어는 잘 남습니다',
+      l4:'언어 습득 연구는 같은 결과를 반복해서 보여줍니다. 사람들은 게임을 하고 자막 있는 프로그램을 보며 제2언어 어휘를 자연스럽게 익히고, 일주일 뒤에도 기억합니다. 시간을 들일수록, 앉아서 “외우지” 않아도 더 흡수합니다.',
+      l5:'Gloss는 그 위에 얹힙니다. 찾아본 단어에 별을 누르면 내 목록에 저장됩니다 — 실제로 플레이한 게임에서 나온 어휘입니다.',
+      k6:'앞으로', h6:'다음 소식 보낼 곳을 알려주세요',
+      l6:'공개돼 있는 동안은 무료입니다. 쓰는 사람이 충분히 늘면 제대로 서명하고 계속 만들겠습니다 — 언어 추가, 더 나은 카드. 그때 알려드립니다. 그 외에는 아무것도 보내지 않습니다.'
+    }
+  };
+
+  // Applying a language is one pass over [data-i]. Keys carrying tags are set as innerHTML — those
+  // are our own strings, from the object right above — and everything else as text.
+  function setLang(code) {
+    // OFFERED, not merely present. The ja/zh/ko dictionaries are still in this file (kept for the day
+    // a second language pair is watched working), so a browser set to Japanese used to get the whole
+    // page in Japanese — describing the four-language app that no longer ships. The switcher's own
+    // buttons are the list of languages this build stands behind; anything else falls back to English.
+    if (OFFERED.indexOf(code) < 0) code = 'en';
+    var d = DICT[code] || {};
+    document.querySelectorAll('[data-i]').forEach(function (el) {
+      var v = d[el.dataset.i];
+      // No entry: leave the English that is already in the markup. This is the whole reason English
+      // is not in the dictionary — an untranslated string is invisible rather than empty.
+      if (v == null) { if (el.dataset.en != null) el.innerHTML = el.dataset.en; return; }
+      if (el.dataset.en == null) el.dataset.en = el.innerHTML;  // remember it once, to switch back
+      el.innerHTML = v;
+    });
+    // Re-wrap the headline after the text under it has been replaced. Setting innerHTML here throws
+    // away the per-word spans the reveal is built from, so without this the effect worked exactly
+    // once and died the first time anyone touched the language switch — silently, because plain text
+    // in place of wrapped text looks completely normal. Guarded because this pass also runs on load,
+    // before the block that defines it.
+    if (window.__resplit) window.__resplit();
+    // Placeholders take the same pass. They are markup the eye reads exactly like a label — the
+    // reference box asks for the time of a transfer, and asking for it in English on a Thai page is
+    // the one field a Thai buyer is most likely to skip.
+    document.querySelectorAll('[data-i-ph]').forEach(function (el) {
+      var v = d[el.dataset.iPh];
+      if (el.dataset.phEn == null) el.dataset.phEn = el.placeholder;
+      el.placeholder = v == null ? el.dataset.phEn : v;
+    });
+    document.documentElement.lang = code;
+    document.querySelectorAll('#lang button').forEach(function (b) {
+      b.classList.toggle('on', b.dataset.l === code);
+    });
+    try { localStorage.setItem('gloss.lang', code); } catch (e) {}
+    // The signup replies are written by script, not by a [data-i] element, so they cannot ride the
+    // pass above. Publishing the active dictionary keeps them in the same language as the paragraph
+    // that asked for the address — five languages on the page and an English-only answer is the same
+    // bug as no answer, just quieter.
+    ACTIVE = DICT[code] || {};
+  }
+  // Read from the markup rather than written twice: add a button, the language turns on with it.
+  var OFFERED = Array.prototype.map.call(document.querySelectorAll('#lang button[data-l]'), function (b) { return b.dataset.l; });
+  var ACTIVE = {};
+  window.__i18nNow = function () { return ACTIVE; };
+  document.getElementById('lang').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-l]');
+    if (b) setLang(b.dataset.l);
+  });
+  // Remembered choice wins; otherwise follow the browser, which is the closest thing to knowing.
+  var saved = null;
+  try { saved = localStorage.getItem('gloss.lang'); } catch (e) {}
+  setLang(saved || (navigator.language || 'en').slice(0, 2).toLowerCase());
+
+  (function () {
+    var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var shot = document.querySelector('.shot');
+    if (shot) requestAnimationFrame(function () { shot.classList.add('play'); });
+    var items = document.querySelectorAll('.rv');
+    if (reduce || !('IntersectionObserver' in window)) {
+      for (var i = 0; i < items.length; i++) items[i].classList.add('in');
+      return;
+    }
+    // rootMargin pulls the trigger up from the bottom edge so a section has started moving by the
+    // time it is properly in view; unobserving after the first hit stops it re-animating on the way
+    // back up, which reads as the page twitching.
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      });
+    }, { rootMargin: '0px 0px -12% 0px', threshold: 0.05 });
+    items.forEach(function (el) { io.observe(el); });
+  })();
+
+  // Signup. Submitted through fetch rather than letting the browser navigate, for one reason: the
+  // visitor has to be TOLD. The version this replaces posted the form and, when the host had no
+  // endpoint for it, left them looking at an unchanged page — indistinguishable from success. Any
+  // outcome here writes a line, including the ones we did not plan for.
+  (function () {
+    var form = document.getElementById('notifyForm');
+    var said = document.getElementById('notifySaid');
+    if (!form || !said) return;   // no scripting / markup changed: the plain POST still reaches /notify
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var btn = form.querySelector('.su-btn');
+      var t = (window.__i18nNow && window.__i18nNow()) || {};
+      said.className = 'su-said';
+      said.textContent = t.suSending || 'Sending…';
+      if (btn) btn.disabled = true;
+      fetch('/notify', { method: 'POST', body: new FormData(form) })
+        .then(function (r) { return r.json().catch(function () { return { ok: r.ok }; }); })
+        .then(function (d) {
+          if (d && d.ok) {
+            said.className = 'su-said ok';
+            said.textContent = t.suOk || "You're on the list. Nothing else, ever.";
+            form.reset();
+          } else {
+            said.className = 'su-said bad';
+            said.textContent = (d && d.error) || (t.suBad || "That didn't go through — try again?");
+          }
+        })
+        .catch(function () {
+          said.className = 'su-said bad';
+          said.textContent = t.suBad || "That didn't go through — try again?";
+        })
+        .finally(function () { if (btn) btn.disabled = false; });
+    });
+  })();
+
+  // Report box. Same shape as the signup above on purpose — one pattern, so the next person editing
+  // this file does not have to learn two. Falls back to a plain POST if this script never runs;
+  // /functions/report.js reads a form body as well as JSON for exactly that case.
+  (function () {
+    var form = document.getElementById('reportForm');
+    var said = document.getElementById('reportSaid');
+    if (!form || !said) return;
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var btn = form.querySelector('.su-btn');
+      said.className = 'su-said';
+      said.textContent = 'Sending…';
+      if (btn) btn.disabled = true;
+      fetch('/report', { method: 'POST', body: new FormData(form) })
+        .then(function (r) { return r.json().catch(function () { return { ok: r.ok }; }); })
+        .then(function (d) {
+          if (d && d.ok) {
+            said.className = 'su-said ok';
+            said.textContent = 'Got it — thank you. No address was collected, so leave one in the text if you want a reply.';
+            form.reset();
+          } else {
+            said.className = 'su-said bad';
+            said.textContent = (d && d.error) || "That didn't go through — try again?";
+          }
+        })
+        .catch(function () {
+          said.className = 'su-said bad';
+          said.textContent = "That didn't go through — try again?";
+        })
+        .finally(function () { if (btn) btn.disabled = false; });
+    });
+  })();
+
+
+
+  /* ---- Headline reveal + hero field --------------------------------------------------------------
+     Added 2026-09-08. Everything above this point still works with this block deleted: the split
+     wrappers are built here, so a browser that never runs it sees plain text, and the field element
+     stays an empty div.
+
+     GSAP is loaded from cdnjs, deferred, and its absence is not an error — if the CDN is blocked the
+     words are simply shown. A landing page that renders nothing because a script host is unreachable
+     is worse than one with no animation, and this page's whole job is to be readable by someone who
+     arrived from a video and is deciding in about two seconds. */
+  (function () {
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    var splits = [].slice.call(document.querySelectorAll('.split'));
+
+    // Per-character animation is the usual party trick and it is wrong here: Thai vowels and tone
+    // marks combine with the consonant they sit on, so splitting to characters breaks the shaping and
+    // the headline comes apart into pieces that are not letters. Words only.
+    //
+    // But Thai does not put spaces between words either, so splitting on spaces gave the Thai
+    // headline TWO pieces where the English one gets eight — the cascade this whole treatment exists
+    // for, missing on the language the page is actually selling in. Intl.Segmenter knows where Thai
+    // words end (it is the same ICU dictionary the browser uses to decide where to break a line), so
+    // ask it, and keep the space split for the browsers that do not have it.
+    // Returns the run of pieces IN ORDER, each marked as a word or as the literal whitespace between
+    // words. Keeping the whitespace as data rather than re-inserting a space between every pair is
+    // the point: Thai words have no space between them, so a splitter that joins with ' ' would write
+    // spaces into a Thai headline that never had any and change what it says.
+    function pieces(text) {
+      try {
+        if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+          var lang = document.documentElement.lang || 'th';
+          var seg = new Intl.Segmenter(lang, { granularity: 'word' });
+          var out = [], it = seg.segment(text)[Symbol.iterator]();
+          for (var s = it.next(); !s.done; s = it.next()) {
+            var v = s.value.segment;
+            out.push({ t: v, gap: !v.trim() });
+          }
+          if (out.length) return out;
+        }
+      } catch (e) { /* fall through */ }
+      var parts = text.split(' '), plain = [];
+      for (var i = 0; i < parts.length; i++) {
+        plain.push({ t: parts[i], gap: false });
+        if (i < parts.length - 1) plain.push({ t: ' ', gap: true });
+      }
+      return plain;
+    }
+
+    function split(el) {
+      if (el.dataset.split === '1') return;
+      var text = el.textContent.replace(/\s+/g, ' ').trim();
+      if (!text) return;
+      var ps = pieces(text);
+      el.textContent = '';
+      for (var i = 0; i < ps.length; i++) {
+        if (ps[i].gap) { el.appendChild(document.createTextNode(ps[i].t)); continue; }
+        var w = document.createElement('span'); w.className = 'w';
+        var wi = document.createElement('span'); wi.className = 'wi';
+        wi.textContent = ps[i].t;
+        w.appendChild(wi); el.appendChild(w);
+      }
+      el.dataset.split = '1';
+    }
+
+    function show(el) { el.classList.add('lit'); }
+
+    // THE FONT GATE. Measured on the TypeUI build: playing the reveal on the fallback face and letting
+    // the real one arrive afterwards moved finished words by +10.9 to +123.9px — the reveal ends, then
+    // the text jumps. Waiting on fonts.ready fixes it; the 1.2s cap is there because a slow font must
+    // not cost the reader a blank headline, which is a worse failure than a reflow.
+    function ready(cb) {
+      var done = false;
+      var go = function () { if (!done) { done = true; cb(); } };
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(go);
+      setTimeout(go, 1200);
+    }
+
+    splits.forEach(split);
+
+    // Called by the language pass after it has rewritten [data-i] text. Re-wraps, and shows the words
+    // rather than replaying the reveal: the person who just pressed ไทย asked to read the sentence,
+    // not to watch it arrive again, and motion they did not ask for at the moment they act reads as
+    // the page having lost their input.
+    window.__resplit = function () {
+      document.querySelectorAll('.split').forEach(function (el) {
+        delete el.dataset.split;
+        split(el);
+        show(el);
+      });
+    };
+
+    if (reduce) { splits.forEach(show); return; }
+
+    ready(function () {
+      var g = window.gsap;
+      if (!g) { splits.forEach(show); startField(); return; }
+      splits.forEach(show);
+      // stagger 0.06 with power4.out is the pairing the TypeUI pass was kept for. No overshoot: an
+      // ease that goes past 1 is clipped by the word's own mask, and one that clears the mask runs
+      // into the next word.
+      g.from(document.querySelectorAll('.split .wi'), {
+        yPercent: 112, duration: 1.05, ease: 'power4.out', stagger: 0.06, delay: 0.05
+      });
+      startField();
+    });
+
+    /* A slow two-triangle shader behind the hero. Deliberately cheap: this runs on the phone of
+       someone who tapped a link in TikTok, so it is capped at 1.5x device pixels, stops completely
+       when the hero scrolls away, and never starts if the context is refused — in which case the hero
+       is flat, which is what it was yesterday. */
+    function startField() {
+      var host = document.querySelector('.field');
+      if (!host || reduce) return;
+      var cv = document.createElement('canvas');
+      var gl = cv.getContext('webgl', { alpha: true, antialias: false, depth: false });
+      if (!gl) return;
+      host.appendChild(cv);
+
+      var vsrc = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
+      // Two drifting fields of light, one warm and one cyan, plus faint banding that reads as the
+      // glow of a screen rather than as a gradient. Low contrast on purpose: it sits under a headline
+      // and behind the only picture of the product on the page.
+      var fsrc = [
+        'precision mediump float;',
+        'uniform vec2 r;uniform float t;uniform float dark;',
+        'float n(vec2 v){return fract(sin(dot(v,vec2(12.9898,78.233)))*43758.5453);}',
+        'void main(){',
+        '  vec2 uv=gl_FragCoord.xy/r.xy;',
+        '  vec2 c=uv-0.5; c.x*=r.x/r.y;',
+        '  float a=exp(-3.2*length(c-vec2(sin(t*0.11)*0.30,cos(t*0.09)*0.16)));',
+        '  float b=exp(-3.6*length(c-vec2(cos(t*0.07)*-0.34,sin(t*0.13)*0.12)));',
+        '  vec3 cy=vec3(0.32,0.76,0.93), wm=vec3(0.95,0.62,0.38);',
+        '  vec3 col=cy*a*0.85+wm*b*0.55;',
+        '  col+=vec3(0.02)*sin(uv.y*180.0+t*0.4);',
+        '  col+=(n(uv*r.xy)-0.5)*0.03;',
+        '  float al=(a*0.85+b*0.55)*mix(0.30,0.55,dark);',
+        '  gl_FragColor=vec4(col,clamp(al,0.0,1.0));',
+        '}'
+      ].join('\n');
+
+      function sh(type, src) {
+        var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+        return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null;
+      }
+      var v = sh(gl.VERTEX_SHADER, vsrc), f = sh(gl.FRAGMENT_SHADER, fsrc);
+      if (!v || !f) return;
+      var pr = gl.createProgram();
+      gl.attachShader(pr, v); gl.attachShader(pr, f); gl.linkProgram(pr);
+      if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return;
+      gl.useProgram(pr);
+
+      var buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      var loc = gl.getAttribLocation(pr, 'p');
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+      var uR = gl.getUniformLocation(pr, 'r'), uT = gl.getUniformLocation(pr, 't');
+      var uD = gl.getUniformLocation(pr, 'dark');
+      var darkQ = window.matchMedia && window.matchMedia('(prefers-color-scheme:dark)');
+      function size() {
+        var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+        var w = Math.max(1, Math.round(host.clientWidth * dpr));
+        var h = Math.max(1, Math.round(host.clientHeight * dpr));
+        if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; gl.viewport(0, 0, w, h); }
+        gl.uniform2f(uR, w, h);
+      }
+      var live = true, raf = 0, t0 = performance.now();
+      function frame(now) {
+        if (!live) { raf = 0; return; }
+        size();
+        gl.uniform1f(uT, (now - t0) / 1000);
+        gl.uniform1f(uD, darkQ && darkQ.matches ? 1.0 : 0.0);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+        raf = requestAnimationFrame(frame);
+      }
+      // Off-screen means stopped, not throttled: the hero leaves the viewport for the whole rest of
+      // the page, and a shader ticking behind seven screens of text is phone battery for nothing.
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (es) {
+          es.forEach(function (e) {
+            live = e.isIntersecting;
+            if (live && !raf) raf = requestAnimationFrame(frame);
+          });
+        }, { threshold: 0 }).observe(host);
+      }
+      raf = requestAnimationFrame(frame);
+      setTimeout(function () { host.classList.add('on'); }, 120);
+      window.addEventListener('resize', size, { passive: true });
+    }
+  })();
+</script>
+</body>
+</html>

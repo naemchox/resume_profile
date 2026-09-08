@@ -1,0 +1,106 @@
+/* ---------------------------------------------------------------------------
+   Lantern theme — atmosphere layer.
+
+   The Tailwind palette (tailwind.config.js, THEME=lantern) handles flat colour.
+   It cannot reach the atmosphere: the aurora pools and the neon rim are written
+   as literal rgba() in src/index.css, so a palette swap left the hero glowing
+   the original violet over a rethemed everything-else.
+
+   Everything here is taken from the shop's own interior photograph: a ceiling of
+   warm paper lanterns over the counter, the BAR sign in hot pink, the leaf sign
+   in cyan-green, and the gold wordmark catching all three.
+
+   Appended to the inlined <style> by scripts/standalone.mjs when THEME is set.
+   --------------------------------------------------------------------------- */
+
+/* The BAR sign. Hot pink, where the original was violet. */
+.aurora .pool-violet {
+  background: radial-gradient(
+    circle,
+    rgba(255, 61, 154, 0.5),
+    rgba(255, 61, 154, 0.14) 44%,
+    transparent 68%
+  ) !important;
+}
+
+/* The neon leaf, cyan-green rather than the original's flat green. */
+.aurora .pool-green {
+  background: radial-gradient(
+    circle,
+    rgba(59, 232, 192, 0.42),
+    rgba(59, 232, 192, 0.12) 44%,
+    transparent 68%
+  ) !important;
+}
+
+/* The lantern ceiling itself, pooled — warmer and stronger than the original
+   gold pool, because in that room the lamps are the main light source. */
+.aurora .pool-gold {
+  background: radial-gradient(
+    circle,
+    rgba(246, 209, 138, 0.42),
+    rgba(232, 169, 75, 0.14) 46%,
+    transparent 70%
+  ) !important;
+}
+
+/* Hundreds of hanging paper lamps, as tiled light rather than as elements.
+   Three layers at different sizes and offsets so the eye never resolves the
+   grid; masked to fade out before it reaches the content. */
+.aurora::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 52%;
+  pointer-events: none;
+  background-image:
+    radial-gradient(
+      ellipse 7px 10px at 50% 35%,
+      rgba(255, 219, 150, 0.9),
+      rgba(255, 186, 105, 0.3) 45%,
+      transparent 72%
+    ),
+    radial-gradient(
+      ellipse 5px 8px at 50% 35%,
+      rgba(255, 226, 170, 0.7),
+      rgba(250, 180, 100, 0.22) 45%,
+      transparent 72%
+    ),
+    radial-gradient(
+      ellipse 9px 12px at 50% 35%,
+      rgba(255, 205, 130, 0.55),
+      rgba(230, 160, 90, 0.18) 45%,
+      transparent 72%
+    );
+  background-size:
+    78px 104px,
+    53px 71px,
+    121px 158px;
+  background-position:
+    0 0,
+    26px 34px,
+    61px 12px;
+  /* Fade the field out downward, so it reads as a ceiling and never competes
+     with the headline sitting under it. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.5) 52%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.5) 52%, transparent 100%);
+  opacity: 0.55;
+}
+
+/* The leaf sign's rim: pink edge, cyan bloom. */
+.neon-edge {
+  box-shadow:
+    0 0 0 1px rgba(242, 203, 107, 0.4),
+    0 0 18px -2px rgba(255, 61, 154, 0.55),
+    0 0 60px -10px rgba(59, 232, 192, 0.4) !important;
+}
+
+/* One concession to motion sensitivity: the lantern field is static light, but
+   if the pools are stilled the field should not be the only thing moving. */
+@media (prefers-reduced-motion: reduce) {
+  .aurora::after {
+    opacity: 0.45;
+  }
+}

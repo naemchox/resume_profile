@@ -1,0 +1,74 @@
+/* =============================================================================
+   multi.css — ส่วนที่ "เว็บหลายหน้า" ต้องมีเพิ่มจากเว็บหน้าเดียว
+   -----------------------------------------------------------------------------
+   ไฟล์นี้แยกจาก styles.css โดยตั้งใจ: styles.css คือดีไซน์ของเดอะ เทอเรส ซึ่ง
+   เหมือนกันทั้งสองแพ็ก (฿3,500 กับ ฿7,500 ได้ดีไซน์เดียวกัน ต่างที่โครงสร้าง)
+   ทุกอย่างในไฟล์นี้จึงเป็น "ของที่โครงหลายหน้าบังคับให้มี" ไม่ใช่ของสวยเพิ่ม:
+   แถบเมนูมือถือ · breadcrumb · หัวหน้าย่อย · การ์ดพาไปหน้าอื่น · หน้ารายละเอียดห้อง
+   ใช้ token ชุดเดิมทั้งหมด ไม่มีสีใหม่สักตัว
+   ========================================================================== */
+
+/* ---- เมนูมือถือ ---------------------------------------------------------- */
+/* เดิมปักที่ top:0 เท่ากับ .site-header ทั้งคู่ = เลื่อนแล้วทับกันสนิท 50px
+   หัวเว็บหด 76 -> 56 ตอน scrollY>120 (js/nav-response.js) จึงตามด้วย sibling selector */
+.pagenav { position: sticky; top: 76px; z-index: 19; background: var(--paper); border-bottom: 1px solid var(--line); }
+header.small ~ .pagenav { top: 56px; }
+
+/* กดลิงก์แล้วหัวข้อต้องพ้นทั้งสองแถบ — เดิม 88px นับแค่หัวเว็บชั้นเดียว */
+@media (max-width: 899.98px) { html { scroll-padding-top: 118px; } }
+
+/* ตัดที่ขอบขวาโดยไม่มีสัญญาณว่าเลื่อนต่อได้ */
+.pagenav .wrap { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
+                         mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%); }
+.pagenav .wrap { display: flex; gap: var(--s4); overflow-x: auto; scrollbar-width: none; }
+.pagenav .wrap::-webkit-scrollbar { display: none; }
+.pagenav a {
+  flex: none; padding: var(--s3) 0; font-size: var(--t-sm); font-weight: 600;
+  color: var(--text-muted); white-space: nowrap; border-bottom: 2px solid transparent;
+}
+.pagenav a[aria-current="page"] { color: var(--text); border-bottom-color: var(--accent); }
+@media (min-width: 900px) { .pagenav { display: none; } }   /* จอใหญ่ใช้เมนูบนหัวอยู่แล้ว */
+
+/* เมนูบนหัวเรื่อง: หน้าไหนอยู่ ต้องรู้ว่าอยู่ — ของที่หน้าเดียวไม่ต้องมี เพราะไม่มี "หน้าอื่น" */
+.nav-links a[aria-current="page"] { border-bottom-color: var(--accent); color: #fff; }
+.site-header.stuck .nav-links a[aria-current="page"] { color: var(--text); }
+
+/* ---- breadcrumb ---------------------------------------------------------- */
+.crumb { border-bottom: 1px solid var(--line); background: var(--surface); }
+.crumb ol { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; list-style: none; margin: 0; padding: var(--s3) 0; font-size: var(--t-xs); color: var(--text-muted); }
+.crumb li + li::before { content: "›"; margin-inline-end: var(--s2); color: var(--text-faint); }
+.crumb a { color: var(--link); }
+.crumb [aria-current="page"] { color: var(--text); font-weight: 600; }
+
+/* ---- หัวหน้าย่อย ---------------------------------------------------------
+   main.js เดิมใช้ .hero เป็นตัวบอกว่าเลื่อนพ้นหัวหรือยัง (IntersectionObserver)
+   หน้าที่ไม่มี .hero แถบหัวจะค้างสถานะ "อยู่บนสุด" ตลอดทั้งหน้า — หัวหน้าย่อยนี้
+   จึงเป็น .hero จริงๆ ตัวเตี้ยลง ไม่ใช่คลาสใหม่ที่ต้องไปแก้ JS ให้รู้จักเพิ่ม */
+/* margin-top -76px เหมือน .hero ตัวเต็ม เพราะ header ของเว็บนี้เป็นแถบโปร่งใสที่
+   ตั้งใจให้ลอยทับรูปฮีโร่สีเข้ม ถ้าหน้าย่อยไม่ดันแถบเข้มขึ้นไปรับ ตัวอักษรสีขาว
+   ในแถบจะไปอยู่บนพื้นขาว = โลโก้กับเมนูหายไปทั้งแถบ (เจอตอนถ่ายภาพหน้า /venue) */
+.hero--page { margin-top: -76px; padding-block: calc(76px + var(--s6)) var(--s6); background: var(--forest-950); color: var(--on-photo); }
+.hero--page .kicker { color: var(--brass-400); }
+.hero--page h1 { font-size: var(--t-3xl); margin-block: var(--s2); }
+.hero--page p { max-width: 60ch; color: rgba(254,253,252,.82); }
+
+/* ---- การ์ดพาไปหน้าอื่น (หน้าแรก) ------------------------------------------ */
+.hubs { display: grid; gap: var(--s4); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.hub { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s5); background: var(--surface); border: 1px solid var(--line); border-radius: var(--card-radius); color: inherit; transition: border-color var(--dur-reveal) var(--ease), transform var(--dur-reveal) var(--ease); }
+.hub:hover { border-color: var(--accent); transform: translateY(-2px); }
+.hub h3 { font-family: var(--font-d); font-size: var(--t-lg); }
+.hub p { font-size: var(--t-sm); color: var(--text-muted); }
+.hub span { margin-top: auto; font-size: var(--t-sm); font-weight: 600; color: var(--link); }
+
+/* ---- หน้ารายละเอียดห้อง --------------------------------------------------- */
+.detail { display: grid; gap: var(--s6); grid-template-columns: 1fr; }
+@media (min-width: 900px) { .detail { grid-template-columns: 1.15fr .85fr; align-items: start; } }
+.detail img { width: 100%; height: auto; border-radius: var(--card-radius); }
+.spec { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.spec li { display: flex; justify-content: space-between; gap: var(--s4); padding: var(--s3) 0; border-bottom: 1px solid var(--line); font-size: var(--t-sm); }
+.spec b { font-weight: 600; color: var(--text-muted); }
+.roomnav { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s6); }
+
+/* ---- เมนูท้ายหน้า -------------------------------------------------------- */
+.foot-nav { display: flex; flex-wrap: wrap; gap: var(--s4); margin-bottom: var(--s4); }
+.foot-nav a { font-weight: 600; color: var(--link); }

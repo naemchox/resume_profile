@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Ijek — Race your future self</title>
+<meta name="description" content="An app to race the version of you that actually follows the plan. Free to play.">
+<meta name="theme-color" content="#0f1115">
+<meta property="og:title" content="Ijek — Race your future self">
+<meta property="og:description" content="Race the version of you that actually follows the plan. Free to play.">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<!-- ===== Edit links here, one place ===== -->
+<script>
+  const LINKS = {
+    // Relative paths: this page is served by the SAME worker as the app/landing, so they work on
+    // workers.dev today AND on a custom domain later — no hardcoded domain needed.
+    app:      "./train.html",                          // the app ("/" serves the landing)
+    tiktok:   "https://www.tiktok.com/@your_handle",   // TODO: your English/global TikTok handle
+    privacy:  "./privacy.html",
+  };
+</script>
+<style>
+  :root{
+    --bg:#0f1115; --card:#181b22; --line:#272b34;
+    --you:#fbbf24; --you-rgb:251,191,36;
+    --accent:#a3e635; --text:#f3f4f6; --muted:#9aa3b2;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{
+    font-family:-apple-system,"Segoe UI",system-ui,sans-serif;
+    background:
+      radial-gradient(120% 80% at 50% -10%, rgba(var(--you-rgb),.16), transparent 60%),
+      var(--bg);
+    color:var(--text); min-height:100dvh;
+    display:flex; align-items:center; justify-content:center;
+    padding:32px 20px calc(32px + env(safe-area-inset-bottom));
+  }
+  .wrap{width:100%; max-width:400px; text-align:center}
+  .ava{
+    width:96px; height:96px; margin:0 auto 16px; border-radius:50%;
+    display:grid; place-items:center; font-size:46px;
+    background:linear-gradient(160deg,#222631,#13151a);
+    border:1px solid var(--line);
+    box-shadow:0 0 0 4px rgba(var(--you-rgb),.12), 0 12px 30px rgba(0,0,0,.5);
+  }
+  h1{font-size:26px; font-weight:800; letter-spacing:-.5px}
+  .tag{color:var(--muted); font-size:15px; margin-top:6px; line-height:1.5}
+  .tag b{color:var(--you); font-weight:700}
+  .links{margin-top:26px; display:flex; flex-direction:column; gap:12px}
+  a.btn{
+    display:flex; align-items:center; gap:12px;
+    padding:16px 18px; border-radius:16px; text-decoration:none;
+    background:var(--card); border:1px solid var(--line);
+    color:var(--text); font-size:16px; font-weight:600;
+    transition:transform .12s ease, border-color .12s ease, background .12s ease;
+  }
+  a.btn:active{transform:scale(.98)}
+  a.btn .ic{font-size:20px; width:24px; text-align:center}
+  a.btn .ar{margin-left:auto; color:var(--muted); font-size:18px}
+  a.btn.primary{
+    background:linear-gradient(135deg, var(--you), #f59e0b);
+    color:#1a1205; border-color:transparent; font-weight:800;
+    box-shadow:0 8px 24px rgba(var(--you-rgb),.30);
+  }
+  a.btn.primary .ar{color:rgba(26,18,5,.55)}
+  a.btn:hover{border-color:rgba(var(--you-rgb),.5)}
+  .foot{margin-top:28px; font-size:12px; color:var(--muted)}
+  .foot a{color:var(--muted)}
+  .pill{
+    display:inline-block; margin-top:14px; padding:5px 12px; border-radius:999px;
+    font-size:12px; font-weight:700; color:var(--accent);
+    background:rgba(163,230,53,.10); border:1px solid rgba(163,230,53,.25);
+  }
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="ava">🦊</div>
+    <h1>Ijek</h1>
+    <p class="tag">Race the version of you that <b>actually follows the plan</b><br>Free core forever — your data stays yours</p>
+    <div class="pill">Built solo · indie</div>
+
+    <nav class="links">
+      <a class="btn primary" id="lk-app" href="#"><span class="ic">⚡</span>Play free now<span class="ar">→</span></a>
+      <a class="btn" id="lk-tiktok" href="#"><span class="ic">🎬</span>Behind the scenes on TikTok<span class="ar">↗</span></a>
+    </nav>
+
+    <p class="foot">© Ijek by Patipan · <a id="lk-privacy" href="#">Privacy</a></p>
+  </main>
+  <script>
+    document.getElementById('lk-app').href     = LINKS.app;
+    document.getElementById('lk-tiktok').href  = LINKS.tiktok;
+    document.getElementById('lk-privacy').href = LINKS.privacy;
+  </script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+/* =============================================================================
+   ช้อปดี — tokens (3 ชั้น: primitive → semantic → component)
+   ตัวเลข contrast ทุกตัวข้างล่างมาจาก `node _contrast.js` ไม่ได้เดาจากค่า L
+   ========================================================================== */
+:root {
+  /* ---- Tier 1: primitive ------------------------------------------------ */
+  --slate-950: #14161A;  /* ตัวหนังสือหลัก */
+  --slate-700: #39414D;
+  --slate-500: #5A6472;
+  --slate-200: #DDE3EA;
+  --slate-100: #EDF1F6;
+
+  --mist-50: #F5F7FA;    /* พื้นหลักของหน้า */
+  --paper-0: #FFFFFF;
+
+  --blue-700: #1741AE;   /* น้ำเงินเข้ม = ตัวหนังสือ/ลิงก์ */
+  --blue-600: #1A4FD0;   /* accent หลัก = พื้นปุ่ม */
+  --blue-100: #DCE7FF;
+
+  --flame-700: #B3400C;  /* สีที่ 2 — ล็อกไว้เฉพาะ "ราคา" กับ "ป้ายลด" ห้ามขยาย */
+  --blue-300: #93B4FF;   /* คู่ของ blue-600 สำหรับพื้นมืด — 8.81:1 บน slate-950
+                            มีเพราะ blue-600 บนสเลตเข้มวัดได้ 2.24:1 คือใช้ไม่ได้ */
+
+  /* ---- Tier 2: semantic (ชื่อห้ามผูกกับสี) ------------------------------ */
+  --color-bg:          var(--mist-50);
+  --color-surface:     var(--paper-0);
+  --color-surface-alt: var(--slate-100);
+  --color-line:        var(--slate-200);
+
+  --color-text:        var(--slate-950); /* 16.88:1 บน --color-bg */
+  --color-text-muted:  var(--slate-500); /*  5.59:1 บน --color-bg */
+  --color-brand:       var(--blue-600);  /* ขาวบนสีนี้ = 6.83:1 */
+  --color-brand-text:  var(--blue-700);  /*  8.14:1 บน --color-bg */
+  --color-on-brand:    var(--paper-0);
+  --color-price:       var(--flame-700); /*  5.74:1 บน --color-surface */
+
+  /* พื้นมืด: มีที่เดียวในหน้า (#deal) ตัวแปรจึงมีชุดเดียว ไม่ใช่ theme ทั้งใบ */
+  --color-deep:        var(--slate-950);
+  --color-on-deep:     var(--mist-50);   /* 16.88:1 บน --color-deep */
+  --color-deep-muted:  #AEB8C6;          /*  9.03:1 บน --color-deep */
+  --color-deep-accent: var(--blue-300);
+
+  /* ---- typography ------------------------------------------------------- */
+  /* Kanit หนาแน่นชิดกัน — เสียงป้ายลดราคา ต้องอ่านออกตั้งแต่ยังเลื่อนผ่าน */
+  --font-display: "Kanit", "Noto Sans Thai", system-ui, sans-serif;
+  --font-body:    "Noto Sans Thai", "Anuphan", system-ui, sans-serif;
+  --weight-bold: 700;
+
+  /* ---- space / radius / motion ------------------------------------------ */
+  --space-1: .25rem; --space-2: .5rem;  --space-3: .75rem;
+  --space-4: 1rem;   --space-5: 1.5rem; --space-6: 2rem; --space-8: 3rem;
+  --radius-md: 12px; --radius-lg: 20px; --radius-pill: 999px;
+  --ease: cubic-bezier(.22, .61, .36, 1);
+  --dur-reveal: 1100ms;
+  --header-h: 60px;
+
+  /* ---- ลาย: เส้นทางส่งของ ------------------------------------------------
+     grain แก้เรื่อง "พื้นเป็นจอ" ได้ แต่ไม่ได้พูดว่าร้านนี้ขายอะไร หน้าจึงยังอ่าน
+     เป็นแอปสีฟ้าธรรมดา. ลายนี้คือเส้นทางกับจุดแวะ ต่อกันเป็นตาข่ายส่งของ —
+     ภาษาเดียวกับเส้นใต้หัวข้อ (.route) แค่ย่อลงมาเป็นพื้นผิว
+     ทับได้ทั้งพื้นสว่างและพื้นน้ำเงิน ต่างกันแค่สีที่ currentColor ให้มา */
+  --pattern-route: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' fill='none' stroke='%23FFF' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M-8 24 H30' stroke-dasharray='7 7'/%3E%3Cpath d='M42 24 H104' stroke-dasharray='7 7'/%3E%3Cpath d='M24 -8 V18'  stroke-dasharray='7 7'/%3E%3Cpath d='M72 30 V104' stroke-dasharray='7 7'/%3E%3Ccircle cx='36' cy='24' r='3.4'/%3E%3Ccircle cx='72' cy='24' r='3.4'/%3E%3C/svg%3E");
+
+  /* ---- วัสดุ: grain บางๆ กันพื้นแบนเป็นจอ (ENGINE §1) ------------------- */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E");
+}

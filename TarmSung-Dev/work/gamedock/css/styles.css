@@ -1,0 +1,763 @@
+/* ==========================================================================
+   GAMEDOCK — stylesheet
+   โครงหน้าอ้างรูปแบบร้านค้าออนไลน์ที่คนไทยใช้จริง: แถบค้นหาติดหัวเว็บตลอดเวลา
+   (Shopee/Amazon), แถวแฟลชเซลมีนาฬิกานับถอยหลัง, กริดสินค้าแน่นหลายชิ้นต่อแถว,
+   ฟุตเตอร์หลายคอลัมน์ และแถบล่างติดจอบนมือถือ — ของพวกนี้คือสิ่งที่แยก
+   "เว็บร้านค้า" ออกจาก "เว็บบริษัทที่มีหน้าสินค้า"
+   ========================================================================== */
+
+/* ---- reset ---- */
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+body {
+  background: var(--bg); color: var(--text);
+  font-family: var(--font-body); font-size: var(--t-md); line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+img, svg, video { display: block; max-width: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: none; border: 0; cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+ul, ol { list-style: none; padding: 0; }
+h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; line-height: 1.25; }
+:focus-visible { outline: 2px solid var(--brand-hi); outline-offset: 2px; border-radius: 3px; }
+.emoji { font-family: var(--font-emoji); }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.skip {
+  position: absolute; left: 50%; top: -100px; transform: translateX(-50%);
+  z-index: 200; background: var(--brand); color: #fff; padding: .7rem 1.2rem;
+  border-radius: 0 0 var(--r) var(--r); font-weight: 600;
+}
+.skip:focus { top: 0; }
+
+.wrap { width: min(100% - 2rem, var(--wrap)); margin-inline: auto; }
+@media (max-width: 640px) { .wrap { width: calc(100% - 1.5rem); } }
+
+/* ---- ปุ่ม ---- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  min-height: 44px; padding: .6rem 1.15rem; border-radius: var(--r);
+  font-family: var(--font-display); font-weight: 600; font-size: var(--t-md);
+  border: 1px solid transparent; cursor: pointer; white-space: nowrap;
+  transition: background var(--dur), border-color var(--dur), transform var(--dur) var(--ease), box-shadow var(--dur);
+}
+.btn--primary { background: var(--brand); color: #fff; box-shadow: 0 6px 18px rgba(123,92,255,.3); }
+.btn--hot { background: var(--hot); color: #fff; box-shadow: 0 6px 18px rgba(255,61,99,.3); }
+.btn--ghost { border-color: var(--line); background: var(--surface-2); color: var(--text); }
+.btn--sm { min-height: 38px; padding: .4rem .85rem; font-size: var(--t-sm); }
+.btn--lg { min-height: 52px; padding: .8rem 1.6rem; font-size: var(--t-lg); }
+.btn--block { width: 100%; }
+@media (hover: hover) {
+  .btn--primary:hover { background: var(--brand-hi); transform: translateY(-1px); }
+  .btn--hot:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .btn--ghost:hover { background: var(--surface-3); border-color: var(--line); }
+}
+.btn:active { transform: translateY(0); }
+
+.icon { width: 20px; height: 20px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.icon--sm { width: 16px; height: 16px; }
+.icon--fill { fill: currentColor; stroke: none; }
+
+/* ==========================================================================
+   หัวเว็บ — แถบบริการ + แถบค้นหา + แถบหมวด
+   ค้นหาต้องอยู่ในหัวเว็บ ไม่ใช่ไอคอนแว่นขยายที่ต้องกดก่อน: ร้านที่มีสินค้าเป็นร้อย
+   ชิ้น คนเข้ามาเพื่อ "หา" ไม่ใช่เพื่อ "เลื่อนดู"
+   ========================================================================== */
+.topbar {
+  background: var(--ink); color: var(--text-mute);
+  font-size: var(--t-xs); border-bottom: 1px solid var(--line-soft);
+}
+.topbar .wrap { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); min-height: 34px; }
+.topbar__list { display: flex; gap: var(--s4); flex-wrap: wrap; }
+.topbar a { transition: color var(--dur); }
+@media (hover: hover) { .topbar a:hover { color: var(--text); } }
+.topbar__ship { color: var(--accent); font-weight: 600; }
+
+.site-header { position: sticky; top: 0; z-index: 100; background: var(--bg); border-bottom: 1px solid var(--line); }
+.site-header::after {
+  content: ""; position: absolute; inset: auto 0 -1px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--brand), transparent); opacity: .5;
+}
+.masthead { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: var(--s5); padding: var(--s3) 0; }
+
+.brand { display: inline-flex; align-items: center; gap: .6rem; }
+.brand__mark { width: 38px; height: 38px; border-radius: 11px; background: linear-gradient(140deg, var(--brand), #4d2fd6); display: grid; place-items: center; box-shadow: 0 4px 14px rgba(123,92,255,.42); }
+.brand__mark svg { width: 24px; height: 24px; color: #fff; }
+/* ตัวมาร์กเป็นรูปที่มีทั้งเส้นและพื้นทึบ จึงคุมสีด้วย currentColor ตัวเดียว
+   ไม่ใช่บังคับ stroke/fill แบบไอคอนเส้นทั่วไป */
+.brand__word b { color: var(--brand-hi); font-weight: 700; }
+.adminbar .brand__word b, .site-footer .brand__word b { color: var(--brand-hi); }
+.brand__word { font-family: var(--font-display); font-weight: 700; font-size: 1.32rem; letter-spacing: .04em; line-height: 1; }
+.brand__word small { display: block; font-size: .55rem; letter-spacing: .26em; color: var(--text-mute); font-weight: 500; margin-top: 3px; }
+
+/* แถบค้นหา: ช่องเดียวที่มี dropdown หมวดในตัว = รูปแบบเดียวกับร้านใหญ่ */
+.search { display: flex; align-items: stretch; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; transition: border-color var(--dur), box-shadow var(--dur); }
+.search:focus-within { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-dim); }
+.search__cat { border: 0; background: var(--surface-3); color: var(--text-dim); padding: 0 .75rem; font-size: var(--t-sm); cursor: pointer; border-right: 1px solid var(--line); }
+.search__input { flex: 1; min-width: 0; border: 0; background: transparent; padding: .78rem .9rem; font-size: var(--t-md); }
+.search__input::placeholder { color: var(--text-mute); }
+.search__btn { background: var(--brand); color: #fff; padding: 0 1.15rem; display: grid; place-items: center; }
+@media (hover: hover) { .search__btn:hover { background: var(--brand-hi); } }
+.search__tags { display: flex; gap: .55rem; margin-top: .4rem; font-size: var(--t-xs); color: var(--text-mute); flex-wrap: wrap; }
+.search__tags a { transition: color var(--dur); }
+@media (hover: hover) { .search__tags a:hover { color: var(--brand-hi); } }
+
+.masthead__acct { display: flex; align-items: center; gap: var(--s2); }
+.iconbtn { position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r); color: var(--text-dim); transition: background var(--dur), color var(--dur); }
+@media (hover: hover) { .iconbtn:hover { background: var(--surface-2); color: var(--text); } }
+.iconbtn__count { position: absolute; top: 4px; right: 4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: var(--r-full); background: var(--hot); color: #fff; font-size: .6875rem; font-weight: 700; display: grid; place-items: center; font-family: var(--font-display); }
+
+/* แถบหมวด: ทางลัดไปเครื่องแต่ละค่าย — ลูกค้าร้านเกมคิดเป็น "เครื่อง" ก่อนคิดเป็น "เกม" */
+.catbar { border-top: 1px solid var(--line-soft); }
+.catbar .wrap { display: flex; align-items: center; gap: var(--s2); overflow-x: auto; scrollbar-width: none; }
+.catbar .wrap::-webkit-scrollbar { display: none; }
+.catbar a { display: inline-flex; align-items: center; gap: .45rem; padding: .62rem .8rem; font-size: var(--t-sm); font-weight: 500; color: var(--text-dim); white-space: nowrap; border-bottom: 2px solid transparent; transition: color var(--dur), border-color var(--dur); }
+@media (hover: hover) { .catbar a:hover { color: var(--text); border-color: var(--brand); } }
+.catbar a.is-hot { color: var(--hot); font-weight: 600; }
+
+/* ==========================================================================
+   ฮีโร่ — งานศิลป์เกมใหญ่หนึ่งชิ้น + โปรฯ ซ้อนสองใบ
+   ร้านเกมขายด้วย "ภาพเกม" ไม่ใช่ headline บริษัท ภาพจึงกินพื้นที่มากกว่าตัวหนังสือ
+   ========================================================================== */
+.hero { padding: var(--s5) 0 var(--s6); }
+.hero__grid { display: grid; grid-template-columns: minmax(0, 2.05fr) minmax(0, 1fr); gap: var(--s4); }
+.hero__side { display: grid; grid-template-rows: 1fr 1fr; gap: var(--s4); }
+
+.feature { position: relative; border-radius: var(--r-lg); overflow: hidden; min-height: 430px; display: flex; align-items: flex-end; border: 1px solid var(--line); }
+.feature__body { position: relative; z-index: 2; padding: var(--s6); max-width: 34rem; }
+.feature__kicker { display: inline-flex; align-items: center; gap: .4rem; padding: .3rem .7rem; border-radius: var(--r-full); background: rgba(0,0,0,.5); backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,.18); font-size: var(--t-xs); font-weight: 600; letter-spacing: .04em; }
+.feature h1 { font-size: var(--t-hero); margin: var(--s3) 0 var(--s2); text-shadow: 0 3px 24px rgba(0,0,0,.7); }
+.feature p { color: #dbe2f2; text-shadow: 0 2px 14px rgba(0,0,0,.8); max-width: 30rem; }
+.feature__buy { display: flex; align-items: center; gap: var(--s4); margin-top: var(--s5); flex-wrap: wrap; }
+.feature__price { display: flex; align-items: baseline; gap: .5rem; font-family: var(--font-display); }
+.feature__price b { font-size: 1.9rem; font-weight: 700; }
+.feature__price s { color: var(--text-mute); font-size: var(--t-md); }
+.feature__was { display: inline-block; background: var(--hot); color: #fff; font-size: var(--t-xs); font-weight: 700; padding: .12rem .45rem; border-radius: var(--r-sm); font-family: var(--font-display); }
+
+.promo { position: relative; border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--line); display: flex; align-items: flex-end; min-height: 200px; }
+.promo__body { position: relative; z-index: 2; padding: var(--s4) var(--s5); }
+.promo h3 { font-size: var(--t-lg); text-shadow: 0 2px 12px rgba(0,0,0,.7); }
+.promo p { font-size: var(--t-sm); color: #d6ddef; text-shadow: 0 2px 10px rgba(0,0,0,.8); }
+.promo__go { display: inline-flex; align-items: center; gap: .35rem; margin-top: .6rem; font-size: var(--t-sm); font-weight: 600; color: #fff; }
+
+/* ---- key art: วาดด้วย CSS ทั้งหมด ไม่ใช้ปกเกมจริงเพราะติดลิขสิทธิ์ ---- */
+.art { position: absolute; inset: 0; z-index: 0; }
+.art::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,10,16,.15) 0%, rgba(8,10,16,.62) 55%, rgba(8,10,16,.94) 100%); }
+.art--nova   { background: radial-gradient(120% 95% at 78% 18%, #ff7a3d 0%, #c8306f 38%, #3b1b6e 72%, #0d1018 100%); }
+.art--drift  { background: radial-gradient(115% 100% at 22% 22%, #21d4fd 0%, #2a56d6 42%, #14204d 78%, #0b0f1a 100%); }
+.art--siege  { background: radial-gradient(110% 100% at 70% 80%, #ffb547 0%, #d94a2b 40%, #4a1524 76%, #0d1018 100%); }
+.art--verd   { background: radial-gradient(115% 100% at 30% 78%, #4bf0a8 0%, #14907a 40%, #103046 76%, #0b1018 100%); }
+.art--noir   { background: radial-gradient(110% 100% at 60% 25%, #8f8fbf 0%, #3b3f63 38%, #1a1c2c 74%, #0a0c12 100%); }
+.art--rally  { background: radial-gradient(120% 100% at 25% 25%, #ffd166 0%, #f2673a 42%, #6a2246 78%, #0d1018 100%); }
+.art--abyss  { background: radial-gradient(115% 100% at 72% 70%, #7b5cff 0%, #3a1f9e 40%, #150f3a 76%, #08090f 100%); }
+.art--kite   { background: radial-gradient(110% 100% at 32% 20%, #ff9ec7 0%, #a44ad6 40%, #351c66 76%, #0d1018 100%); }
+/* รูปทรงของปกวางบนพื้นไล่สี — ตัวรูปอยู่ในไฟล์ HTML เป็น symbol ชุดเดียว
+   ส่วนพื้นสีอยู่ที่คลาส .art--* ข้างบน แยกกันได้เพราะเป็นคนละชั้น */
+.art__photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* สีประจำเกมยังอยู่ แต่ตอนนี้ทำหน้าที่ย้อมรูปถ่ายให้เป็นโทนของเกมนั้น แทนที่จะเป็น
+   พื้นเปล่าๆ — ถ้าปล่อยรูปถ่ายล้วน ปกทุกใบจะดูเป็นวอลเปเปอร์เหมือนกันหมด */
+.art > .art__photo + * { position: relative; }
+.art::before {
+  content: ""; position: absolute; inset: 0; z-index: 1;
+  background: inherit; opacity: .52; mix-blend-mode: color;
+}
+/* ชั้นรูปวาดถูกถอดออก 22 ส.ค. 2026 — รูปถ่ายแยกเกมออกจากกันได้อยู่แล้ว
+   ที่เหลือคือย้อมสีให้เป็นโทนของเกมนั้น แล้ววางชื่อเกมทับ = key art ที่เราออกแบบเอง */
+
+
+/* ==========================================================================
+   แถบความน่าเชื่อถือ — ของแท้ / ประกัน / ผ่อน / ส่งฟรี
+   ร้านเกมไทยแพ้กันตรงนี้ ไม่ใช่ตรงราคา: คนกลัวได้ของปลอมกับกลัวประกันศูนย์ไม่ครอบ
+   ========================================================================== */
+.trust { border-block: 1px solid var(--line); background: var(--surface); }
+.trust ul { display: grid; grid-template-columns: repeat(4, 1fr); }
+.trust li { display: flex; align-items: center; gap: .7rem; padding: var(--s4) var(--s3); }
+.trust li + li { border-left: 1px solid var(--line-soft); }
+.trust .icon { color: var(--accent); width: 26px; height: 26px; }
+.trust b { display: block; font-family: var(--font-display); font-size: var(--t-sm); }
+.trust span { font-size: var(--t-xs); color: var(--text-mute); }
+
+/* ==========================================================================
+   หัวข้อของแต่ละส่วน
+   ========================================================================== */
+.section { padding: var(--s7) 0; }
+.section--tight { padding: var(--s6) 0; }
+.sechead { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s4); margin-bottom: var(--s5); flex-wrap: wrap; }
+.sechead h2 { font-size: var(--t-2xl); }
+.sechead p { color: var(--text-mute); font-size: var(--t-sm); margin-top: .2rem; }
+.sechead__more { display: inline-flex; align-items: center; gap: .35rem; color: var(--brand-hi); font-weight: 600; font-size: var(--t-sm); }
+@media (hover: hover) { .sechead__more:hover { text-decoration: underline; } }
+
+/* ==========================================================================
+   แฟลชเซล — นาฬิกานับถอยหลัง + แถบ "ขายไปแล้วกี่ชิ้น"
+   แถบจำนวนที่เหลือคือสิ่งที่ทำให้คนกดวันนี้แทนที่จะบุ๊กมาร์กไว้
+   ========================================================================== */
+.flash { background: linear-gradient(180deg, rgba(255,61,99,.13), transparent 62%); border: 1px solid rgba(255,61,99,.28); border-radius: var(--r-lg); padding: var(--s5); }
+.flash__head { display: flex; align-items: center; gap: var(--s4); flex-wrap: wrap; margin-bottom: var(--s5); }
+.flash__title { display: flex; align-items: center; gap: .6rem; font-family: var(--font-display); font-size: var(--t-xl); font-weight: 700; }
+.flash__title .icon { color: var(--hot); width: 26px; height: 26px; }
+.clock { display: flex; align-items: center; gap: .3rem; font-family: var(--font-display); font-weight: 700; }
+.clock span { background: var(--ink); border: 1px solid var(--line); padding: .25rem .5rem; border-radius: var(--r-sm); min-width: 38px; text-align: center; font-variant-numeric: tabular-nums; }
+.clock i { color: var(--hot); font-style: normal; }
+.flash__note { margin-left: auto; font-size: var(--t-sm); color: var(--text-dim); }
+
+.rail { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(190px, 1fr); gap: var(--s4); overflow-x: auto; padding-bottom: var(--s2); scroll-snap-type: x mandatory; scrollbar-width: thin; }
+.rail > * { scroll-snap-align: start; }
+
+.sold { margin-top: .55rem; }
+.sold__bar { height: 8px; border-radius: var(--r-full); background: var(--surface-3); overflow: hidden; }
+.sold__fill { display: block; height: 100%; border-radius: var(--r-full); background: linear-gradient(90deg, #ff8a3d, var(--hot)); }
+.sold__txt { display: block; font-size: var(--t-xs); color: var(--text-dim); margin-top: .25rem; }
+
+/* ==========================================================================
+   การ์ดสินค้า + กริด
+   6 ใบต่อแถวบนจอใหญ่ = ความหนาแน่นแบบร้านค้า ไม่ใช่ 3 ใบแบบเว็บบริษัท
+   ========================================================================== */
+.grid-products { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: var(--s4); }
+
+.card {
+  position: relative; display: flex; flex-direction: column;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+  overflow: hidden; transition: transform var(--dur-mid) var(--ease), border-color var(--dur), box-shadow var(--dur-mid);
+}
+@media (hover: hover) {
+  .card:hover { transform: translateY(-4px); border-color: var(--brand); box-shadow: var(--shadow); }
+  .card:hover .card__art { transform: scale(1.06); }
+}
+.card__link { position: absolute; inset: 0; z-index: 3; }
+.card__link span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.card__media { position: relative; aspect-ratio: 3 / 4; overflow: hidden; background: var(--ink); }
+.card__art { position: absolute; inset: 0; transition: transform var(--dur-mid) var(--ease); }
+.card__art::after { background: linear-gradient(180deg, transparent 45%, rgba(8,10,16,.86) 100%); }
+.card__plat { position: absolute; left: .5rem; bottom: .5rem; z-index: 2; display: flex; gap: .28rem; }
+.card__plat b { font-family: var(--font-display); font-size: .625rem; font-weight: 600; letter-spacing: .04em; padding: .16rem .4rem; border-radius: 4px; background: rgba(8,10,16,.78); border: 1px solid rgba(255,255,255,.2); color: #fff; backdrop-filter: blur(4px); }
+.card__title-art { position: absolute; inset: auto 0 2.4rem; z-index: 1; padding: 0 .7rem; font-family: var(--font-display); font-weight: 700; font-size: .95rem; line-height: 1.1; letter-spacing: .02em; text-transform: uppercase; color: #fff; text-shadow: 0 2px 14px rgba(0,0,0,.8); }
+
+.badges { position: absolute; top: .5rem; left: .5rem; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; gap: .3rem; }
+.badge { font-family: var(--font-display); font-size: var(--t-xs); font-weight: 700; padding: .16rem .45rem; border-radius: var(--r-sm); }
+.badge--off { background: var(--hot); color: #fff; }
+.badge--new { background: var(--accent); color: #04241c; }
+.badge--pre { background: var(--brand); color: #fff; }
+.badge--used { background: var(--surface-3); color: var(--text-dim); border: 1px solid var(--line); }
+
+.card__body { padding: .7rem .75rem .85rem; display: flex; flex-direction: column; gap: .35rem; flex: 1; }
+.card__name { font-family: var(--font-body); font-weight: 500; font-size: var(--t-sm); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card__meta { font-size: var(--t-xs); color: var(--text-mute); }
+.rating { display: flex; align-items: center; gap: .3rem; font-size: var(--t-xs); color: var(--text-dim); }
+.rating .icon { width: 13px; height: 13px; color: var(--gold); fill: var(--gold); stroke: none; }
+.price { display: flex; align-items: baseline; gap: .4rem; margin-top: auto; padding-top: .3rem; font-family: var(--font-display); }
+.price b { font-size: 1.06rem; font-weight: 700; color: var(--text); }
+.price s { font-size: var(--t-xs); color: var(--text-mute); }
+.price--hot b { color: var(--hot); }
+.card__ship { font-size: var(--t-xs); color: var(--accent); font-weight: 600; }
+.card__cart { position: relative; z-index: 4; margin-top: .5rem; }
+
+/* ---- แถบกรองเครื่อง ---- */
+.filters { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; margin-bottom: var(--s5); }
+.chip { display: inline-flex; align-items: center; gap: .4rem; min-height: 38px; padding: .35rem .85rem; border-radius: var(--r-full); border: 1px solid var(--line); background: var(--surface); color: var(--text-dim); font-size: var(--t-sm); font-weight: 500; transition: all var(--dur); }
+@media (hover: hover) { .chip:hover { border-color: var(--brand); color: var(--text); } }
+.chip[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 600; }
+.filters__sort { margin-left: auto; display: flex; align-items: center; gap: .5rem; font-size: var(--t-sm); color: var(--text-mute); }
+.filters__sort select { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: .45rem .7rem; }
+
+/* ==========================================================================
+   เครื่องเกม (ฮาร์ดแวร์) — การ์ดแนวนอน ราคาสูง ต้องมีที่ให้ข้อมูลมากกว่าเกม
+   ========================================================================== */
+.consoles { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: var(--s4); }
+.console {
+  position: relative; display: grid; grid-template-columns: 132px minmax(0,1fr); gap: var(--s4);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: var(--s4); transition: border-color var(--dur), transform var(--dur-mid) var(--ease);
+}
+@media (hover: hover) { .console:hover { border-color: var(--brand); transform: translateY(-3px); } }
+.console .card__link { z-index: 2; }
+.console .btn, .console .console__foot { position: relative; z-index: 3; }
+.console__shot { border-radius: var(--r); background: linear-gradient(160deg, var(--surface-3), var(--ink)); display: grid; place-items: center; aspect-ratio: 1; border: 1px solid var(--line-soft); }
+.console__shot { overflow: hidden; padding: 0; }
+.console__shot img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.console__shot svg { width: 78%; height: 78%; filter: drop-shadow(0 6px 14px rgba(0,0,0,.5)); }
+/* รูปเครื่องเป็นภาพที่มีสีของตัวเอง (แผ่นข้างขาวของ PS5 · จอยแดง-น้ำเงินของ Switch)
+   จึงห้ามใส่ stroke/fill ทับแบบไอคอนเส้น ไม่งั้นเครื่องทุกรุ่นจะกลับไปหน้าตาเหมือนกัน */
+.console h3 { font-size: var(--t-lg); }
+.console__sub { font-size: var(--t-xs); color: var(--text-mute); }
+.console__spec { display: flex; flex-wrap: wrap; gap: .3rem; margin: .55rem 0; }
+.console__spec li { font-size: var(--t-xs); color: var(--text-dim); background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: var(--r-sm); padding: .12rem .45rem; }
+.console__pay { font-size: var(--t-xs); color: var(--accent); font-weight: 600; }
+.console__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); margin-top: .6rem; flex-wrap: wrap; }
+.stock { display: inline-flex; align-items: center; gap: .35rem; font-size: var(--t-xs); color: var(--accent); }
+.stock::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.stock--low { color: var(--gold); }
+.stock--low::before { background: var(--gold); box-shadow: 0 0 0 3px rgba(255,196,83,.16); }
+
+/* ==========================================================================
+   บัตรเติมเงิน / โค้ดดิจิทัล — ส่งทางอีเมลทันที ไม่ต้องรอส่งของ
+   ========================================================================== */
+.codes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--s4); }
+.code {
+  position: relative; overflow: hidden; border-radius: var(--r-lg); padding: var(--s5) var(--s4);
+  border: 1px solid var(--line); background: var(--surface);
+  transition: transform var(--dur-mid) var(--ease), border-color var(--dur);
+}
+.code::before { content: ""; position: absolute; inset: -40% -10% auto; height: 150%; background: radial-gradient(60% 60% at 50% 0%, var(--brand-dim), transparent 70%); }
+@media (hover: hover) { .code:hover { transform: translateY(-3px); border-color: var(--brand); } }
+.code > * { position: relative; }
+.code h3 { font-size: var(--t-md); }
+.code p { font-size: var(--t-xs); color: var(--text-mute); margin-top: .15rem; }
+.code__price { font-family: var(--font-display); font-weight: 700; margin-top: .6rem; }
+.code__instant { display: inline-flex; align-items: center; gap: .3rem; margin-top: .4rem; font-size: var(--t-xs); color: var(--accent); font-weight: 600; }
+
+/* ==========================================================================
+   บทความ/รีวิว — ของที่ทำให้ Google เข้ามาบ่อยและทำให้ร้านดูมีคนดูแล
+   ========================================================================== */
+.posts { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: var(--s4); }
+.post { position: relative; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; background: var(--surface); transition: border-color var(--dur), transform var(--dur-mid) var(--ease); }
+@media (hover: hover) { .post:hover { border-color: var(--brand); transform: translateY(-3px); } }
+.post__media { position: relative; aspect-ratio: 16 / 9; }
+.post__body { padding: var(--s4); }
+.post__tag { font-size: var(--t-xs); color: var(--brand-hi); font-weight: 600; }
+.post h3 { font-size: var(--t-md); margin: .25rem 0 .35rem; }
+.post p { font-size: var(--t-sm); color: var(--text-mute); }
+
+/* ==========================================================================
+   สมัครรับข่าว
+   ========================================================================== */
+.signup { border: 1px solid var(--line); border-radius: var(--r-lg); background: linear-gradient(140deg, rgba(123,92,255,.16), rgba(0,224,164,.07) 70%, transparent); padding: var(--s6); display: grid; grid-template-columns: minmax(0,1fr) minmax(0,.85fr); gap: var(--s5); align-items: center; }
+.signup h2 { font-size: var(--t-xl); }
+.signup p { color: var(--text-dim); font-size: var(--t-sm); margin-top: .3rem; }
+.signup form { display: flex; gap: var(--s2); }
+.signup input { flex: 1; min-width: 0; background: var(--ink); border: 1px solid var(--line); border-radius: var(--r); padding: .75rem .9rem; }
+.signup input::placeholder { color: var(--text-mute); }
+.signup small { display: block; margin-top: .5rem; font-size: var(--t-xs); color: var(--text-mute); }
+
+/* ==========================================================================
+   ฟุตเตอร์ — หลายคอลัมน์ + ช่องทางจ่ายเงิน
+   ร้านค้าจริงต้องมีหน้าที่ตอบคำถามหลังการขาย (คืนของ/ประกัน/ติดตามพัสดุ) เป็นลิงก์จริง
+   ========================================================================== */
+.site-footer { margin-top: var(--s7); border-top: 1px solid var(--line); background: var(--ink); }
+.foot-main { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: var(--s5); padding: var(--s7) 0 var(--s6); }
+.foot-main h4 { font-size: var(--t-sm); letter-spacing: .04em; margin-bottom: .8rem; }
+.foot-main li + li { margin-top: .45rem; }
+.foot-main a, .foot-about p { font-size: var(--t-sm); color: var(--text-mute); }
+@media (hover: hover) { .foot-main a:hover { color: var(--text); } }
+.foot-about .brand { margin-bottom: var(--s3); }
+.foot-social { display: flex; gap: .5rem; margin-top: var(--s4); }
+.foot-social a { display: grid; place-items: center; width: 38px; height: 38px; border-radius: var(--r); background: var(--surface); border: 1px solid var(--line); color: var(--text-dim); }
+@media (hover: hover) { .foot-social a:hover { color: var(--text); border-color: var(--brand); } }
+.pay { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-top: var(--s4); }
+.pay b { font-size: var(--t-xs); color: var(--text-mute); font-weight: 500; }
+.pay span { font-family: var(--font-display); font-size: var(--t-xs); font-weight: 600; padding: .25rem .5rem; border-radius: var(--r-sm); background: var(--surface); border: 1px solid var(--line); color: var(--text-dim); }
+.foot-legal { border-top: 1px solid var(--line-soft); padding: var(--s4) 0 var(--s6); display: flex; justify-content: space-between; gap: var(--s4); flex-wrap: wrap; font-size: var(--t-xs); color: var(--text-mute); }
+.foot-legal ul { display: flex; gap: var(--s4); flex-wrap: wrap; }
+
+/* ==========================================================================
+   แถบล่างติดจอ (มือถือเท่านั้น) — รูปแบบเดียวกับแอปร้านค้า
+   ========================================================================== */
+.tabbar { display: none; }
+@media (max-width: 860px) {
+  .tabbar {
+    display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; inset: auto 0 0; z-index: 120;
+    background: rgba(13,16,24,.94); backdrop-filter: blur(14px); border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tabbar a { display: grid; justify-items: center; gap: 2px; padding: .5rem 0 .55rem; font-size: .6875rem; color: var(--text-mute); position: relative; }
+  .tabbar a.is-on { color: var(--brand-hi); }
+  .tabbar .iconbtn__count { top: 2px; right: calc(50% - 22px); }
+  body { padding-bottom: 68px; }
+}
+
+/* ==========================================================================
+   จอเล็กลง
+   ========================================================================== */
+@media (max-width: 1080px) {
+  .hero__grid { grid-template-columns: 1fr; }
+  .hero__side { grid-template-rows: none; grid-template-columns: 1fr 1fr; }
+  .foot-main { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 900px) {
+  .masthead { grid-template-columns: auto 1fr; row-gap: var(--s3); }
+  .masthead__search { grid-column: 1 / -1; grid-row: 2; }
+  .masthead__acct { justify-self: end; }
+  .trust ul { grid-template-columns: 1fr 1fr; }
+  .trust li:nth-child(3) { border-left: 0; }
+  .trust li:nth-child(n+3) { border-top: 1px solid var(--line-soft); }
+  .signup { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  :root { --s7: 2.25rem; }
+  .feature { min-height: 340px; }
+  .feature__body { padding: var(--s4); }
+  .hero__side { grid-template-columns: 1fr; }
+  .grid-products { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--s3); }
+  .console { grid-template-columns: 92px minmax(0,1fr); }
+  .flash { padding: var(--s4); }
+  .flash__note { margin-left: 0; width: 100%; }
+  /* บนมือถือแถบบนสุดมีที่พอสำหรับข้อความเดียว — เก็บ 'ส่งฟรี' ไว้เพราะเป็น
+     เหตุผลให้ซื้อ ส่วนลิงก์บริการย้ายไปอยู่ในฟุตเตอร์ซึ่งมีครบอยู่แล้ว */
+  .topbar__list { display: none; }
+  .topbar .wrap { justify-content: center; }
+  .foot-main { grid-template-columns: 1fr; }
+  .signup form { flex-direction: column; }
+}
+
+/* ==========================================================================
+   หน้าสินค้ารายตัว (game.html)
+   หน้านี้คือหน้าที่ตัดสินว่าคนจ่ายเงินหรือปิดแท็บ ของที่ต้องมีจึงไม่ใช่ "รูปกับ
+   ราคา" แต่คือ ตัวเลือกเวอร์ชัน · ค่าส่ง · ประกัน · รีวิวของคนที่ซื้อไปแล้ว
+   ครบในหน้าจอเดียวโดยไม่ต้องเลื่อน
+   ========================================================================== */
+.crumb { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; padding: var(--s4) 0; font-size: var(--t-sm); color: var(--text-mute); }
+.crumb a { transition: color var(--dur); }
+@media (hover: hover) { .crumb a:hover { color: var(--brand-hi); } }
+.crumb .icon { width: 14px; height: 14px; opacity: .5; }
+.crumb [aria-current] { color: var(--text-dim); }
+
+.pdp { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: var(--s6); align-items: start; }
+
+/* ---- แกลเลอรี ---- */
+.gallery__main { position: relative; border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--line); aspect-ratio: 4 / 3; }
+.gallery__main .art::after { background: linear-gradient(180deg, transparent 60%, rgba(8,10,16,.5) 100%); }
+.gallery__thumbs { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--s2); margin-top: var(--s2); }
+.thumb { position: relative; aspect-ratio: 4 / 3; border-radius: var(--r-sm); overflow: hidden; border: 1px solid var(--line); background: var(--ink); }
+.thumb[aria-current="true"] { border-color: var(--brand); box-shadow: 0 0 0 2px var(--brand-dim); }
+.thumb .art::after { display: none; }
+.thumb--play { display: grid; place-items: center; }
+.thumb--play .icon { position: relative; z-index: 2; width: 24px; height: 24px; color: #fff; }
+
+/* ---- ฝั่งซื้อ ---- */
+.buy__plat { display: flex; gap: .3rem; margin-bottom: .5rem; }
+.buy__plat b { font-family: var(--font-display); font-size: var(--t-xs); padding: .18rem .5rem; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--line); color: var(--text-dim); }
+.buy h1 { font-size: clamp(1.5rem, 3vw, 2.05rem); }
+.buy__stats { display: flex; align-items: center; gap: var(--s4); flex-wrap: wrap; margin: .6rem 0 var(--s4); font-size: var(--t-sm); color: var(--text-dim); padding-bottom: var(--s4); border-bottom: 1px solid var(--line); }
+.buy__stats .rating { font-size: var(--t-sm); }
+.buy__stats a { color: var(--brand-hi); }
+
+.pricebox { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--s5); }
+.pricebox__row { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; font-family: var(--font-display); }
+.pricebox__now { font-size: 2.1rem; font-weight: 700; color: var(--hot); line-height: 1.1; }
+.pricebox__was { color: var(--text-mute); }
+.pricebox__save { background: var(--hot); color: #fff; font-size: var(--t-xs); font-weight: 700; padding: .15rem .5rem; border-radius: var(--r-sm); }
+.pricebox__inst { font-size: var(--t-sm); color: var(--accent); font-weight: 600; margin-top: .35rem; }
+.pricebox__timer { display: flex; align-items: center; gap: .5rem; margin-top: .7rem; padding: .5rem .7rem; border-radius: var(--r); background: var(--hot-dim); border: 1px solid rgba(255,61,99,.3); font-size: var(--t-sm); }
+.pricebox__timer .icon { color: var(--hot); width: 17px; height: 17px; }
+
+.optset { margin-top: var(--s5); }
+.optset > b { display: block; font-family: var(--font-display); font-size: var(--t-sm); margin-bottom: .5rem; }
+.opts { display: flex; gap: .5rem; flex-wrap: wrap; }
+.opt { display: flex; flex-direction: column; align-items: flex-start; gap: .1rem; padding: .55rem .8rem; border-radius: var(--r); border: 1px solid var(--line); background: var(--surface-2); text-align: left; transition: all var(--dur); }
+.opt span { font-size: var(--t-sm); font-weight: 500; }
+.opt small { font-size: var(--t-xs); color: var(--text-mute); }
+@media (hover: hover) { .opt:hover { border-color: var(--brand); } }
+.opt[aria-pressed="true"] { border-color: var(--brand); background: var(--brand-dim); }
+.opt[aria-pressed="true"] small { color: var(--brand-hi); }
+.opt:disabled { opacity: .42; cursor: not-allowed; text-decoration: line-through; }
+
+.qty { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface-2); overflow: hidden; }
+.qty button { width: 42px; height: 46px; display: grid; place-items: center; font-size: 1.15rem; color: var(--text-dim); }
+@media (hover: hover) { .qty button:hover { background: var(--surface-3); color: var(--text); } }
+.qty input { width: 48px; height: 46px; text-align: center; background: transparent; border: 0; font-family: var(--font-display); font-weight: 600; -moz-appearance: textfield; }
+.qty input::-webkit-outer-spin-button, .qty input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.buy__actions { display: flex; gap: var(--s3); margin-top: var(--s5); flex-wrap: wrap; }
+.buy__actions .btn { flex: 1; min-width: 150px; }
+
+.deliver { margin-top: var(--s5); border-top: 1px solid var(--line); padding-top: var(--s4); display: grid; gap: .7rem; }
+.deliver li { display: flex; gap: .7rem; align-items: flex-start; font-size: var(--t-sm); }
+.deliver .icon { color: var(--accent); flex: none; margin-top: 2px; }
+.deliver b { display: block; font-family: var(--font-display); font-size: var(--t-sm); }
+.deliver span { color: var(--text-mute); font-size: var(--t-xs); }
+
+/* ---- แท็บเนื้อหา ---- */
+.tabs { display: flex; gap: var(--s2); border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { padding: .75rem 1rem; font-family: var(--font-display); font-weight: 600; font-size: var(--t-sm); color: var(--text-mute); border-bottom: 2px solid transparent; white-space: nowrap; transition: color var(--dur), border-color var(--dur); }
+@media (hover: hover) { .tab:hover { color: var(--text); } }
+.tab[aria-selected="true"] { color: var(--text); border-color: var(--brand); }
+.panel { padding-top: var(--s5); }
+.panel[hidden] { display: none; }
+.panel p + p { margin-top: .8rem; }
+.panel p, .panel li { color: var(--text-dim); }
+.panel h3 { margin-bottom: .5rem; }
+.panel > * + h3 { margin-top: var(--s5); }
+.panel h3 + p { margin-bottom: var(--s4); }
+.bullets { display: grid; gap: .45rem; margin: var(--s3) 0; }
+.bullets li { display: flex; gap: .6rem; font-size: var(--t-sm); }
+.bullets .icon { color: var(--accent); flex: none; width: 18px; height: 18px; margin-top: 3px; }
+
+.spectable { width: 100%; border-collapse: collapse; font-size: var(--t-sm); }
+.spectable th, .spectable td { text-align: left; padding: .7rem .9rem; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+.spectable th { width: 34%; color: var(--text-mute); font-weight: 500; }
+.spectable tr:nth-child(odd) { background: var(--surface); }
+
+/* ---- รีวิว ---- */
+.reviews { display: grid; grid-template-columns: 260px minmax(0,1fr); gap: var(--s6); align-items: start; }
+.score { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--s5); text-align: center; }
+.score__num { font-family: var(--font-display); font-size: 3rem; font-weight: 700; line-height: 1; }
+.score__stars { display: flex; justify-content: center; gap: .15rem; margin: .4rem 0 .2rem; }
+.score__stars .icon { color: var(--gold); fill: var(--gold); stroke: none; width: 18px; height: 18px; }
+.score__count { font-size: var(--t-xs); color: var(--text-mute); }
+.bars { margin-top: var(--s4); display: grid; gap: .35rem; }
+.bars li { display: grid; grid-template-columns: 2.6rem 1fr 2.2rem; gap: .5rem; align-items: center; font-size: var(--t-xs); color: var(--text-mute); }
+.bars i { display: block; height: 7px; border-radius: var(--r-full); background: var(--surface-3); overflow: hidden; }
+.bars i b { display: block; height: 100%; background: var(--gold); border-radius: var(--r-full); }
+.review { border-bottom: 1px solid var(--line-soft); padding-bottom: var(--s4); margin-bottom: var(--s4); }
+.review:last-child { border: 0; margin-bottom: 0; }
+.review__top { display: flex; align-items: center; gap: .7rem; margin-bottom: .4rem; flex-wrap: wrap; }
+.avatar { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-3); font-family: var(--font-display); font-weight: 700; font-size: var(--t-sm); color: var(--brand-hi); flex: none; }
+.review__name { font-weight: 600; font-size: var(--t-sm); }
+.review__when { font-size: var(--t-xs); color: var(--text-mute); }
+.review__buy { font-size: var(--t-xs); color: var(--accent); display: inline-flex; align-items: center; gap: .25rem; }
+.review p { font-size: var(--t-sm); color: var(--text-dim); }
+
+/* ---- แถบซื้อติดจอบนมือถือ ---- */
+.buybar { display: none; }
+@media (max-width: 860px) {
+  .buybar {
+    display: flex; align-items: center; gap: var(--s3); position: fixed; inset: auto 0 0; z-index: 130;
+    background: rgba(13,16,24,.96); backdrop-filter: blur(14px); border-top: 1px solid var(--line);
+    padding: .6rem 1rem calc(.6rem + env(safe-area-inset-bottom));
+  }
+  .buybar .price { margin: 0; padding: 0; }
+  .buybar .btn { margin-left: auto; }
+  body.has-buybar { padding-bottom: 84px; }
+  body.has-buybar .tabbar { display: none; }
+}
+
+@media (max-width: 980px) {
+  .pdp { grid-template-columns: 1fr; }
+  .reviews { grid-template-columns: 1fr; }
+}
+
+/* ==========================================================================
+   หน้าระบบ: ตะกร้า · บัญชี · หลังบ้าน
+   สามหน้านี้คือส่วนที่แยกแพ็กเกจ ฿9,900 ออกจากแพ็กเกจ ฿7,500 — ลูกค้าต้องกดใช้
+   ได้จริงทั้งหมด ไม่ใช่ภาพ mockup
+   ========================================================================== */
+.pagehead { padding: var(--s6) 0 var(--s5); }
+.pagehead h1 { font-size: var(--t-2xl); }
+.pagehead p { color: var(--text-mute); font-size: var(--t-sm); margin-top: .3rem; }
+
+.card-box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--s5); }
+.card-box + .card-box { margin-top: var(--s4); }
+.card-box h2 { font-size: var(--t-lg); margin-bottom: var(--s4); }
+
+.split { display: grid; grid-template-columns: minmax(0,1.5fr) minmax(0,1fr); gap: var(--s5); align-items: start; }
+.sticky { position: sticky; top: calc(var(--header-h) + var(--s4)); }
+
+/* ---- บรรทัดสินค้าในตะกร้า ---- */
+.line { display: grid; grid-template-columns: 84px minmax(0,1fr) auto; gap: var(--s4); padding: var(--s4) 0; border-bottom: 1px solid var(--line-soft); align-items: center; }
+.line:last-child { border-bottom: 0; }
+.line__art { position: relative; aspect-ratio: 3/4; border-radius: var(--r-sm); overflow: hidden; border: 1px solid var(--line); }
+.line__name { font-size: var(--t-sm); font-weight: 500; }
+.line__sku { font-size: var(--t-xs); color: var(--text-mute); margin-top: .15rem; }
+.line__ctl { display: flex; align-items: center; gap: var(--s3); margin-top: .5rem; flex-wrap: wrap; }
+.line__del { font-size: var(--t-xs); color: var(--text-mute); text-decoration: underline; }
+@media (hover: hover) { .line__del:hover { color: var(--hot); } }
+.line__sum { font-family: var(--font-display); font-weight: 700; white-space: nowrap; }
+.qty--sm button { width: 34px; height: 38px; }
+.qty--sm input { width: 40px; height: 38px; }
+
+.sums { display: grid; gap: .55rem; font-size: var(--t-sm); }
+.sums div { display: flex; justify-content: space-between; gap: var(--s3); }
+.sums .grand { border-top: 1px solid var(--line); padding-top: .7rem; margin-top: .3rem; font-family: var(--font-display); font-size: var(--t-lg); font-weight: 700; }
+.sums .grand b { color: var(--hot); }
+.freehint { font-size: var(--t-xs); color: var(--accent); }
+
+/* ---- ฟอร์ม ---- */
+.field { margin-bottom: var(--s4); }
+.field label { display: block; font-size: var(--t-sm); font-weight: 500; margin-bottom: .35rem; }
+.field input, .field textarea, .field select {
+  width: 100%; background: var(--ink); border: 1px solid var(--line); border-radius: var(--r);
+  padding: .7rem .85rem; font-size: var(--t-md); transition: border-color var(--dur), box-shadow var(--dur);
+}
+.field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-dim); }
+.field textarea { min-height: 88px; resize: vertical; }
+.field small { display: block; margin-top: .3rem; font-size: var(--t-xs); color: var(--text-mute); }
+.field--row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }
+.msg { border-radius: var(--r); padding: .7rem .9rem; font-size: var(--t-sm); margin-bottom: var(--s4); }
+.msg--bad { background: var(--hot-dim); border: 1px solid rgba(255,61,99,.35); color: #ffc3ce; }
+.msg--good { background: var(--accent-dim); border: 1px solid rgba(0,224,164,.3); color: #a8ffe3; }
+
+/* ---- ตัวเลือกวิธีจ่ายเงิน ---- */
+.pays { display: grid; gap: var(--s2); }
+.pays label {
+  display: flex; align-items: flex-start; gap: .7rem; padding: .85rem 1rem; cursor: pointer;
+  border: 1px solid var(--line); border-radius: var(--r); background: var(--surface-2); transition: border-color var(--dur), background var(--dur);
+}
+.pays input { accent-color: var(--brand); margin-top: 3px; }
+.pays label:has(input:checked) { border-color: var(--brand); background: var(--brand-dim); }
+.pays b { display: block; font-family: var(--font-display); font-size: var(--t-sm); }
+.pays span { font-size: var(--t-xs); color: var(--text-mute); }
+.qr { width: 168px; height: 168px; margin: var(--s4) auto 0; border-radius: var(--r); background: #fff; display: grid; place-items: center; }
+.qr svg { width: 84%; height: 84%; }
+
+/* ---- สถานะออเดอร์ ---- */
+.pill { display: inline-flex; align-items: center; gap: .3rem; font-size: var(--t-xs); font-weight: 600; padding: .2rem .6rem; border-radius: var(--r-full); border: 1px solid var(--line); background: var(--surface-2); color: var(--text-dim); }
+.pill--wait { color: var(--gold); border-color: rgba(255,196,83,.35); background: rgba(255,196,83,.12); }
+.pill--paid { color: var(--brand-hi); border-color: rgba(123,92,255,.35); background: var(--brand-dim); }
+.pill--ship { color: #7ad2ff; border-color: rgba(122,210,255,.3); background: rgba(122,210,255,.12); }
+.pill--done { color: var(--accent); border-color: rgba(0,224,164,.32); background: var(--accent-dim); }
+
+.order { border: 1px solid var(--line); border-radius: var(--r); padding: var(--s4); }
+.order + .order { margin-top: var(--s3); }
+.order__top { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; margin-bottom: .6rem; }
+.order__id { font-family: var(--font-display); font-weight: 700; }
+.order__when { font-size: var(--t-xs); color: var(--text-mute); }
+.order__items { font-size: var(--t-sm); color: var(--text-dim); display: grid; gap: .25rem; }
+.order__items div { display: flex; justify-content: space-between; gap: var(--s3); }
+.order__foot { display: flex; justify-content: space-between; align-items: center; gap: var(--s3); margin-top: .7rem; padding-top: .7rem; border-top: 1px solid var(--line-soft); font-family: var(--font-display); font-weight: 600; flex-wrap: wrap; }
+
+.empty { text-align: center; padding: var(--s7) var(--s4); color: var(--text-mute); }
+.empty .icon { width: 46px; height: 46px; margin: 0 auto var(--s3); opacity: .4; }
+
+/* ---- หลังบ้าน ---- */
+.adminbar { background: var(--ink); border-bottom: 1px solid var(--line); }
+.adminbar .wrap { display: flex; align-items: center; gap: var(--s4); min-height: 60px; flex-wrap: wrap; }
+.adminbar__tag { font-family: var(--font-display); font-weight: 700; letter-spacing: .04em; }
+.adminbar__who { margin-left: auto; font-size: var(--t-sm); color: var(--text-mute); }
+.admin-tabs { display: flex; gap: var(--s2); margin-bottom: var(--s5); flex-wrap: wrap; }
+
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-lg); }
+.dtable { width: 100%; border-collapse: collapse; font-size: var(--t-sm); min-width: 720px; }
+.dtable th, .dtable td { padding: .7rem .85rem; text-align: left; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+.dtable thead th { background: var(--surface-2); font-family: var(--font-display); font-size: var(--t-xs); letter-spacing: .04em; color: var(--text-dim); position: sticky; top: 0; }
+.dtable tbody tr:hover { background: var(--surface); }
+.dtable input, .dtable select { background: var(--ink); border: 1px solid var(--line); border-radius: var(--r-sm); padding: .38rem .5rem; font-size: var(--t-sm); }
+.dtable input[type="number"] { width: 92px; }
+.dtable input[type="text"] { width: 100%; min-width: 220px; }
+.dtable .icon { width: 17px; height: 17px; }
+.rowsave { color: var(--accent); font-size: var(--t-xs); opacity: 0; transition: opacity var(--dur); }
+.rowsave.on { opacity: 1; }
+
+@media (max-width: 900px) {
+  .split { grid-template-columns: 1fr; }
+  .sticky { position: static; }
+  .field--row { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .line { grid-template-columns: 64px minmax(0,1fr); }
+  .line__sum { grid-column: 2; text-align: right; }
+}
+
+/* ==========================================================================
+   กฎดีไซน์เดโม §11 (website.md) — หน้าเดียวห้ามใช้ทรงเดียวรวด
+   ก่อนแก้: .sechead ทรงเดียวกันเป๊ะ 4 ส่วนติดกัน · ไม่มีเอฟเฟกต์เข้าฉากเลย
+   · แถบนำทางนิ่งสนิท ทั้งสามข้อคือสิ่งที่ทำให้หน้ายาวๆ อ่านแล้วรู้สึกเป็นแผ่นเดียว
+   ========================================================================== */
+
+/* ---- ทรงหัวข้อ 3 แบบ สลับกันไม่ให้ซ้ำติดกันเกิน 2 ส่วน ---- */
+/* แบบ 2: กึ่งกลาง — ใช้กับส่วนที่ของข้างล่างเป็นกริดเท่าๆ กัน ตาจึงไม่ต้องมีจุดนำ */
+.sechead--center { flex-direction: column; align-items: center; text-align: center; gap: .3rem; }
+.sechead--center p { max-width: 46ch; }
+.sechead--center::after {
+  content: ""; width: 54px; height: 3px; border-radius: var(--r-full);
+  background: linear-gradient(90deg, var(--brand), var(--accent)); margin-top: var(--s3);
+}
+/* แบบ 3: หัวข้อคู่คำอธิบายเป็นสองคอลัมน์ — ใช้กับส่วนที่ต้องอธิบายเงื่อนไขยาว */
+.sechead--split { display: grid; grid-template-columns: minmax(0,.9fr) minmax(0,1.1fr); align-items: start; gap: var(--s5); }
+.sechead--split h2 { font-size: clamp(1.5rem, 3.4vw, 2.1rem); }
+.sechead--split .sechead__note { border-left: 2px solid var(--brand); padding-left: var(--s4); color: var(--text-dim); font-size: var(--t-sm); }
+.sechead--split .sechead__note b { color: var(--text); font-family: var(--font-display); }
+@media (max-width: 760px) { .sechead--split { grid-template-columns: 1fr; gap: var(--s3); } }
+
+/* ---- เอนจิ้นเข้าฉาก: ตัวจับตัวเดียว หลายหน้าตา ----
+   ใช้ IntersectionObserver ตัวเดียวใน main.js ติดคลาส .in ให้ของที่เข้าจอ
+   ส่วนหน้าตาว่าจะเข้ามายังไงแยกตาม data-fx ของแต่ละส่วน — กลไกเดียว ไม่ใช่
+   หลายกลไกที่ทำงานคล้ายกัน (กฎ "ของชนิดเดียวกันใช้กลไกเดียวกัน") */
+@media (prefers-reduced-motion: no-preference) {
+  /* fx 1 — แถบความน่าเชื่อถือ: ไอคอนเด้งขึ้นไล่กันทีละช่อง */
+  [data-fx="rise"] > * { opacity: 0; transform: translateY(14px); transition: opacity .5s var(--ease), transform .5s var(--ease); transition-delay: var(--d, 0ms); }
+  [data-fx="rise"].in > * { opacity: 1; transform: none; }
+
+  /* fx 2 — แฟลชเซล: การ์ดสไลด์เข้ามาจากขวาไล่กัน ให้รู้สึกว่าแถวนี้เลื่อนได้ */
+  [data-fx="slide"] > * { opacity: 0; transform: translateX(28px); transition: opacity .45s var(--ease), transform .55s var(--ease); transition-delay: var(--d, 0ms); }
+  [data-fx="slide"].in > * { opacity: 1; transform: none; }
+
+  /* fx 3 — เครื่องเกม: การ์ดพลิกขึ้นจากขอบล่าง ของชิ้นใหญ่ราคาสูงจึงเข้าช้ากว่า */
+  [data-fx="tilt"] > * { opacity: 0; transform: perspective(900px) rotateX(8deg) translateY(26px); transform-origin: bottom; transition: opacity .6s var(--ease), transform .7s var(--ease); transition-delay: var(--d, 0ms); }
+  [data-fx="tilt"].in > * { opacity: 1; transform: none; }
+
+  /* fx 4 — บัตรเติมเงิน: แสงกวาดผ่านครั้งเดียวตอนเข้าจอ สื่อว่า "ได้โค้ดทันที" */
+  [data-fx="sweep"] > * { opacity: 0; transition: opacity .4s var(--ease); transition-delay: var(--d, 0ms); }
+  [data-fx="sweep"].in > * { opacity: 1; }
+  [data-fx="sweep"].in > *::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: linear-gradient(105deg, transparent 38%, rgba(255,255,255,.16) 50%, transparent 62%);
+    background-size: 260% 100%; animation: gd-sweep 1.1s var(--ease) forwards; animation-delay: var(--d, 0ms);
+  }
+  @keyframes gd-sweep { from { background-position: 190% 0; } to { background-position: -60% 0; } }
+
+  /* fx 5 — บทความ: ภาพคลี่ออกจากกลาง ต่างจากทุกส่วนข้างบน */
+  [data-fx="unfold"] > * { opacity: 0; clip-path: inset(0 12% 0 12% round var(--r-lg)); transition: opacity .5s var(--ease), clip-path .7s var(--ease); transition-delay: var(--d, 0ms); }
+  [data-fx="unfold"].in > * { opacity: 1; clip-path: inset(0 0 0 0 round var(--r-lg)); }
+}
+
+/* ---- แถบนำทาง: หดลงตอนเลื่อน + ไฮไลต์หมวดที่กำลังอ่าน ---- */
+.site-header { transition: box-shadow var(--dur-mid), background var(--dur-mid); }
+.site-header.small { box-shadow: 0 10px 30px rgba(0,0,0,.45); background: rgba(13,16,24,.96); backdrop-filter: blur(12px); }
+.masthead { transition: padding var(--dur-mid) var(--ease); }
+.site-header.small .masthead { padding-block: .3rem; }
+.site-header.small .search__tags { display: none; }   /* คำค้นยอดฮิตช่วยตอนเปิดหน้า ไม่ใช่ตอนกำลังอ่าน */
+.site-header.small .brand__word small { display: none; }
+.catbar a.is-here { color: var(--text); border-color: var(--brand); }
+@media (prefers-reduced-motion: reduce) { .masthead, .site-header { transition: none; } }
+
+/* ---- แถบสารบัญของหน้า (มีเฉพาะหน้าแรกซึ่งเป็นหน้ายาว) ----
+   แถบหมวดด้านบนพาไปหน้าอื่น แถบนี้พาไปหัวข้อในหน้าเดียวกัน สองอย่างนี้ทำคนละหน้าที่
+   จึงแยกกัน — และแถบนี้คือที่ที่ scroll-spy บอกได้จริงว่ากำลังอ่านหัวข้อไหน */
+.pagenav { border-top: 1px solid var(--line-soft); background: var(--surface); }
+.pagenav .wrap { display: flex; align-items: center; gap: var(--s2); overflow-x: auto; scrollbar-width: none; }
+.pagenav .wrap::-webkit-scrollbar { display: none; }
+.pagenav__tag { font-size: var(--t-xs); color: var(--text-mute); white-space: nowrap; padding-right: .3rem; }
+.pagenav a { padding: .5rem .7rem; font-size: var(--t-sm); color: var(--text-dim); white-space: nowrap; border-bottom: 2px solid transparent; transition: color var(--dur), border-color var(--dur); }
+@media (hover: hover) { .pagenav a:hover { color: var(--text); } }
+.pagenav a.is-here { color: var(--brand-hi); border-color: var(--brand); font-weight: 600; }
+.site-header.small .pagenav a { padding-block: .35rem; }   /* หัวเว็บหดแล้วแถบนี้หดตาม แต่ยังอยู่
+   เพราะนี่คือแถบที่บอกว่ากำลังอ่านหัวข้อไหน ซ่อนตอนเลื่อน = ซ่อนตอนที่มันมีประโยชน์ที่สุด */
+.site-header.small .pagenav__tag { display: none; }
+main > section[id], main > .hero { scroll-margin-top: calc(var(--header-h) + 8px); }
+
+/* กล่องสมัครรับข่าวแบบเรียงลง — ใช้คู่กับหัวข้อทรงกึ่งกลาง */
+.signup--stack { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+.signup--stack > div:last-child { width: min(100%, 520px); }
+.signup--stack .sechead { margin-bottom: 0; }
+
+
+/* 26/8/26 กลไกกลาง — เดิมใบนี้ใช้คลาส .is-stuck ของตัวเอง
+   หัวเว็บใบนี้มีหลายแถบซ้อน (topbar/masthead/pagenav) จึงตั้ง --nav-pad-small ของตัวเอง
+   และคืน padding ของลิงก์ในแถบสารบัญหลังก้อนกลาง (ก้อนกลางล้างหลานทั้งหมดเป็น 0) */
+.site-header { --nav-pad-small: 5px; }
+
+/* >>> nav-shrink · กลไกกลาง "หัวเว็บหดตอนเลื่อน" — แหล่งเดียวของทั้งกอง
+   แก้ที่ playbook/snippets/nav-shrink.css แล้วรัน: node playbook/sync-nav-shrink.mjs
+   ห้ามแก้ก้อนนี้ในไฟล์ปลายทาง — สคริปต์เขียนทับทุกครั้ง
+
+   กติกา (LOG-DEMO §15 · ด่าน playbook/audit-nav.mjs):
+   คลาสสวิตช์ = .small เท่านั้น · หดด้วย "padding ของลูก" เท่านั้น — ห้ามสั่ง height
+   ทำไมห้าม height: แถบหัวสูงเป็น auto เบราว์เซอร์ไล่ auto→เลขคงที่ไม่ได้ มันกระโดด
+   และลูกที่ตั้ง height ตายตัวจะไม่หดตาม แถบเตี้ยกว่าลูก = เกยทันที (summit เกย 20px อยู่เป็นเดือน)
+
+   ใบไหนต้องมีพื้นความสูงขั้นต่ำตอนหด (เช่น The Bed มีเพชรหมุน 45° ที่กินที่เกินผัง)
+   ให้ตั้งค่า --nav-pad-small ของใบนั้นเหนือก้อนนี้ ไม่ใช่เขียนกฎใหม่
+   ไม่ใส่ transition ให้ padding โดยตั้งใจ (24/8/26): padding เป็น layout property
+   ผิด DEMO-SPEC S2.3 และแถบที่หดคือแถบเดียวกับที่มี backdrop-filter = คิดผังใหม่+เบลอใหม่ทุกเฟรม */
+header.small > *, .site-header.small > * {
+  padding-top: var(--nav-pad-small, 0px) !important;
+  padding-bottom: var(--nav-pad-small, 0px) !important;
+  min-height: 0 !important;
+}
+header.small > * > *, .site-header.small > * > * {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  min-height: 0 !important;
+}
+@media (prefers-reduced-motion: reduce) { header, .site-header { transition: none !important; } }
+/* <<< nav-shrink */
+.site-header.small .pagenav a { padding-block: .35rem !important; }

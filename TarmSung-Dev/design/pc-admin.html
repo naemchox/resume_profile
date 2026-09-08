@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8">
+<title>PARCELA — ระบบหลังร้าน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =============================================================================
+   PARCELA — ระบบหลังร้าน (หน้าจอเดียว 1440x900 สำหรับโชว์บนจอคอมในปก)
+   ใช้โทเคนชุดเดียวกับหน้าร้าน work/parcela/css/tokens.css เป๊ะ (น้ำเงิน #1A4FD0,
+   flame เฉพาะราคา, Kanit + Noto Sans Thai) เพราะบนปกมือถือโชว์ "หน้าร้าน" อยู่แล้ว
+   จอคอมตัวนี้คือ "หลังร้าน" ของแบรนด์เดียวกัน — คนดูจึงอ่านออกว่าเราทำทั้งสองฝั่ง
+   ไม่ใช่ไปทำธุรกิจอีกอย่าง
+   ซ้ายสุด ~10% ของจอจะถูกมือถือในปกทับ ตัวเลขและกราฟทุกตัวจึงเริ่มหลัง 18%
+   ========================================================================== */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --slate-950:#14161A; --slate-700:#39414D; --slate-500:#5A6472;
+  --slate-200:#DDE3EA; --slate-100:#EDF1F6; --mist-50:#F5F7FA; --paper-0:#fff;
+  --blue-700:#1741AE; --blue-600:#1A4FD0; --blue-100:#DCE7FF;
+  --flame-700:#B3400C; --green-600:#0E7A4B; --green-100:#DCF3E7;
+  --amber-700:#8A5A00; --amber-100:#FCEFD2;
+  --font-d:"Kanit","Noto Sans Thai",sans-serif;
+  --font-b:"Noto Sans Thai","Anuphan",sans-serif;
+}
+body{width:1440px;height:900px;overflow:hidden;background:var(--mist-50);
+  font-family:var(--font-b);color:var(--slate-950);display:flex}
+
+/* ---- sidebar ---- */
+.side{width:222px;flex:none;background:var(--paper-0);border-right:1px solid var(--slate-200);
+  display:flex;flex-direction:column;padding:20px 14px}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 20px}
+.brand .mk{width:34px;height:34px;border-radius:10px;background:var(--blue-600);color:#fff;
+  display:grid;place-items:center;font-family:var(--font-d);font-weight:700;font-size:17px}
+.brand b{font-family:var(--font-d);font-weight:600;font-size:17px;line-height:1.1;display:block}
+.brand small{display:block;font-size:10px;letter-spacing:1.6px;color:var(--slate-500);font-weight:600}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:9px;
+  color:var(--slate-700);font-size:14px;font-weight:500;text-decoration:none}
+.nav a svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round}
+.nav a.on{background:var(--blue-600);color:#fff;font-weight:600}
+.nav .tag{margin-left:auto;background:var(--blue-100);color:var(--blue-700);font-size:11px;
+  font-weight:700;padding:1px 7px;border-radius:99px}
+.nav a.on .tag{background:rgba(255,255,255,.24);color:#fff}
+.side .foot{margin-top:auto;background:var(--slate-100);border-radius:12px;padding:12px 13px}
+.side .foot b{font-family:var(--font-d);font-weight:600;font-size:13px;display:block}
+.side .foot p{font-size:11.5px;color:var(--slate-500);line-height:1.5;margin:2px 0 9px}
+.side .foot span{display:block;text-align:center;background:var(--blue-600);color:#fff;
+  font-size:12px;font-weight:600;padding:7px;border-radius:8px}
+
+/* ---- main ---- */
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.top{height:62px;flex:none;background:var(--paper-0);border-bottom:1px solid var(--slate-200);
+  display:flex;align-items:center;gap:14px;padding:0 24px}
+.top h1{font-family:var(--font-d);font-weight:600;font-size:18px}
+.chip{display:flex;align-items:center;gap:7px;border:1px solid var(--slate-200);border-radius:99px;
+  padding:6px 13px;font-size:12.5px;color:var(--slate-700);font-weight:500}
+.chip svg{width:14px;height:14px;stroke:var(--slate-500);fill:none;stroke-width:1.7}
+.search{margin-left:auto;display:flex;align-items:center;gap:8px;background:var(--mist-50);
+  border:1px solid var(--slate-200);border-radius:99px;padding:7px 14px;width:230px;
+  font-size:12.5px;color:var(--slate-500)}
+.search svg{width:15px;height:15px;stroke:var(--slate-500);fill:none;stroke-width:1.8}
+.bell{position:relative;width:34px;height:34px;border-radius:50%;border:1px solid var(--slate-200);
+  display:grid;place-items:center}
+.bell svg{width:16px;height:16px;stroke:var(--slate-700);fill:none;stroke-width:1.7}
+.bell i{position:absolute;top:6px;right:7px;width:7px;height:7px;border-radius:50%;
+  background:var(--flame-700);border:1.5px solid #fff}
+.me{display:flex;align-items:center;gap:9px}
+.me .av{width:34px;height:34px;border-radius:50%;background:var(--blue-100);color:var(--blue-700);
+  display:grid;place-items:center;font-weight:700;font-size:13px}
+.me b{font-size:13px;font-weight:600;display:block;line-height:1.2}
+.me small{font-size:11px;color:var(--slate-500)}
+
+.body{flex:1;padding:20px 24px;display:flex;flex-direction:column;gap:16px;min-height:0}
+
+/* ---- kpi ---- */
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.card{background:var(--paper-0);border:1px solid var(--slate-200);border-radius:14px}
+.k{padding:15px 17px}
+.k .lb{font-size:12.5px;color:var(--slate-500);font-weight:500}
+.k .v{font-family:var(--font-d);font-weight:600;font-size:27px;letter-spacing:-.3px;margin-top:4px}
+.k .v small{font-size:16px;font-weight:500}
+.k .d{display:flex;align-items:center;gap:6px;margin-top:7px;font-size:12px;font-weight:600}
+.k .up{color:var(--green-600)} .k .dn{color:var(--flame-700)}
+.k .d span{color:var(--slate-500);font-weight:400}
+.k .price{color:var(--flame-700)}
+
+/* ---- charts row ---- */
+.row{display:grid;grid-template-columns:1fr 330px;gap:16px;flex:none}
+.hd{display:flex;align-items:center;justify-content:space-between;padding:14px 17px 0}
+.hd h2{font-family:var(--font-d);font-weight:600;font-size:15px}
+.hd .lg{display:flex;gap:12px;font-size:11.5px;color:var(--slate-500)}
+.hd .lg i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}
+.chart{padding:8px 17px 14px}
+.bars{display:flex;align-items:flex-end;gap:26px;height:132px;padding-top:6px}
+.bars .b{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%}
+.bars .b u{display:block;border-radius:6px 6px 0 0;background:var(--blue-600)}
+.bars .b em{display:block;border-radius:0 0 6px 6px;background:var(--blue-100)}
+.days{display:flex;gap:26px;margin-top:9px}
+.days span{flex:1;text-align:center;font-size:11.5px;color:var(--slate-500)}
+
+/* ---- top products ---- */
+.pl{padding:12px 17px 14px;display:flex;flex-direction:column;gap:11px}
+.pl .it{display:flex;align-items:center;gap:11px}
+.pl img{width:38px;height:38px;border-radius:9px;object-fit:cover;flex:none;background:var(--slate-100)}
+.pl .nm{flex:1;min-width:0}
+.pl .nm b{display:block;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.pl .nm .bar{height:5px;border-radius:99px;background:var(--slate-100);margin-top:5px;overflow:hidden}
+.pl .nm .bar i{display:block;height:100%;border-radius:99px;background:var(--blue-600)}
+.pl .qt{font-size:12px;font-weight:600;color:var(--slate-700);flex:none}
+
+/* ---- table ---- */
+.tb{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;padding:9px 17px;font-size:11.5px;font-weight:600;color:var(--slate-500);
+  background:var(--mist-50);border-block:1px solid var(--slate-200)}
+td{padding:10px 17px;border-bottom:1px solid var(--slate-100)}
+td b{font-weight:600}
+.cust{display:flex;align-items:center;gap:9px}
+.cust .av{width:26px;height:26px;border-radius:50%;background:var(--slate-100);color:var(--slate-700);
+  display:grid;place-items:center;font-size:11px;font-weight:700}
+.amt{font-weight:700;color:var(--flame-700);font-variant-numeric:tabular-nums}
+.st{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;
+  font-size:11.5px;font-weight:600}
+.st i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.paid{background:var(--green-100);color:var(--green-600)}
+.pack{background:var(--amber-100);color:var(--amber-700)}
+.ship{background:var(--blue-100);color:var(--blue-700)}
+.tm{color:var(--slate-500);font-variant-numeric:tabular-nums}
+</style></head><body>
+
+<aside class="side">
+  <div class="brand"><span class="mk"><svg viewBox="0 0 32 32" width="20" height="20" aria-hidden="true"><path d="M5.4 11.4 16 6.6l10.6 4.8v11.4L16 27.6 5.4 22.8Z" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round"/><path d="M5.4 11.4 16 16.2l10.6-4.8" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round"/><path d="M16 16.2v11.4" fill="none" stroke="currentColor" stroke-width="2.1"/><path d="m10.9 19.6 2.6 2.6 5-5.4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><b>PARCELA</b><small>ADMIN</small></span></div>
+  <nav class="nav">
+    <a class="on" href="#"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>แดชบอร์ด</a>
+    <a href="#"><svg viewBox="0 0 24 24"><path d="M4 6h16l-1.4 9.4a2 2 0 0 1-2 1.6H7.4a2 2 0 0 1-2-1.6z"/><circle cx="9" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/></svg>ออเดอร์<span class="tag">37</span></a>
+    <a href="#"><svg viewBox="0 0 24 24"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></svg>สินค้า</a>
+    <a href="#"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0M16 6.2a3 3 0 0 1 0 5.6M17.5 19.5a5 5 0 0 0-2.2-4"/></svg>ลูกค้า</a>
+    <a href="#"><svg viewBox="0 0 24 24"><path d="M3 12.5 11 4.5h6a3 3 0 0 1 3 3v6l-8 8z"/><circle cx="16" cy="8" r="1.3"/></svg>โปรโมชัน</a>
+    <a href="#"><svg viewBox="0 0 24 24"><path d="M4 20V9M10 20V4M16 20v-7M22 20H2"/></svg>รายงาน</a>
+    <a href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.6M12 18.6v2.6M21.2 12h-2.6M5.4 12H2.8M18.5 5.5l-1.8 1.8M7.3 16.7l-1.8 1.8M18.5 18.5l-1.8-1.8M7.3 7.3 5.5 5.5"/></svg>ตั้งค่า</a>
+  </nav>
+  <div class="foot">
+    <b>แพ็กเกจ Growth</b>
+    <p>ออเดอร์เดือนนี้ 1,284 / 2,000</p>
+    <span>ดูการใช้งาน</span>
+  </div>
+</aside>
+
+<main class="main">
+  <header class="top">
+    <h1>ภาพรวมร้าน</h1>
+    <span class="chip"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>วันนี้ · 20 ส.ค. 2569</span>
+    <span class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>ค้นหาออเดอร์ / ลูกค้า</span>
+    <span class="bell"><svg viewBox="0 0 24 24"><path d="M18 15V10a6 6 0 1 0-12 0v5l-1.5 3h15z"/><path d="M10 21h4"/></svg><i></i></span>
+    <span class="me"><span class="av">พร</span><span><b>พรทิพย์ ส.</b><small>ผู้ดูแลร้าน</small></span></span>
+  </header>
+
+  <div class="body">
+    <section class="kpi">
+      <div class="card k">
+        <div class="lb">ยอดขายวันนี้</div>
+        <div class="v price">฿48,320</div>
+        <div class="d up">▲ 12.4% <span>เทียบเมื่อวาน</span></div>
+      </div>
+      <div class="card k">
+        <div class="lb">ออเดอร์ใหม่</div>
+        <div class="v">37 <small>รายการ</small></div>
+        <div class="d up">▲ 8 <span>รอยืนยัน 5</span></div>
+      </div>
+      <div class="card k">
+        <div class="lb">รอจัดส่ง</div>
+        <div class="v">12 <small>กล่อง</small></div>
+        <div class="d dn">● ตัดรอบ 16:00 <span>วันนี้</span></div>
+      </div>
+      <div class="card k">
+        <div class="lb">ลูกค้าใหม่</div>
+        <div class="v">26 <small>คน</small></div>
+        <div class="d up">▲ 31% <span>จากไลน์ OA</span></div>
+      </div>
+    </section>
+
+    <section class="row">
+      <div class="card">
+        <div class="hd">
+          <h2>ยอดขาย 7 วันล่าสุด</h2>
+          <div class="lg"><span><i style="background:#1A4FD0"></i>เก็บเงินปลายทาง</span><span><i style="background:#DCE7FF"></i>โอน/บัตร</span></div>
+        </div>
+        <div class="chart">
+          <div class="bars">
+            <span class="b"><u style="height:38%"></u><em style="height:16%"></em></span>
+            <span class="b"><u style="height:52%"></u><em style="height:14%"></em></span>
+            <span class="b"><u style="height:44%"></u><em style="height:22%"></em></span>
+            <span class="b"><u style="height:63%"></u><em style="height:18%"></em></span>
+            <span class="b"><u style="height:57%"></u><em style="height:25%"></em></span>
+            <span class="b"><u style="height:71%"></u><em style="height:21%"></em></span>
+            <span class="b"><u style="height:84%"></u><em style="height:16%"></em></span>
+          </div>
+          <div class="days"><span>จ</span><span>อ</span><span>พ</span><span>พฤ</span><span>ศ</span><span>ส</span><span>อา</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="hd"><h2>สินค้าขายดี</h2><span class="lg">7 วัน</span></div>
+        <div class="pl">
+          <div class="it"><img src="../work/parcela/img/item-1.jpg" alt="">
+            <span class="nm"><b>นาฬิกาสมาร์ตวอทช์</b><span class="bar"><i style="width:86%"></i></span></span>
+            <span class="qt">128</span></div>
+          <div class="it"><img src="../work/parcela/img/item-2.jpg" alt="">
+            <span class="nm"><b>หูฟังตัดเสียงรบกวน</b><span class="bar"><i style="width:64%"></i></span></span>
+            <span class="qt">96</span></div>
+          <div class="it"><img src="../work/parcela/img/item-3.jpg" alt="">
+            <span class="nm"><b>กล้องอินสแตนต์</b><span class="bar"><i style="width:47%"></i></span></span>
+            <span class="qt">71</span></div>
+          <div class="it"><img src="../work/parcela/img/item-4.jpg" alt="">
+            <span class="nm"><b>รองเท้าผ้าใบ ลิมิเต็ด</b><span class="bar"><i style="width:33%"></i></span></span>
+            <span class="qt">50</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card tb">
+      <div class="hd"><h2>ออเดอร์ล่าสุด</h2><span class="lg">อัปเดตอัตโนมัติทุก 30 วินาที</span></div>
+      <table>
+        <thead><tr><th>เลขที่</th><th>ลูกค้า</th><th>สินค้า</th><th>ยอดรวม</th><th>ชำระเงิน</th><th>สถานะ</th><th>เวลา</th></tr></thead>
+        <tbody>
+          <tr><td><b>#SD-24817</b></td>
+            <td><span class="cust"><span class="av">ณ</span>ณัฐพล ทองดี</span></td>
+            <td>นาฬิกาสมาร์ตวอทช์ ×1</td><td class="amt">฿1,290</td><td>ปลายทาง</td>
+            <td><span class="st pack"><i></i>กำลังแพ็ก</span></td><td class="tm">09:42</td></tr>
+          <tr><td><b>#SD-24816</b></td>
+            <td><span class="cust"><span class="av">ส</span>สุนิสา แก้วใส</span></td>
+            <td>หูฟังตัดเสียงรบกวน ×2</td><td class="amt">฿980</td><td>โอน</td>
+            <td><span class="st paid"><i></i>ชำระแล้ว</span></td><td class="tm">09:31</td></tr>
+          <tr><td><b>#SD-24815</b></td>
+            <td><span class="cust"><span class="av">ก</span>กิตติชัย พูลผล</span></td>
+            <td>กล้องอินสแตนต์ ×1</td><td class="amt">฿690</td><td>บัตรเครดิต</td>
+            <td><span class="st ship"><i></i>ส่งแล้ว · SPX</span></td><td class="tm">09:18</td></tr>
+          <tr><td><b>#SD-24814</b></td>
+            <td><span class="cust"><span class="av">อ</span>อารีย์ วงศ์สกุล</span></td>
+            <td>รองเท้าผ้าใบ ×1, ถุงเท้า ×2</td><td class="amt">฿1,540</td><td>ปลายทาง</td>
+            <td><span class="st pack"><i></i>กำลังแพ็ก</span></td><td class="tm">08:57</td></tr>
+          <tr><td><b>#SD-24813</b></td>
+            <td><span class="cust"><span class="av">ธ</span>ธนกฤต ศรีสมบัติ</span></td>
+            <td>นาฬิกาสมาร์ตวอทช์ ×2</td><td class="amt">฿2,580</td><td>โอน</td>
+            <td><span class="st paid"><i></i>ชำระแล้ว</span></td><td class="tm">08:40</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+</main>
+</body></html>

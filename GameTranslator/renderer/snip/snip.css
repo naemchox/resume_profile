@@ -1,0 +1,309 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  cursor: crosshair;
+  overflow: hidden;
+  user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* Windows click-through path: the overlay does NOT own the mouse, so a crosshair here fights the
+   cursor the window underneath sets on every forwarded mousemove — the pointer flickers +/arrow.
+   Let the app below own the cursor; the live selection box is the position feedback. */
+body.ct, body.ct #overlay { cursor: default; }
+
+/* FULLY transparent: a full-screen element still catches clicks without any fill, and a non-zero
+   background here composited over hardware-accelerated video (Windows) disabled the video's overlay
+   plane — freezing the video the moment the snip overlay appeared. Transparent = video keeps playing. */
+#overlay {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+}
+/* Freeze-frame backdrop (Windows): fills the screen behind everything, stretched to the DIP window
+   size. Being opaque, it fully covers the live video → no hardware-overlay fight → no lag/freeze. */
+#freeze {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  z-index: 0;
+  pointer-events: none;
+}
+#freeze[hidden] { display: none; }
+/* Armed cue on the cursor. pointer-events:none — it must never eat a click or fight the crosshair. */
+#ring {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border: 2px solid rgba(125, 211, 252, 0.95);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45), 0 0 14px rgba(125, 211, 252, 0.5);
+  pointer-events: none;
+  z-index: 3;
+}
+#ring[hidden] { display: none; }
+/* The pulse says "live/waiting for you", which a static ring doesn't. It rides ::after so the ring
+   itself can be moved with transform on every mousemove without restarting the animation. */
+#ring::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border: 2px solid rgba(125, 211, 252, 0.55);
+  border-radius: 50%;
+  animation: ringPulse 1.5s ease-out infinite;
+}
+@keyframes ringPulse {
+  0% { transform: scale(0.72); opacity: 0.85; }
+  100% { transform: scale(1.25); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { #ring::after { animation: none; opacity: 0.4; } }
+
+#selection {
+  position: fixed;
+  border: 1px solid rgba(125, 211, 252, 0.95);
+  background: rgba(125, 211, 252, 0.18);
+  border-radius: 2px;
+  display: none;
+  pointer-events: none;
+}
+
+body.once #selection {
+  border: 1.5px solid #7dd3fc;
+  background: rgba(125, 211, 252, 0.16);
+  border-radius: 4px;
+}
+
+/* ---- Live-strip edit mode: the box is pre-placed (default subtitle spot or the remembered one)
+   and the user adjusts it — drag inside to move, corners to resize, ✓ to start watching. */
+body.edit #selection { pointer-events: auto; cursor: move; }
+/* The grips are INVISIBLE now (jek): eight blue squares stuck to a box that is already outlined told
+   you nothing the outline did not, and they sat on top of the subtitles you were trying to frame.
+   What replaces them is the box's own edge — hold the side and pull. The hit zones are the same
+   elements (snip.js reads data-h), only unpainted and stretched along each side, so the whole border
+   is grabbable instead of eight small dots. The cursor is the affordance: it changes to a resize arrow
+   the moment you are over an edge, and a faint band lights under it.
+   Sizes are hit-target sizes, not decoration: 12px bands (6px either side of the border) and 18px
+   corners, which is what a hand-held mouse can hit without aiming. */
+.h {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  display: none;
+  pointer-events: auto;
+  z-index: 2; /* corners over the edge bands, so a corner grab beats the side it overlaps */
+  transition: background 0.12s ease;
+}
+body.edit .h { display: block; }
+/* The band you are about to grab lights up — the replacement for a permanently visible grip. */
+.h:hover { background: rgba(125, 211, 252, 0.28); }
+.hnw, .hne, .hsw, .hse { width: 18px; height: 18px; }
+.hnw { left: -9px; top: -9px; cursor: nwse-resize; }
+.hne { right: -9px; top: -9px; cursor: nesw-resize; }
+.hsw { left: -9px; bottom: -9px; cursor: nesw-resize; }
+.hse { right: -9px; bottom: -9px; cursor: nwse-resize; }
+/* What-is-this label, centred in the CC box while adjusting it. Hidden outside edit mode;
+   pointer-events none so it never steals the move-drag. */
+#editLabel {
+  display: none;
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 16px;
+  color: #7dd3fc; /* match the box outline theme */
+  font-size: 13px;
+  font-weight: 600;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+  pointer-events: none;
+  user-select: none;
+}
+body.edit #editLabel { display: flex; }
+/* Simple blue CC badge (replaces the emoji — jek wants it plain + on-theme). */
+#editLabel .cc-mark {
+  border: 2px solid #7dd3fc;
+  border-radius: 4px;
+  padding: 0 5px;
+  margin-right: 8px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+/* Edge zones: the WHOLE side, not a bar centred on it. A 44px bar meant the ends of a wide box were
+   dead space that looked identical to the part that worked. */
+.eh { border-radius: 0; z-index: 1; }
+.ehn, .ehs { left: 0; right: 0; width: auto; height: 12px; margin-left: 0; cursor: ns-resize; }
+.ehn { top: -6px; }
+.ehs { bottom: -6px; }
+.ehw, .ehe { top: 0; bottom: 0; height: auto; width: 12px; margin-top: 0; cursor: ew-resize; }
+.ehw { left: -6px; }
+.ehe { right: -6px; }
+
+/* The bar itself is the surface — same slab as #hint below and the pill in the main window, so the
+   two things on screen during this task belong to one app. Everything inside it is transparent. */
+#editBar {
+  position: fixed;
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  padding: 5px;
+  background: rgba(18, 20, 26, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 13px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+}
+#editBar[hidden] { display: none; }
+#editBar button {
+  padding: 7px 13px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #e7eaf0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+/* Quiet buttons light up from the surface they sit on rather than changing brightness — filter on a
+   translucent capsule lifted its shadow too, which is what made the old hover read as a jump. */
+#editBar button:hover { background: rgba(255, 255, 255, 0.09); color: #fff; }
+/* The one filled thing on the bar. Same accent the ring and the CC chip use; 600 like its neighbours,
+   because being the only coloured surface is already the whole difference — a heavier weight on top
+   of that was the size mismatch you could see between the three old capsules. */
+#editBar #goBtn {
+  background: #7dd3fc;
+  color: #0d1117;
+  font-weight: 700;
+  padding: 7px 15px;
+}
+#editBar #goBtn:hover { background: #a5e2ff; color: #0d1117; }
+/* Cancel is a different KIND of action from the two that place the strip, so it sits behind a rule
+   instead of being spaced away from them — the gap is what made the old ✕ look like a third option. */
+.eb-div {
+  width: 1px;
+  align-self: stretch;
+  margin: 2px 4px;
+  background: rgba(255, 255, 255, 0.12);
+}
+#editBar .eb-icon {
+  padding: 0;
+  width: 30px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #aab2c0;
+}
+#editBar .eb-icon:hover { color: #fff; background: rgba(255, 255, 255, 0.09); }
+
+/* Pill-style hint, matching the main overlay. */
+#hint {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #f3f4f6;
+  background: rgba(18, 20, 26, 0.92);
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  transition: top 0.18s ease, left 0.18s ease, transform 0.18s ease, font-size 0.18s ease, opacity 0.18s ease;
+}
+
+/* Parked between snips — see snip.js's idle branch. visibility, not opacity: the transition above
+   would fade the stale text back IN for a moment, which is the stutter this exists to remove. */
+#hint.pending { visibility: hidden; }
+
+/* Mid-drag the hint shrinks and dims, but does NOT move (jek, 2026-07-22). It used to fly from the
+   top-centre to the top-left corner the instant you pressed the button — a 50%-of-the-screen slide
+   in your peripheral vision at the exact moment you're trying to aim a box. Staying put costs
+   nothing: by then it's one short word of text, and you're looking at your selection, not at it. */
+#hint.mini {
+  top: 12px;
+  font-size: 11px;
+  padding: 5px 10px;
+  opacity: 0.5;
+}
+
+/* Same shell/animation as the result card in the main view. */
+#preview {
+  position: fixed;
+  left: 0;
+  top: 0;
+  /* Positioned by transform so it can follow the drag box live every mousemove (GPU-composited). */
+  will-change: transform;
+  width: 300px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  background: rgba(18, 20, 26, 0.92);
+  color: #f3f4f6;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  font-family: -apple-system, "Segoe UI", "Sarabun", "Noto Sans Thai", system-ui, sans-serif;
+  animation: previewIn 0.16s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.14s ease;
+}
+
+@keyframes previewIn { from { opacity: 0; } to { opacity: 1; } }
+
+#preview[hidden] { display: none; }
+/* No fade while it reads — the preview stays solid the whole time. */
+#preview.loading { opacity: 1; }
+
+/* The captured text — the "did I box the right words" check. */
+/* The live translation — the prominent line (this is what you're here for). */
+#pvTh {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #f3f4f6;
+  word-break: break-word;
+  font-family: "Noto Sans Thai", "Sarabun", -apple-system, system-ui, sans-serif;
+}
+/* Status text ("Reading…", "Can't read here") borrows the translation's element, so it has to look
+   like a different KIND of thing or it reads as a result — as though the word translated to
+   "Reading". Lighter, smaller, muted, italic: clearly the app talking, not the game's text. The card
+   also shrinks to fit, since a status has no source line under it. */
+#preview.status {
+  width: auto;
+  min-width: 120px;
+  max-width: 300px;
+  padding: 9px 13px;
+}
+#preview.status #pvTh {
+  font-size: 12px;
+  font-weight: 500;
+  font-style: italic;
+  color: #9aa3b2; /* same muted tone as the source line below a real reading */
+}
+
+/* Part-of-speech after the translation is the shared chip now (shared/pos-badge.css) — it used to be
+   quiet italic blue text here, and italic-blue is not what the same tag looks like anywhere else. */
+
+/* The captured source text — secondary, muted, below the translation. */
+#pvEn {
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #9aa3b2;
+  word-break: break-word;
+}

@@ -1,0 +1,69 @@
+  <!-- ฮีโร่ทรง velvet-leaf (31/8/26 · jek ขอลอง) — เก็บทรงเดิมไว้ที่ _src/b-hero-fullbleed.html
+       โครงที่ยกมาจาก velvet: แบ่งครึ่ง (ตัวหนังสือซ้าย รูปขวาในกรอบ) · คิกเกอร์ small-caps
+       · หัวสองระดับคั่นด้วยเส้น · เช็คลิสต์วงกลม · การ์ดลอยคาบรูป · แถบตัวเลขคาบขอบล่าง
+       ที่เปลี่ยนเป็นของเราเอง: พาเลตหมึก-อำพัน · การ์ดลอยเป็น "กะไหนอยู่เวรตอนนี้" ที่เดินตามเวลาจริง
+       (velvet เป็นเวลาเปิด-ปิดตายตัว) · แถบตัวเลขเป็นของโรงพยาบาล ไม่ใช่ของร้าน -->
+  <section class="vhero" id="top" aria-labelledby="hero-title">
+    <span class="vhero-glow vhero-glow--a" aria-hidden="true"></span>
+    <span class="vhero-glow vhero-glow--b" aria-hidden="true"></span>
+    <div class="motes" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+    <div class="wrap vhero-grid">
+      <div class="vhero-copy">
+        <span class="kicker onair reveal"><i aria-hidden="true"></i>มาบตาพุด · ระยอง</span>
+
+        <h1 id="hero-title" class="vh1 reveal d1">
+          <span class="vh1-mark">ถึงเช้า</span>
+          <span class="vh1-lead">คืนนี้เราเฝ้าให้<br>จนกว่าจะ<em>ถึงเช้า</em></span>
+        </h1>
+
+        <p class="lede reveal d2">โรงพยาบาลสัตว์เปิด 24 ชั่วโมง — มีสัตวแพทย์อยู่ในตึกจริงตลอดคืน ไม่ใช่แค่มีคนรับสายแล้วนัดพรุ่งนี้</p>
+
+        <ul class="proof reveal d2">
+          <li><span class="tick" aria-hidden="true"></span>สัตวแพทย์อยู่เวรจริงทุกชั่วโมง ไม่ใช่ระบบเรียกจากบ้าน</li>
+          <li><span class="tick" aria-hidden="true"></span>ห้องผ่าตัด · X-ray · ตรวจเลือด พร้อมใช้ตลอดคืน</li>
+          <li><span class="tick" aria-hidden="true"></span>บอกราคาก่อนลงมือทุกครั้ง แม้จะเป็นตี 3</li>
+        </ul>
+
+        <div class="act reveal d3">
+          <a class="btn btn--solid btn--lg" href="tel:038000000">โทรเดี๋ยวนี้ 038-xxx-xxx
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 4.5h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4.5 6.7 2 2 0 0 1 6.5 4.5z"/></svg></a>
+          <a class="btn btn--outline btn--lg" href="{{R}}now/">ยังไม่แน่ใจว่าต้องมาไหม
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6.5 18.5 12 13 17.5"/></svg></a>
+        </div>
+      </div>
+
+      <div class="vhero-media reveal d1">
+        <span class="vhero-orn" aria-hidden="true">
+          <svg viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="1.2">
+            <circle cx="60" cy="60" r="46"/><circle cx="60" cy="60" r="30"/>
+            <path d="M60 6v108M6 60h108"/>
+          </svg>
+        </span>
+        <span class="vhero-bracket" aria-hidden="true"></span>
+        <figure class="vhero-frame">
+          <img src="{{R}}img/hero-1600.webp"
+               srcset="{{R}}img/hero-800.webp 800w, {{R}}img/hero-1200.webp 1200w, {{R}}img/hero-1600.webp 1600w"
+               sizes="(max-width:900px) 100vw, 46vw"
+               alt="สุนัขนอนพักบนพื้นในความมืด มีลำแสงแรกของเช้าพาดผ่านตัว" width="1600" height="1065" fetchpriority="high">
+        </figure>
+        <div class="vhero-card">
+          <span class="vhero-card-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+              <circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.4 2"/></svg>
+          </span>
+          <div>
+            <b>ตอนนี้ <span data-clock>—</span></b>
+            <span data-shift>กำลังดูว่าใครอยู่เวร…</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ul class="vstats" aria-label="ตัวเลขของโรงพยาบาล">
+      <li><b>24</b><span>ชั่วโมง ทุกวัน</span></li>
+      <li><b>12</b><span>คลินิกเฉพาะทาง</span></li>
+      <li><b>3</b><span>กะ มีหมออยู่ครบ</span></li>
+      <li><b>0</b><span>วันหยุด</span></li>
+    </ul>
+  </section>

@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="th" data-lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MAYA GREEN — บูทีคกัญชาทางการแพทย์คัดสรร เอกมัย กรุงเทพฯ</title>
+<meta name="description" content="MAYA GREEN — Selected Cannabis Boutique ย่านเอกมัย กรุงเทพฯ ดอกกัญชาเกรดการแพทย์จากฟาร์มไทยที่ได้รับการรับรอง GACP คัดสรรอย่างพิถีพิถัน">
+<meta name="theme-color" content="#FCFAF5">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="MAYA GREEN — Selected Cannabis Boutique">
+<meta property="og:description" content="ดอกกัญชาเกรดการแพทย์จากฟาร์มไทยที่ได้รับการรับรอง GACP — เอกมัย กรุงเทพฯ">
+<meta property="og:locale" content="th_TH">
+<meta property="og:locale:alternate" content="en_US">
+<!-- NOTE: og:image and canonical must become ABSOLUTE URLs at launch
+     (https://domain/assets/img/og.jpg) — scrapers do not reliably
+     resolve relative paths. Add rel="canonical" at the same time. -->
+<meta property="og:image" content="assets/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="MAYA GREEN — Selected Cannabis Boutique, Ekkamai Bangkok">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@MAYAGREEN420">
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.92em' font-size='88' font-family='Georgia,serif' fill='%23123B26'%3EM%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Itim carries the Thai — Comic Sans MS has no Thai glyphs. Single weight:
+     Itim ships 400 only, so the 300/500/600 in the CSS get synthesised. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Itim&display=swap">
+<!-- The original faces, still loaded because the top hero opts back into them
+     (see `.hero--dark` in main.css). Nothing else on the page uses these. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500;600&family=Trirong:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600&display=swap">
+<link rel="stylesheet" href="assets/css/main.css?v=1c0e5d30">
+
+<script>
+/* Reveal animations are opt-in. Only hide content once JS is confirmed
+   alive, and strip the flag again if main.js never boots — so a failed
+   script degrades to plain visible content instead of a blank page. */
+(function (d) {
+  d.classList.add('js');
+  setTimeout(function () {
+    if (!d.classList.contains('js-ready')) d.classList.remove('js');
+  }, 2500);
+})(document.documentElement);
+</script>
+
+<!-- One page, so one record. This is the merge of what used to be the
+     Store block on index.html and the LocalBusiness block on visit.html:
+     Store is a subtype of LocalBusiness, so it carries geo and
+     currenciesAccepted from the latter without losing anything.
+     Editing this block changes its CSP hash — see SECURITY.md §9. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Store",
+  "name": "MAYA GREEN — Selected Cannabis Boutique",
+  "description": "Selected medical-grade cannabis from a GACP-certified Thai farm. Ekkamai, Bangkok.",
+  "telephone": "+66825534873",
+  "currenciesAccepted": "THB",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "984, 49 Pridi Banomyong 40 Alley",
+    "addressLocality": "Khlong Tan Nuea, Watthana",
+    "addressRegion": "Bangkok",
+    "postalCode": "10110",
+    "addressCountry": "TH"
+  },
+  "geo": { "@type": "GeoCoordinates", "latitude": 13.7326186, "longitude": 100.5981867 },
+  "sameAs": [
+    "https://www.instagram.com/mayagreen.bangkok/",
+    "https://x.com/MAYAGREEN420"
+  ],
+  "openingHoursSpecification": [
+    { "@type": "OpeningHoursSpecification",
+      "dayOfWeek": ["Sunday","Monday","Wednesday","Thursday","Friday","Saturday"],
+      "opens": "12:00", "closes": "23:00" }
+  ]
+}
+</script>
+</head>
+
+<!-- dark-hero: tells the fixed nav bar it is sitting on a dark photograph
+     until it sticks. The page opens on one. -->
+<body class="dark-hero">
+
+<!-- ══ Icon sprite ══════════════════════════════════════════════
+     The union of the three sprites that used to live on index,
+     menu and visit. Every symbol below is referenced somewhere on
+     this page except #blob-wave, which is noted in place.
+     ═════════════════════════════════════════════════════════════ -->
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <defs>
+    <!-- CURRENTLY UNUSED — kept because it is expensive to redraw and may
+         come back. Nothing references it; the hero is a plain rectangle.
+         To re-enable, add `clip-path: url(#blob-wave)` to .hero__blob img,
+         and rebuild the hero artwork first — see assets/img/README.md.
+
+         Organic wave frame. clipPathUnits is objectBoundingBox, so the path
+         is written in 0–1 units and stretches with whatever box it clips —
+         one shape, every width. Waves are gentler on the top and bottom
+         edges than the sides, because the box is wide: equal fractions
+         there would read as much deeper scallops. It bites up to 6.3% top
+         and bottom and 14% at the corners, so anything that matters has to
+         be held inside that inset. -->
+    <clipPath id="blob-wave" clipPathUnits="objectBoundingBox">
+      <path d="M0.10 0.05
+               C0.22 0.005, 0.30 0.095, 0.42 0.05
+               C0.54 0.005, 0.62 0.095, 0.74 0.05
+               C0.82 0.022, 0.865 0.028, 0.90 0.05
+               C0.945 0.05, 0.96 0.085, 0.96 0.14
+               C0.995 0.30, 0.925 0.42, 0.96 0.56
+               C0.995 0.70, 0.930 0.80, 0.96 0.86
+               C0.96 0.915, 0.945 0.95, 0.90 0.95
+               C0.78 0.995, 0.70 0.905, 0.58 0.95
+               C0.46 0.995, 0.38 0.905, 0.26 0.95
+               C0.18 0.978, 0.135 0.972, 0.10 0.95
+               C0.055 0.95, 0.04 0.92, 0.04 0.86
+               C0.005 0.70, 0.075 0.58, 0.04 0.44
+               C0.005 0.30, 0.070 0.20, 0.04 0.14
+               C0.04 0.085, 0.055 0.05, 0.10 0.05 Z"/>
+    </clipPath>
+
+    <g id="i-leaf" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="butt" stroke-linejoin="round">
+      <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
+      <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+    </g>
+    <g id="i-shield" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="butt" stroke-linejoin="round">
+      <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1Z"/>
+      <path d="m9 12 2 2 4-4"/>
+    </g>
+    <g id="i-sprout" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="butt" stroke-linejoin="round">
+      <path d="M7 20h10M10 20c5.5-2.5.8-6.4 3-10"/>
+      <path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2.3.5-4.1.4-5.2-.4C5.5 12 4.9 10.6 4.4 9.1c2.3-.5 4-.4 5.1.3"/>
+      <path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4-1.9.1-3.3.6-4.9 1.4"/>
+    </g>
+    <g id="i-flask" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="butt" stroke-linejoin="round">
+      <path d="M10 2v7.5a2 2 0 0 1-.3 1L4.6 19a2 2 0 0 0 1.7 3h11.4a2 2 0 0 0 1.7-3l-5.1-8.5a2 2 0 0 1-.3-1V2"/>
+      <path d="M8.5 2h7M7 16h10"/>
+    </g>
+    <g id="i-pin" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="butt" stroke-linejoin="round">
+      <path d="M20 10c0 4.4-8 12-8 12s-8-7.6-8-12a8 8 0 0 1 16 0Z"/>
+      <circle cx="12" cy="10" r="3"/>
+    </g>
+    <g id="i-clock" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="butt" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+    </g>
+    <g id="i-phone" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="butt" stroke-linejoin="round">
+      <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.1a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"/>
+    </g>
+    <g id="i-ig" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="butt" stroke-linejoin="round">
+      <rect width="20" height="20" x="2" y="2" rx="5"/>
+      <path d="M16 11.4A4 4 0 1 1 12.6 8 4 4 0 0 1 16 11.4Z"/>
+      <line x1="17.5" y1="6.5" x2="17.5" y2="6.5"/>
+    </g>
+    <g id="i-x" fill="currentColor">
+      <path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3l-4.9-6.5L6.3 22H3.2l7.3-8.3L2.8 2h6.4l4.5 5.9Zm-1.1 18h1.7L8.3 3.7H6.4Z"/>
+    </g>
+    <g id="i-arrow" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="butt" stroke-linejoin="round">
+      <path d="M5 12h14M13 6l6 6-6 6"/>
+    </g>
+    <g id="i-diamond" fill="currentColor">
+      <path d="M6 0 12 6 6 12 0 6Z"/>
+    </g>
+    <g id="i-copy" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="butt" stroke-linejoin="round">
+      <rect width="13" height="13" x="9" y="9" rx="2"/>
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+    </g>
+    <g id="i-check" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="butt" stroke-linejoin="round">
+      <path d="m4 12.5 5 5L20 6.5"/>
+    </g>
+  </defs>
+</svg>
+
+
+<!-- ══ Age gate ═════════════════════════════════════════════════ -->
+<div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-h" hidden>
+  <div class="gate__card">
+    <svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><use href="#i-leaf"/></svg>
+    <h2 class="h-md" id="gate-h">
+      <span lang="th">คุณอายุ 20 ปีขึ้นไปหรือไม่</span>
+      <span lang="en">Are you 20 or older?</span>
+    </h2>
+    <p>
+      <span lang="th">MAYA GREEN จำหน่ายผลิตภัณฑ์กัญชาทางการแพทย์ ตามข้อกำหนดของกฎหมายไทย</span>
+      <span lang="en">MAYA GREEN sells medical cannabis products under Thai law.</span>
+    </p>
+    <div class="gate__acts">
+      <button class="btn" id="gate-yes" type="button">
+        <span lang="th">ใช่ ฉันอายุ 20 ปีขึ้นไป</span>
+        <span lang="en">Yes, I am 20 or older</span>
+      </button>
+      <button class="gate__deny" id="gate-no" type="button">
+        <span lang="th">ยังไม่ถึง 20 ปี</span>
+        <span lang="en">I am under 20</span>
+      </button>
+    </div>
+    <p class="gate__legal">
+      <span lang="th">การใช้กัญชาควรอยู่ภายใต้คำแนะนำของผู้ประกอบวิชาชีพ ไม่จำหน่ายแก่ผู้ที่มีอายุต่ำกว่า 20 ปี สตรีมีครรภ์ และสตรีให้นมบุตร</span>
+      <span lang="en">Cannabis should be used under professional guidance. Not sold to anyone under 20, or to pregnant or breastfeeding women.</span>
+    </p>
+  </div>
+</div>
+
+
+<!-- ══ Nav ══════════════════════════════════════════════════════
+     Every destination is now an in-page anchor. #top / #selection /
+     #visit are the three former pages; the ids sit on the sections
+     themselves. `html { scroll-padding-top: 6rem }` in main.css keeps a
+     jump from landing underneath the fixed bar.
+     ═════════════════════════════════════════════════════════════ -->
+<header class="nav" id="nav">
+  <div class="shell nav__in">
+    <a class="brand" href="#top">
+      <span class="brand__mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><use href="#i-leaf"/></svg>
+      </span>
+      <span class="brand__word">
+        <span class="brand__name">Maya <em>Green</em></span>
+        <span class="brand__tag">Selected Cannabis Boutique</span>
+      </span>
+    </a>
+
+    <nav class="nav__links" aria-label="เมนูหลัก / Main navigation">
+      <a href="#top"><span lang="th">หน้าแรก</span><span lang="en">Home</span></a>
+      <a href="#selection"><span lang="th">สินค้า</span><span lang="en">Selection</span></a>
+      <a href="#visit"><span lang="th">เยี่ยมชม</span><span lang="en">Visit</span></a>
+    </nav>
+
+    <div class="nav__end">
+      <div class="lang" role="group" aria-label="เลือกภาษา / Language">
+        <button type="button" data-lang-set="th" aria-pressed="true">TH</button>
+        <button type="button" data-lang-set="en" aria-pressed="false">EN</button>
+      </div>
+      <a class="btn btn--ghost nav__cta" href="#visit">
+        <span lang="th">เยี่ยมชมร้าน</span><span lang="en">Visit us</span>
+      </a>
+      <button class="burger" id="burger" type="button" aria-expanded="false" aria-controls="drawer">
+        <span></span>
+        <span class="sr-only">เมนู / Menu</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="drawer" id="drawer">
+  <a href="#top"><span lang="th">หน้าแรก</span><span lang="en">Home</span></a>
+  <a href="#selection"><span lang="th">สินค้า</span><span lang="en">Selection</span></a>
+  <a href="#visit"><span lang="th">เยี่ยมชม</span><span lang="en">Visit</span></a>
+  <a class="btn" href="tel:+66825534873">
+    <span lang="th">โทร 082 553 4873</span><span lang="en">Call 082 553 4873</span>
+    <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><use href="#i-phone"/></svg>
+  </a>
+</div>
+
+
+<main>
+
+<!-- ══ Hero ═════════════════════════════════════════════════════ -->
+<section class="hero hero--dark" id="top">
+  <div class="hero__leaves" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <div class="shell hero__in">
+    <p class="eyebrow reveal">
+      <span lang="th">เอกมัย · กรุงเทพฯ</span>
+      <span lang="en">Ekkamai · Bangkok</span>
+    </p>
+
+    <h1 class="h-display reveal" style="--d:80ms">
+      <span lang="th">บูทีคกัญชา<br><span class="gilt">คัดสรร</span></span>
+      <span lang="en">The <span class="gilt">selected</span><br>cannabis boutique</span>
+    </h1>
+
+    <p class="lede reveal" style="--d:180ms">
+      <span lang="th">ดอกกัญชาเกรดการแพทย์ จากฟาร์มไทยที่ได้มาตรฐาน GACP เราเลือกเองทีละรอบเก็บเกี่ยว และเก็บรักษาอย่างพิถีพิถันจนถึงมือคุณ</span>
+      <span lang="en">Medical-grade flower to an international standard, from a GACP-certified Thai farm — chosen one harvest at a time, and kept the way it deserves to be kept.</span>
+    </p>
+
+    <div class="hero__acts reveal" style="--d:260ms">
+      <a class="btn" href="#selection">
+        <span lang="th">ดูสินค้าคัดสรร</span><span lang="en">See the selection</span>
+        <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><use href="#i-arrow"/></svg>
+      </a>
+      <a class="btn btn--ghost" href="#visit">
+        <span lang="th">แวะมาที่ร้าน</span><span lang="en">Come to the shop</span>
+      </a>
+    </div>
+
+    <dl class="hero__facts reveal" style="--d:340ms">
+      <div class="fact">
+        <dt><span lang="th">มาตรฐานฟาร์ม</span><span lang="en">Farm standard</span></dt>
+        <dd>GACP</dd>
+      </div>
+      <div class="fact">
+        <dt><span lang="th">คุณภาพ</span><span lang="en">Grade</span></dt>
+        <dd><span lang="th">เกรดการแพทย์</span><span lang="en">Medical</span></dd>
+      </div>
+      <div class="fact">
+        <dt><span lang="th">ฟาร์มพันธมิตร</span><span lang="en">Partner farms</span></dt>
+        <dd>2</dd>
+      </div>
+      <div class="fact">
+        <dt><span lang="th">ย่าน</span><span lang="en">Neighbourhood</span></dt>
+        <dd><span lang="th">เอกมัย</span><span lang="en">Ekkamai</span></dd>
+      </div>
+    </dl>
+  </div>
+</section>
+
+
+<!-- ══ Marquee ══════════════════════════════════════════════════ -->
+<div class="marquee" aria-hidden="true">
+  <div class="marquee__track">
+    <div class="marquee__grp">
+      <span>Selected Cannabis Boutique</span>
+      <svg width="12" height="12" viewBox="0 0 12 12"><use href="#i-diamond"/></svg>
+      <span>Samurai Weed</span>
+      <svg width="12" height="12" viewBox="0 0 12 12"><use href="#i-diamond"/></svg>
+      <span>GACP Certified</span>
+      <svg width="12" height="12" viewBox="0 0 12 12"><use href="#i-diamond"/></svg>
+      <span>Izumo Green Bangkok</span>
+      <svg width="12" height="12" viewBox="0 0 12 12"><use href="#i-diamond"/></svg>
+      <span>Medical Grade Only</span>
+      <svg width="12" height="12" viewBox="0 0 12 12"><use href="#i-diamond"/></svg>
+    </div>
+    <div class="marquee__grp">
+      <span>Selected Cannabis Boutique</span>
+      <svg width="12" height="12" viewBox="0 0 12 12"><use href="#i-diamond"/></svg>
+      <span>Samurai Weed</span>
+      <svg width="12" height="12" viewBox="0 0 12 12"><use href="#i-diamond"/></svg>
+      <span>GACP Certified</span>
+      <svg width="12" height="12" viewBox="0 0 12 12"><use href="#i-diamond"/></svg>
+      <span>Izumo Green Bangkok</span>
+      <svg width="12" height="12" viewBox="0 0 12 12"><use href="#i-diamond"/></svg>
+      <span>Medical Grade Only</span>
+      <svg width="12" height="12" viewBox="0 0 12 12"><use href="#i-diamond"/></svg>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ Philosophy ═══════════════════════════════════════════════ -->
+<section class="bay" id="about">
+  <div class="shell split">
+    <div class="reveal">
+      <p class="eyebrow"><span lang="th">แนวคิดของเรา</span><span lang="en">Our approach</span></p>
+      <h2 class="h-xl"><span lang="th">เราไม่ได้ขายทุกอย่าง<br>เรา<span class="gilt">เลือก</span></span><span lang="en">We don't stock<br>everything. We <span class="gilt">choose</span>.</span></h2>
+      <div class="prose" style="margin-top:1.75rem">
+        <p>
+          <span lang="th">MAYA GREEN เป็นร้านคัดสรร ไม่ใช่ร้านที่วางของให้เต็มชั้น เราเลือกทำงานกับฟาร์มไทยที่ได้รับการรับรอง GACP ซึ่งเป็นมาตรฐานสากลด้านการเพาะปลูกและเก็บเกี่ยวพืชสมุนไพร</span>
+          <span lang="en">“Select shop” is the whole idea behind MAYA GREEN — a place that chooses rather than hoards. We work with a Thai farm certified to GACP, the international standard for the cultivation and harvesting of medicinal plants.</span>
+        </p>
+        <p>
+          <span lang="th">ทุกอย่างที่วางบนชั้นของเราเป็นเกรดการแพทย์เท่านั้น ไม่มีข้อยกเว้น ถ้าไม่ผ่านเกณฑ์ เราก็ไม่รับเข้าร้าน</span>
+          <span lang="en">Everything on our shelves is international medical grade. No exceptions. If it doesn't meet the standard, it isn't here.</span>
+        </p>
+      </div>
+      <a class="link" href="#selection" style="margin-top:1.75rem">
+        <span lang="th"><span>ดูสิ่งที่เราคัดสรร</span></span>
+        <span lang="en"><span>See what we select</span></span>
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
+      </a>
+    </div>
+
+    <figure class="split__art reveal" style="--d:140ms">
+      <img src="assets/img/shelf-jars.jpg" width="387" height="484"
+           loading="lazy" decoding="async"
+           alt="โหลแก้วบรรจุดอกกัญชาคัดสรรวางบนชั้นไม้ในร้าน — selected cannabis flower in labelled glass jars on the shop's tiered wooden shelf">
+    </figure>
+  </div>
+</section>
+
+
+<!-- ══ Three principles ═════════════════════════════════════════ -->
+<section class="bay bay--cream">
+  <div class="shell">
+    <div class="head-row reveal">
+      <div>
+        <p class="eyebrow"><span lang="th">มาตรฐาน</span><span lang="en">Standards</span></p>
+        <h2 class="h-xl"><span lang="th">สามสิ่งที่เรา<br>ไม่เคยต่อรอง</span><span lang="en">Three things we<br>never compromise</span></h2>
+      </div>
+    </div>
+
+    <div class="grid grid--3">
+      <article class="card reveal">
+        <span class="card__no">01</span>
+        <div class="card__icon"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><use href="#i-shield"/></svg></div>
+        <h3 class="h-md"><span lang="th">แหล่งที่มา</span><span lang="en">Provenance</span></h3>
+        <p>
+          <span lang="th">เรารู้ว่าดอกกัญชาทุกช่อมาจากไหน เพราะฟาร์มที่ได้รับการรับรอง GACP ต้องบันทึกทุกขั้นตอน ตั้งแต่วันปลูกจนถึงวันเก็บเกี่ยว ย้อนกลับไปตรวจสอบได้เสมอ</span>
+          <span lang="en">We know where our flower comes from. A GACP-certified Thai farm means cultivation and harvest you can trace back.</span>
+        </p>
+      </article>
+
+      <article class="card reveal" style="--d:110ms">
+        <span class="card__no">02</span>
+        <div class="card__icon"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><use href="#i-flask"/></svg></div>
+        <h3 class="h-md"><span lang="th">เกรดการแพทย์</span><span lang="en">Medical grade</span></h3>
+        <p>
+          <span lang="th">เรารับเฉพาะเกรดการแพทย์เท่านั้น นี่คือจุดเริ่มต้นของเรา ไม่ใช่จุดขาย</span>
+          <span lang="en">International medical grade only. That's our floor, not our headline.</span>
+        </p>
+      </article>
+
+      <article class="card reveal" style="--d:220ms">
+        <span class="card__no">03</span>
+        <div class="card__icon"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><use href="#i-leaf"/></svg></div>
+        <h3 class="h-md"><span lang="th">การดูแล</span><span lang="en">Care</span></h3>
+        <p>
+          <span lang="th">เราเลือกทีละรอบเก็บเกี่ยว เก็บรักษาอย่างถูกวิธี และอธิบายให้ฟังตามตรงว่าแต่ละตัวเป็นอย่างไร</span>
+          <span lang="en">Chosen one harvest at a time, stored properly, and handed over with a straight answer.</span>
+        </p>
+      </article>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══ Gallery ══════════════════════════════════════════════════
+     Live, with the client's own photographs (supplied 2026-07-25).
+     The .shot__ph placeholder markup is gone from this page; the CSS
+     for it stays, because a tile reverts to a designed plate rather
+     than a hole if an <img> is ever pulled.
+
+     Swapping a photo: drop the file in assets/img/ and change the src.
+     Keep width/height on every <img> — they reserve the box so the page
+     doesn't jump while images load — and keep the bilingual alt.
+     .shot crops to fill via object-fit, so nothing that matters can sit
+     near an edge. See assets/img/README.md for what is published, what
+     was held back and why, and FACTS.md for provenance.
+     ═════════════════════════════════════════════════════════════ -->
+<section class="bay" id="shots">
+  <div class="shell">
+    <div class="head-row reveal">
+      <div>
+        <p class="eyebrow"><span lang="th">ภาพจากร้าน</span><span lang="en">Photographs</span></p>
+        <h2 class="h-xl"><span lang="th">ผนังต้นไม้<br>และแสง<span class="gilt">นีออน</span></span><span lang="en">A living wall<br>and <span class="gilt">neon</span></span></h2>
+      </div>
+      <a class="link" href="https://www.instagram.com/mayagreen.bangkok/" target="_blank" rel="noopener noreferrer">
+        <span lang="th"><span>ดูเพิ่มบนอินสตาแกรม</span></span>
+        <span lang="en"><span>More on Instagram</span></span>
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
+      </a>
+    </div>
+
+    <div class="shots">
+      <figure class="shot shot--wide reveal">
+        <img src="assets/img/storefront-wide.jpg" width="798" height="399"
+             loading="lazy" decoding="async"
+             alt="หน้าร้าน MAYA GREEN ย่านเอกมัย ป้ายทองรูปใบกัญชาบนพื้นดำ — the MAYA GREEN shopfront in Ekkamai, its gold leaf-and-wordmark sign on a black fascia">
+      </figure>
+
+      <div class="shots__row">
+        <figure class="shot reveal">
+          <img src="assets/img/lounge.jpg" width="806" height="1008"
+               loading="lazy" decoding="async"
+               alt="เลาจน์ชั้นในของร้าน โคมไฟกระดาษและไฟนีออนสีม่วง — the shop's lounge, with paper pendant lamps and violet neon">
+        </figure>
+        <figure class="shot reveal" style="--d:110ms">
+          <img src="assets/img/counter.jpg" width="520" height="650"
+               loading="lazy" decoding="async"
+               alt="พนักงานกำลังมวนที่เคาน์เตอร์ ด้านหลังเป็นป้าย MAYA GREEN — a member of staff rolling at the counter, the MAYA GREEN sign behind">
+        </figure>
+        <figure class="shot reveal" style="--d:220ms">
+          <img src="assets/img/terrace.jpg" width="806" height="1008"
+               loading="lazy" decoding="async"
+               alt="ที่นั่งหน้าร้านและป้ายนีออนรูปใบกัญชา — the terrace seating and the neon cannabis-leaf Open sign at the door">
+        </figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══ Bento ════════════════════════════════════════════════════ -->
+<section class="bay">
+  <div class="shell">
+    <div class="head-row reveal">
+      <div>
+        <p class="eyebrow"><span lang="th">ในร้าน</span><span lang="en">In the shop</span></p>
+        <h2 class="h-xl"><span lang="th">บูทีคเล็ก ๆ<br>ที่<span class="gilt">ใส่ใจ</span>ทุกรายละเอียด</span><span lang="en">A small boutique<br>that <span class="gilt">means</span> it</span></h2>
+      </div>
+      <a class="link" href="#visit">
+        <span lang="th"><span>ดูวิธีเดินทางมาร้าน</span></span>
+        <span lang="en"><span>How to find us</span></span>
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
+      </a>
+    </div>
+
+    <div class="bento">
+      <article class="tile tile--dark bento__wide reveal">
+        <img class="tile__bg" src="assets/img/shelf-samurai.jpg" alt="" aria-hidden="true" loading="lazy" decoding="async" width="802" height="676">
+        <svg class="tile__mark" width="150" height="150" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-leaf"/></svg>
+        <h3><span lang="th">ฟาร์มพันธมิตรที่เราดูแล</span><span lang="en">The farms we handle</span></h3>
+        <p>
+          <span lang="th">Samurai Weed และ Izumo Green Bangkok — สองแบรนด์ฟาร์มที่เราคัดเลือกและทำงานร่วมกันโดยตรง</span>
+          <span lang="en">Samurai Weed and Izumo Green Bangkok — the two farm brands we select and work with directly.</span>
+        </p>
+      </article>
+
+      <article class="tile tile--gold reveal" style="--d:100ms">
+        <img class="tile__bg" src="assets/img/shelf-jars.jpg" alt="" aria-hidden="true" loading="lazy" decoding="async" width="387" height="484">
+        <svg class="tile__mark" width="130" height="130" viewBox="0 0 24 24" aria-hidden="true" style="color:var(--gold-ink)"><use href="#i-shield"/></svg>
+        <h3><span lang="th">ผ่านมาตรฐาน GACP</span><span lang="en">GACP certified</span></h3>
+        <p>
+          <span lang="th">มาตรฐานสากลว่าด้วยการเพาะปลูกและเก็บเกี่ยวสมุนไพรอย่างถูกวิธี</span>
+          <span lang="en">The international good agricultural and collection practice standard.</span>
+        </p>
+      </article>
+
+      <article class="tile reveal" style="--d:180ms">
+        <img class="tile__bg" src="assets/img/counter.jpg" alt="" aria-hidden="true" loading="lazy" decoding="async" width="520" height="650">
+        <h3><span lang="th">คุยกันได้จริง</span><span lang="en">Ask us anything</span></h3>
+        <p>
+          <span lang="th">เรื่องไหนที่เรารู้ เราอธิบายให้ฟังเต็มที่ เรื่องไหนที่ไม่รู้ เราก็บอกตรง ๆ</span>
+          <span lang="en">We'll explain what we know — and say so plainly when we don't.</span>
+        </p>
+      </article>
+
+      <article class="tile bento__wide reveal" style="--d:260ms">
+        <img class="tile__bg" src="assets/img/storefront-wide.jpg" alt="" aria-hidden="true" loading="lazy" decoding="async" width="798" height="399">
+        <svg class="tile__mark" width="140" height="140" viewBox="0 0 24 24" aria-hidden="true" style="color:var(--sprout)"><use href="#i-sprout"/></svg>
+        <h3><span lang="th">ย่านเอกมัย ซอยปรีดี พนมยงค์ 40</span><span lang="en">Ekkamai, Soi Pridi Banomyong 40</span></h3>
+        <p>
+          <span lang="th">เปิด 12:00–23:00 น. ทุกวัน ยกเว้นวันอังคาร</span>
+          <span lang="en">Open daily 12:00–23:00. Closed Tuesdays.</span>
+        </p>
+      </article>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══ Quote ════════════════════════════════════════════════════ -->
+<section class="bay bay--forest">
+  <div class="shell">
+    <figure class="quote reveal">
+      <blockquote>
+        <span lang="th">“คัดจนเหลือแต่สิ่งที่คู่ควร”</span>
+        <span lang="en">“Selected, so that only what deserves to stay, stays.”</span>
+      </blockquote>
+      <figcaption>MAYA GREEN — Selected Cannabis Boutique</figcaption>
+    </figure>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     SELECTION — everything from here to the VISIT banner below was
+     menu.html. Its <h1> is an <h2> now: one page, one h1, which the
+     hero above holds. Anchor: #selection.
+     ══════════════════════════════════════════════════════════════ -->
+<section class="hero" id="selection" style="padding-top:clamp(3rem,6vw,4.5rem); padding-bottom:clamp(2rem,5vw,3.5rem)">
+  <div class="grain" aria-hidden="true"></div>
+  <div class="shell hero__in">
+    <!-- The section mark names this block, so the eyebrow that used to sit
+         here ("สินค้าคัดสรร / The selection") is gone — two labels stacked
+         above the headline read as a stutter. -->
+    <div class="sect-mark reveal">
+      <span class="sect-mark__k"><span lang="th">เมนู</span><span lang="en">Menu</span></span>
+    </div>
+    <h2 class="h-display reveal" style="--d:80ms; margin-bottom:1.5rem">
+      <span lang="th">คัดมา<br><span class="gilt">ทีละรอบ</span>เก็บเกี่ยว</span>
+      <span lang="en">Chosen one<br><span class="gilt">harvest</span> at a time</span>
+    </h2>
+    <p class="lede reveal" style="--d:160ms; margin-inline:auto">
+      <span lang="th">เราเป็นร้านคัดสรร ไม่ใช่คลังสินค้า ของบนชั้นจึงเปลี่ยนไปตามผลผลิตที่ฟาร์มพันธมิตรเก็บเกี่ยวได้ในแต่ละรอบ</span>
+      <span lang="en">We're a select shop, not a warehouse. What's on the shelf changes with what our partner farms actually harvested that round.</span>
+    </p>
+  </div>
+</section>
+
+
+<!-- ══ Partner farms (confirmed) ════════════════════════════════ -->
+<section class="bay" style="padding-top:clamp(2rem,5vw,3rem)">
+  <div class="shell">
+    <div class="head-row reveal">
+      <div>
+        <p class="eyebrow"><span lang="th">ฟาร์มพันธมิตร</span><span lang="en">Partner farms</span></p>
+        <h2 class="h-xl"><span lang="th">สองฟาร์ม<br>ที่เราดูแลเอง</span><span lang="en">Two farms we<br>handle ourselves</span></h2>
+      </div>
+    </div>
+
+    <div class="grid grid--2">
+      <article class="card reveal">
+        <div class="card__icon"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><use href="#i-sprout"/></svg></div>
+        <h3 class="h-md">Samurai Weed</h3>
+        <p>
+          <span lang="th">หนึ่งในแบรนด์ฟาร์มที่เราคัดเลือกและทำงานร่วมกันโดยตรง ปลูกในไทยภายใต้มาตรฐาน GACP</span>
+          <span lang="en">One of the farm brands we select and work with directly. Grown in Thailand to the GACP standard.</span>
+        </p>
+        <div class="card__foot">
+          <span class="tag tag--jade">GACP</span>
+        </div>
+      </article>
+
+      <article class="card reveal" style="--d:120ms">
+        <div class="card__icon"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><use href="#i-sprout"/></svg></div>
+        <h3 class="h-md">Izumo Green Bangkok</h3>
+        <p>
+          <span lang="th">อีกหนึ่งฟาร์มที่เราดูแลเอง ใช้เกณฑ์คัดเลือกชุดเดียวกันทั้งหมด</span>
+          <span lang="en">The other farm brand in our care, selected against exactly the same criteria.</span>
+        </p>
+        <div class="card__foot">
+          <span class="tag tag--jade">GACP</span>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══ Flower — Samurai Weed ════════════════════════════════════
+     Source: the shop's own in-store board (menu_weed.png, supplied
+     by the client 2026-07-25). Strain names and THC figures are
+     transcribed verbatim from that board. Tasting notes are written
+     copy, not lab data — see FACTS.md before changing either.
+     ═════════════════════════════════════════════════════════════ -->
+<section class="bay bay--cream" id="flower">
+  <div class="shell">
+    <div class="head-row reveal">
+      <div>
+        <p class="eyebrow"><span lang="th">รอบปัจจุบัน</span><span lang="en">Currently in</span></p>
+        <h2 class="h-xl"><span lang="th">ดอกกัญชา<br><span class="gilt">Samurai Weed</span></span><span lang="en">Flower from<br><span class="gilt">Samurai Weed</span></span></h2>
+      </div>
+      <span class="tag tag--jade">GACP</span>
+    </div>
+
+    <figure class="plate reveal">
+      <img src="assets/img/shelf-samurai.jpg" width="802" height="676"
+           loading="lazy" decoding="async"
+           alt="ป้ายเมนู Samurai Weed และโหลแก้วใส่ดอกกัญชาบนชั้นไม้ — the Samurai Weed board and the flower jars on the shop's wooden shelf">
+      <figcaption>
+        <span lang="th">ป้ายรอบปัจจุบันของ Samurai Weed ที่ตั้งอยู่บนชั้นในร้าน — รายการด้านล่างตรงกับป้ายนี้ทุกตัว</span>
+        <span lang="en">The Samurai Weed board as it stands on the shelf — the list below is transcribed from it.</span>
+      </figcaption>
+    </figure>
+
+    <p class="flat-price reveal">
+      <span class="flat-price__k">
+        <span lang="th">ทุกสายพันธุ์ ราคาเดียว</span><span lang="en">One price, every strain</span>
+      </span>
+      <b>฿700</b>
+      <span class="flat-price__k">
+        <span lang="th">ต่อกรัม</span><span lang="en">per gram</span>
+      </span>
+    </p>
+
+    <div class="menu-group reveal">
+      <div class="menu-group__h">
+        <h3><span lang="th">ซาติวา</span><span lang="en">Sativa</span></h3>
+        <span class="menu-group__note"><span lang="th">2 สายพันธุ์</span><span lang="en">2 strains</span></span>
+      </div>
+      <ul class="rows">
+        <li class="row">
+          <div>
+            <p class="row__name">Mimozz</p>
+            <p class="row__meta">THC 27%</p>
+            <p class="row__desc">
+              <span lang="th">กลิ่นส้มหวานสดชื่นในตระกูลมิโมซ่า ให้ความรู้สึกตื่นตัวและโปร่งสบาย เหมาะกับช่วงกลางวัน</span>
+              <span lang="en">A sweet citrus nose in the Mimosa family — bright and clear-headed. A daytime strain.</span>
+            </p>
+          </div>
+          <p class="row__price"><span lang="th">฿700 / กรัม</span><span lang="en">฿700 / g</span></p>
+        </li>
+        <li class="row">
+          <div>
+            <p class="row__name">Super Lemon Haze</p>
+            <p class="row__meta">THC 18%</p>
+            <p class="row__desc">
+              <span lang="th">เฮซคลาสสิกกลิ่นเลมอนจัดจ้าน เปอร์เซ็นต์ไม่สูงมาก โปร่งเบา เหมาะกับผู้ที่ชอบความสดชื่น</span>
+              <span lang="en">The classic lemon-forward haze. A gentler percentage — light and lifted.</span>
+            </p>
+          </div>
+          <p class="row__price"><span lang="th">฿700 / กรัม</span><span lang="en">฿700 / g</span></p>
+        </li>
+      </ul>
+    </div>
+
+    <div class="menu-group reveal">
+      <div class="menu-group__h">
+        <h3><span lang="th">ไฮบริด</span><span lang="en">Hybrid</span></h3>
+        <span class="menu-group__note"><span lang="th">3 สายพันธุ์</span><span lang="en">3 strains</span></span>
+      </div>
+      <ul class="rows">
+        <li class="row">
+          <div>
+            <p class="row__name">Vegas Candy</p>
+            <p class="row__meta">THC 22%</p>
+            <p class="row__desc">
+              <span lang="th">หวานหอมแบบลูกอม สมดุลระหว่างความผ่อนคลายกับความตื่นตัว ไม่หนักจนเกินไป</span>
+              <span lang="en">Candy-sweet and well balanced — relaxed without going heavy.</span>
+            </p>
+          </div>
+          <p class="row__price"><span lang="th">฿700 / กรัม</span><span lang="en">฿700 / g</span></p>
+        </li>
+        <li class="row">
+          <div>
+            <p class="row__name">Runtz of Eden</p>
+            <p class="row__meta">THC 22%</p>
+            <p class="row__desc">
+              <span lang="th">กลิ่นผลไม้หวานเข้มในตระกูลรันซ์ นุ่มนวล ค่อย ๆ ผ่อนคลายอย่างเป็นธรรมชาติ</span>
+              <span lang="en">Deep sweet fruit from the Runtz line. Smooth, and it settles in slowly.</span>
+            </p>
+          </div>
+          <p class="row__price"><span lang="th">฿700 / กรัม</span><span lang="en">฿700 / g</span></p>
+        </li>
+        <li class="row">
+          <div>
+            <p class="row__name">Queen of the South</p>
+            <p class="row__meta">THC 18%</p>
+            <p class="row__desc">
+              <span lang="th">เปอร์เซ็นต์กลาง ๆ ควบคุมง่าย กลิ่นหอมละมุน เหมาะกับผู้ที่เพิ่งเริ่มต้น</span>
+              <span lang="en">A moderate percentage and easy to judge. A good place to start.</span>
+            </p>
+          </div>
+          <p class="row__price"><span lang="th">฿700 / กรัม</span><span lang="en">฿700 / g</span></p>
+        </li>
+      </ul>
+    </div>
+
+    <div class="menu-group reveal">
+      <div class="menu-group__h">
+        <h3><span lang="th">อินดิกา</span><span lang="en">Indica</span></h3>
+        <span class="menu-group__note"><span lang="th">3 สายพันธุ์</span><span lang="en">3 strains</span></span>
+      </div>
+      <ul class="rows">
+        <li class="row">
+          <div>
+            <p class="row__name">Chimera</p>
+            <p class="row__meta">THC 23%</p>
+            <p class="row__desc">
+              <span lang="th">กลิ่นดินอมหวาน ให้ความรู้สึกผ่อนคลายลึก เหมาะกับช่วงเย็นและก่อนพักผ่อน</span>
+              <span lang="en">Earthy with a sweet edge. Deeply relaxing — an evening strain.</span>
+            </p>
+          </div>
+          <p class="row__price"><span lang="th">฿700 / กรัม</span><span lang="en">฿700 / g</span></p>
+        </li>
+        <li class="row">
+          <div>
+            <p class="row__name">Dante Inferno</p>
+            <p class="row__meta">THC 29%</p>
+            <p class="row__desc">
+              <span lang="th">เปอร์เซ็นต์สูงที่สุดบนชั้นของเรา เข้มข้นและหนักแน่น แนะนำสำหรับผู้ที่มีประสบการณ์แล้ว</span>
+              <span lang="en">The highest percentage on our shelf. Rich and heavy — for experienced users.</span>
+            </p>
+          </div>
+          <p class="row__price"><span lang="th">฿700 / กรัม</span><span lang="en">฿700 / g</span></p>
+        </li>
+        <li class="row">
+          <div>
+            <p class="row__name">Cherry Inferno</p>
+            <p class="row__meta">THC 28%</p>
+            <p class="row__desc">
+              <span lang="th">กลิ่นเชอร์รีหวานอมเปรี้ยว แรงแต่กลมกล่อม เหมาะกับช่วงท้ายของวัน</span>
+              <span lang="en">Sweet-tart cherry. Strong but rounded — for the end of the day.</span>
+            </p>
+          </div>
+          <p class="row__price"><span lang="th">฿700 / กรัม</span><span lang="en">฿700 / g</span></p>
+        </li>
+      </ul>
+    </div>
+
+    <p class="muted reveal" style="font-size:.85rem; margin-top:2rem; max-width:62ch">
+      <span lang="th">รายการอาจเปลี่ยนตามรอบเก็บเกี่ยว โทรถามรอบล่าสุดก่อนเดินทางมาได้เสมอ</span>
+      <span lang="en">The list changes with each harvest — please check the current round before you travel.</span>
+    </p>
+  </div>
+</section>
+
+
+<!-- ══ Drinks ═══════════════════════════════════════════════════
+     Source: the shop's own in-store board (menu_drink.png, supplied
+     by the client 2026-07-25). Names and prices transcribed verbatim.
+     ═════════════════════════════════════════════════════════════ -->
+<section class="bay" id="drinks">
+  <div class="shell">
+    <div class="head-row reveal">
+      <div>
+        <p class="eyebrow"><span lang="th">เครื่องดื่ม</span><span lang="en">Drinks</span></p>
+        <h2 class="h-xl"><span lang="th">เครื่องดื่ม<br><span class="gilt">ในร้าน</span></span><span lang="en">What we pour<br><span class="gilt">at the bar</span></span></h2>
+      </div>
+    </div>
+
+    <div class="menu-group reveal">
+      <div class="menu-group__h">
+        <h3><span lang="th">สปาร์กลิงไวน์</span><span lang="en">Sparkling wine</span></h3>
+        <span class="menu-group__note"><span lang="th">ต่อขวด</span><span lang="en">per bottle</span></span>
+      </div>
+      <ul class="rows">
+        <li class="row">
+          <div>
+            <p class="row__name">Chandon</p>
+            <p class="row__desc">
+              <span lang="th">สปาร์กลิงไวน์ฟองละเอียด ดื่มง่าย เหมาะกับการเฉลิมฉลอง</span>
+              <span lang="en">Fine-bubbled sparkling wine. Easy, celebratory.</span>
+            </p>
+          </div>
+          <p class="row__price">฿4,000</p>
+        </li>
+      </ul>
+    </div>
+
+    <div class="menu-group reveal">
+      <div class="menu-group__h">
+        <h3><span lang="th">แชมเปญ</span><span lang="en">Champagne</span></h3>
+        <span class="menu-group__note"><span lang="th">ต่อขวด</span><span lang="en">per bottle</span></span>
+      </div>
+      <ul class="rows">
+        <li class="row">
+          <div>
+            <p class="row__name">Veuve Clicquot</p>
+            <p class="row__desc">
+              <span lang="th">แชมเปญคลาสสิกจากเมืองแร็งส์ กลิ่นผลไม้สุกและขนมปังอบ</span>
+              <span lang="en">The classic from Reims — ripe fruit and baked bread.</span>
+            </p>
+          </div>
+          <p class="row__price">฿9,000</p>
+        </li>
+        <li class="row">
+          <div>
+            <p class="row__name">Dom Pérignon</p>
+            <p class="row__desc">
+              <span lang="th">แชมเปญระดับตำนาน ซับซ้อน ละเอียด และหรูหรา</span>
+              <span lang="en">The legendary cuvée. Complex, fine, and grand.</span>
+            </p>
+          </div>
+          <p class="row__price">฿23,000</p>
+        </li>
+      </ul>
+    </div>
+
+    <div class="menu-group reveal">
+      <div class="menu-group__h">
+        <h3><span lang="th">เบียร์</span><span lang="en">Beer</span></h3>
+      </div>
+      <ul class="rows">
+        <li class="row">
+          <div>
+            <p class="row__name">Leo</p>
+            <p class="row__desc">
+              <span lang="th">ลาเกอร์ไทย รสนุ่ม ดื่มง่าย เสิร์ฟเย็นจัด</span>
+              <span lang="en">Thai lager, soft and easy. Served cold.</span>
+            </p>
+          </div>
+          <p class="row__price">฿120</p>
+        </li>
+        <li class="row">
+          <div>
+            <p class="row__name">Singha</p>
+            <p class="row__desc">
+              <span lang="th">ลาเกอร์ไทยรสเข้ม กลิ่นฮอปชัดเจน</span>
+              <span lang="en">A fuller Thai lager with clear hop character.</span>
+            </p>
+          </div>
+          <p class="row__price">฿140</p>
+        </li>
+        <li class="row">
+          <div>
+            <p class="row__name">Heineken</p>
+            <p class="row__desc">
+              <span lang="th">ลาเกอร์นำเข้า รสสะอาด จบคมชัด</span>
+              <span lang="en">Imported lager — clean, with a crisp finish.</span>
+            </p>
+          </div>
+          <p class="row__price">฿140</p>
+        </li>
+      </ul>
+    </div>
+
+    <div class="menu-group reveal">
+      <div class="menu-group__h">
+        <h3><span lang="th">ไฮบอล / ซาวร์</span><span lang="en">Highball / Sour</span></h3>
+      </div>
+      <ul class="rows">
+        <li class="row">
+          <div>
+            <p class="row__name">Whiskey Soda</p>
+            <p class="row__desc">
+              <span lang="th">วิสกี้กับโซดา เย็น ซ่า ดื่มสบายตลอดมื้อ</span>
+              <span lang="en">Whiskey and soda. Cold, dry, easy all night.</span>
+            </p>
+          </div>
+          <p class="row__price">฿120</p>
+        </li>
+        <li class="row">
+          <div>
+            <p class="row__name">Whiskey Coke</p>
+            <p class="row__desc">
+              <span lang="th">วิสกี้กับโคล่า หวานกลมกล่อม</span>
+              <span lang="en">Whiskey and cola. Sweet and rounded.</span>
+            </p>
+          </div>
+          <p class="row__price">฿120</p>
+        </li>
+        <li class="row">
+          <div>
+            <p class="row__name">Lemon Sour</p>
+            <p class="row__desc">
+              <span lang="th">เปรี้ยวสดชื่นจากเลมอน สไตล์ซาวร์แบบญี่ปุ่น</span>
+              <span lang="en">Fresh lemon, in the Japanese sour style.</span>
+            </p>
+          </div>
+          <p class="row__price">฿120</p>
+        </li>
+        <li class="row">
+          <div>
+            <p class="row__name">Lychee Sour</p>
+            <p class="row__desc">
+              <span lang="th">หอมหวานลิ้นจี่ ตัดด้วยความเปรี้ยวบาง ๆ</span>
+              <span lang="en">Sweet lychee cut with a light sourness.</span>
+            </p>
+          </div>
+          <p class="row__price">฿120</p>
+        </li>
+      </ul>
+    </div>
+
+    <div class="menu-group reveal">
+      <div class="menu-group__h">
+        <h3><span lang="th">ไวน์ / ช็อต</span><span lang="en">Wine / Shots</span></h3>
+        <span class="menu-group__note"><span lang="th">ต่อแก้ว</span><span lang="en">per serve</span></span>
+      </div>
+      <ul class="rows">
+        <li class="row">
+          <div>
+            <p class="row__name">Red Wine</p>
+            <p class="row__desc">
+              <span lang="th">ไวน์แดงเสิร์ฟเป็นแก้ว บอดี้กลาง ดื่มง่าย</span>
+              <span lang="en">Red by the glass. Medium-bodied, easy.</span>
+            </p>
+          </div>
+          <p class="row__price">฿150</p>
+        </li>
+        <li class="row">
+          <div>
+            <p class="row__name">White Wine</p>
+            <p class="row__desc">
+              <span lang="th">ไวน์ขาวเสิร์ฟเป็นแก้ว สดชื่น เย็นจัด</span>
+              <span lang="en">White by the glass. Fresh and well chilled.</span>
+            </p>
+          </div>
+          <p class="row__price">฿150</p>
+        </li>
+        <li class="row">
+          <div>
+            <p class="row__name">Tequila</p>
+            <p class="row__desc">
+              <span lang="th">เตกีล่าเสิร์ฟเป็นช็อต</span>
+              <span lang="en">Tequila, served as a shot.</span>
+            </p>
+          </div>
+          <p class="row__price">฿150</p>
+        </li>
+      </ul>
+    </div>
+
+    <div class="menu-group reveal">
+      <div class="menu-group__h">
+        <h3><span lang="th">เครื่องดื่มไม่มีแอลกอฮอล์</span><span lang="en">Soft drinks</span></h3>
+      </div>
+      <ul class="rows">
+        <li class="row">
+          <div>
+            <p class="row__name">Coke (Can)</p>
+            <p class="row__desc">
+              <span lang="th">โคล่ากระป๋อง เสิร์ฟเย็นจัด</span>
+              <span lang="en">Cola by the can, served cold.</span>
+            </p>
+          </div>
+          <p class="row__price">฿50</p>
+        </li>
+        <li class="row">
+          <div>
+            <p class="row__name">Sprite</p>
+            <p class="row__desc">
+              <span lang="th">น้ำอัดลมรสมะนาว ซ่าและสดชื่น</span>
+              <span lang="en">Lemon-lime soda, crisp and cold.</span>
+            </p>
+          </div>
+          <p class="row__price">฿20</p>
+        </li>
+        <li class="row">
+          <div>
+            <p class="row__name">Fanta (Green)</p>
+            <p class="row__desc">
+              <span lang="th">แฟนต้าเขียว รสครีมโซดา หวานเย็น</span>
+              <span lang="en">Green Fanta — the cream soda flavour.</span>
+            </p>
+          </div>
+          <p class="row__price">฿20</p>
+        </li>
+        <li class="row">
+          <div>
+            <p class="row__name">Fanta (Strawberry)</p>
+            <p class="row__desc">
+              <span lang="th">แฟนต้าสตรอว์เบอร์รี หวานหอม</span>
+              <span lang="en">Strawberry Fanta, sweet and fragrant.</span>
+            </p>
+          </div>
+          <p class="row__price">฿20</p>
+        </li>
+        <li class="row">
+          <div>
+            <p class="row__name">Orange Juice</p>
+            <p class="row__desc">
+              <span lang="th">น้ำส้ม เสิร์ฟเย็น</span>
+              <span lang="en">Orange juice, served chilled.</span>
+            </p>
+          </div>
+          <p class="row__price">฿30</p>
+        </li>
+        <li class="row">
+          <div>
+            <p class="row__name">Pomegranate Juice</p>
+            <p class="row__desc">
+              <span lang="th">น้ำทับทิม หวานอมเปรี้ยว</span>
+              <span lang="en">Pomegranate juice — sweet with a tart edge.</span>
+            </p>
+          </div>
+          <p class="row__price">฿30</p>
+        </li>
+        <li class="row">
+          <div>
+            <p class="row__name">Water</p>
+            <p class="row__desc">
+              <span lang="th">น้ำดื่ม</span>
+              <span lang="en">Drinking water.</span>
+            </p>
+          </div>
+          <p class="row__price">฿20</p>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══ Standard ═════════════════════════════════════════════════ -->
+<section class="bay">
+  <div class="shell">
+    <div class="split">
+      <figure class="split__art split__art--wide reveal">
+        <img src="assets/img/brand-wall.jpg" width="783" height="522"
+             loading="lazy" decoding="async"
+             alt="ป้าย MAYA GREEN สีทองบนผนังต้นไม้ภายในร้าน — the gold MAYA GREEN wordmark and leaf mounted on the living plant wall inside the shop">
+      </figure>
+      <div class="reveal" style="--d:120ms">
+        <p class="eyebrow"><span lang="th">เกณฑ์ของเรา</span><span lang="en">Our criteria</span></p>
+        <h2 class="h-xl"><span lang="th">เราไม่ขาย<br>ถ้าเรา<span class="gilt">ไม่มั่นใจ</span></span><span lang="en">If we're not sure,<br>we don't <span class="gilt">sell it</span></span></h2>
+        <div class="prose" style="margin-top:1.75rem">
+          <p>
+            <span lang="th">ทุกอย่างที่เรารับเข้าร้านต้องเป็นเกรดการแพทย์ และมาจากฟาร์มที่ได้รับการรับรอง GACP ซึ่งเป็นมาตรฐานสากลสำหรับการเพาะปลูกและเก็บเกี่ยวสมุนไพรอย่างถูกวิธี</span>
+            <span lang="en">Everything we take in has to be international medical grade, from a farm certified to GACP — the standard covering good agricultural and collection practice for medicinal plants.</span>
+          </p>
+          <p>
+            <span lang="th">นั่นทำให้รายการของเราสั้นกว่าร้านอื่น และนั่นคือสิ่งที่เราตั้งใจ</span>
+            <span lang="en">It makes our list shorter than other shops'. That's the point.</span>
+          </p>
+        </div>
+        <a class="link" href="#visit" style="margin-top:1.75rem">
+          <span lang="th"><span>มาคุยกันที่ร้าน</span></span>
+          <span lang="en"><span>Come talk to us</span></span>
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     VISIT — everything from here to the closing CTA was visit.html.
+     Its <h1> is an <h2> for the same reason as the selection block.
+     Anchors: #visit (this intro) and #visit-details (address, hours,
+     phone and map — the desktop nav CTA used to point straight at it).
+     ══════════════════════════════════════════════════════════════ -->
+<section class="hero" id="visit" style="padding-top:clamp(3rem,6vw,4.5rem); padding-bottom:clamp(2rem,5vw,3rem)">
+  <div class="grain" aria-hidden="true"></div>
+  <div class="shell hero__in">
+    <!-- Eyebrow dropped here for the same reason as #selection above. -->
+    <div class="sect-mark reveal">
+      <span class="sect-mark__k"><span lang="th">เยี่ยมชมเรา</span><span lang="en">Visit us</span></span>
+    </div>
+    <h2 class="h-display reveal" style="--d:80ms; margin-bottom:1.5rem">
+      <span lang="th">ซอยปรีดี<br>พนมยงค์ <span class="gilt">40</span></span>
+      <span lang="en">Soi Pridi<br>Banomyong <span class="gilt">40</span></span>
+    </h2>
+    <p class="lede reveal" style="--d:160ms; margin-inline:auto">
+      <span lang="th">ย่านเอกมัย เขตวัฒนา กรุงเทพฯ — แวะเข้ามาทักทาย ถามได้ทุกเรื่อง ไม่ต้องนัดล่วงหน้า</span>
+      <span lang="en">Ekkamai, Watthana, Bangkok — drop in, ask us anything. No appointment needed.</span>
+    </p>
+  </div>
+</section>
+
+
+<!-- ══ What to look for ═════════════════════════════════════════
+     Two photographs of the same frontage, day and night, so a first-time
+     visitor recognises the shop from the street either way.
+     ═════════════════════════════════════════════════════════════ -->
+<section class="bay" style="padding-block:0">
+  <div class="shell">
+    <div class="shots__pair">
+      <figure class="shot reveal">
+        <img src="assets/img/storefront-day.jpg" width="640" height="800"
+             loading="lazy" decoding="async"
+             alt="หน้าร้าน MAYA GREEN ในเวลากลางวัน ป้ายสีทองบนพื้นดำ — the MAYA GREEN storefront by day, gold wordmark on a black fascia">
+        <figcaption><span lang="th">กลางวัน</span><span lang="en">By day</span></figcaption>
+      </figure>
+      <figure class="shot reveal" style="--d:120ms">
+        <img src="assets/img/storefront-night.jpg" width="792" height="990"
+             loading="lazy" decoding="async"
+             alt="หน้าร้าน MAYA GREEN ในเวลากลางคืน ป้ายไฟและป้ายตั้งพื้นริมทางเดิน — the MAYA GREEN storefront at night, the sign lit and the A-board out on the walkway">
+        <figcaption><span lang="th">กลางคืน</span><span lang="en">By night</span></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══ Details + map ════════════════════════════════════════════ -->
+<section class="bay" id="visit-details" style="padding-top:clamp(2rem,4vw,3rem)">
+  <div class="shell visit">
+
+    <div class="info reveal">
+      <div class="info__item">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><use href="#i-pin"/></svg>
+        <div>
+          <p class="k"><span lang="th">ที่อยู่</span><span lang="en">Address</span></p>
+          <p class="v">
+            <span lang="th">984, 49 ซ. ปรีดี พนมยงค์ 40<br>แขวงคลองตันเหนือ เขตวัฒนา<br>กรุงเทพมหานคร 10110</span>
+            <span lang="en">984, 49 Soi Pridi Banomyong 40<br>Khwaeng Khlong Tan Nuea, Watthana<br>Bangkok 10110</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="info__item">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><use href="#i-clock"/></svg>
+        <div>
+          <p class="k"><span lang="th">เวลาทำการ</span><span lang="en">Opening hours</span></p>
+          <p class="v">
+            <span lang="th">จันทร์ · พุธ – อาทิตย์ &nbsp;12:00 – 23:00 น.<br><strong>ปิดทุกวันอังคาร</strong></span>
+            <span lang="en">Mon · Wed – Sun &nbsp;12:00 – 23:00<br><strong>Closed Tuesdays</strong></span>
+          </p>
+        </div>
+      </div>
+
+      <div class="info__item">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><use href="#i-phone"/></svg>
+        <div>
+          <p class="k"><span lang="th">โทรศัพท์</span><span lang="en">Phone</span></p>
+          <p class="v">
+            <a href="tel:+66825534873">082 553 4873</a>
+            <!-- Copy chip: on a laptop the number is far more useful on the
+                 clipboard than as a dial link. Hidden without JS. -->
+            <button class="copy" type="button" data-copy="082 553 4873"
+                    aria-label="คัดลอกเบอร์โทรศัพท์ / Copy phone number">
+              <span class="copy__face">
+                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><use href="#i-copy"/></svg>
+                <span lang="th">คัดลอก</span><span lang="en">Copy</span>
+              </span>
+              <span class="copy__face copy__face--done" role="status">
+                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><use href="#i-check"/></svg>
+                <span lang="th">คัดลอกแล้ว</span><span lang="en">Copied</span>
+              </span>
+            </button>
+          </p>
+        </div>
+      </div>
+
+      <div class="info__item">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><use href="#i-ig"/></svg>
+        <div>
+          <p class="k"><span lang="th">ติดตามเรา</span><span lang="en">Follow</span></p>
+          <p class="v">
+            <a href="https://www.instagram.com/mayagreen.bangkok/" target="_blank" rel="noopener noreferrer">@mayagreen.bangkok</a><br>
+            <a href="https://x.com/MAYAGREEN420" target="_blank" rel="noopener noreferrer">@MAYAGREEN420</a>
+          </p>
+        </div>
+      </div>
+
+      <div class="hero__acts" style="justify-content:flex-start; margin-top:.5rem">
+        <a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=984%2C%2049%20Pridi%20Banomyong%2040%20Alley%2C%20Khlong%20Tan%20Nuea%2C%20Watthana%2C%20Bangkok%2010110"
+           target="_blank" rel="noopener noreferrer">
+          <span lang="th">เปิดใน Google Maps</span><span lang="en">Open in Google Maps</span>
+          <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="map reveal" style="--d:120ms">
+      <iframe
+        title="แผนที่ MAYA GREEN — Map to MAYA GREEN, Soi Pridi Banomyong 40, Bangkok"
+        src="https://www.google.com/maps?q=984%2C+49+Pridi+Banomyong+40+Alley%2C+Khlong+Tan+Nuea%2C+Watthana%2C+Bangkok+10110&output=embed"
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        allowfullscreen></iframe>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ══ Before you come ══════════════════════════════════════════ -->
+<section class="bay bay--cream">
+  <div class="shell">
+    <div class="head-row reveal">
+      <div>
+        <p class="eyebrow"><span lang="th">ก่อนมาถึง</span><span lang="en">Before you come</span></p>
+        <h2 class="h-xl"><span lang="th">สิ่งที่ควรรู้<br>ล่วงหน้า</span><span lang="en">A few things<br>worth knowing</span></h2>
+      </div>
+    </div>
+
+    <div class="grid grid--3">
+      <article class="card reveal">
+        <span class="card__no">01</span>
+        <div class="card__icon"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><use href="#i-shield"/></svg></div>
+        <h3 class="h-md"><span lang="th">อายุ 20 ปีขึ้นไป</span><span lang="en">20 and over</span></h3>
+        <p>
+          <span lang="th">กรุณาเตรียมบัตรประชาชนหรือหนังสือเดินทางมาแสดง เราไม่จำหน่ายให้ผู้ที่มีอายุต่ำกว่า 20 ปี สตรีมีครรภ์ และสตรีให้นมบุตร</span>
+          <span lang="en">Please bring ID or a passport. We don't sell to anyone under 20, or to pregnant or breastfeeding women.</span>
+        </p>
+      </article>
+
+      <article class="card reveal" style="--d:110ms">
+        <span class="card__no">02</span>
+        <div class="card__icon"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><use href="#i-clock"/></svg></div>
+        <h3 class="h-md"><span lang="th">โทรก่อนได้</span><span lang="en">Call ahead</span></h3>
+        <p>
+          <span lang="th">รายการสินค้าเปลี่ยนไปตามรอบเก็บเกี่ยว หากเดินทางไกล โทรมาถามก่อนจะช่วยประหยัดเวลาของคุณ</span>
+          <span lang="en">Our selection turns over with each harvest. If you're travelling far, a quick call saves you the trip.</span>
+        </p>
+      </article>
+
+      <article class="card reveal" style="--d:220ms">
+        <span class="card__no">03</span>
+        <div class="card__icon"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><use href="#i-leaf"/></svg></div>
+        <h3 class="h-md"><span lang="th">เพื่อการแพทย์</span><span lang="en">Medical use</span></h3>
+        <p>
+          <span lang="th">MAYA GREEN จำหน่ายผลิตภัณฑ์กัญชาเพื่อวัตถุประสงค์ทางการแพทย์ ภายใต้ข้อกำหนดของกฎหมายไทย สอบถามรายละเอียดเรื่องใบสั่งแพทย์ได้ที่ร้าน</span>
+          <span lang="en">MAYA GREEN supplies cannabis for medical purposes under Thai law. Ask us in store about prescription requirements.</span>
+        </p>
+      </article>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══ Closing CTA ══════════════════════════════════════════════
+     index.html and visit.html each ended on a near-identical
+     "come see us" block. On one page they would have run back to
+     back, so this is the single closer; the wording is the one that
+     used to end the home page.
+     ═════════════════════════════════════════════════════════════ -->
+<section class="bay">
+  <div class="shell" style="text-align:center">
+    <div class="rule reveal" style="margin-bottom:2.5rem">
+      <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><use href="#i-diamond"/></svg>
+    </div>
+    <h2 class="h-xl reveal"><span lang="th">แวะมาทักทายกัน</span><span lang="en">Come say hello</span></h2>
+    <p class="lede reveal" style="margin:1.25rem auto 0; --d:100ms">
+      <span lang="th">สินค้าบนชั้นเปลี่ยนไปตามรอบเก็บเกี่ยว อยากรู้ว่าตอนนี้มีอะไร ถามที่ร้านหรือทักมาทางอินสตาแกรมได้เลย</span>
+      <span lang="en">What's in stock changes with the harvest. Ask us in the shop, or on Instagram.</span>
+    </p>
+    <div class="hero__acts reveal" style="--d:180ms">
+      <a class="btn" href="#visit-details">
+        <span lang="th">ดูที่ตั้งร้าน</span><span lang="en">Find the shop</span>
+        <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><use href="#i-arrow"/></svg>
+      </a>
+      <a class="btn btn--ghost" href="https://www.instagram.com/mayagreen.bangkok/" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><use href="#i-ig"/></svg>
+        @mayagreen.bangkok
+      </a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+
+<!-- ══ Footer ═══════════════════════════════════════════════════ -->
+<footer class="foot">
+  <div class="shell">
+    <div class="foot__grid">
+      <div>
+        <span class="brand">
+          <span class="brand__mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><use href="#i-leaf"/></svg>
+          </span>
+          <span class="brand__word">
+            <span class="brand__name">Maya <em>Green</em></span>
+            <span class="brand__tag">Selected Cannabis Boutique</span>
+          </span>
+        </span>
+        <p style="margin-top:1.1rem; max-width:34ch">
+          <span lang="th">บูทีคกัญชาทางการแพทย์คัดสรร ย่านเอกมัย กรุงเทพฯ</span>
+          <span lang="en">Selected medical cannabis boutique in Ekkamai, Bangkok.</span>
+        </p>
+        <div class="socials">
+          <a href="https://www.instagram.com/mayagreen.bangkok/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+            <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true"><use href="#i-ig"/></svg>
+          </a>
+          <a href="https://x.com/MAYAGREEN420" target="_blank" rel="noopener noreferrer" aria-label="X (Twitter)">
+            <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <h4><span lang="th">เมนู</span><span lang="en">Pages</span></h4>
+        <ul>
+          <li><a href="#top"><span lang="th">หน้าแรก</span><span lang="en">Home</span></a></li>
+          <li><a href="#selection"><span lang="th">สินค้า</span><span lang="en">Selection</span></a></li>
+          <li><a href="#visit"><span lang="th">เยี่ยมชม</span><span lang="en">Visit</span></a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4><span lang="th">ติดต่อ</span><span lang="en">Contact</span></h4>
+        <ul>
+          <li><a href="tel:+66825534873">082 553 4873</a></li>
+          <li>
+            <span lang="th">984, 49 ซ. ปรีดี พนมยงค์ 40<br>แขวงคลองตันเหนือ เขตวัฒนา<br>กรุงเทพฯ 10110</span>
+            <span lang="en">984, 49 Soi Pridi Banomyong 40<br>Khlong Tan Nuea, Watthana<br>Bangkok 10110</span>
+          </li>
+          <li>
+            <span lang="th">12:00–23:00 น. · หยุดวันอังคาร</span>
+            <span lang="en">Daily 12:00–23:00 · Closed Tue</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="foot__base">
+      <span>© <span id="yr">2026</span> MAYA GREEN — Selected Cannabis Boutique</span>
+      <span lang="th">จำหน่ายเฉพาะผู้ที่มีอายุ 20 ปีขึ้นไป</span>
+      <span lang="en">Sales to persons aged 20 and over only.</span>
+    </div>
+  </div>
+</footer>
+
+<div class="warn">
+  <div class="shell">
+    <span lang="th"><strong>คำเตือน:</strong> ผลิตภัณฑ์กัญชาใช้เพื่อวัตถุประสงค์ทางการแพทย์ ควรอยู่ภายใต้คำแนะนำของผู้ประกอบวิชาชีพ ไม่จำหน่ายแก่ผู้ที่มีอายุต่ำกว่า 20 ปี สตรีมีครรภ์ และสตรีให้นมบุตร ห้ามขับขี่ยานพาหนะหลังการใช้</span>
+    <span lang="en"><strong>Warning:</strong> Cannabis products are for medical purposes and should be used under professional guidance. Not sold to anyone under 20, or to pregnant or breastfeeding women. Do not drive after use.</span>
+  </div>
+</div>
+
+<script src="assets/js/main.js?v=da075d36"></script>
+</body>
+</html>

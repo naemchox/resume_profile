@@ -1,0 +1,2672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0A0A0A" />
+<title>PubChat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<!-- QR: generate my friend code (qrcodejs) + scan a friend's code (html5-qrcode) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+  /* ============================================================= *
+   *  PubChat — design system (once.film cinematic: warm film-     *
+   *  black, cream type, golden-hour amber → ember, editorial serif)*
+   * ============================================================= */
+  :root{
+    /* warm film-black, deepened toward OLED for a richer, more expensive base */
+    --bg:#090807; --bg-1:#131110; --bg-2:#1B1714; --bg-3:#262019;
+    --line:rgba(231,201,143,.10); --line-2:rgba(231,201,143,.20);
+    --text:#F7F4EE; --muted:#A89E8E; --muted-2:#736A5D;
+    /* Champagne-gold is the luxe accent. It is routed through the legacy --amber
+       token so every accent already wired across the app (rings, glows, focus,
+       keytags, switches…) turns gold in one move. Coral/ember is kept ONLY as the
+       warm "live action" energy — the map radar, the throw, destructive states. */
+    --gold:#E7C98F; --gold-2:#CBA45E; --gold-deep:#A87E3D;
+    --amber:#E7C98F; --amber-2:#F4DFB0;
+    --ember:#F0522C; --orange:#F0522C; --butter:#F4C84B;
+    --rose:#E7C98F; --rose-2:#F4DFB0;            /* legacy aliases → gold accent */
+    --green:#86B27A; --danger:#F0522C;
+    --ink:#0B0A08;                                /* dark text on gold / white fills */
+    --grad:linear-gradient(135deg,#F6E2B6 0%,#E7C98F 44%,#CBA45E 100%);     /* champagne sheen */
+    --grad-ember:linear-gradient(135deg,#FF6B47 0%,#F0522C 100%);            /* live-action coral */
+    /* frosted-glass material tokens — the heart of the "liquid glass" look */
+    --glass:rgba(19,16,13,.66); --glass-2:rgba(27,22,18,.55);
+    --hair:rgba(255,248,234,.07);                /* 1px top-highlight that reads as polished glass */
+    --serif:'Fraunces',ui-serif,Georgia,'Times New Roman',serif;
+    --r-sm:12px; --r:18px; --r-lg:26px; --r-pill:999px;
+    --sa-t:env(safe-area-inset-top,0px); --sa-b:env(safe-area-inset-bottom,0px);
+    --nav-h:66px; --header-h:58px;
+    --shadow:0 26px 70px rgba(0,0,0,.62);
+    --glow:0 0 32px rgba(231,201,143,.32);
+    --ease:cubic-bezier(.22,1,.36,1);            /* smooth, premium easing for motion */
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{
+    background:
+      radial-gradient(120% 80% at 50% -10%, rgba(231,201,143,.10), transparent 55%),
+      radial-gradient(90% 60% at 100% 0%, rgba(240,82,44,.06), transparent 60%),
+      var(--bg);
+    background-attachment:fixed;
+    color:var(--text);
+    font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    font-size:16px; line-height:1.55; overscroll-behavior:none;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+  h1,h2,h3{font-feature-settings:"ss01" 1,"liga" 1}
+  #app{max-width:520px;margin:0 auto;min-height:100%;position:relative}
+  h1,h2,h3,p{margin:0}
+  h1,h2,h3{font-family:var(--serif);font-weight:600;letter-spacing:-.02em;line-height:1.05}
+  button{font-family:inherit;font-size:16px;cursor:pointer;border:none;background:none;color:inherit}
+  input,textarea,select{font-family:inherit;font-size:16px}
+  img{display:block;max-width:100%}
+  .hidden{display:none !important}
+  .ellipsis{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* cinematic grain + vignette overlay (static; sits above content) */
+  .cinema{position:fixed;inset:0;z-index:100;pointer-events:none;
+    box-shadow:inset 0 0 220px 50px rgba(0,0,0,.6)}
+  .cinema::after{content:"";position:absolute;inset:0;opacity:.05;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+  .spinner{font-family:var(--serif);font-size:24px;letter-spacing:.04em;color:var(--muted);opacity:.85}
+
+  /* buttons */
+  .btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    min-height:52px;padding:0 24px;border-radius:var(--r-pill);font-weight:600;letter-spacing:.01em;
+    background:var(--bg-2);color:var(--text);overflow:hidden;
+    border:1px solid var(--hair);
+    transition:transform .18s var(--ease),background .25s,box-shadow .25s,opacity .2s,filter .25s}
+  .btn:active{transform:scale(.975)}
+  /* polished light-sweep on the hero buttons — reads as glass/metal */
+  .btn-cta::before,.btn-rose::before{content:"";position:absolute;top:0;left:-60%;width:45%;height:100%;
+    background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);
+    transform:skewX(-18deg);opacity:0;transition:opacity .3s}
+  .btn-cta:hover::before,.btn-rose:hover::before{opacity:.9;animation:sheen 1.1s var(--ease)}
+  @keyframes sheen{from{left:-60%}to{left:130%}}
+  .btn-cta{background:linear-gradient(180deg,#FFFFFF,#F1ECE2);color:#0B0A08;font-weight:700;border-color:transparent;
+    box-shadow:0 10px 28px rgba(0,0,0,.45)}
+  .btn-rose{background:var(--grad);color:var(--ink);font-weight:700;border-color:transparent;
+    box-shadow:0 10px 30px rgba(203,164,94,.32),inset 0 1px 0 rgba(255,255,255,.5)}
+  .btn-rose:hover{box-shadow:0 14px 38px rgba(203,164,94,.44),inset 0 1px 0 rgba(255,255,255,.5);filter:brightness(1.03)}
+  .btn-ember{background:var(--grad-ember);color:#fff;font-weight:700;border-color:transparent;
+    box-shadow:0 10px 30px rgba(240,82,44,.35),inset 0 1px 0 rgba(255,255,255,.35)}
+  .btn-ghost{background:rgba(255,255,255,.02);border:1px solid var(--line-2);color:var(--text)}
+  .btn-ghost:hover{background:rgba(231,201,143,.06);border-color:var(--gold-2)}
+  .btn-block{display:flex;width:100%}
+  .btn:disabled{opacity:.42;cursor:not-allowed;box-shadow:none;filter:none}
+  .btn:disabled::before{display:none}
+  .btn-sm{min-height:42px;padding:0 18px;font-size:14px}
+  .icon-btn{width:44px;height:44px;border-radius:var(--r-pill);display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+    transition:background .2s,color .2s}
+  .icon-btn:hover{background:rgba(231,201,143,.08);color:var(--gold)}
+  .icon-btn:active{background:var(--bg-2)}
+
+  /* generic */
+  .card{position:relative;background:
+      linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,0) 40%),var(--bg-1);
+    border:1px solid var(--line);border-radius:var(--r);padding:17px;
+    box-shadow:0 1px 0 var(--hair) inset, 0 18px 40px -28px rgba(0,0,0,.8)}
+  .row{display:flex;align-items:center;gap:12px}
+  .col{display:flex;flex-direction:column}
+  .spacer{flex:1}
+  .muted{color:var(--muted)}
+  .small{font-size:13px}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:5px 13px;border-radius:var(--r-pill);
+    background:rgba(231,201,143,.05);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--text)}
+  .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:var(--r-pill);background:var(--grad);color:var(--ink);
+    box-shadow:0 2px 10px rgba(203,164,94,.4)}
+  .keytag{display:inline-flex;align-items:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700;font-size:12px;letter-spacing:.5px;color:var(--gold);background:rgba(231,201,143,.10);border:1px solid rgba(231,201,143,.34);padding:1px 8px;border-radius:var(--r-pill)}
+  .divider{height:1px;background:linear-gradient(90deg,transparent,var(--line-2),transparent);margin:16px 0;border:0}
+
+  .avatar{border-radius:var(--r-pill);object-fit:cover;background:var(--bg-3);flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;overflow:hidden}
+  .avatar.lg{width:76px;height:76px;font-size:28px;box-shadow:0 0 0 2px var(--bg),0 0 0 3px rgba(231,201,143,.45),0 10px 30px rgba(0,0,0,.5)}
+  .avatar.md{width:52px;height:52px;font-size:20px}
+  .avatar.sm{width:40px;height:40px;font-size:16px}
+
+  /* switch */
+  .switch{position:relative;width:54px;height:31px;flex:0 0 auto;cursor:pointer}
+  .switch input{opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+  .switch .track{position:absolute;inset:0;background:var(--bg-3);border:1px solid var(--hair);border-radius:var(--r-pill);transition:background .25s var(--ease)}
+  .switch .thumb{position:absolute;top:3px;left:3px;width:25px;height:25px;border-radius:50%;background:#F7F1E4;box-shadow:0 2px 6px rgba(0,0,0,.45);transition:transform .25s var(--ease)}
+  .switch input:checked + .track{background:var(--grad)}
+  .switch input:checked + .track + .thumb{transform:translateX(22px)}
+  .switch input:focus-visible + .track{outline:2px solid var(--gold);outline-offset:2px}
+
+  /* layout: screen / app shell */
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);min-height:100%}
+  .pad{padding:16px}
+  .app-header{height:calc(var(--header-h) + var(--sa-t));padding-top:var(--sa-t);
+    display:flex;align-items:center;gap:8px;padding-left:16px;padding-right:16px;
+    border-bottom:1px solid var(--line);background:var(--glass);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);
+    position:sticky;top:0;z-index:20;box-shadow:0 1px 0 var(--hair) inset}
+  .app-header h2{font-family:var(--serif);font-size:25px;font-weight:600;letter-spacing:-.02em}
+  .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h) + var(--sa-b) + 12px)}
+
+  /* bottom nav */
+  .bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:30;
+    height:calc(var(--nav-h) + var(--sa-b));padding-bottom:var(--sa-b);
+    max-width:520px;margin:0 auto;display:flex;
+    background:var(--glass);backdrop-filter:blur(22px) saturate(1.5);-webkit-backdrop-filter:blur(22px) saturate(1.5);
+    border-top:1px solid var(--line);box-shadow:0 1px 0 var(--hair) inset}
+  .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted-2);font-size:11px;font-weight:600;letter-spacing:.03em;position:relative;transition:color .2s}
+  .nav-item svg{width:24px;height:24px;transition:transform .2s var(--ease)}
+  .nav-item.active{color:var(--gold)}
+  .nav-item.active svg{filter:drop-shadow(0 0 10px rgba(231,201,143,.45));transform:translateY(-1px)}
+  /* a thin gold underline that marks the active tab */
+  .nav-item.active::after{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:26px;height:3px;border-radius:0 0 3px 3px;background:var(--grad);box-shadow:0 0 10px rgba(231,201,143,.6)}
+  .nav-item .dot{position:absolute;top:8px;right:calc(50% - 16px);width:9px;height:9px;border-radius:50%;background:var(--ember);border:2px solid var(--bg-1)}
+
+  /* overlays */
+  .overlay{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;max-width:520px;margin:0 auto;animation:overlayIn .32s var(--ease)}
+  @keyframes overlayIn{from{opacity:0;transform:translateY(8px) scale(.992)}to{opacity:1;transform:none}}
+  .overlay-header{height:calc(var(--header-h) + var(--sa-t));padding-top:var(--sa-t);display:flex;align-items:center;gap:10px;padding-left:8px;padding-right:12px;border-bottom:1px solid var(--line);background:var(--glass);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4);box-shadow:0 1px 0 var(--hair) inset}
+  .modal-scrim{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.66);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .25s ease}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .sheet{position:relative;width:100%;max-width:520px;background:
+      linear-gradient(180deg,rgba(255,255,255,.03),transparent 22%),var(--bg-1);
+    border-radius:var(--r-lg) var(--r-lg) 0 0;padding:26px 16px calc(20px + var(--sa-b));
+    border:1px solid var(--line);border-bottom:none;box-shadow:0 -24px 60px rgba(0,0,0,.6),0 1px 0 var(--hair) inset;animation:up .34s var(--ease)}
+  /* a soft grabber handle at the top of every sheet */
+  .sheet::before{content:"";position:absolute;top:9px;left:50%;transform:translateX(-50%);width:38px;height:4px;border-radius:var(--r-pill);background:var(--line-2)}
+  @keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+
+  /* radar */
+  .radar-wrap{display:flex;flex-direction:column;align-items:center;padding:8px 0 4px}
+  .radar{position:relative;width:min(86vw,360px);aspect-ratio:1/1;border-radius:50%;
+    background:radial-gradient(circle at center,rgba(231,181,128,.10),transparent 70%);}
+  .radar .ring{position:absolute;border:1px solid var(--line);border-radius:50%;inset:0}
+  .radar .ring.r2{inset:16.5%}
+  .radar .ring.r3{inset:33%}
+  .radar .me{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:18px;height:18px;border-radius:50%;background:var(--grad);box-shadow:var(--glow)}
+  .radar .sweep{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,rgba(244,209,161,.32),transparent 35%);animation:spin 4s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .blip{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+  .blip .avatar{border:2px solid var(--gold);box-shadow:0 0 12px rgba(231,201,143,.45)}
+  .blip .nm{font-size:10px;max-width:60px}
+
+  /* list item */
+  .person{display:flex;align-items:center;gap:12px;padding:14px;border-radius:var(--r);
+    background:linear-gradient(180deg,rgba(255,255,255,.02),transparent 45%),var(--bg-1);
+    border:1px solid var(--line);cursor:pointer;box-shadow:0 1px 0 var(--hair) inset;
+    transition:background .2s,border-color .2s,transform .2s var(--ease),box-shadow .2s}
+  .person:active{transform:scale(.99)}
+  .person:hover{border-color:var(--gold-2);box-shadow:0 1px 0 var(--hair) inset,0 12px 30px -18px rgba(231,201,143,.4)}
+  .person .nm{font-weight:600}
+  .list{display:flex;flex-direction:column;gap:10px}
+
+  /* chat */
+  .msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
+  .bubble{max-width:78%;padding:11px 15px;border-radius:20px;font-size:15px;line-height:1.45;word-wrap:break-word;white-space:pre-wrap;
+    animation:bubbleIn .28s var(--ease)}
+  @keyframes bubbleIn{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+  .bubble[data-mid],.compass-card[data-mid]{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  .bubble.me{align-self:flex-end;background:var(--grad);color:var(--ink);border-bottom-right-radius:6px;font-weight:500;
+    box-shadow:0 8px 22px -8px rgba(203,164,94,.5),inset 0 1px 0 rgba(255,255,255,.4)}
+  .bubble.them{align-self:flex-start;background:var(--bg-2);border:1px solid var(--hair);border-bottom-left-radius:6px}
+  .bubble.sys{align-self:center;background:transparent;color:var(--muted-2);font-size:12px;text-align:center;max-width:90%;letter-spacing:.02em}
+  .compass-card{align-self:stretch;max-width:100%;
+    background:linear-gradient(180deg,rgba(231,201,143,.06),transparent 50%),var(--bg-1);
+    border:1px solid var(--line-2);border-radius:var(--r);padding:15px;display:flex;align-items:center;gap:14px;
+    box-shadow:0 1px 0 var(--hair) inset,0 14px 34px -24px rgba(0,0,0,.8)}
+  .compass-card .mini{width:46px;height:46px;border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;color:var(--gold);
+    background:rgba(231,201,143,.08);box-shadow:0 0 16px rgba(231,201,143,.25)}
+  .composer{display:flex;gap:8px;padding:12px;padding-bottom:calc(12px + var(--sa-b));border-top:1px solid var(--line);
+    background:var(--glass);backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4)}
+  .composer input{flex:1;min-height:48px;background:var(--bg-2);border:1px solid var(--line);color:var(--text);border-radius:var(--r-pill);padding:0 18px;transition:border-color .2s,box-shadow .2s}
+  .composer input:focus{outline:none;border-color:var(--gold-2);box-shadow:0 0 0 3px rgba(231,201,143,.14)}
+
+  /* inputs */
+  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+  .field label{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.02em}
+  .field input,.field textarea{background:var(--bg-2);border:1px solid var(--line);color:var(--text);border-radius:var(--r-sm);padding:14px 15px;transition:border-color .2s,box-shadow .2s}
+  .field input:focus,.field textarea:focus{outline:none;border-color:var(--gold-2);box-shadow:0 0 0 3px rgba(231,201,143,.14)}
+
+  /* (full-screen navigator styles are scoped inline inside #compassOv) */
+
+  /* segmented control */
+  .seg{display:flex;background:var(--bg-2);border:1px solid var(--hair);border-radius:var(--r-pill);padding:4px;gap:4px}
+  .seg button{flex:1;min-height:40px;border-radius:var(--r-pill);font-weight:600;color:var(--muted);font-size:14px;transition:color .2s,background .25s var(--ease)}
+  .seg button.active{background:var(--grad);color:var(--ink);box-shadow:0 4px 14px rgba(203,164,94,.34)}
+
+  /* ball choices */
+  .ball-opt{display:flex;align-items:center;gap:14px;padding:15px;border-radius:var(--r);border:1px solid var(--line);background:var(--bg-1);cursor:pointer;transition:border-color .2s,background .2s,transform .2s var(--ease)}
+  .ball-opt:active{transform:scale(.99)}
+  .ball-opt.sel{border-color:var(--gold);background:rgba(231,201,143,.08);box-shadow:0 0 0 3px rgba(231,201,143,.12)}
+  .ball-opt .ball{width:46px;height:46px;flex:0 0 auto}
+
+  /* tinder card */
+  .stranger-stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:16px}
+  .tcard{width:100%;max-width:360px;background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow)}
+  .tcard .photo{width:100%;aspect-ratio:3/4;background:var(--bg-3);display:flex;align-items:center;justify-content:center;font-size:64px;color:#fff}
+  .tcard .info{padding:16px}
+
+  .toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + 24px);transform:translateX(-50%);z-index:90;
+    background:var(--glass);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);
+    color:var(--text);padding:13px 20px;border-radius:var(--r-pill);box-shadow:var(--shadow);font-size:14px;font-weight:600;max-width:90%;text-align:center;border:1px solid var(--line-2);animation:toastIn .3s var(--ease)}
+  @keyframes toastIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+
+  .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:48px 24px;text-align:center;color:var(--muted)}
+  .empty svg{width:48px;height:48px;color:var(--muted-2)}
+
+  /* onboarding questions + progress */
+  .ob-progress{height:6px;border-radius:var(--r-pill);background:var(--bg-2);overflow:hidden;margin-bottom:18px}
+  .ob-progress>div{height:100%;background:var(--grad);transition:width .35s var(--ease);box-shadow:0 0 12px rgba(231,201,143,.5)}
+  .opt{display:flex;align-items:center;gap:14px;padding:16px;border-radius:var(--r);border:1px solid var(--line);background:var(--bg-1);color:var(--text);font-weight:600;width:100%;text-align:left;transition:border-color .2s,background .2s,transform .2s var(--ease)}
+  .opt:active{transform:scale(.99)}
+  .opt.sel{border-color:var(--gold);background:rgba(231,201,143,.10);box-shadow:0 0 0 3px rgba(231,201,143,.12)}
+  .opt-emoji{font-size:22px;flex:0 0 auto}
+  .opt-tick{opacity:0;color:var(--gold);flex:0 0 auto;transition:opacity .2s}
+  .opt.sel .opt-tick{opacity:1}
+
+  /* tutorial */
+  .tut-icon{width:100px;height:100px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 30%,rgba(231,201,143,.18),rgba(231,201,143,.06));
+    border:1px solid var(--line-2);color:var(--gold);box-shadow:0 0 40px rgba(231,201,143,.18),inset 0 1px 0 var(--hair)}
+  .tut-dots{display:flex;gap:7px;margin-top:6px}
+  .tut-dots span{width:8px;height:8px;border-radius:50%;background:var(--bg-3);transition:width .25s var(--ease),background .25s}
+  .tut-dots span.on{background:var(--grad);width:22px;border-radius:var(--r-pill)}
+
+  /* global language toggle (floats below the header, top-right; overlays naturally cover it) */
+  #langToggle{position:fixed;z-index:55;top:calc(var(--sa-t) + var(--header-h) + 10px);right:12px;
+    display:inline-flex;align-items:center;gap:5px;height:34px;min-height:0;padding:0 12px;
+    border-radius:var(--r-pill);background:var(--glass);border:1px solid var(--line-2);
+    color:var(--text);font:600 12px/1 Inter,sans-serif;letter-spacing:.04em;
+    backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4);
+    box-shadow:0 6px 18px rgba(0,0,0,.5),0 1px 0 var(--hair) inset;transition:transform .15s var(--ease),border-color .2s}
+  #langToggle:hover{border-color:var(--gold-2)}
+  #langToggle:active{transform:scale(.95)}
+  #langToggle svg{width:15px;height:15px;color:var(--gold)}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;transition:none !important}
+  }
+</style>
+</head>
+<body>
+<div id="app"><div class="empty" style="position:absolute;inset:0"><div class="spinner">Loading…</div></div></div>
+<div class="cinema"></div>
+
+<!-- ============ APP ============ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword,
+  onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where,
+  onSnapshot, addDoc, orderBy, deleteDoc, getDocs, increment, limit, arrayUnion }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+/* ===================================================================== *
+ *  STEP 1 — PASTE YOUR FIREBASE WEB CONFIG HERE                          *
+ *  Get it from: Firebase console > Project settings > Your apps > Web.   *
+ *  See README-SETUP.md for the full walkthrough.                        *
+ * ===================================================================== */
+const firebaseConfig = {
+  apiKey: "REPLACE_WITH_YOUR_FIREBASE_API_KEY",
+  authDomain: "talk-987e0.firebaseapp.com",
+  projectId: "talk-987e0",
+  storageBucket: "talk-987e0.firebasestorage.app",
+  messagingSenderId: "463879453728",
+  appId: "1:463879453728:web:f8c6dc48998f8ac2da1045",
+  measurementId: "G-Q1G4TNRZZY"
+};
+/* ===================================================================== */
+
+const CONFIGURED = !firebaseConfig.apiKey.startsWith("PASTE");
+
+// ---- constants / tunables ----
+const COIN_START = 200, FREEBALLS_START = 5, PAIDBALLS_START = 0;
+const PAID_BALL_COST = 50;          // coins per paid ball
+
+// ---- Stripe coin top-ups (Payment Links) ----
+// Create one Payment Link per pack in the Stripe Dashboard (Products → Payment Links).
+// For each link set "After payment → Redirect to" =  https://talk-987e0.web.app/?paid=1
+// then paste the link URL below. The buyer's uid + email are appended at click time so
+// every payment is attributable to a user (needed to credit coins).
+const COIN_PACKS = [
+  { coins:200,  price:'$1.99', url:'' },
+  { coins:600,  price:'$4.99', url:'', best:true },
+  { coins:1500, price:'$9.99', url:'' },
+];
+const FREE_BALL_MAX = 5;            // cap for regenerating free balls
+const FREE_BALL_REGEN_MS = 2*60*1000; // 1 free ball per 2 min
+const PRESENCE_INTERVAL = 12000;    // write my location every 12s
+const PRESENCE_FRESH_MS = 120000;   // others count as "here now" if seen <2min ago
+const CHAT_LOC_INTERVAL = 8000;     // update my live location inside an active chat
+
+// ---- friendship / XP / rewards ----
+const CHAT_TTL_MS = 24*60*60*1000;  // a chat vanishes 24h after it starts — unless both become friends
+const EXP_PER_FRIEND = 50;          // XP + spendable points earned each time you add a friend in person
+const EXP_PER_LEVEL = 100;          // every 100 lifetime XP = one level
+// Spend points (earned via friends) on rewards. en/th are translated at render time.
+const REWARDS = [
+  { id:'paidball', cost:150, balls:1, coins:0, ic:'gift',
+    en:'Premium chat-ball', th:'ลูกบอลแชทพรีเมียม',
+    den:'One guaranteed 100% catch', dth:'จับติดแน่นอน 100% หนึ่งลูก' },
+  { id:'coins100', cost:300, balls:0, coins:100, ic:'coin',
+    en:'100 coins', th:'100 เหรียญ',
+    den:'Spend on premium balls', dth:'ใช้ซื้อลูกบอลพรีเมียม' },
+];
+
+const $ = (s,el=document)=>el.querySelector(s);
+const root = document.getElementById('app');
+
+// ---- app state ----
+const S = {
+  user:null, profile:null,
+  realPos:null,                     // {lat,lng}
+  nearbyVisible:true, strangerVisible:false, inStrangerMode:false,
+  range:100,
+  blocked:new Set(),
+  // live subscriptions we may need to tear down
+  unsub:{ nearby:null, chats:null, room:null, roomDoc:null, compassTarget:null, stranger:null },
+  chatLocTimer:null, presenceTimer:null, strangerTimer:null,
+  heading:null,
+};
+
+/* ========================= i18n (English / Thai) ========================= */
+// Default to the device language on first visit; remember any manual switch after that.
+S.lang = localStorage.getItem('pc_lang')
+  || (((navigator.language||navigator.userLanguage||'').toLowerCase().startsWith('th')) ? 'th' : 'en');
+document.documentElement.lang = S.lang;
+const T = (en, th) => S.lang==='th' ? th : en;
+function setLang(l){ if(l===S.lang) return; localStorage.setItem('pc_lang', l); location.reload(); }
+function toggleLang(){ setLang(S.lang==='th' ? 'en' : 'th'); }
+// A small pill that floats above every screen so language is always one tap away.
+// It lives on <body> (outside #app) so it survives the app's full re-renders.
+function mountLangToggle(){
+  if(document.getElementById('langToggle')) return;
+  const b=document.createElement('button');
+  b.id='langToggle'; b.type='button'; b.setAttribute('aria-label','Switch language / สลับภาษา');
+  b.innerHTML = `${icon('globe',15)}<span>${S.lang==='th'?'ไทย':'EN'}</span>`;
+  b.onclick=toggleLang;
+  document.body.appendChild(b);
+}
+mountLangToggle();
+
+const myPos = ()=> S.realPos;
+
+// ---- bail early if not configured ----
+if(!CONFIGURED){
+  root.innerHTML = `<div class="screen"><div class="pad" style="padding-top:60px">
+    <h1 style="font-size:34px;margin-bottom:10px">${T('Almost there.','เกือบเสร็จแล้ว')}</h1>
+    <p class="muted" style="margin-bottom:20px">${T('PubChat needs your Firebase project keys before it can run.','PubChat ต้องใช้คีย์โปรเจกต์ Firebase ของคุณก่อนจึงจะเริ่มทำงานได้')}</p>
+    <div class="card">
+      <h3 style="margin-bottom:8px">${T('Setup (one time)','ตั้งค่า (ครั้งเดียว)')}</h3>
+      <ol class="muted" style="padding-left:20px;line-height:1.9;font-size:14px">
+        <li>${T('Open <b>README-SETUP.md</b> in this folder.','เปิดไฟล์ <b>README-SETUP.md</b> ในโฟลเดอร์นี้')}</li>
+        <li>${T('Create a free Firebase project.','สร้างโปรเจกต์ Firebase ฟรี')}</li>
+        <li>${T('Copy the web config into the top of <b>talk.html</b> (the <code>firebaseConfig</code> block).','คัดลอกค่าตั้งค่าเว็บไปวางด้านบนของ <b>talk.html</b> (บล็อก <code>firebaseConfig</code>)')}</li>
+        <li>${T('Deploy with Firebase Hosting (HTTPS is required for location).','ดีพลอยด้วย Firebase Hosting (ต้องใช้ HTTPS สำหรับการระบุตำแหน่ง)')}</li>
+      </ol>
+    </div>
+  </div></div>`;
+  throw new Error("Firebase not configured — see README-SETUP.md");
+}
+
+// ---- init firebase ----
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+
+/* ========================= helpers ========================= */
+function toast(msg, ms=2200){
+  let t = $('.toast'); if(t) t.remove();
+  t = document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(), ms);
+}
+const esc = s => (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const initials = n => (n||'?').trim().split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+function avatar(p, size='md'){
+  const name = p?.displayName||'?';
+  if(p?.photoURL) return `<div class="avatar ${size}"><img src="${esc(p.photoURL)}" alt="${esc(name)}" style="width:100%;height:100%;object-fit:cover"></div>`;
+  return `<div class="avatar ${size}" style="background:${colorFor(name)}">${esc(initials(name))}</div>`;
+}
+function colorFor(s){ let h=0; for(const c of (s||'x')) h=(h*31+c.charCodeAt(0))%360; return `hsl(${h} 55% 42%)`; }
+
+function haversine(a,b){
+  if(!a||!b) return Infinity;
+  const R=6371000, toR=Math.PI/180;
+  const dLat=(b.lat-a.lat)*toR, dLng=(b.lng-a.lng)*toR;
+  const la1=a.lat*toR, la2=b.lat*toR;
+  const h=Math.sin(dLat/2)**2 + Math.cos(la1)*Math.cos(la2)*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+function bearing(a,b){
+  const toR=Math.PI/180, toD=180/Math.PI;
+  const y=Math.sin((b.lng-a.lng)*toR)*Math.cos(b.lat*toR);
+  const x=Math.cos(a.lat*toR)*Math.sin(b.lat*toR) - Math.sin(a.lat*toR)*Math.cos(b.lat*toR)*Math.cos((b.lng-a.lng)*toR);
+  return (Math.atan2(y,x)*toD + 360) % 360;
+}
+const distLabel = m => m===Infinity ? '–' : m<1000 ? `~${Math.max(5,Math.round(m/5)*5)} m` : `${(m/1000).toFixed(1)} km`;
+const chatIdOf = (a,b)=> [a,b].sort().join('_');
+
+/* ----- XP / level + chat-expiry helpers ----- */
+const pointsOf = ()=> S.profile?.points||0;          // spendable reward points
+const levelOf  = exp => Math.floor((exp||0)/EXP_PER_LEVEL)+1;
+const levelProgress = exp => (exp||0)%EXP_PER_LEVEL;  // 0..EXP_PER_LEVEL-1 within the level
+const chatExpiresAt = c => (c.createdAt||0)+CHAT_TTL_MS;
+const chatExpired   = c => !c.friends && Date.now() > chatExpiresAt(c);
+const chatMsLeft    = c => c.friends ? Infinity : Math.max(0, chatExpiresAt(c)-Date.now());
+function fmtDur(ms){
+  if(ms===Infinity) return '∞';
+  const s=Math.max(0,Math.floor(ms/1000)), h=Math.floor(s/3600), m=Math.floor(s%3600/60), ss=s%60;
+  return h>0 ? `${h}h ${String(m).padStart(2,'0')}m` : `${m}:${String(ss).padStart(2,'0')}`;
+}
+
+/* ========================= geolocation ========================= */
+let _geoWatch=null;
+function startGeo(){
+  if(!('geolocation' in navigator)){ toast(T('This device has no location support','อุปกรณ์นี้ไม่รองรับการระบุตำแหน่ง')); return; }
+  if(_geoWatch!=null) return;            // already watching
+  _geoWatch = navigator.geolocation.watchPosition(
+    p=>{
+      const first = !S.realPos;
+      S.realPos={lat:p.coords.latitude,lng:p.coords.longitude};
+      if(first) writePresence();          // publish our spot as soon as we have it
+      if(currentTab==='nearby') refreshNearby();
+    },
+    err=>{
+      toast(err.code===1
+        ? T('Location blocked — allow location access in your browser to find people nearby','การระบุตำแหน่งถูกบล็อก — อนุญาตการเข้าถึงตำแหน่งในเบราว์เซอร์เพื่อค้นหาคนที่อยู่ใกล้')
+        : T('Couldn’t get your location — check that location/GPS is on','หาตำแหน่งของคุณไม่ได้ — ตรวจสอบว่าเปิดตำแหน่ง/GPS อยู่'));
+    },
+    { enableHighAccuracy:true, maximumAge:5000, timeout:20000 }
+  );
+}
+// Explicit (re)request — used by the “Enable location” button. Triggers the browser prompt.
+function requestLocation(){
+  if(!('geolocation' in navigator)) return toast(T('This device has no location support','อุปกรณ์นี้ไม่รองรับการระบุตำแหน่ง'));
+  navigator.geolocation.getCurrentPosition(
+    p=>{ S.realPos={lat:p.coords.latitude,lng:p.coords.longitude}; writePresence(); refreshNearby(); toast(T('Location on','เปิดตำแหน่งแล้ว')); startGeo(); },
+    err=>{ toast(err.code===1?T('Permission denied — enable location for this site in your browser settings','ปฏิเสธการอนุญาต — เปิดใช้ตำแหน่งสำหรับเว็บไซต์นี้ในการตั้งค่าเบราว์เซอร์'):T('Could not get your location','หาตำแหน่งของคุณไม่ได้')); },
+    { enableHighAccuracy:true, timeout:20000 }
+  );
+}
+
+/* device compass heading (for the “turn your phone” effect) */
+function onOrient(e){
+  if(typeof e.webkitCompassHeading === 'number') S.heading = e.webkitCompassHeading;
+  else if(e.absolute && typeof e.alpha === 'number') S.heading = (360 - e.alpha) % 360;
+}
+async function enableHeading(){
+  try{
+    if(typeof DeviceOrientationEvent!=='undefined' && DeviceOrientationEvent.requestPermission){
+      const r = await DeviceOrientationEvent.requestPermission();
+      if(r!=='granted'){ toast(T('Compass permission denied','ปฏิเสธการอนุญาตเข็มทิศ')); return false; }
+    }
+    window.addEventListener('deviceorientationabsolute', onOrient, true);
+    window.addEventListener('deviceorientation', onOrient, true);
+    return true;
+  }catch(_){ return false; }
+}
+
+/* ========================= presence ========================= */
+async function writePresence(){
+  const pos = myPos(); if(!S.user || !pos) return;
+  await setDoc(doc(db,'presence',S.user.uid), {
+    uid:S.user.uid, lat:pos.lat, lng:pos.lng, lastSeen:Date.now(),
+    nearbyVisible:S.nearbyVisible, strangerVisible:S.strangerVisible,
+    inStrangerMode:S.inStrangerMode, range:S.range,
+    displayName:S.profile?.displayName||'Someone', photoURL:S.profile?.photoURL||'', bio:S.profile?.bio||'',
+    personalKey:S.profile?.personalKey||'',
+    intent:S.profile?.intent||'', vibe:S.profile?.vibe||'', meet:S.profile?.meet||''
+  }, {merge:true});
+}
+function startPresenceLoop(){
+  clearInterval(S.presenceTimer);
+  writePresence();
+  S.presenceTimer = setInterval(writePresence, PRESENCE_INTERVAL);
+}
+
+/* ========================= auth + boot ========================= */
+// An admin account is any login whose email is on the @pubchat.app domain
+// (created via the hidden q+w+e admin form). Mapped from ID "admin" / pass "admin".
+const ADMIN_DOMAIN = '@pubchat.app';
+const isAdminUser = u => !!(u && u.email && u.email.endsWith(ADMIN_DOMAIN));
+
+onAuthStateChanged(auth, async (u)=>{
+  S.user = u;
+  S.isAdmin = isAdminUser(u);
+  if(!u){ renderAuth(); return; }
+  // load / create profile
+  const ref = doc(db,'users',u.uid);
+  const snap = await getDoc(ref);
+  if(!snap.exists()){
+    renderOnboard(u); return;
+  }
+  S.profile = snap.data();
+  await regenFreeBalls();
+  await ensureUserKey();        // assign a unique personal key if they don't have one yet
+  await loadBlocks();
+  startGeo();
+  startPresenceLoop();
+  enterApp();
+});
+
+async function loadBlocks(){
+  const qs = await getDocs(collection(db,'blocks',S.user.uid,'blocked'));
+  S.blocked = new Set(qs.docs.map(d=>d.id));
+}
+
+/* ----- unique personal key (Discord-style tag, guaranteed unique) ----- */
+// Ambiguous chars (I,O,0,1,L) removed so keys are easy to read aloud.
+const KEY_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function randKey(len=5){ let s=''; for(let i=0;i<len;i++) s+=KEY_ALPHABET[Math.floor(Math.random()*KEY_ALPHABET.length)]; return s; }
+async function ensureUserKey(){
+  if(S.profile?.personalKey) return S.profile.personalKey;
+  // Try to claim a random key. Rules make 'keys/{key}' create-once, so a collision
+  // (or a lost race) throws and we just try another key.
+  for(let i=0;i<15;i++){
+    const key = randKey(5);
+    try{
+      await setDoc(doc(db,'keys',key), {uid:S.user.uid, at:Date.now()});
+      await updateDoc(doc(db,'users',S.user.uid), {personalKey:key});
+      S.profile.personalKey = key;
+      return key;
+    }catch(_){ /* taken — pick another */ }
+  }
+  // Extremely unlikely fallback: derive from the (already-unique) uid.
+  const fallback = S.user.uid.slice(-5).toUpperCase().replace(/[^A-Z2-9]/g,'X');
+  try{ await updateDoc(doc(db,'users',S.user.uid), {personalKey:fallback}); S.profile.personalKey=fallback; }catch(_){}
+  return S.profile.personalKey;
+}
+async function regenFreeBalls(){
+  const p = S.profile; const now=Date.now();
+  const last = p.lastFreeRegen || now;
+  if((p.freeBalls||0) < FREE_BALL_MAX){
+    const add = Math.floor((now-last)/FREE_BALL_REGEN_MS);
+    if(add>0){
+      const next = Math.min(FREE_BALL_MAX, (p.freeBalls||0)+add);
+      // Advance the timestamp by exactly the whole intervals consumed so the
+      // leftover seconds carry into the next ball's countdown (don't reset to now).
+      const newLast = next>=FREE_BALL_MAX ? now : last + add*FREE_BALL_REGEN_MS;
+      await updateDoc(doc(db,'users',S.user.uid), {freeBalls:next, lastFreeRegen:newLast});
+      p.freeBalls=next; p.lastFreeRegen=newLast;
+    }
+  } else if(!p.lastFreeRegen){
+    await updateDoc(doc(db,'users',S.user.uid), {lastFreeRegen:now}); p.lastFreeRegen=now;
+  }
+}
+
+/* ----- live free-ball regen: tick every second, refill one ball at a time,
+   show a running countdown, and stop once the user is back to the max. ----- */
+let _freeBallTimer=null;
+function startFreeBallTimer(){
+  clearInterval(_freeBallTimer);
+  freeBallTick();
+  _freeBallTimer = setInterval(freeBallTick, 1000);
+}
+let _freeBallBusy=false;
+async function freeBallTick(){
+  const p=S.profile; if(!p) return;
+  if(!_freeBallBusy && (p.freeBalls||0) < FREE_BALL_MAX){
+    const now=Date.now();
+    const last=p.lastFreeRegen || now;
+    if(now-last >= FREE_BALL_REGEN_MS){
+      // one or more whole intervals elapsed → grant the ball(s), capped at the max
+      _freeBallBusy=true;
+      try{ await regenFreeBalls(); refreshWalletPill(); toast(T('🎾 A free chat-ball refilled','🎾 เติมลูกบอลแชทฟรีแล้ว')); }
+      finally{ _freeBallBusy=false; }
+    }
+  }
+  updateFreeBallCountdownUI();
+}
+// ms until the next free ball arrives (0 when already at the max)
+function freeBallCountdownMs(){
+  const p=S.profile;
+  if(!p || (p.freeBalls||0) >= FREE_BALL_MAX) return 0;
+  const last = p.lastFreeRegen || Date.now();
+  const rem = FREE_BALL_REGEN_MS - ((Date.now()-last) % FREE_BALL_REGEN_MS);
+  return rem;
+}
+function fmtCountdown(ms){
+  const s=Math.max(0,Math.ceil(ms/1000));
+  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+// Refresh every on-screen free-ball countdown line (throw sheet + profile card).
+function updateFreeBallCountdownUI(){
+  const p=S.profile; if(!p) return;
+  const atMax = (p.freeBalls||0) >= FREE_BALL_MAX;
+  const txt = atMax
+    ? T('Balls full','ลูกบอลเต็มแล้ว')
+    : T(`Next ball in ${fmtCountdown(freeBallCountdownMs())}`,`ลูกบอลถัดไปใน ${fmtCountdown(freeBallCountdownMs())}`);
+  document.querySelectorAll('.freeRegenInfo').forEach(e=> e.textContent=txt);
+  const fn=$('#freeN'); if(fn) fn.textContent=p.freeBalls;
+  const fl=$('#freeLeftPill'); if(fl) fl.textContent=p.freeBalls;
+}
+
+/* ========================= SCREEN: auth ========================= */
+function renderAuth(){
+  const slides = [
+    {big:T('The whole bar<br/>is a chat room.','ทั้งบาร์<br/>คือห้องแชท'), sub:T('See who’s actually near you — within 100 to 500 metres — the moment you walk in.','ดูว่าใครอยู่ใกล้คุณบ้าง — ในระยะ 100 ถึง 500 เมตร — ตั้งแต่วินาทีที่คุณก้าวเข้ามา')},
+    {big:T('Catch someone<br/>to start talking.','จับใครสักคน<br/>เพื่อเริ่มคุย'), sub:T('Throw a chat-ball to break the ice. Flick it up — if it lands, the chat opens.','โยนลูกบอลแชทเพื่อทลายกำแพง ปัดขึ้น — ถ้ามันไปถึง แชทก็จะเปิดขึ้น')},
+    {big:T('Find each other<br/>across the room.','หากันให้เจอ<br/>ทั่วทั้งห้อง'), sub:T('Both turn on the compass and it points the way, like a beacon to their table.','เปิดเข็มทิศทั้งคู่ แล้วมันจะชี้ทางให้ เหมือนสัญญาณนำทางไปยังโต๊ะของอีกฝ่าย')},
+  ];
+  const total = slides.length + 1;
+  root.innerHTML = `<div class="screen au-wrap">
+    <style>
+      .au-wrap{padding:0}
+      .au-top{display:flex;align-items:center;justify-content:center;gap:8px;padding:calc(18px + var(--sa-t)) 16px 8px;font-family:var(--serif);font-weight:600;font-size:20px;letter-spacing:.01em;position:relative}
+      .au-top svg{color:var(--gold);filter:drop-shadow(0 0 10px rgba(231,201,143,.5))}
+      .au-skip{position:absolute;right:18px;top:calc(20px + var(--sa-t));font:600 13px/1 Inter,sans-serif;color:var(--muted);background:none;letter-spacing:.04em}
+      .au-slides{flex:1;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+      .au-slides::-webkit-scrollbar{display:none}
+      .au-slide{flex:0 0 100%;scroll-snap-align:center;display:flex;flex-direction:column;justify-content:center;padding:32px 30px;gap:20px;cursor:pointer}
+      /* a thin gold "eyebrow" rule above each headline — quiet editorial luxury */
+      .au-slide .au-big::before{content:"";display:block;width:40px;height:2px;margin-bottom:22px;border-radius:2px;background:var(--grad);box-shadow:0 0 12px rgba(231,201,143,.6)}
+      .au-big{font-family:var(--serif);font-weight:600;font-size:42px;line-height:1.08;letter-spacing:-.025em}
+      .au-big b,.au-hero span{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+      .au-sub{color:var(--muted);font-size:17px;max-width:340px;line-height:1.55}
+      .au-signin{flex:0 0 100%;scroll-snap-align:center;display:flex;flex-direction:column;justify-content:center;padding:24px}
+      .au-hero{font-family:var(--serif);font-weight:600;font-size:50px;line-height:1.05;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:28px;letter-spacing:-.02em}
+      .au-hero span svg{-webkit-text-fill-color:initial;color:var(--gold);filter:drop-shadow(0 0 14px rgba(231,201,143,.55))}
+      .au-dots{display:flex;gap:8px;justify-content:center;padding:14px 0 calc(20px + var(--sa-b))}
+      .au-dots span{width:7px;height:7px;border-radius:50%;background:var(--line-2);transition:background .25s var(--ease),width .25s var(--ease)}
+      .au-dots span.on{background:var(--grad);width:22px;border-radius:4px;box-shadow:0 0 10px rgba(231,201,143,.55)}
+    </style>
+    <div class="au-top">${icon('spark',18)} PubChat<button class="au-skip" id="skip">${T('Skip','ข้าม')}</button></div>
+    <div class="au-slides" id="slides">
+      ${slides.map(s=>`<div class="au-slide"><div class="au-big">${s.big}</div><div class="au-sub">${s.sub}</div></div>`).join('')}
+      <div class="au-signin">
+        <div class="au-hero">${T('Welcome to','ยินดีต้อนรับสู่')}<span style="display:inline-flex;align-items:center;gap:12px">${icon('spark',40)} PubChat</span></div>
+        <div class="col" style="gap:12px">
+          <button class="btn btn-cta btn-block" id="g">${icon('google')} Continue with Google</button>
+          <div id="adminBox" class="card hidden" style="text-align:left">
+            <b>Admin sign in</b>
+            <div class="field" style="margin-top:10px"><label for="adminId">ID</label><input id="adminId" autocomplete="off" value="admin"></div>
+            <div class="field"><label for="adminPass">Password</label><input id="adminPass" type="password" autocomplete="off" placeholder="••••••"></div>
+            <button class="btn btn-rose btn-block" id="adminGo">Sign in as admin</button>
+          </div>
+          <p class="small muted" style="text-align:center;margin-top:6px;padding:0 8px">${T('By continuing you agree to be kind. Your exact location is only shared inside a chat when <b>both</b> of you turn it on.','การดำเนินการต่อถือว่าคุณยอมรับที่จะใจดีต่อกัน ตำแหน่งที่แน่นอนของคุณจะถูกแชร์ภายในแชทเท่านั้น เมื่อคุณ<b>ทั้งคู่</b>เปิดใช้งาน')}</p>
+        </div>
+      </div>
+    </div>
+    <div class="au-dots" id="dots">${[...Array(total)].map((_,i)=>`<span class="${i===0?'on':''}"></span>`).join('')}</div>
+  </div>`;
+  const slidesEl=$('#slides'), dots=[...$('#dots').children];
+  slidesEl.addEventListener('scroll',()=>{
+    const i=Math.round(slidesEl.scrollLeft/slidesEl.clientWidth);
+    dots.forEach((d,k)=>d.classList.toggle('on',k===i));
+  });
+  slidesEl.querySelectorAll('.au-slide').forEach((sl,i)=> sl.onclick=()=>slidesEl.scrollTo({left:(i+1)*slidesEl.clientWidth,behavior:'smooth'}));
+  $('#skip').onclick=()=>slidesEl.scrollTo({left:(total-1)*slidesEl.clientWidth,behavior:'smooth'});
+  $('#g').onclick = async()=>{ try{ await signInWithPopup(auth, new GoogleAuthProvider()); }catch(e){ toast(T('Sign-in cancelled','ยกเลิกการเข้าสู่ระบบแล้ว')); } };
+  $('#adminGo').onclick = adminLogin;
+  $('#adminPass').addEventListener('keydown', e=>{ if(e.key==='Enter') adminLogin(); });
+  installAdminHotkey();
+}
+
+// Secret desktop hotkey: hold q + w + e together to reveal the admin login form.
+const _keysDown = new Set();
+function _adminKeyDown(e){
+  const k = (e.key||'').toLowerCase();
+  if(['q','w','e'].includes(k)) _keysDown.add(k);
+  if(_keysDown.has('q') && _keysDown.has('w') && _keysDown.has('e')) revealAdmin();
+}
+function _adminKeyUp(e){ _keysDown.delete((e.key||'').toLowerCase()); }
+function installAdminHotkey(){
+  window.removeEventListener('keydown', _adminKeyDown);
+  window.removeEventListener('keyup', _adminKeyUp);
+  window.addEventListener('keydown', _adminKeyDown);
+  window.addEventListener('keyup', _adminKeyUp);
+}
+function removeAdminHotkey(){
+  window.removeEventListener('keydown', _adminKeyDown);
+  window.removeEventListener('keyup', _adminKeyUp);
+  _keysDown.clear();
+}
+function revealAdmin(){
+  const box = $('#adminBox'); if(!box || !box.classList.contains('hidden')) return;
+  box.classList.remove('hidden');
+  $('#adminPass')?.focus();
+  toast('Admin mode unlocked');
+}
+async function adminLogin(){
+  const id = ($('#adminId')?.value||'').trim().toLowerCase();
+  const pass = $('#adminPass')?.value||'';
+  if(!id || !pass) return toast('Enter ID and password');
+  const btn = $('#adminGo'); if(btn) btn.disabled = true;
+  try{
+    // Map the simple ID/password onto a valid Firebase email + 6-char-min password.
+    await signInWithEmailAndPassword(auth, id + ADMIN_DOMAIN, 'pc_' + pass);
+    removeAdminHotkey();
+  }catch(e){
+    if(btn) btn.disabled = false;
+    toast('Admin login failed — check the ID/password and that the account exists in Firebase');
+  }
+}
+
+/* ========================= SCREEN: onboarding ========================= */
+// Questions we ask every new user at signup. Answers are saved on their profile.
+const ONBOARD_Q = [
+  { key:'intent', q:T('What brings you to PubChat?','อะไรพาคุณมา PubChat?'), opts:[
+    {v:'friends',    label:T('Make new friends','หาเพื่อนใหม่'),     emoji:'🤝'},
+    {v:'dating',     label:T('Dating & romance','เดต & ความรัก'),    emoji:'💘'},
+    {v:'networking', label:T('Networking','สร้างคอนเนกชัน'),   emoji:'🌐'},
+    {v:'fun',        label:T('Just for fun','มาสนุก ๆ'),         emoji:'🎉'},
+  ]},
+  { key:'vibe', q:T('What’s your vibe tonight?','คืนนี้อารมณ์ประมาณไหน?'), opts:[
+    {v:'chatty',   label:T('Chatty & friendly','อยากคุย เฟรนด์ลี่'),  emoji:'💬'},
+    {v:'chill',    label:T('Chill & relaxed','ชิล ๆ สบาย ๆ'),       emoji:'😎'},
+    {v:'anything', label:T('Up for anything','พร้อมลุยทุกอย่าง'),    emoji:'🔥'},
+  ]},
+  { key:'meet', q:T('Who do you want to meet?','อยากเจอใคร?'), opts:[
+    {v:'everyone',  label:T('Everyone','ทุกคน'),       emoji:'✨'},
+    {v:'women',     label:T('Women','ผู้หญิง'),      emoji:'♀️'},
+    {v:'men',       label:T('Men','ผู้ชาย'),       emoji:'♂️'},
+    {v:'nonbinary', label:T('Non-binary','นอนไบนารี'),   emoji:'⚧'},
+  ]},
+];
+
+function renderOnboard(u){
+  const data = { displayName:u.displayName||'', bio:'', photoURL:u.photoURL||'', answers:{} };
+  let step = 0;                          // 0 = profile, then one step per question
+  const total = 1 + ONBOARD_Q.length;
+  const progress = () => `<div class="ob-progress"><div style="width:${Math.round(step/(total-1)*100)}%"></div></div>`;
+
+  function paint(){ step===0 ? paintProfile() : paintQuestion(step-1); }
+
+  function paintProfile(){
+    root.innerHTML = `<div class="screen"><div class="app-header"><h2>${T('Create your profile','สร้างโปรไฟล์ของคุณ')}</h2></div>
+      <div class="content pad">
+        ${progress()}
+        <div class="col" style="align-items:center;gap:12px;margin:4px 0 18px">
+          <div id="obAvatar">${avatar({displayName:data.displayName||'You',photoURL:data.photoURL},'lg')}</div>
+          <button class="btn btn-ghost btn-sm" id="obPhoto">${icon('user',16)} ${T('Add a photo','เพิ่มรูปภาพ')}</button>
+        </div>
+        <div class="field"><label for="nm" class="row" style="gap:6px">${icon('user',14)} ${T('Display name','ชื่อที่แสดง')}</label><input id="nm" maxlength="24" value="${esc(data.displayName)}" placeholder="${T('What should people call you?','อยากให้คนอื่นเรียกคุณว่าอะไร?')}"></div>
+        <div class="field"><label for="bio" class="row" style="gap:6px">${icon('chat',14)} ${T('Short bio','แนะนำตัวสั้น ๆ')}</label><textarea id="bio" rows="3" maxlength="120" placeholder="${T('Here for a good chat 🍸','มาหาเพื่อนคุยเพลิน ๆ 🍸')}">${esc(data.bio)}</textarea></div>
+        <div class="card" style="margin-bottom:18px">
+          <div class="row"><div>${icon('pin')}</div><div class="col"><b>${T('Location','ตำแหน่งที่ตั้ง')}</b><span class="small muted">${T('Used to show people near you. Your exact location stays hidden until you choose to share it in a chat.','ใช้เพื่อแสดงคนที่อยู่ใกล้คุณ ตำแหน่งจริงของคุณจะถูกซ่อนไว้จนกว่าคุณจะเลือกแชร์ในแชท')}</span></div></div>
+        </div>
+        <button class="btn btn-cta btn-block" id="next">${T('Continue','ต่อไป')}</button>
+      </div></div>`;
+    $('#obPhoto').onclick = async()=>{
+      const f=await pickImage(); if(!f) return;
+      if(f.size>15*1024*1024) return toast(T('Image too large — pick one under 15 MB','รูปใหญ่เกินไป — เลือกรูปที่เล็กกว่า 15 MB'));
+      try{ data.photoURL=await fileToSquareDataURL(f);
+        $('#obAvatar').innerHTML=`<div class="avatar lg"><img src="${data.photoURL}" alt="" style="width:100%;height:100%;object-fit:cover"></div>`;
+      }catch(_){ toast(T('Could not process that image — try another','ประมวลผลรูปนี้ไม่ได้ ลองรูปอื่น')); }
+    };
+    $('#next').onclick = ()=>{ data.displayName=$('#nm').value.trim(); data.bio=$('#bio').value.trim(); step=1; paint(); };
+  }
+
+  function paintQuestion(qi){
+    const Q=ONBOARD_Q[qi], chosen=data.answers[Q.key], last=qi===ONBOARD_Q.length-1;
+    root.innerHTML = `<div class="screen"><div class="app-header"><button class="icon-btn" id="back">${icon('back')}</button><h2>${T('A quick question','คำถามสั้น ๆ')}</h2></div>
+      <div class="content pad">
+        ${progress()}
+        <h3 style="font-size:24px;margin:4px 0 18px">${esc(Q.q)}</h3>
+        <div class="list" id="opts">${Q.opts.map(o=>
+          `<button class="opt ${chosen===o.v?'sel':''}" data-v="${o.v}"><span class="opt-emoji">${o.emoji}</span><span style="flex:1">${esc(o.label)}</span><span class="opt-tick">${icon('check',18)}</span></button>`
+        ).join('')}</div>
+        <button class="btn btn-cta btn-block" id="next" style="margin-top:18px" ${chosen?'':'disabled'}>${last?T('Enter the pub','เข้าสู่ผับ'):T('Next','ถัดไป')}</button>
+      </div></div>`;
+    $('#back').onclick = ()=>{ step--; paint(); };
+    document.querySelectorAll('#opts .opt').forEach(b=> b.onclick=()=>{ data.answers[Q.key]=b.dataset.v; paintQuestion(qi); });
+    $('#next').onclick = ()=>{ if(!data.answers[Q.key]) return; if(last){ finish(); } else { step++; paint(); } };
+  }
+
+  async function finish(){
+    const profile = { uid:u.uid, displayName:data.displayName||'Someone', photoURL:data.photoURL||'', bio:data.bio,
+      intent:data.answers.intent||'', vibe:data.answers.vibe||'', meet:data.answers.meet||'',
+      createdAt:Date.now(), coins:COIN_START, freeBalls:FREEBALLS_START, paidBalls:PAIDBALLS_START, lastFreeRegen:Date.now(),
+      exp:0, points:0, friends:[],
+      isAdmin:S.isAdmin, tutorialDone:false };
+    await setDoc(doc(db,'users',u.uid), profile);
+    S.profile = profile;
+    await ensureUserKey();        // give the new user a unique personal key
+    try{ await navigator.geolocation?.getCurrentPosition?.(()=>{},()=>{}); }catch(_){}
+    startGeo(); startPresenceLoop(); await loadBlocks(); enterApp();
+  }
+
+  paint();
+}
+
+/* ========================= first-run tutorial ========================= */
+const TUTORIAL = [
+  { ic:'radar',   title:T('See who’s nearby','ดูว่าใครอยู่ใกล้ ๆ'),       body:T('The radar shows people in the pub around you. Tap someone to start catching them.','เรดาร์จะแสดงคนในผับที่อยู่รอบ ๆ ตัวคุณ แตะที่ใครสักคนเพื่อเริ่มจับพวกเขา') },
+  { ic:'coin',    title:T('Catch with chat-balls','จับด้วยลูกบอลแชท'),         body:T('Throw a free ball (~50% catch chance) or a premium ball (guaranteed). Catch someone and the chat opens instantly.','โยนลูกบอลฟรี (โอกาสจับ ~50%) หรือลูกบอลพรีเมียม (จับติดแน่นอน) เมื่อจับใครได้ แชทจะเปิดขึ้นทันที') },
+  { ic:'compass', title:T('Find each other','ตามหากันและกัน'),           body:T('In a chat, you can both share location to get a live compass that points to each other.','ในแชท คุณทั้งคู่สามารถแชร์ตำแหน่งเพื่อรับเข็มทิศแบบเรียลไทม์ที่ชี้ไปหากันและกันได้') },
+  { ic:'shuffle', title:T('Or try Stranger Mode','หรือลองโหมดคนแปลกหน้า'),    body:T('Swipe through random people — no chat-ball needed. Skipped someone by accident? Bring the last one back.','ปัดดูคนแบบสุ่ม — ไม่ต้องใช้ลูกบอลแชท เผลอข้ามใครไป? กดเรียกคนที่เพิ่งข้ามให้กลับมาได้') },
+];
+let _tutorialShown=false;
+function showTutorial(){
+  document.getElementById('tutOv')?.remove();   // never stack two tutorials on top of each other
+  let i=0;
+  const ov=el('div','overlay'); ov.id='tutOv';
+  function paint(){
+    const t=TUTORIAL[i], last=i===TUTORIAL.length-1;
+    ov.innerHTML = `
+      <div class="content col" style="justify-content:center;align-items:center;text-align:center;gap:18px;padding:24px">
+        <div class="tut-icon">${icon(t.ic,44)}</div>
+        <h2 style="font-size:28px;font-weight:800">${esc(t.title)}</h2>
+        <p class="muted" style="max-width:300px">${esc(t.body)}</p>
+        <div class="tut-dots">${TUTORIAL.map((_,k)=>`<span class="${k===i?'on':''}"></span>`).join('')}</div>
+      </div>
+      <div class="col" style="gap:8px;padding:16px;padding-bottom:calc(16px + var(--sa-b))">
+        <button class="btn btn-cta btn-block" id="tnext">${last?T('Start exploring','เริ่มสำรวจเลย'):T('Next','ถัดไป')}</button>
+        ${last?'':`<button class="btn btn-ghost btn-block btn-sm" id="tskip">${T('Skip','ข้าม')}</button>`}
+      </div>`;
+    $('#tnext',ov).onclick = ()=>{ if(last){ done(); } else { i++; paint(); } };
+    $('#tskip',ov)?.addEventListener('click', done);
+  }
+  function done(){ ov.remove(); markTutorialDone(); }
+  document.body.appendChild(ov);
+  paint();
+}
+async function markTutorialDone(){
+  if(S.profile?.tutorialDone) return;
+  S.profile.tutorialDone = true;
+  try{ await updateDoc(doc(db,'users',S.user.uid), {tutorialDone:true}); }catch(_){}
+}
+
+/* ========================= APP SHELL ========================= */
+let currentTab='nearby';
+function enterApp(){
+  root.innerHTML = `
+  <div class="screen">
+    <div class="app-header">
+      <h2 id="ttl">${T('Nearby','ใกล้ฉัน')}</h2><div class="spacer"></div>
+      <div class="pill" id="walletPill">${icon('coin')}<span id="coinN">${S.profile.coins}</span></div>
+    </div>
+    <div class="content" id="view"></div>
+  </div>
+  <nav class="bottom-nav">
+    ${navBtn('nearby',T('Nearby','ใกล้ฉัน'),'radar')}
+    ${navBtn('stranger',T('Stranger','คนแปลกหน้า'),'shuffle')}
+    ${navBtn('chats',T('Chats','แชท'),'chat')}
+    ${navBtn('profile',T('You','คุณ'),'user')}
+  </nav>`;
+  document.querySelectorAll('.nav-item').forEach(b=> b.onclick=()=>switchTab(b.dataset.tab));
+  switchTab('nearby');
+  subscribeChats();
+  startFreeBallTimer();     // live 2-min free-ball refill + countdown
+  startChatTtlTimer();      // live 24h chat-expiry countdowns
+  handleCheckoutReturn();   // show a confirmation if we just came back from Stripe
+  if(!S.profile.tutorialDone && !_tutorialShown){ _tutorialShown=true; showTutorial(); }   // first-run walkthrough (only once, even if enterApp re-runs)
+}
+// After a Payment Link redirects back with ?paid=1, reassure the buyer. Coins are credited
+// by the Stripe webhook (server-side) — never here, since the client can't be trusted to grant them.
+function handleCheckoutReturn(){
+  const q=new URLSearchParams(location.search);
+  if(q.get('paid')==='1'){
+    toast(T('✅ Payment received — your coins will appear in a moment.','✅ ได้รับการชำระเงินแล้ว — เหรียญจะเข้าในอีกสักครู่'),3500);
+  }
+  if(q.has('paid')){ history.replaceState(null,'', location.pathname); }  // clean the URL
+}
+const navBtn=(tab,label,ic)=>`<button class="nav-item" data-tab="${tab}">${icon(ic)}<span>${label}</span><span class="dot hidden" id="dot-${tab}"></span></button>`;
+
+function switchTab(tab){
+  currentTab=tab;
+  stopStrangerShuffle();                 // only keep the auto-reshuffle running on the Stranger tab
+  if(tab!=='nearby') teardownMap();      // free the map when leaving Nearby
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  $('#ttl').textContent = {nearby:T('Nearby','ใกล้ฉัน'),stranger:T('Stranger Mode','โหมดคนแปลกหน้า'),chats:T('Chats','แชท'),profile:T('You','คุณ')}[tab];
+  if(tab==='nearby') renderNearby();
+  if(tab==='stranger') renderStranger();
+  if(tab==='chats') renderChats();
+  if(tab==='profile') renderProfile();
+}
+
+/* ========================= TAB: nearby ========================= */
+function renderNearby(){
+  const v=$('#view');
+  v.innerHTML = `
+  <div class="pad" style="padding-bottom:0">
+    <div class="row card" style="justify-content:space-between">
+      <div class="col"><b class="row" style="gap:7px">${icon('radar',16)} ${T('Visible to others','ให้คนอื่นเห็น')}</b><span class="small muted">${T('Appear on nearby radars','ปรากฏบนเรดาร์ของคนใกล้เคียง')}</span></div>
+      ${switchEl('visToggle', S.nearbyVisible)}
+    </div>
+    <div style="margin:14px 0 4px" class="row"><span class="small muted row" style="gap:6px">${icon('pin',14)} ${T('Range','ระยะ')}</span><div class="spacer"></div><span class="small" id="rangeLbl">${S.range} m</span></div>
+    <input type="range" min="100" max="500" step="50" value="${S.range}" id="rangeInput" style="width:100%;accent-color:#E7B580">
+  </div>
+  <style>
+    /* overflow stays visible so a tapped person's info card can spill past the map frame
+       instead of being clipped; z-index lifts that overflow above the list below it. */
+    .map-stage{position:relative;z-index:10;margin:14px 16px 0;height:48vh;min-height:300px;border-radius:var(--r-lg);border:1px solid var(--line)}
+    #map{position:absolute;inset:0}
+    /* clip ONLY the basemap canvas to the rounded frame (keeps corners tidy without cropping popups) */
+    .map-stage .maplibregl-canvas-container{border-radius:var(--r-lg);overflow:hidden}
+    .maplibregl-ctrl-attrib{font-size:9px;background:rgba(0,0,0,.4)!important}
+    .map-recenter{position:absolute;right:12px;bottom:12px;z-index:5;width:44px;height:44px;border-radius:50%;
+      background:rgba(20,20,20,.85);border:1px solid var(--line-2);display:flex;align-items:center;justify-content:center;color:var(--text);backdrop-filter:blur(8px)}
+    /* Pokémon-GO-style avatar token sitting on the map */
+    /* leader-line marker: avatar floats at the top of a white line; the dot marks the real GPS spot */
+    .mapmark{display:flex;flex-direction:column;align-items:center;cursor:pointer}
+    .mm-avatar{width:44px;height:44px;border-radius:50%;border:2px solid #fff;overflow:hidden;background:var(--bg-2);box-shadow:0 4px 12px rgba(0,0,0,.6)}
+    .mm-pin{display:flex;flex-direction:column;align-items:center}
+    /* leaning group: avatar + line swing around the dot so neighbours don't stack */
+    .mm-lean{display:flex;flex-direction:column;align-items:center;transform-origin:bottom center}
+    .mm-lean .mm-stem{height:26px}
+    .mm-stem{width:2px;height:12px;background:#fff;box-shadow:0 0 4px rgba(0,0,0,.5)}
+    .mm-pindot{width:8px;height:8px;border-radius:50%;background:#fff;box-shadow:0 0 6px rgba(255,255,255,.65);margin-top:-1px}
+    .mm-pin-me .mm-pindot{background:var(--amber);box-shadow:0 0 9px rgba(231,181,128,.85)}
+    .mm-cluster{width:54px;height:54px;border-radius:50%;background:rgba(18,18,18,.94);border:2px solid var(--amber);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(0,0,0,.6);cursor:pointer}
+    .mm-cluster b{font-family:Inter,sans-serif;font-size:20px;line-height:1;color:#fff}
+    .mm-cluster span{font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+    .mm-avatar .avatar{width:100%;height:100%}
+    /* avatar wrapper hosts the download ring (the avatar itself clips with overflow:hidden) */
+    .mm-avwrap{position:relative;display:inline-flex;transform-origin:center}
+    .mm-dl-ring{position:absolute;inset:-5px;pointer-events:none;transform:rotate(-90deg);overflow:visible}
+    .mm-dl-ring circle{fill:none;stroke-width:3.5}
+    .mm-dl-track{stroke:rgba(255,255,255,.18)}
+    .mm-dl-prog{stroke:var(--amber);stroke-linecap:round;stroke-dasharray:144.5;stroke-dashoffset:144.5;
+      filter:drop-shadow(0 0 4px rgba(240,82,44,.75));animation:dlfill 3s linear forwards}
+    @keyframes dlfill{to{stroke-dashoffset:0}}
+    .mm-leader{width:2px;background:#fff;box-shadow:0 0 5px rgba(0,0,0,.55)}
+    .mm-dot{width:9px;height:9px;border-radius:50%;background:#fff;box-shadow:0 0 7px rgba(255,255,255,.7)}
+    .mm-me .mm-avatar{width:50px;height:50px;border-color:var(--amber)}
+    .mm-me .mm-dot{background:var(--amber);box-shadow:0 0 9px rgba(240,82,44,.8);animation:mmpulse 1.7s ease-in-out infinite}
+    /* me marker now shares the "L" leader shape with others — just tinted amber */
+    .mm-avatar-me{border-color:var(--amber)!important;box-shadow:0 4px 14px rgba(0,0,0,.6),0 0 10px rgba(231,181,128,.5)}
+    .mm-svgdot-me{transform-box:fill-box;transform-origin:center;animation:mmpulse 1.7s ease-in-out infinite}
+    @keyframes mmpulse{0%,100%{opacity:.55;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
+    /* hover/tap info popup — cosmic glass speech bubble */
+    .maplibregl-popup.mapinfo-popup .maplibregl-popup-content{
+      position:relative;color:var(--text);border:1px solid rgba(168,150,255,.45);border-radius:20px;padding:11px;
+      width:224px;max-height:46vh;overflow:hidden auto;
+      background:
+        radial-gradient(135% 120% at 28% -10%, rgba(124,92,255,.34), rgba(56,34,118,.26) 42%, rgba(12,12,26,.62) 78%),
+        linear-gradient(180deg, rgba(22,18,44,.62), rgba(10,10,22,.70));
+      backdrop-filter:blur(16px) saturate(1.25);-webkit-backdrop-filter:blur(16px) saturate(1.25);
+      box-shadow:0 0 22px rgba(124,92,255,.30) inset, inset 0 1px 0 rgba(255,255,255,.20), 0 14px 38px rgba(64,36,150,.5), 0 0 26px rgba(124,92,255,.35)}
+    /* faint starfield drifting inside the glass */
+    .maplibregl-popup.mapinfo-popup .maplibregl-popup-content::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:.7;
+      background-image:
+        radial-gradient(1.5px 1.5px at 18% 24%, rgba(255,255,255,.95), transparent 60%),
+        radial-gradient(1px 1px at 68% 16%, rgba(206,214,255,.9), transparent 60%),
+        radial-gradient(1.6px 1.6px at 86% 52%, rgba(255,255,255,.85), transparent 60%),
+        radial-gradient(1px 1px at 34% 70%, rgba(210,220,255,.8), transparent 60%),
+        radial-gradient(1px 1px at 54% 44%, rgba(255,255,255,.7), transparent 60%),
+        radial-gradient(1.2px 1.2px at 12% 84%, rgba(206,214,255,.8), transparent 60%),
+        radial-gradient(1px 1px at 78% 82%, rgba(255,255,255,.7), transparent 60%)}
+    .maplibregl-popup.mapinfo-popup .mapinfo{position:relative;z-index:1}
+    /* downward glass tail toward the pin (custom — default tip is hidden) */
+    .maplibregl-popup.mapinfo-popup .maplibregl-popup-tip{display:none}
+    .maplibregl-popup.mapinfo-popup::after{content:"";position:absolute;left:50%;bottom:-7px;width:15px;height:15px;
+      transform:translateX(-50%) rotate(45deg);border-radius:0 0 4px 0;
+      background:rgba(14,12,30,.66);border-right:1px solid rgba(168,150,255,.45);border-bottom:1px solid rgba(168,150,255,.45);
+      backdrop-filter:blur(16px) saturate(1.25);-webkit-backdrop-filter:blur(16px) saturate(1.25)}
+    .maplibregl-popup.mapinfo-popup .maplibregl-popup-close-button{color:rgba(220,224,255,.85);font-size:17px;padding:0 5px;z-index:2}
+    .mapinfo .nm{font-weight:600;font-size:14px}
+    .mapinfo .keytag{background:rgba(168,150,255,.16);border-color:rgba(168,150,255,.4);color:#d9d3ff}
+    .mapinfo .infometa{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+    .mapinfo .infochip,.mapinfo .pill{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(4px)}
+    .mapinfo .infochip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:var(--r-pill);font-size:11px;font-weight:600}
+  </style>
+  <div class="map-stage">
+    <div id="map"></div>
+    <button class="map-recenter" id="recenter" aria-label="${T('Re-center on me','กลับมาที่ตำแหน่งฉัน')}">${icon('pin',20)}</button>
+  </div>
+  <div class="pad">
+    <div class="small muted" style="margin-bottom:8px" id="nearbyCount">${T('Looking around…','กำลังมองหา…')}</div>
+    <button class="btn btn-cta btn-block hidden" id="enableLoc" style="margin-bottom:12px">${icon('pin')} ${T('Enable location','เปิดใช้ตำแหน่ง')}</button>
+    <div class="list" id="nearbyList"></div>
+  </div>`;
+
+  bindSwitch('visToggle', async on=>{ S.nearbyVisible=on; await writePresence(); });
+  $('#rangeInput').oninput = e=>{ $('#rangeLbl').textContent = e.target.value+' m'; };
+  $('#rangeInput').onchange = async e=>{ S.range=+e.target.value; await writePresence(); refreshNearby(); };
+  $('#enableLoc').onclick = ()=>requestLocation();
+  $('#recenter').onclick = ()=>{ const me=myPos(); if(me&&S.map) S.map.easeTo({center:[me.lng,me.lat],zoom:16.5,pitch:58,duration:600}); };
+
+  initNearbyMap();
+  subscribeNearby();
+}
+
+/* ---- Pokémon-GO-style live map (MapLibre + real GPS) ---- */
+let _mapMarkers=[], _meMarker=null, _infoPopup=null, _mapCentered=false;
+const chatExists = uid => _chatDocs.some(c=>c.id===chatIdOf(S.user.uid,uid));
+// Render a signup answer (intent / vibe / meet) as a labelled chip row, or '' if unanswered.
+const ONBOARD_PREFIX = { intent:T('Here for','มาเพื่อ'), vibe:T('Vibe','อารมณ์'), meet:T('Wants','อยากเจอ') };
+function onboardRow(key, val){
+  if(!val) return '';
+  const q=ONBOARD_Q.find(x=>x.key===key); const o=q?.opts.find(x=>x.v===val); if(!o) return '';
+  return `<div class="row" style="gap:8px"><span class="small muted" style="width:50px;flex:0 0 auto">${ONBOARD_PREFIX[key]}</span><span class="infochip">${o.emoji} ${esc(o.label)}</span></div>`;
+}
+// Show a person's basic info as a map popup — hover on desktop, tap on mobile.
+function showPersonInfo(uid){
+  if(!S.map || !window.maplibregl) return;
+  const d=_nearbyDocs.find(x=>x.uid===uid); if(!d) return;
+  const me=myPos(); const dist=me?haversine(me,{lat:d.lat,lng:d.lng}):Infinity;
+  const known=chatExists(uid);
+  const meta=[onboardRow('intent',d.intent), onboardRow('vibe',d.vibe), onboardRow('meet',d.meet)].join('');
+  if(_infoPopup) _infoPopup.remove();
+  const html=`<div class="mapinfo">
+      <div class="row" style="gap:10px">${avatar(d,'sm')}
+        <div class="col" style="min-width:0;gap:3px">
+          <span class="nm ellipsis">${esc(d.displayName)}</span>
+          ${d.personalKey?`<span class="keytag">#${esc(d.personalKey)}</span>`:''}
+        </div></div>
+      ${d.bio?`<p class="small muted" style="margin:6px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(d.bio)}</p>`:''}
+      ${meta?`<div class="infometa">${meta}</div>`:''}
+      <div class="row" style="justify-content:space-between;margin-top:8px;gap:8px">
+        <span class="pill">${icon('pin',14)} ${distLabel(dist)}</span>
+        <button class="btn btn-cta btn-sm" id="infoAct">${known?T('Open chat','เปิดแชท'):T('Catch','จับเลย')}</button>
+      </div>
+    </div>`;
+  // anchor:'bottom' → the card always opens ABOVE the pin, growing into the open map
+  // instead of down toward the bottom nav where it would be clipped.
+  _infoPopup=new maplibregl.Popup({offset:[0,-14], anchor:'bottom', closeButton:true, closeOnClick:true, className:'mapinfo-popup', maxWidth:'222px'})
+    .setLngLat([d.lng,d.lat]).setHTML(html).addTo(S.map);
+  _infoPopup.getElement().querySelector('#infoAct')?.addEventListener('click', ()=>{ _infoPopup?.remove(); selectPerson(uid); });
+  // drop the tapped pin into the lower third of the map so the upward card has room to open
+  try{ S.map.easeTo({center:[d.lng,d.lat], offset:[0,90], duration:300}); }catch(_){}
+}
+function nearbyMapStyle(){
+  // CARTO dark raster basemap — no API key needed, fits the dark theme, supports tilt
+  return { version:8,
+    sources:{ base:{ type:'raster', tileSize:256,
+      tiles:['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+             'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+             'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'],
+      attribution:'© OpenStreetMap © CARTO' } },
+    layers:[ {id:'bg',type:'background',paint:{'background-color':'#0A0A0A'}},
+             {id:'base',type:'raster',source:'base'} ] };
+}
+/* ---- radar coverage circle ----------------------------------------------- *
+ * A glowing, radar-like circle of radius `S.range` metres drawn around YOU on  *
+ * the map. It marks the catch zone: strangers inside are exposed & catchable   *
+ * (that filtering already happens in refreshNearby via dist<=S.range); anyone   *
+ * outside is hidden. Drawn as real geodesic GeoJSON so it tilts/zooms/pans      *
+ * correctly with the 3-D map, plus an animated sweep wedge for the radar feel.  */
+let _radarRAF=null, _radarAngle=0;
+// intro "expand" animation: a 0→1 factor the radar radius is scaled by, so on
+// arrival the circle grows out from you to its full S.range. 1 = fully expanded.
+let _radarGrow=1, _radarGrowStart=0;
+const RADAR_GROW_MS=950;
+const _easeOut=t=>1-Math.pow(1-t,3);     // cubic ease-out: shoots out then settles
+function playRadarIntro(){
+  // respect reduced-motion — jump straight to the full circle, no growth
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){ _radarGrow=1; _radarGrowStart=0; return; }
+  _radarGrow=0; _radarGrowStart=0;        // start at 0; the sweep loop stamps the clock on the first frame we have a position
+}
+// geodesic ring of points around `center` at `radiusM` metres
+function geoCircle(center, radiusM, points=80){
+  const out=[], latR=center.lat*Math.PI/180, lngR=center.lng*Math.PI/180, d=radiusM/6378137;
+  for(let i=0;i<=points;i++){
+    const b=(i/points)*2*Math.PI;
+    const lat2=Math.asin(Math.sin(latR)*Math.cos(d)+Math.cos(latR)*Math.sin(d)*Math.cos(b));
+    const lng2=lngR+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(latR), Math.cos(d)-Math.sin(latR)*Math.sin(lat2));
+    out.push([lng2*180/Math.PI, lat2*180/Math.PI]);
+  }
+  return out;
+}
+// a pie-slice (wedge) from the centre out to an arc — used for the rotating sweep
+function geoWedge(center, radiusM, startDeg, spanDeg, steps=28){
+  const ring=[[center.lng,center.lat]], latR=center.lat*Math.PI/180, lngR=center.lng*Math.PI/180, d=radiusM/6378137;
+  for(let i=0;i<=steps;i++){
+    const b=(startDeg+(i/steps)*spanDeg)*Math.PI/180;
+    const lat2=Math.asin(Math.sin(latR)*Math.cos(d)+Math.cos(latR)*Math.sin(d)*Math.cos(b));
+    const lng2=lngR+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(latR), Math.cos(d)-Math.sin(latR)*Math.sin(lat2));
+    ring.push([lng2*180/Math.PI, lat2*180/Math.PI]);
+  }
+  ring.push([center.lng,center.lat]);
+  return ring;
+}
+const _emptyFC={type:'FeatureCollection',features:[]};
+const fcPolys=rings=>({type:'FeatureCollection',features:rings.map(r=>({type:'Feature',geometry:{type:'Polygon',coordinates:[r]}}))});
+const fcLines=rings=>({type:'FeatureCollection',features:rings.map(r=>({type:'Feature',geometry:{type:'LineString',coordinates:r}}))});
+function addRadarLayers(){
+  if(!S.map || S.map.getSource('radar-area')) return;
+  ['radar-area','radar-sweep','radar-rings','radar-edge'].forEach(id=> S.map.addSource(id,{type:'geojson',data:_emptyFC}));
+  // order matters: translucent fill first, sweep on top of it, then the ring lines, edge last
+  S.map.addLayer({id:'radar-area', type:'fill', source:'radar-area', paint:{'fill-color':'#F0522C','fill-opacity':0.08}});
+  S.map.addLayer({id:'radar-sweep',type:'fill', source:'radar-sweep',paint:{'fill-color':'#FF6B47','fill-opacity':0.16}});
+  S.map.addLayer({id:'radar-rings',type:'line', source:'radar-rings',paint:{'line-color':'#F0522C','line-opacity':0.28,'line-width':1}});
+  S.map.addLayer({id:'radar-edge', type:'line', source:'radar-edge', paint:{'line-color':'#FF6B47','line-opacity':0.9,'line-width':2,'line-blur':0.6}});
+}
+function updateRadar(me){
+  if(!S.map || !me || !S.map.getSource('radar-area')) return;
+  const R=S.range*_radarGrow;             // scaled by the intro expand factor (1 once settled)
+  S.map.getSource('radar-area').setData(fcPolys([geoCircle(me,R)]));
+  S.map.getSource('radar-edge').setData(fcLines([geoCircle(me,R)]));
+  S.map.getSource('radar-rings').setData(fcLines([geoCircle(me,R*0.66), geoCircle(me,R*0.33)]));
+}
+function startRadarSweep(){
+  stopRadarSweep();
+  const step=()=>{
+    if(!S.map || !S.map.getSource('radar-sweep')){ _radarRAF=null; return; }
+    const me=myPos();
+    if(me){
+      // drive the intro expand: grow the whole circle out from you, then settle
+      if(_radarGrow<1){
+        if(!_radarGrowStart) _radarGrowStart=performance.now();
+        const t=Math.min(1,(performance.now()-_radarGrowStart)/RADAR_GROW_MS);
+        _radarGrow=_easeOut(t); if(t>=1) _radarGrow=1;
+        updateRadar(me);                 // redraw the growing area/edge/rings each frame
+      }
+      _radarAngle=(_radarAngle+1.6)%360;
+      S.map.getSource('radar-sweep').setData(fcPolys([geoWedge(me,S.range*_radarGrow,_radarAngle,55)]));
+    }
+    _radarRAF=requestAnimationFrame(step);
+  };
+  _radarRAF=requestAnimationFrame(step);
+}
+function stopRadarSweep(){ if(_radarRAF){ cancelAnimationFrame(_radarRAF); _radarRAF=null; } }
+
+function teardownMap(){
+  stopRadarSweep();
+  if(_infoPopup){ try{ _infoPopup.remove(); }catch(_){} _infoPopup=null; }
+  if(S.map){ try{ S.map.remove(); }catch(_){} S.map=null; }
+  _mapMarkers=[]; _meMarker=null; _mapCentered=false;
+}
+function initNearbyMap(){
+  teardownMap();
+  if(!window.maplibregl || !document.getElementById('map')) return;
+  const me=myPos();
+  S.map = new maplibregl.Map({
+    container:'map', style:nearbyMapStyle(),
+    center: me ? [me.lng,me.lat] : [100.5018,13.7563],
+    zoom:16.5, pitch:58, bearing:-17, attributionControl:true, dragRotate:true
+  });
+  S.map.on('load', ()=>{ S.map.resize(); addRadarLayers(); playRadarIntro(); startRadarSweep(); refreshNearby(); });   // resize guards against a 0-height container at init
+}
+// Compact "pin": avatar sits just above a short stem whose dot is anchored EXACTLY on the GPS
+// point. Because the dot is the marker anchor and the offset is tiny + fixed, the pin stays
+// locked to its spot at every zoom level (no long screen-space line to swing around). Overlap
+// is handled by clustering now, so no fan is needed. "me" is the same pin, tinted amber.
+// Deterministic lean angle per user so avatars fan out to different sides instead
+// of stacking. Stable across re-renders (derived from uid), me always points straight up.
+function leaderAngle(uid){
+  let h=0; for(let i=0;i<uid.length;i++) h=(h*31+uid.charCodeAt(i))>>>0;
+  const buckets=[-46,-30,-16,16,30,46];
+  return buckets[h%buckets.length];
+}
+function leaderMarkerEl(d, isMe){
+  const el=document.createElement('div');
+  el.className='mm-pin'+(isMe?' mm-pin-me':'');
+  el.style.pointerEvents='none';
+  const ang = isMe ? 0 : leaderAngle(d.uid);
+  if(!isMe) el.dataset.uid=d.uid;
+  // .mm-lean rotates the avatar+line around the dot; the avatar counter-rotates to stay upright.
+  el.innerHTML=`
+    <div class="mm-lean" style="transform:rotate(${ang}deg)">
+      <div class="mm-avwrap" style="transform:rotate(${-ang}deg);pointer-events:auto">
+        <div class="mm-avatar${isMe?' mm-avatar-me':''}">${avatar(isMe?S.profile:d,'sm')}</div>
+      </div>
+      <div class="mm-stem"></div>
+    </div>
+    <div class="mm-pindot"></div>`;
+  if(!isMe){
+    const wrap=el.querySelector('.mm-avwrap');
+    if(HAS_HOVER){
+      // Desktop: must dwell 3s before the info card opens — a ring "downloads" around the
+      // avatar so a stray pointer passing over someone never triggers their card.
+      let t=null;
+      wrap.addEventListener('mouseenter', ()=>{
+        startDownloadRing(wrap);
+        t=setTimeout(()=>{ t=null; stopDownloadRing(wrap); showPersonInfo(d.uid); }, 3000);
+      });
+      wrap.addEventListener('mouseleave', ()=>{ clearTimeout(t); t=null; stopDownloadRing(wrap); });
+      wrap.addEventListener('click', e=>{ e.stopPropagation(); clearTimeout(t); t=null; stopDownloadRing(wrap); showPersonInfo(d.uid); });
+    } else {
+      wrap.addEventListener('click', e=>{ e.stopPropagation(); showPersonInfo(d.uid); });  // mobile: tap to reveal
+    }
+  }
+  return el;
+}
+// True only for devices with a real hovering pointer (desktop mouse), not touchscreens.
+const HAS_HOVER = window.matchMedia && window.matchMedia('(hover:hover) and (pointer:fine)').matches;
+// The "downloading" progress ring shown while a desktop user dwells on a person.
+function startDownloadRing(wrap){
+  if(!wrap || wrap.querySelector('.mm-dl-ring')) return;
+  const ns='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(ns,'svg');
+  svg.setAttribute('class','mm-dl-ring'); svg.setAttribute('viewBox','0 0 50 50');
+  for(const cls of ['mm-dl-track','mm-dl-prog']){
+    const c=document.createElementNS(ns,'circle');
+    c.setAttribute('class',cls); c.setAttribute('cx','25'); c.setAttribute('cy','25'); c.setAttribute('r','23');
+    svg.appendChild(c);
+  }
+  wrap.appendChild(svg);
+}
+function stopDownloadRing(wrap){ wrap?.querySelector('.mm-dl-ring')?.remove(); }
+function meMarkerEl(){ return leaderMarkerEl(S.profile, true); }
+function personMarkerEl(d){ return leaderMarkerEl(d, false); }
+function updateMapMarkers(people, me){
+  if(!S.map || !window.maplibregl) return;
+  updateRadar(me);                         // keep the radar coverage circle on you & sized to S.range
+  if(me){
+    if(!_meMarker) _meMarker=new maplibregl.Marker({element:meMarkerEl(),anchor:'bottom'}).setLngLat([me.lng,me.lat]).addTo(S.map);
+    else _meMarker.setLngLat([me.lng,me.lat]);
+  }
+  // GPS can't separate people inside one venue, so anyone within ~35 m collapses into a single
+  // "X here" bubble (tap → list) rather than pretending they're at distinct precise spots.
+  _mapMarkers.forEach(m=>m.remove()); _mapMarkers=[];
+  clusterPeople(people, 35).forEach(c=>{
+    const elBuild = c.people.length===1 ? leaderMarkerEl(c.people[0], false) : clusterMarkerEl(c);
+    _mapMarkers.push(new maplibregl.Marker({element:elBuild, anchor:'bottom'}).setLngLat([c.lng,c.lat]).addTo(S.map));
+  });
+  frameMap(me, people);
+}
+// greedy proximity grouping; returns clusters with a centroid + their people
+function clusterPeople(people, radiusM){
+  const used=new Array(people.length).fill(false), out=[];
+  for(let i=0;i<people.length;i++){
+    if(used[i]) continue; used[i]=true;
+    const g=[people[i]];
+    for(let j=i+1;j<people.length;j++){
+      if(!used[j] && haversine({lat:people[i].lat,lng:people[i].lng},{lat:people[j].lat,lng:people[j].lng})<=radiusM){ used[j]=true; g.push(people[j]); }
+    }
+    const la=g.reduce((s,p)=>s+p.lat,0)/g.length, ln=g.reduce((s,p)=>s+p.lng,0)/g.length;
+    out.push({lat:la, lng:ln, people:g});
+  }
+  return out;
+}
+function clusterMarkerEl(c){
+  const n=c.people.length;
+  const el2=document.createElement('div'); el2.className='mm-pin'; el2.style.pointerEvents='none';
+  el2.innerHTML=`
+    <div class="mm-cluster" style="pointer-events:auto"><b>${n}</b><span>${T('here','ที่นี่')}</span></div>
+    <div class="mm-stem"></div>
+    <div class="mm-pindot"></div>`;
+  el2.querySelector('.mm-cluster').onclick=(e)=>{ e.stopPropagation(); openClusterSheet(c.people); };
+  return el2;
+}
+function openClusterSheet(people){
+  const sc=el('div','modal-scrim');
+  sc.innerHTML=`<div class="sheet"><h3 style="font-size:22px;display:flex;align-items:center;gap:8px">${icon('pin',20)} ${T(`${people.length} people here`,`${people.length} คนตรงนี้`)}</h3>
+    <p class="small muted" style="margin:4px 0 14px">${T('Around the same spot — tap someone to catch &amp; chat.','อยู่บริเวณเดียวกัน — แตะที่ใครสักคนเพื่อจับและแชท')}</p>
+    <div class="list">${people.map(d=>personRow(d)).join('')}</div>
+    <button class="btn btn-ghost btn-block" id="clClose" style="margin-top:14px">${T('Close','ปิด')}</button></div>`;
+  document.body.appendChild(sc);
+  sc.onclick=e=>{ if(e.target===sc) sc.remove(); };
+  $('#clClose',sc).onclick=()=>sc.remove();
+  sc.querySelectorAll('[data-uid]').forEach(elm=> elm.onclick=()=>{ sc.remove(); selectPerson(elm.dataset.uid); });
+}
+// center + zoom the map on you (or, if your location is unknown, on the nearby people) — once
+function frameMap(me, people){
+  if(!S.map || _mapCentered) return;
+  let c = me ? [me.lng,me.lat] : null;
+  if(!c && people.length){
+    const la=people.reduce((s,p)=>s+p.lat,0)/people.length, ln=people.reduce((s,p)=>s+p.lng,0)/people.length;
+    c=[ln,la];
+  }
+  if(c){ S.map.easeTo({center:c, zoom:16.5, pitch:58, duration:500}); _mapCentered=true; }
+}
+
+let _nearbyDocs=[];
+function subscribeNearby(){
+  S.unsub.nearby?.();
+  const qy = query(collection(db,'presence'), where('nearbyVisible','==',true));
+  S.unsub.nearby = onSnapshot(qy, qs=>{ _nearbyDocs = qs.docs.map(d=>d.data()); refreshNearby(); },
+    ()=>{ const l=$('#nearbyList'); if(l) l.innerHTML = errBox(T('Could not load nearby users. Check your Firestore rules/indexes.','โหลดคนใกล้เคียงไม่ได้ ตรวจสอบกฎ/ดัชนีของ Firestore')); });
+}
+function refreshNearby(){
+  const list=$('#nearbyList'), cnt=$('#nearbyCount');
+  if(!list) return;
+  const me=myPos(); const now=Date.now();
+  const people = _nearbyDocs
+    .filter(d=>d.uid!==S.user.uid && !S.blocked.has(d.uid) && (now-(d.lastSeen||0))<PRESENCE_FRESH_MS)
+    .map(d=>({...d, dist:haversine(me,{lat:d.lat,lng:d.lng})}))
+    .filter(d=>d.dist<=S.range)
+    .sort((a,b)=>a.dist-b.dist);
+
+  const enableBtn=$('#enableLoc');
+  if(!me){
+    cnt.textContent=T('Waiting for your location… tap “Enable location” and allow access.','กำลังรอตำแหน่งของคุณ… แตะ “เปิดใช้ตำแหน่ง” แล้วอนุญาตการเข้าถึง');
+    enableBtn?.classList.remove('hidden');
+  } else {
+    enableBtn?.classList.add('hidden');
+    cnt.textContent = people.length ? T(`${people.length} ${people.length===1?'person':'people'} within ${S.range} m`,`พบ ${people.length} คน ในระยะ ${S.range} ม.`) : T(`No one within ${S.range} m yet`,`ยังไม่มีใครในระยะ ${S.range} ม.`);
+  }
+
+  updateMapMarkers(people, me);
+
+  list.innerHTML = people.map(d=>personRow(d)).join('') || (me?'':'');
+  list.querySelectorAll('[data-uid]').forEach(el=> el.onclick=()=>selectPerson(el.dataset.uid));
+}
+
+// Tapping someone on the radar: if a chat with them already exists, go straight to it —
+// no need to catch them again. Otherwise open the chat-ball throw screen.
+function selectPerson(uid){
+  const cid = chatIdOf(S.user.uid, uid);
+  if(_chatDocs.some(c=>c.id===cid)){
+    toast(T('You already chat with them — opening chat','คุณคุยกับเขาอยู่แล้ว — กำลังเปิดแชท'));
+    switchTab('chats');
+    openRoom(cid);
+  } else {
+    openThrow(uid);
+  }
+}
+const keyTag = k => k ? `<span class="keytag">#${esc(k)}</span>` : '';
+const personRow = d => `<div class="person" data-uid="${d.uid}">${avatar(d,'md')}
+  <div class="col" style="min-width:0;flex:1;gap:3px">
+    <span class="nm ellipsis">${esc(d.displayName)}</span>
+    <span class="row ellipsis" style="gap:8px">${keyTag(d.personalKey)}<span class="small muted ellipsis">${esc(d.bio||T('Tap to catch & chat','แตะเพื่อจับและแชท'))}</span></span>
+  </div>
+  <span class="pill">${icon('pin')} ${distLabel(d.dist)}</span></div>`;
+
+/* ========================= chat-ball throw ========================= */
+let _throwTarget=null, _ballType='free';
+async function openThrow(uid){
+  const snap = await getDoc(doc(db,'users',uid));
+  if(!snap.exists()) return toast(T('That person just left','คนนั้นเพิ่งออกไป'));
+  _throwTarget = snap.data(); _ballType='free';
+  const p=_throwTarget;
+  const ov = el('div','overlay'); ov.id='throwOv';
+  ov.innerHTML = `
+    <div class="overlay-header"><button class="icon-btn" id="x">${icon('back')}</button><b>${T(`Catch ${esc(p.displayName)}`,`จับ ${esc(p.displayName)}`)}</b></div>
+    <div class="content pad" style="padding-bottom:24px">
+      <div class="col" style="align-items:center;gap:8px;margin:8px 0 20px">
+        ${avatar(p,'lg')}<b style="font-size:18px">${esc(p.displayName)}</b>
+        <span class="small muted" style="text-align:center;max-width:280px">${esc(p.bio||'')}</span>
+      </div>
+      <div id="ballStage" class="col" style="align-items:center;gap:8px;margin-bottom:18px">${throwStageHTML()}</div>
+      <div class="list" style="margin-bottom:16px">
+        <div class="ball-opt sel" data-ball="free"><div class="ball">${ballSVG('free')}</div>
+          <div class="col" style="flex:1"><b>${T('Free chat-ball','ลูกบอลแชทฟรี')}</b><span class="small muted">${T('50% catch rate','โอกาสจับ 50%')} · <span class="freeRegenInfo"></span></span></div>
+          <span class="pill"><span id="freeLeftPill">${S.profile.freeBalls}</span> ${T('left','เหลือ')}</span></div>
+        <div class="ball-opt" data-ball="paid"><div class="ball">${ballSVG('paid')}</div>
+          <div class="col" style="flex:1"><b>${T('Premium chat-ball','ลูกบอลแชทพรีเมียม')}</b><span class="small muted">${T('100% guaranteed catch','จับติดแน่นอน 100%')}</span></div>
+          <span class="pill"><span id="paidLeftPill">${S.profile.paidBalls}</span> ${T('left','เหลือ')}</span></div>
+      </div>
+      <p class="small muted" style="text-align:center">${T('Pick a ball, then flick it upward. Out of premium balls? Get more in the <b>You</b> tab.','เลือกลูกบอล แล้วปัดขึ้นเพื่อโยน ลูกบอลพรีเมียมหมด? เติมได้ที่แท็บ <b>คุณ</b>')}</p>
+    </div>`;
+  document.body.appendChild(ov);
+  $('#x',ov).onclick = ()=>ov.remove();
+  ov.querySelectorAll('.ball-opt').forEach(o=> o.onclick=()=>{
+    if(_throwing) return;
+    _ballType=o.dataset.ball; ov.querySelectorAll('.ball-opt').forEach(x=>x.classList.toggle('sel',x===o));
+    $('#ballAnim',ov).innerHTML = ballSVG(_ballType);
+  });
+  setupThrowGesture(ov);
+  updateFreeBallCountdownUI();   // show the live refill countdown right away
+}
+
+// the draggable throwing area: a tall zone with the ball resting at the bottom
+function throwStageHTML(){
+  return `<div id="throwZone" style="position:relative;width:100%;height:190px;display:flex;align-items:flex-end;justify-content:center;overflow:hidden">
+      <div id="ballAnim" style="width:104px;height:104px;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none">${ballSVG(_ballType)}</div>
+    </div>
+    <span class="small muted" id="throwHint">${T('Swipe the ball upward to throw ↑','ปัดลูกบอลขึ้นเพื่อโยน ↑')}</span>`;
+}
+
+// Flick-to-throw: drag the ball; release with an upward motion to throw.
+// A quick tap throws straight up (accessibility / desktop fallback).
+function setupThrowGesture(ov){
+  const ball=$('#ballAnim',ov); if(!ball) return;
+  let dragging=false, sx=0, sy=0, st=0, lx=0, ly=0, lt=0, vx=0, vy=0;
+  const xy = e => ({ x: e.clientX ?? lx, y: e.clientY ?? ly });
+  const down = e=>{
+    if(_throwing) return;
+    dragging=true; try{ ball.setPointerCapture(e.pointerId); }catch(_){}
+    const p=xy(e); sx=lx=p.x; sy=ly=p.y; st=lt=Date.now(); vx=vy=0;
+    ball.style.transition='none'; ball.style.cursor='grabbing';
+  };
+  const move = e=>{
+    if(!dragging) return; e.preventDefault();
+    const p=xy(e), t=Date.now(), dt=Math.max(1,t-lt);
+    vx=(p.x-lx)/dt; vy=(p.y-ly)/dt; lx=p.x; ly=p.y; lt=t;
+    ball.style.transform=`translate(${p.x-sx}px, ${Math.min(0,p.y-sy)+ (p.y>sy?(p.y-sy)*0.2:0)}px)`;
+  };
+  const up = e=>{
+    if(!dragging) return; dragging=false; ball.style.cursor='grab';
+    const p=xy(e), dx=p.x-sx, dy=p.y-sy;
+    const speed=Math.hypot(vx,vy);            // px per ms
+    const upward = dy < -20;                  // must release with an upward motion
+    if(upward && (Math.abs(dy)>55 || speed>0.45)){
+      const power=Math.max(0.7, Math.min(1.6, Math.abs(dy)/150 + speed*0.7));
+      doThrow(ov,{dx, dy, power});            // harder flick → farther throw
+    } else {                                   // not a real flick → snap back, no ball spent
+      ball.style.transition='transform .25s cubic-bezier(.2,.8,.3,1)';
+      ball.style.transform='translate(0,0)';
+      const h=$('#throwHint',ov); if(h) h.textContent=T('Flick the ball upward to throw ↑','สะบัดลูกบอลขึ้นเพื่อโยน ↑');
+    }
+  };
+  ball.addEventListener('pointerdown',down);
+  ball.addEventListener('pointermove',move);
+  ball.addEventListener('pointerup',up);
+  ball.addEventListener('pointercancel',up);
+}
+
+let _throwing=false;
+async function doThrow(ov, vec){
+  if(_throwing) return;                 // guard against double-throws
+  const have = _ballType==='free' ? S.profile.freeBalls : S.profile.paidBalls;
+  if(have<=0){
+    toast(_ballType==='free'?T('No free balls — wait for regen or use premium','ลูกบอลฟรีหมด — รอเติมหรือใช้พรีเมียม'):T('No premium balls — get some in You','ลูกบอลพรีเมียมหมด — เติมที่แท็บคุณ'));
+    const b=$('#ballAnim',ov); if(b){ b.style.transition='transform .25s'; b.style.transform='translate(0,0)'; }
+    return;
+  }
+  _throwing=true;
+  const anim=$('#ballAnim',ov), hint=$('#throwHint',ov);
+  if(anim) anim.style.pointerEvents='none';
+  if(hint) hint.textContent=T('Throwing…','กำลังโยน…');
+  const field = _ballType==='free' ? 'freeBalls' : 'paidBalls';
+
+  // 1) consume a ball — if this write fails, stop cleanly (no ball spent).
+  try{
+    await updateDoc(doc(db,'users',S.user.uid), {[field]:increment(-1), ...(field==='freeBalls'?{lastFreeRegen:Date.now()}:{})});
+    S.profile[field]--;
+  }catch(e){
+    resetThrowStage(ov,T('Couldn’t throw — connection issue. Swipe to retry.','โยนไม่ได้ — ปัญหาการเชื่อมต่อ ปัดเพื่อลองใหม่'));
+    toast(T('Couldn’t throw — connection issue. Try again.','โยนไม่ได้ — ปัญหาการเชื่อมต่อ ลองอีกครั้ง'));
+    return;
+  }
+  refreshWalletPill();
+
+  // 2) fling the ball along the swipe direction, scaled by power
+  const dx=vec?.dx||0, dy=(vec?.dy!=null?vec.dy:-1), len=Math.hypot(dx,dy)||1, power=vec?.power||1;
+  const flyX=(dx/len)*70*power, flyY=-Math.max(170, 240*power);
+  if(anim){
+    const fly=anim.animate([
+      {transform:`translate(${dx}px,${Math.min(0,dy)}px) scale(1) rotate(0deg)`},
+      {transform:`translate(${flyX}px,${flyY}px) scale(.45) rotate(660deg)`}
+    ],{duration:620,easing:'cubic-bezier(.2,.7,.35,1)',fill:'forwards'});
+    await fly.finished.catch(()=>{});
+  }
+
+  // 3) outcome — premium always catches; free is 50/50
+  await new Promise(r=>setTimeout(r,260));
+  const success = _ballType==='paid' || Math.random()<0.5;
+
+  if(!success){
+    resetThrowStage(ov,T('Oh no — they broke free! Swipe to try again.','โอ๊ะ — เขาหลุดไปแล้ว! ปัดเพื่อลองอีกครั้ง'), true);
+    return;
+  }
+
+  // 4) caught! create + open the chat. If the writes fail, surface it instead of freezing.
+  $('#ballStage',ov).innerHTML = `<div style="width:104px;height:104px">${ballSVG(_ballType)}</div><span class="small" style="color:var(--green)">${T('Caught! Opening chat…','จับได้แล้ว! กำลังเปิดแชท…')}</span>`;
+  try{
+    await createChatWith(_throwTarget, 'catch');
+    const cid = chatIdOf(S.user.uid, _throwTarget.uid);
+    ov.remove(); _throwing=false;
+    toast(T(`Caught ${_throwTarget.displayName}! Chat opened 🎉`,`จับ ${_throwTarget.displayName} ได้แล้ว! เปิดแชทแล้ว 🎉`));
+    switchTab('chats');
+    openRoom(cid);
+  }catch(e){
+    resetThrowStage(ov,T('Caught them, but the chat failed to open. Swipe to retry.','จับได้แล้ว แต่เปิดแชทไม่สำเร็จ ปัดเพื่อลองใหม่'));
+    toast(T('Chat couldn’t be created — check your connection','สร้างแชทไม่ได้ — ตรวจสอบการเชื่อมต่อ'));
+  }
+}
+
+// rebuild the swipe stage so the user can flick again after a miss/error
+function resetThrowStage(ov, message, missed){
+  _throwing=false;
+  const stage=$('#ballStage',ov); if(!stage) return;
+  stage.innerHTML = throwStageHTML();
+  const hint=$('#throwHint',ov);
+  if(hint){ hint.textContent=message; if(missed) hint.style.color='var(--rose-2)'; }
+  setupThrowGesture(ov);
+}
+
+async function createChatWith(other, origin){
+  const cid = chatIdOf(S.user.uid, other.uid);
+  const ref = doc(db,'chats',cid);
+  const existing = await getDoc(ref);
+  if(!existing.exists()){
+    const members=[S.user.uid, other.uid].sort();
+    await setDoc(ref,{ members, createdBy:S.user.uid, origin, createdAt:Date.now(),
+      lastMessage:'', lastAt:Date.now(), compassActive:false,
+      locA:{on:false}, locB:{on:false},
+      names:{[S.user.uid]:S.profile.displayName, [other.uid]:other.displayName},
+      photos:{[S.user.uid]:S.profile.photoURL||'', [other.uid]:other.photoURL||''} });
+    await addDoc(collection(db,'chats',cid,'messages'),
+      {type:'sys', text:T(`Connected via ${origin==='catch'?'a chat-ball catch':'Stranger Mode'} 🎯`,`เชื่อมต่อผ่าน${origin==='catch'?'การจับด้วยลูกบอลแชท':'โหมดคนแปลกหน้า'} 🎯`), createdAt:Date.now()});
+  }
+  return cid;
+}
+
+/* ========================= TAB: chats list ========================= */
+let _chatDocs=[];
+function subscribeChats(){
+  S.unsub.chats?.();
+  const qy = query(collection(db,'chats'), where('members','array-contains',S.user.uid));
+  S.unsub.chats = onSnapshot(qy, qs=>{
+    _chatDocs = qs.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.lastAt||0)-(a.lastAt||0));
+    reconcileFriendChats();          // self-credit XP when the other person made us friends
+    if(currentTab==='chats') renderChats();
+    const dot=$('#dot-chats'); if(dot) dot.classList.toggle('hidden', visibleChats().length===0);
+  }, ()=>{});
+}
+// chats minus blocked people, minus ones I deleted, minus ones that have expired (24h, non-friend)
+function visibleChats(){
+  const hc = S.profile.hiddenChats || {};
+  return _chatDocs.filter(c=>{
+    const other = c.members.find(m=>m!==S.user.uid);
+    if(S.blocked.has(other)) return false;
+    if(hc[c.id] && (c.lastAt||0) <= hc[c.id]) return false; // deleted on my side
+    if(chatExpired(c)) return false;                        // 24h up & not friends → gone
+    return true;
+  });
+}
+// The QR scanner sets chats/{cid}.friends=true. Firestore rules only let me write my OWN
+// user doc, so the *other* person credits themselves here the moment they see the friendship.
+async function reconcileFriendChats(){
+  if(!S.profile) return;
+  const mine = new Set(S.profile.friends||[]);
+  let credited=false;
+  for(const c of _chatDocs){
+    if(!c.friends) continue;
+    const other = c.members.find(m=>m!==S.user.uid);
+    if(!other || mine.has(other)) continue;                // already credited for this friend
+    mine.add(other);
+    S.profile.friends=[...(S.profile.friends||[]),other];
+    S.profile.exp=(S.profile.exp||0)+EXP_PER_FRIEND;
+    S.profile.points=(S.profile.points||0)+EXP_PER_FRIEND;
+    try{
+      await updateDoc(doc(db,'users',S.user.uid),{friends:arrayUnion(other),exp:increment(EXP_PER_FRIEND),points:increment(EXP_PER_FRIEND)});
+      credited=true;
+      const nm=c.names?.[other]||T('someone','ใครบางคน');
+      toast(T(`You’re now friends with ${nm}! +${EXP_PER_FRIEND} XP 🎉`,`คุณเป็นเพื่อนกับ ${nm} แล้ว! +${EXP_PER_FRIEND} XP 🎉`));
+    }catch(_){ mine.delete(other); S.profile.friends=S.profile.friends.filter(x=>x!==other); S.profile.exp-=EXP_PER_FRIEND; S.profile.points-=EXP_PER_FRIEND; }
+  }
+  if(credited){ refreshWalletPill(); if(currentTab==='profile') renderProfile(); }
+}
+function renderChats(){
+  const v=$('#view');
+  const rows = visibleChats();
+  if(!rows.length){ v.innerHTML = emptyState('chat',T('No chats yet','ยังไม่มีแชท'),T('Catch someone on the Nearby radar, or try Stranger Mode.','จับใครสักคนบนเรดาร์ใกล้ฉัน หรือลองโหมดคนแปลกหน้า')); return; }
+  v.innerHTML = `<div class="pad list">${rows.map(c=>{
+    const other=c.members.find(m=>m!==S.user.uid);
+    const p={displayName:c.names?.[other]||T('Someone','ใครบางคน'), photoURL:c.photos?.[other]||''};
+    const left=chatMsLeft(c), soon=left<60*60*1000;
+    const ttl = c.friends
+      ? `<span class="pill" style="color:var(--green)">${icon('check',13)} ${T('Friends','เพื่อน')}</span>`
+      : `<span class="pill chatCd" style="${soon?'color:var(--rose-2)':''}">${icon('clock',13)} <span class="cdN">${fmtDur(left)}</span></span>`;
+    return `<div class="person" data-cid="${c.id}">${avatar(p,'md')}
+      <div class="col" style="min-width:0;flex:1"><span class="nm ellipsis">${esc(p.displayName)}</span>
+      <span class="small muted ellipsis">${esc(c.lastMessage||T('Say hi 👋','ทักทายหน่อยสิ 👋'))}</span></div>
+      <div class="col" style="align-items:flex-end;gap:4px">${ttl}
+      ${c.compassActive?`<span class="pill" style="color:var(--rose-2)">${icon('compass',13)}</span>`:''}</div></div>`;
+  }).join('')}</div>`;
+  v.querySelectorAll('[data-cid]').forEach(el=> el.onclick=()=>openRoom(el.dataset.cid));
+}
+// Once a second: refresh the open room's "expires in …" line and each chat-row countdown;
+// drop any chat that just hit its 24h limit.
+let _chatTtlTimer=null;
+function startChatTtlTimer(){ clearInterval(_chatTtlTimer); _chatTtlTimer=setInterval(tickChats,1000); }
+function tickChats(){
+  if(_room) updateRoomCountdown();
+  if(currentTab==='chats' && _chatDocs.length){
+    let rerender=false;
+    document.querySelectorAll('#view [data-cid]').forEach(row=>{
+      const c=_chatDocs.find(x=>x.id===row.dataset.cid); if(!c||c.friends) return;
+      if(chatExpired(c)){ rerender=true; return; }
+      const n=row.querySelector('.cdN'); if(n) n.textContent=fmtDur(chatMsLeft(c));
+    });
+    if(rerender) renderChats();
+  }
+}
+
+/* ========================= CHAT ROOM ========================= */
+let _room=null; // {cid, other, data}
+async function openRoom(cid){
+  const ref=doc(db,'chats',cid); const snap=await getDoc(ref);
+  if(!snap.exists()) return toast(T('Chat not found','ไม่พบแชท'));
+  const data=snap.data(); const other=data.members.find(m=>m!==S.user.uid);
+  const meIsA = data.members[0]===S.user.uid;
+  _room={cid, other, meIsA, data, otherName:data.names?.[other]||T('Someone','ใครบางคน'), otherPhoto:data.photos?.[other]||''};
+
+  const ov=el('div','overlay'); ov.id='roomOv';
+  ov.innerHTML = `
+    <div class="overlay-header">
+      <button class="icon-btn" id="back">${icon('back')}</button>
+      ${avatar({displayName:_room.otherName,photoURL:_room.otherPhoto},'sm')}
+      <div class="col" style="flex:1;min-width:0">
+        <b class="ellipsis">${esc(_room.otherName)}</b>
+        <span class="small" id="roomTtl" style="font-size:11px;line-height:1.2"></span>
+      </div>
+      <label class="row small" style="gap:6px">${icon('compass')}${switchEl('locToggle', false)}</label>
+      <button class="icon-btn" id="addFriend" title="${T('Add friend','เพิ่มเพื่อน')}">${icon('scan')}</button>
+      <button class="icon-btn" id="more">${icon('more')}</button>
+    </div>
+    <div class="msgs" id="msgs"></div>
+    <div class="composer"><input id="msgInput" placeholder="${T('Message…','ข้อความ…')}" autocomplete="off"><button class="icon-btn btn-cta" id="send" style="width:46px;height:46px">${icon('send')}</button></div>`;
+  document.body.appendChild(ov);
+  $('#back',ov).onclick = ()=>closeRoom(ov);
+  $('#more',ov).onclick = ()=>roomMenu();
+  $('#addFriend',ov).onclick = ()=>openFriendSheet(_room.other, _room.otherName);
+  $('#send',ov).onclick = sendMsg;
+  $('#msgInput',ov).addEventListener('keydown',e=>{ if(e.key==='Enter') sendMsg(); });
+
+  // location toggle reflects my current side
+  const myLocOn = (meIsA?data.locA:data.locB)?.on;
+  $('#locToggle',ov).checked = !!myLocOn;
+  bindSwitch('locToggle', toggleChatLocation);
+
+  subscribeRoom(cid);
+  updateRoomCountdown();
+}
+// Live "expires in …" header line; disables the composer once a non-friend chat is up.
+function updateRoomCountdown(){
+  if(!_room) return;
+  const el2=document.getElementById('roomTtl'); if(!el2) return;
+  const d=_room.data||{};
+  if(d.friends){ el2.textContent=T('Friends · never expires','เพื่อน · ไม่หมดอายุ'); el2.style.color='var(--green)'; setComposerEnabled(true); return; }
+  const left=Math.max(0,(d.createdAt||0)+CHAT_TTL_MS-Date.now());
+  if(left<=0){ el2.textContent=T('Expired — meet & scan to keep chatting','หมดอายุ — เจอกันแล้วสแกนเพื่อคุยต่อ'); el2.style.color='var(--rose-2)'; setComposerEnabled(false); }
+  else { el2.textContent=T(`Expires in ${fmtDur(left)}`,`หมดอายุใน ${fmtDur(left)}`); el2.style.color=left<60*60*1000?'var(--rose-2)':'var(--muted)'; setComposerEnabled(true); }
+}
+function setComposerEnabled(on){
+  const inp=$('#msgInput'), s=$('#send');
+  if(inp){ inp.disabled=!on; inp.placeholder=on?T('Message…','ข้อความ…'):T('Chat expired','แชทหมดอายุแล้ว'); }
+  if(s) s.disabled=!on;
+}
+function closeRoom(ov){
+  S.unsub.room?.(); S.unsub.roomDoc?.(); S.unsub.room=S.unsub.roomDoc=null;
+  clearInterval(S.chatLocTimer); S.chatLocTimer=null;
+  const mov=document.getElementById('meetOv'); if(mov) closeMeetPoint(mov);
+  ov.remove(); _room=null;
+  renderChats();
+}
+function subscribeRoom(cid){
+  S.unsub.room?.(); S.unsub.roomDoc?.();
+  const mref=$('#msgs');
+  const qy=query(collection(db,'chats',cid,'messages'), orderBy('createdAt','asc'), limit(200));
+  S.unsub.room = onSnapshot(qy, qs=>{
+    const hidden = new Set(S.profile.hiddenMsgs||[]);
+    mref.innerHTML = qs.docs.filter(d=>!hidden.has(d.id)).map(d=>renderMsg(d.data(), d.id)).join('');
+    mref.querySelectorAll('[data-compass]').forEach(b=> b.onclick=(e)=>{ e.stopPropagation(); openCompass(b.dataset.compass); });
+    mref.querySelectorAll('[data-meetpoint]').forEach(b=> b.onclick=(e)=>{ e.stopPropagation(); openMeetPoint(); });
+    attachMsgLongPress(mref);
+    mref.scrollTop = mref.scrollHeight;
+  });
+  S.unsub.roomDoc = onSnapshot(doc(db,'chats',cid), s=>{
+    if(!s.exists()) return; const d=s.data(); _room.data=d;
+    maybeSpawnCompass(d);
+    updateRoomCountdown();              // reflect friend status / time left immediately
+  });
+}
+function renderMsg(m, id){
+  if(m.type==='sys') return `<div class="bubble sys">${esc(m.text)}</div>`;
+  if(m.type==='compass'){
+    const toMe = m.target===S.user.uid;
+    const label = toMe ? T(`Live map to <b>you</b> — shared so ${esc(_room.otherName)} can reach you`,`แผนที่นำทางมาหา<b>คุณ</b> — แชร์ไว้เพื่อให้ ${esc(_room.otherName)} มาหาคุณได้`)
+                       : T(`Live map to <b>${esc(_room.otherName)}</b>`,`แผนที่นำทางไปหา <b>${esc(_room.otherName)}</b>`);
+    return `<div class="compass-card" data-mid="${id}"><div class="mini">${icon('pin')}</div>
+      <div class="col" style="flex:1"><span class="small">${label}</span>
+      <span class="small muted">${toMe?T('They can navigate to you','พวกเขานำทางมาหาคุณได้'):T('Tap to open the map','แตะเพื่อเปิดแผนที่นำทาง')}</span></div>
+      ${toMe?'':`<button class="btn btn-rose btn-sm" data-compass="${m.target}">${icon('compass',16)} ${T('Guide me','นำทางฉัน')}</button>`}</div>`;
+  }
+  if(m.type==='meetpoint'){
+    return `<div class="compass-card" data-mid="${id}"><div class="mini">${icon('pin')}</div>
+      <div class="col" style="flex:1"><span class="small">${T('Choose a meeting point','เลือกจุดนัดพบ')}</span>
+      <span class="small muted">${T('You both drop a pin, then decide whose spot to head to','ปักหมุดทั้งคู่ แล้วค่อยตัดสินใจว่าจะไปจุดของใคร')}</span></div>
+      <button class="btn btn-rose btn-sm" data-meetpoint="1">${icon('pin',16)} ${T('Pick','เลือกจุดนัดพบ')}</button></div>`;
+  }
+  const mine = m.from===S.user.uid;
+  return `<div class="bubble ${mine?'me':'them'}" data-mid="${id}">${esc(m.text)}</div>`;
+}
+
+// Long-press a message bubble to delete it for yourself.
+function attachMsgLongPress(container){
+  container.querySelectorAll('[data-mid]').forEach(elm=>{
+    let timer=null;
+    const start=()=>{ timer=setTimeout(()=>{ timer=null; msgActions(elm.dataset.mid); }, 480); };
+    const cancel=()=>{ if(timer){ clearTimeout(timer); timer=null; } };
+    elm.addEventListener('pointerdown', start);
+    elm.addEventListener('pointerup', cancel);
+    elm.addEventListener('pointermove', cancel);
+    elm.addEventListener('pointercancel', cancel);
+    elm.addEventListener('pointerleave', cancel);
+    elm.addEventListener('contextmenu', e=>e.preventDefault());
+  });
+}
+function msgActions(mid){
+  if(!mid) return;
+  const sc=el('div','modal-scrim');
+  sc.innerHTML=`<div class="sheet"><div class="list">
+    <button class="btn btn-block" id="del" style="background:rgba(239,68,68,.15);color:#fca5a5">${T('Delete message for me','ลบข้อความนี้สำหรับฉัน')}</button>
+    <button class="btn btn-block" id="cancel">${T('Cancel','ยกเลิก')}</button>
+  </div></div>`;
+  document.body.appendChild(sc);
+  sc.onclick=e=>{ if(e.target===sc) sc.remove(); };
+  $('#cancel',sc).onclick=()=>sc.remove();
+  $('#del',sc).onclick=async()=>{
+    sc.remove();
+    await hideMessage(mid);
+    document.querySelector(`#msgs [data-mid="${mid}"]`)?.remove();
+    toast(T('Message removed for you','ลบข้อความสำหรับคุณแล้ว'));
+  };
+}
+async function hideMessage(mid){
+  const arr = S.profile.hiddenMsgs || (S.profile.hiddenMsgs=[]);
+  if(!arr.includes(mid)) arr.push(mid);
+  try{ await updateDoc(doc(db,'users',S.user.uid), {hiddenMsgs: arrayUnion(mid)}); }catch(_){}
+}
+// "Delete chat" = hide on my side. Reappears if there's new activity later.
+async function hideChat(cid){
+  const at = Date.now();
+  S.profile.hiddenChats = { ...(S.profile.hiddenChats||{}), [cid]: at };
+  try{ await updateDoc(doc(db,'users',S.user.uid), {[`hiddenChats.${cid}`]: at}); }catch(_){}
+}
+async function sendMsg(){
+  const inp=$('#msgInput'); const text=inp.value.trim(); if(!text||!_room) return;
+  const d=_room.data||{};
+  if(!d.friends && Date.now() > (d.createdAt||0)+CHAT_TTL_MS){
+    toast(T('This chat has expired. Meet in person & scan each other to keep talking.','แชทนี้หมดอายุแล้ว เจอกันตัวจริงแล้วสแกนกันเพื่อคุยต่อ'));
+    setComposerEnabled(false); return;
+  }
+  inp.value='';
+  await addDoc(collection(db,'chats',_room.cid,'messages'),{type:'text',from:S.user.uid,text,createdAt:Date.now()});
+  await updateDoc(doc(db,'chats',_room.cid),{lastMessage:text,lastAt:Date.now()});
+}
+
+/* ----- in-chat location compass mechanic ----- */
+async function toggleChatLocation(on){
+  if(!_room) return;
+  if(on && !myPos()){ toast(T('No location yet — enable location on the Nearby tab first','ยังไม่มีตำแหน่ง — เปิดตำแหน่งที่แท็บใกล้ฉันก่อน')); $('#locToggle').checked=false; return; }
+  const side=_room.meIsA?'locA':'locB';
+  const pos=myPos();
+  await updateDoc(doc(db,'chats',_room.cid), { [side]: on?{on:true,lat:pos.lat,lng:pos.lng,updatedAt:Date.now()}:{on:false} });
+  if(on){
+    clearInterval(S.chatLocTimer);
+    S.chatLocTimer=setInterval(async()=>{ const p=myPos(); if(p&&_room) await updateDoc(doc(db,'chats',_room.cid),{[side]:{on:true,lat:p.lat,lng:p.lng,updatedAt:Date.now()}}); }, CHAT_LOC_INTERVAL);
+    toast(T('Location shared. Compass appears when you both turn it on.','แชร์ตำแหน่งแล้ว เข็มทิศจะปรากฏเมื่อคุณทั้งคู่เปิด'));
+  } else { clearInterval(S.chatLocTimer); S.chatLocTimer=null; }
+}
+// only members[0] spawns the two compass cards, exactly once, when both sides are on
+async function maybeSpawnCompass(d){
+  const bothOn = d.locA?.on && d.locB?.on;
+  // keep the in-room toggle in sync with server truth
+  const t=$('#locToggle'); if(t){ const mineOn=(_room.meIsA?d.locA:d.locB)?.on; if(!!t.checked!==!!mineOn) t.checked=!!mineOn; }
+  if(bothOn && !d.compassActive && _room.meIsA){
+    await updateDoc(doc(db,'chats',_room.cid),{compassActive:true});
+    const [a,b]=d.members;
+    await addDoc(collection(db,'chats',_room.cid,'messages'),{type:'compass',target:a,createdAt:Date.now()});
+    await addDoc(collection(db,'chats',_room.cid,'messages'),{type:'compass',target:b,createdAt:Date.now()+1});
+    await addDoc(collection(db,'chats',_room.cid,'messages'),{type:'sys',text:T('📍 You both shared location — compasses are live below.','📍 คุณทั้งคู่แชร์ตำแหน่งแล้ว — เข็มทิศทำงานอยู่ด้านล่าง'),createdAt:Date.now()+2});
+  }
+  // meeting-point card — spawned once per chat, the moment the compass goes live.
+  // Lives below the two compass cards; lets either person drop a shared meeting pin.
+  if(bothOn && d.compassActive && !d.meetPointSpawned && _room.meIsA){
+    await updateDoc(doc(db,'chats',_room.cid),{meetPointSpawned:true}).catch(()=>{});
+    await addDoc(collection(db,'chats',_room.cid,'messages'),{type:'meetpoint',createdAt:Date.now()+3});
+  }
+  if(!bothOn && d.compassActive){
+    await updateDoc(doc(db,'chats',_room.cid),{compassActive:false}).catch(()=>{});
+    if(_room.meIsA) await addDoc(collection(db,'chats',_room.cid,'messages'),{type:'sys',text:T('Location sharing stopped — compass paused.','หยุดแชร์ตำแหน่งแล้ว — เข็มทิศหยุดชั่วคราว'),createdAt:Date.now()});
+  }
+}
+
+/* ----- shared meeting-point picker --------------------------------------- *
+ * A full-screen CARTO-dark map where EITHER person taps to drop their own    *
+ * suggested meeting pin (shown with their avatar). Each side's choice is      *
+ * stored on the chat doc as meetA / meetB, so both see each other's pins live *
+ * — then they sort out in chat whose spot to actually head to.                */
+let _meetMap=null, _meetMyMarker=null, _meetOtherMarker=null, _meetUnsub=null, _meetMyChoice=null;
+
+function meetTokenEl(who, mine){
+  // The OUTER div is the element MapLibre positions — keep it unstyled so its
+  // absolute placement isn't overridden. All visuals live on the inner .meet-tok.
+  const e=el('div');
+  const inner=el('div','meet-tok'+(mine?' mine':''));
+  inner.innerHTML=`<div class="ava">${avatar(who,'sm')}</div><div class="stem"></div><div class="dot"></div>`;
+  e.appendChild(inner);
+  return e;
+}
+
+function openMeetPoint(){
+  if(!_room || !window.maplibregl) return;
+  const cid=_room.cid;
+  const ov=el('div','overlay'); ov.id='meetOv';
+  ov.innerHTML=`
+    <style>
+      #meetOv{background:#0A0A0A}
+      #meetOv .meet-stage{flex:1;position:relative;overflow:hidden}
+      #meetmap{position:absolute;inset:0}
+      #meetOv .maplibregl-ctrl-attrib{font-size:9px;background:rgba(0,0,0,.4)!important}
+      #meetOv .meet-hud{position:absolute;left:0;right:0;bottom:0;z-index:5;display:flex;flex-direction:column;gap:10px;
+        padding:18px 16px calc(18px + var(--sa-b));background:linear-gradient(to top,rgba(10,10,10,.94),rgba(10,10,10,.5) 70%,transparent)}
+      #meetOv .meet-hint{font-size:13px;color:var(--muted);text-align:center;line-height:1.4}
+      #meetOv .meet-tok{position:relative;display:flex;flex-direction:column;align-items:center;pointer-events:none}
+      #meetOv .meet-tok .ava{width:48px;height:48px;border-radius:50%;border:3px solid #fff;overflow:hidden;background:var(--bg-2);box-shadow:0 6px 16px rgba(0,0,0,.7)}
+      #meetOv .meet-tok .ava .avatar{width:100%;height:100%}
+      #meetOv .meet-tok .stem{width:2px;height:12px;background:#fff;box-shadow:0 0 5px rgba(0,0,0,.6)}
+      #meetOv .meet-tok .dot{width:10px;height:10px;border-radius:50%;background:#fff;box-shadow:0 0 8px rgba(255,255,255,.7)}
+      #meetOv .meet-tok.mine .ava{border-color:var(--amber);box-shadow:0 6px 16px rgba(0,0,0,.7),0 0 14px rgba(240,82,44,.6)}
+      #meetOv .meet-tok.mine .dot{background:var(--amber);box-shadow:0 0 11px rgba(240,82,44,.85)}
+    </style>
+    <div class="overlay-header">
+      <button class="icon-btn" id="meetBack">${icon('back')}</button>
+      <div class="col" style="flex:1;min-width:0">
+        <b class="ellipsis row" style="gap:7px">${icon('pin',18)} ${T('Choose a meeting point','เลือกจุดนัดพบ')}</b>
+        <span class="small muted">${T('Tap the map to drop your pin','แตะแผนที่เพื่อปักหมุดของคุณ')}</span>
+      </div>
+    </div>
+    <div class="meet-stage"><div id="meetmap"></div>
+      <div class="meet-hud">
+        <div class="meet-hint" id="meetHint">${T('Tap anywhere on the map to suggest where to meet.','แตะที่ใดก็ได้บนแผนที่เพื่อเสนอจุดนัดพบ')}</div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-rose" id="meetSend" style="flex:1" disabled>${icon('send',18)} ${T('Share this spot','แชร์จุดนี้')}</button>
+          <button class="btn btn-cta" id="meetNav" style="flex:1" disabled>${icon('compass',18)} ${T('Navigate','นำทาง')}</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  $('#meetBack',ov).onclick=()=>closeMeetPoint(ov);
+  $('#meetNav',ov).onclick=()=>meetNavChoice();
+
+  const d=_room.data||{};
+  const myLive=(_room.meIsA?d.locA:d.locB), otherLive=(_room.meIsA?d.locB:d.locA);
+  let center=[100.5018,13.7563];           // Bangkok fallback
+  if(myLive?.lat!=null && otherLive?.lat!=null) center=[(myLive.lng+otherLive.lng)/2,(myLive.lat+otherLive.lat)/2];
+  else if(myPos()) center=[myPos().lng,myPos().lat];
+
+  _meetMyChoice=null; _meetMyMarker=_meetOtherMarker=null;
+  _meetMap=new maplibregl.Map({ container:'meetmap', style:nearbyMapStyle(),
+    center, zoom:16, attributionControl:true });
+  _meetMap.on('load',()=>{
+    _meetMap.resize();
+    _meetMap.on('click', e=> placeMyMeet({lat:e.lngLat.lat,lng:e.lngLat.lng}, false));
+    paintMeetMarkers(_room.data||{});
+  });
+
+  $('#meetSend',ov).onclick=async()=>{
+    if(!_meetMyChoice) return;
+    const side=_room.meIsA?'meetA':'meetB';
+    try{
+      await updateDoc(doc(db,'chats',cid),{[side]:{lat:_meetMyChoice.lat,lng:_meetMyChoice.lng,at:Date.now()}});
+      await addDoc(collection(db,'chats',cid,'messages'),{type:'sys',
+        text:T(`📍 ${S.profile?.displayName||'Someone'} suggested a meeting point`,`📍 ${S.profile?.displayName||'ใครบางคน'} เสนอจุดนัดพบ`),createdAt:Date.now()});
+      toast(T('Meeting point shared','แชร์จุดนัดพบแล้ว'));
+    }catch(_){ toast(T('Couldn’t share — try again','แชร์ไม่สำเร็จ — ลองอีกครั้ง')); }
+  };
+
+  // live-reflect the other person's pin (and restore mine on reopen)
+  _meetUnsub=onSnapshot(doc(db,'chats',cid), s=>{ if(s.exists()){ _room.data=s.data(); paintMeetMarkers(_room.data); } });
+}
+
+// drop / move MY suggested pin (avatar marker, amber ring)
+function placeMyMeet(pos, fromDoc){
+  if(!_meetMap) return;
+  _meetMyChoice=pos;
+  if(_meetMyMarker) _meetMyMarker.setLngLat([pos.lng,pos.lat]);
+  else _meetMyMarker=new maplibregl.Marker({element:meetTokenEl(S.profile,true),anchor:'bottom'})
+    .setLngLat([pos.lng,pos.lat]).addTo(_meetMap);
+  const sb=$('#meetSend'); if(sb) sb.disabled=false;
+  const nb=$('#meetNav'); if(nb) nb.disabled=false;   // my point now exists → navigable
+  const h=$('#meetHint'); if(h) h.textContent = fromDoc
+    ? T('Tap the map to move your pin, or share it again.','แตะแผนที่เพื่อย้ายหมุด หรือแชร์อีกครั้ง')
+    : T('Tap “Share this spot” to send it to the chat.','แตะ “แชร์จุดนี้” เพื่อส่งไปที่แชท');
+}
+
+function paintMeetMarkers(d){
+  if(!_meetMap) return;
+  const mySide=_room.meIsA?'meetA':'meetB', otherSide=_room.meIsA?'meetB':'meetA';
+  const o=d[otherSide];
+  if(o?.lat!=null){
+    if(_meetOtherMarker) _meetOtherMarker.setLngLat([o.lng,o.lat]);
+    else _meetOtherMarker=new maplibregl.Marker(
+      {element:meetTokenEl({displayName:_room.otherName,photoURL:_room.otherPhoto},false),anchor:'bottom'})
+      .setLngLat([o.lng,o.lat]).addTo(_meetMap);
+    const nb=$('#meetNav'); if(nb) nb.disabled=false;   // their point exists → navigable
+  }
+  // restore my previously-shared pin if I haven't placed one this session
+  const me=d[mySide];
+  if(me?.lat!=null && !_meetMyChoice) placeMyMeet({lat:me.lat,lng:me.lng}, true);
+}
+
+function closeMeetPoint(ov){
+  _meetUnsub?.(); _meetUnsub=null;
+  if(_meetMap){ try{ _meetMap.remove(); }catch(_){} _meetMap=null; }
+  _meetMyMarker=_meetOtherMarker=null; _meetMyChoice=null;
+  ov.remove();
+}
+
+// Ask which meeting point to walk to, then launch the live navigator toward it.
+function meetNavChoice(){
+  if(!_room) return;
+  const d=_room.data||{};
+  const mySide=_room.meIsA?'meetA':'meetB', otherSide=_room.meIsA?'meetB':'meetA';
+  const mine=_meetMyChoice || d[mySide];      // my own pick (local pick counts even before sharing)
+  const other=d[otherSide];                   // the other person's shared pick
+  if(mine?.lat==null && other?.lat==null) return toast(T('No meeting point yet','ยังไม่มีจุดนัดพบ'));
+  const sc=el('div','modal-scrim');
+  sc.innerHTML=`<div class="sheet"><div class="list">
+    <div class="small muted" style="text-align:center;margin-bottom:2px">${T('Navigate to which point?','นำทางไปจุดไหน?')}</div>
+    ${mine?.lat!=null?`<button class="btn btn-rose btn-block" id="navMine">${icon('pin',18)} ${T('The point I chose','จุดที่ฉันเลือก')}</button>`:''}
+    ${other?.lat!=null?`<button class="btn btn-cta btn-block" id="navOther">${icon('pin',18)} ${T(`${esc(_room.otherName)}’s point`,`จุดที่ ${esc(_room.otherName)} เลือก`)}</button>`:''}
+    <button class="btn btn-block" id="navCancel">${T('Cancel','ยกเลิก')}</button>
+  </div></div>`;
+  document.body.appendChild(sc);
+  sc.onclick=e=>{ if(e.target===sc) sc.remove(); };
+  $('#navCancel',sc).onclick=()=>sc.remove();
+  if(mine?.lat!=null) $('#navMine',sc).onclick=()=>{ sc.remove();
+    openCompass(_room.other,{lat:mine.lat,lng:mine.lng,who:S.profile,title:T('My meeting point','จุดนัดพบของฉัน')}); };
+  if(other?.lat!=null) $('#navOther',sc).onclick=()=>{ sc.remove();
+    openCompass(_room.other,{lat:other.lat,lng:other.lng,who:{displayName:_room.otherName,photoURL:_room.otherPhoto},
+      title:T(`${_room.otherName}’s point`,`จุดนัดพบของ ${_room.otherName}`)}); };
+}
+
+/* ----- full-screen Pokémon-GO-style live navigator ----------------------- *
+ * A tilted 3-D map (CARTO dark, same look as the Nearby map) that follows YOU  *
+ * like a Pokémon GO trainer: your avatar token stays centred, the world spins  *
+ * to your phone's heading, a glowing "ant-march" trail and beacon lead to the  *
+ * stranger's live spot, and the distance ticks down until you're on top of it. */
+let _navMap=null,_navMeMarker=null,_navTgtMarker=null,_navRAF=null,_navTick=null,
+    _navFollow=true,_navCenter=null,_navBearing=0,_navDashI=0,_navArrived=false;
+// ant-march dash frames — animated to make the trail "flow" toward the target
+const NAV_DASH=[[0,4,3],[0.5,4,2.5],[1,4,2],[1.5,4,1.5],[2,4,1],[2.5,4,.5],
+  [3,4,0],[0,.5,3,3.5],[0,1,3,3],[0,1.5,3,2.5],[0,2,3,2],[0,2.5,3,1.5],[0,3,3,1],[0,3.5,3,.5]];
+const lerp=(a,b,t)=>a+(b-a)*t;
+// shortest-path angular lerp (handles the 359°→0° wrap so the map never spins the long way)
+function lerpAngle(a,b,t){ let d=((b-a+540)%360)-180; return (a+d*t+360)%360; }
+
+function navTokenEl(kind, who){
+  // OUTER div is what MapLibre positions — keep it unstyled so its absolute,
+  // GPS-locked placement isn't overridden (otherwise the pin drifts on zoom).
+  // All visuals (incl. the position:relative needed by the cone/beam/halo) live
+  // on the inner .nav-tok.
+  const e=el('div');
+  const inner=el('div','nav-tok '+kind);
+  who = who || (kind==='me' ? S.profile : {displayName:_room.otherName, photoURL:_room.otherPhoto});
+  inner.innerHTML = (kind==='me'
+      ? `<div class="nav-cone"></div>`
+      : `<div class="nav-beam"></div><div class="nav-halo"></div>`)
+    + `<div class="ava">${avatar(who,'sm')}</div><div class="stem"></div><div class="dot"></div>`;
+  e.appendChild(inner);
+  return e;
+}
+
+// targetUid → live navigation to that person's shared location.
+// Pass `dest` ({lat,lng,title,who}) to instead navigate to a fixed point
+// (e.g. a chosen meeting point) — no live subscription, destination never moves.
+function openCompass(targetUid, dest){
+  const isStatic = !!dest;
+  const ov=el('div','overlay'); ov.id='compassOv';
+  ov.innerHTML=`
+    <style>
+      #compassOv{background:#0A0A0A}
+      .nav-stage{flex:1;position:relative;overflow:hidden}
+      #navmap{position:absolute;inset:0}
+      .maplibregl-ctrl-attrib{font-size:9px;background:rgba(0,0,0,.4)!important}
+      .nav-vignette{position:absolute;inset:0;pointer-events:none;z-index:2;box-shadow:inset 0 0 170px 36px rgba(0,0,0,.72)}
+      .nav-hud{position:absolute;left:0;right:0;bottom:0;z-index:5;display:flex;flex-direction:column;align-items:center;gap:8px;
+        padding:22px 18px calc(20px + var(--sa-b));background:linear-gradient(to top,rgba(10,10,10,.94),rgba(10,10,10,.55) 62%,transparent)}
+      .nav-dist{font-family:var(--serif);font-weight:600;font-size:36px;letter-spacing:-.01em;line-height:1}
+      .nav-stat{font-size:13px;color:var(--muted);text-align:center;max-width:300px}
+      .nav-actions{display:flex;gap:10px;margin-top:4px}
+      .nav-recenter{position:absolute;right:14px;bottom:150px;z-index:6;width:46px;height:46px;border-radius:50%;
+        background:rgba(20,20,20,.85);border:1px solid var(--line-2);display:flex;align-items:center;justify-content:center;
+        color:var(--text);backdrop-filter:blur(8px);transition:color .2s,border-color .2s}
+      .nav-recenter.off{color:var(--amber);border-color:var(--amber)}
+      /* trainer / target ground tokens (avatar floats over a stem whose dot marks the real GPS spot) */
+      .nav-tok{position:relative;display:flex;flex-direction:column;align-items:center;pointer-events:none}
+      .nav-tok .ava{width:54px;height:54px;border-radius:50%;border:3px solid #fff;overflow:hidden;background:var(--bg-2);box-shadow:0 7px 18px rgba(0,0,0,.7)}
+      .nav-tok .ava .avatar{width:100%;height:100%}
+      .nav-tok .stem{width:2px;height:14px;background:#fff;box-shadow:0 0 5px rgba(0,0,0,.6)}
+      .nav-tok .dot{width:11px;height:11px;border-radius:50%;background:#fff;box-shadow:0 0 8px rgba(255,255,255,.7)}
+      .nav-tok.me .ava{border-color:var(--amber);box-shadow:0 7px 18px rgba(0,0,0,.7),0 0 16px rgba(240,82,44,.6)}
+      .nav-tok.me .dot{background:var(--amber);box-shadow:0 0 11px rgba(240,82,44,.85)}
+      /* facing view-cone — always points up on screen = the direction you're walking */
+      .nav-cone{position:absolute;top:-30px;left:50%;transform:translateX(-50%);width:0;height:0;
+        border-left:30px solid transparent;border-right:30px solid transparent;border-bottom:52px solid rgba(240,82,44,.26);filter:blur(1.5px)}
+      /* destination beacon: a Pokémon-GO-style beam of light + a pulsing catch halo */
+      .nav-beam{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:16px;height:150px;border-radius:9px;z-index:-1;
+        background:linear-gradient(to top,rgba(240,82,44,0),rgba(240,82,44,.5) 38%,rgba(255,107,71,0));animation:navBeam 1.8s ease-in-out infinite}
+      .nav-halo{position:absolute;bottom:-6px;left:50%;width:64px;height:64px;border-radius:50%;transform:translate(-50%,0);z-index:-1;
+        border:2px solid rgba(240,82,44,.55);box-shadow:0 0 18px rgba(240,82,44,.45) inset;animation:navHalo 1.9s ease-out infinite}
+      @keyframes navBeam{0%,100%{opacity:.4}50%{opacity:.95}}
+      @keyframes navHalo{0%{transform:translate(-50%,0) scale(.7);opacity:.9}100%{transform:translate(-50%,0) scale(1.35);opacity:0}}
+    </style>
+    <div class="overlay-header"><button class="icon-btn" id="cback">${icon('back')}</button><b class="ellipsis">${isStatic?esc(dest.title||T('Meeting point','จุดนัดพบ')):T(`Guide to ${esc(_room.otherName)}`,`นำทางไปหา ${esc(_room.otherName)}`)}</b></div>
+    <div class="nav-stage">
+      <div id="navmap"></div>
+      <div class="nav-vignette"></div>
+      <button class="nav-recenter" id="navRecenter" aria-label="${T('Re-center on me','กลับมาที่ตำแหน่งฉัน')}">${icon('pin',20)}</button>
+      <div class="nav-hud">
+        <div class="nav-dist" id="cdist">…</div>
+        <div class="nav-stat" id="cstat">${T('Locating…','กำลังหาตำแหน่ง…')}</div>
+        <div class="nav-actions"><button class="btn btn-ghost btn-sm" id="enableC">${icon('compass',16)} ${T('Enable phone compass','เปิดเข็มทิศของโทรศัพท์')}</button></div>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  let targetPos = isStatic ? {lat:dest.lat,lng:dest.lng} : null, sharing=true;
+  const close=()=>{
+    S.unsub.compassTarget?.(); S.unsub.compassTarget=null;
+    if(_navRAF){ cancelAnimationFrame(_navRAF); _navRAF=null; }
+    clearInterval(_navTick); _navTick=null;
+    if(_navMap){ try{ _navMap.remove(); }catch(_){} _navMap=null; }
+    _navMeMarker=_navTgtMarker=_navCenter=null; _navArrived=false;
+    ov.remove();
+  };
+  $('#cback',ov).onclick=close;
+  $('#enableC',ov).onclick=async()=>{ const ok=await enableHeading(); if(ok) toast(T('Compass on — turn your phone to spin the map','เปิดเข็มทิศแล้ว — หมุนโทรศัพท์เพื่อหมุนแผนที่')); };
+
+  // live target location from the chat doc (only while BOTH still share).
+  // Skipped for a static destination — the meeting point never moves.
+  if(!isStatic) S.unsub.compassTarget = onSnapshot(doc(db,'chats',_room.cid), s=>{
+    const d=s.data(); if(!d) return;
+    const side = d.members[0]===targetUid ? d.locA : d.locB;
+    if(!d.compassActive || !side?.on){ sharing=false; targetPos=null; }
+    else { sharing=true; targetPos={lat:side.lat,lng:side.lng}; }
+  });
+
+  if(!window.maplibregl){ $('#cstat',ov).textContent=T('Map unavailable on this device.','ไม่สามารถแสดงแผนที่บนอุปกรณ์นี้'); return; }
+  const me0=myPos();
+  _navFollow=true; _navArrived=false;
+  _navCenter=me0 ? {lat:me0.lat,lng:me0.lng} : {lat:13.7563,lng:100.5018};
+  _navBearing=0;
+  _navMap=new maplibregl.Map({
+    container:'navmap', style:nearbyMapStyle(),
+    center:[_navCenter.lng,_navCenter.lat], zoom:18, pitch:62, bearing:0,
+    attributionControl:true, dragRotate:true, pitchWithRotate:false
+  });
+  // any manual pan drops "follow"; the recenter button (or arriving) snaps back
+  _navMap.on('dragstart',()=>{ _navFollow=false; $('#navRecenter',ov)?.classList.add('off'); });
+  $('#navRecenter',ov).onclick=()=>{ _navFollow=true; $('#navRecenter',ov).classList.remove('off'); };
+
+  _navMap.on('load',()=>{
+    _navMap.resize();
+    _navMap.addSource('navroute',{type:'geojson',data:_emptyFC});
+    _navMap.addLayer({id:'navroute-glow',type:'line',source:'navroute',
+      layout:{'line-cap':'round','line-join':'round'},
+      paint:{'line-color':'#FF6B47','line-width':13,'line-opacity':0.16,'line-blur':7}});
+    _navMap.addLayer({id:'navroute-line',type:'line',source:'navroute',
+      layout:{'line-cap':'round','line-join':'round'},
+      paint:{'line-color':'#F0522C','line-width':5,'line-opacity':0.95,'line-dasharray':NAV_DASH[0]}});
+    _navMeMarker=new maplibregl.Marker({element:navTokenEl('me'),anchor:'bottom'})
+      .setLngLat([_navCenter.lng,_navCenter.lat]).addTo(_navMap);
+
+    // smooth camera follow + heading spin + flowing trail — one rAF, ~unthrottled
+    let frame=0;
+    const navFrame=()=>{
+      if(!_navMap){ return; }
+      const me=myPos();
+      if(me && _navFollow){
+        _navCenter.lat=lerp(_navCenter.lat,me.lat,0.18);
+        _navCenter.lng=lerp(_navCenter.lng,me.lng,0.18);
+        _navMap.setCenter([_navCenter.lng,_navCenter.lat]);
+        if(S.heading!=null){ _navBearing=lerpAngle(_navBearing,S.heading,0.15); _navMap.setBearing(_navBearing); }
+      }
+      if(++frame%5===0 && _navMap.getLayer('navroute-line')){
+        _navDashI=(_navDashI+1)%NAV_DASH.length;
+        _navMap.setPaintProperty('navroute-line','line-dasharray',NAV_DASH[_navDashI]);
+      }
+      _navRAF=requestAnimationFrame(navFrame);
+    };
+    _navRAF=requestAnimationFrame(navFrame);
+
+    // slower loop: marker positions, trail geometry, distance read-out & status copy
+    const update=()=>{
+      const me=myPos();
+      if(me && _navMeMarker) _navMeMarker.setLngLat([me.lng,me.lat]);
+      const dEl=$('#cdist',ov), sEl=$('#cstat',ov);
+      if(!me){ if(sEl) sEl.textContent=T('Waiting for your location…','กำลังรอตำแหน่งของคุณ…'); return; }
+      if(!sharing || !targetPos){
+        if(_navTgtMarker){ _navTgtMarker.remove(); _navTgtMarker=null; }
+        _navMap.getSource('navroute')?.setData(_emptyFC);
+        if(dEl) dEl.textContent='–';
+        if(sEl) sEl.textContent=T('Location sharing paused — ask them to keep it on.','หยุดแชร์ตำแหน่งชั่วคราว — ขอให้อีกฝ่ายเปิดไว้');
+        return;
+      }
+      if(!_navTgtMarker) _navTgtMarker=new maplibregl.Marker({element:navTokenEl('target', isStatic?dest.who:null),anchor:'bottom'}).setLngLat([targetPos.lng,targetPos.lat]).addTo(_navMap);
+      else _navTgtMarker.setLngLat([targetPos.lng,targetPos.lat]);
+      _navMap.getSource('navroute')?.setData({type:'Feature',geometry:{type:'LineString',
+        coordinates:[[me.lng,me.lat],[targetPos.lng,targetPos.lat]]}});
+      const dist=haversine(me,targetPos);
+      if(dEl) dEl.textContent=distLabel(dist);
+      if(dist<15){
+        if(sEl) sEl.textContent=T("You're basically there! 🎉",'เกือบถึงแล้ว! 🎉');
+        if(!_navArrived){ _navArrived=true; _navFollow=true; _navMap.easeTo({zoom:19,duration:600}); }
+      } else {
+        _navArrived=false;
+        if(sEl) sEl.textContent = S.heading==null
+          ? T('Walk along the glowing trail to reach them','เดินตามเส้นทางเรืองแสงเพื่อไปหาอีกฝ่าย')
+          : T('Map turns with you — follow the trail of light','แผนที่หมุนตามคุณ — เดินตามแสงนำทาง');
+      }
+    };
+    update(); _navTick=setInterval(update,400);
+  });
+}
+
+/* ========================= room menu (block/report) ========================= */
+function roomMenu(){
+  const sc=el('div','modal-scrim');
+  sc.innerHTML=`<div class="sheet"><div class="list">
+    <button class="btn btn-ghost btn-block" id="peek">${icon('user',18)} ${T('View profile','ดูโปรไฟล์')}</button>
+    <button class="btn btn-rose btn-block" id="befriend">${icon('scan',18)} ${T('Become friends (scan QR)','เป็นเพื่อนกัน (สแกน QR)')}</button>
+    <button class="btn btn-ghost btn-block" id="delchat" style="color:#fca5a5">${icon('trash',18)} ${T('Delete chat (for me)','ลบแชท (สำหรับฉัน)')}</button>
+    <button class="btn btn-ghost btn-block" id="report">🚩 ${T('Report','รายงาน')}</button>
+    <button class="btn btn-block" id="block" style="background:rgba(239,68,68,.15);color:#fca5a5">🚫 ${T(`Block ${esc(_room.otherName)}`,`บล็อก ${esc(_room.otherName)}`)}</button>
+    <button class="btn btn-block" id="cancel">${T('Cancel','ยกเลิก')}</button>
+  </div></div>`;
+  document.body.appendChild(sc);
+  sc.onclick=e=>{ if(e.target===sc) sc.remove(); };
+  $('#cancel',sc).onclick=()=>sc.remove();
+  $('#peek',sc).onclick=()=>{ sc.remove(); toast(_room.otherName); };
+  $('#befriend',sc).onclick=()=>{ sc.remove(); openFriendSheet(_room.other, _room.otherName); };
+  $('#delchat',sc).onclick=async()=>{
+    const cid=_room.cid; sc.remove();
+    await hideChat(cid);
+    closeRoomCleanup(); $('#roomOv')?.remove();
+    switchTab('chats');
+    toast(T('Chat deleted from your list','ลบแชทออกจากรายการของคุณแล้ว'));
+  };
+  $('#report',sc).onclick=async()=>{ await blockUser(_room.other,true); sc.remove(); $('#roomOv')?.remove(); toast(T('Reported & blocked','รายงานและบล็อกแล้ว')); };
+  $('#block',sc).onclick=async()=>{ await blockUser(_room.other,false); sc.remove(); $('#roomOv')?.remove(); toast(T('Blocked','บล็อกแล้ว')); };
+}
+async function blockUser(uid,reported){
+  await setDoc(doc(db,'blocks',S.user.uid,'blocked',uid),{at:Date.now(),reported:!!reported});
+  S.blocked.add(uid);
+  closeRoomCleanup();
+  renderChats();
+}
+function closeRoomCleanup(){ S.unsub.room?.(); S.unsub.roomDoc?.(); clearInterval(S.chatLocTimer); _room=null; }
+
+/* ========================= friendship · QR · XP · rewards ========================= *
+ * A chat dies after 24h unless both people become friends. Friendship requires meeting
+ * in person: one shows a QR (encodes their uid) and the other scans it. Scanning adds the
+ * friend, sets chats/{cid}.friends=true (so the room never expires for either of them),
+ * and grants +EXP_PER_FRIEND XP/points. Firestore rules only let me write my own user doc,
+ * so the person who was scanned self-credits via reconcileFriendChats() on their next sync. */
+const QR_PREFIX = 'PUBCHATFRIEND:';
+
+async function becomeFriends(otherUid, otherName){
+  if(!otherUid || otherUid===S.user.uid){ toast(T("That's your own code 🙂","นี่โค้ดของคุณเอง 🙂")); return; }
+  // Persist any existing chat with this person, no matter what (so the room stops expiring).
+  const cid = chatIdOf(S.user.uid, otherUid);
+  try{
+    const cs = await getDoc(doc(db,'chats',cid));
+    if(cs.exists() && !cs.data().friends){
+      await updateDoc(doc(db,'chats',cid),{friends:true});
+      await addDoc(collection(db,'chats',cid,'messages'),{type:'sys',
+        text:T('🤝 You met in person & became friends — this chat will stay open.','🤝 คุณเจอกันตัวจริงและเป็นเพื่อนกันแล้ว — แชทนี้จะเปิดค้างไว้'),createdAt:Date.now()});
+      if(_room && _room.cid===cid){ _room.data={..._room.data,friends:true}; updateRoomCountdown(); }
+    }
+  }catch(_){ toast(T('Could not update the chat — check your connection','อัปเดตแชทไม่ได้ — ตรวจสอบการเชื่อมต่อ')); }
+
+  const friends = S.profile.friends || [];
+  if(friends.includes(otherUid)){ toast(T('Already friends 🤝','เป็นเพื่อนกันอยู่แล้ว 🤝')); return; }
+
+  const before = levelOf(S.profile.exp||0);
+  S.profile.friends=[...friends,otherUid];
+  S.profile.exp=(S.profile.exp||0)+EXP_PER_FRIEND;
+  S.profile.points=(S.profile.points||0)+EXP_PER_FRIEND;
+  try{
+    await updateDoc(doc(db,'users',S.user.uid),{friends:arrayUnion(otherUid),exp:increment(EXP_PER_FRIEND),points:increment(EXP_PER_FRIEND)});
+  }catch(e){ toast(T('Could not save the friend — try again','บันทึกเพื่อนไม่ได้ ลองใหม่')); return; }
+  const after = levelOf(S.profile.exp);
+  toast(T(`Friend added! +${EXP_PER_FRIEND} XP 🎉`,`เพิ่มเพื่อนแล้ว! +${EXP_PER_FRIEND} XP 🎉`));
+  if(after>before) setTimeout(()=>toast(T(`Level up — you're now level ${after}! 🏆`,`เลเวลอัป — ตอนนี้คุณเลเวล ${after}! 🏆`)),1300);
+  refreshWalletPill();
+  if(currentTab==='profile') renderProfile();
+}
+
+// Entry sheet: scan their code, or show mine. otherName is just for nicer copy.
+function openFriendSheet(otherUid, otherName){
+  const sc=el('div','modal-scrim');
+  sc.innerHTML=`<div class="sheet"><h3 style="font-size:22px;margin-bottom:4px">🤝 ${T('Become friends','เป็นเพื่อนกัน')}</h3>
+    <p class="small muted" style="margin:0 0 14px">${T('Friends’ chats never expire. You have to meet in person — one shows their code, the other scans it.','แชทของเพื่อนจะไม่หมดอายุ ต้องเจอกันตัวจริง — คนหนึ่งโชว์โค้ด อีกคนสแกน')}</p>
+    <div class="list">
+      <button class="btn btn-cta btn-block" id="fScan">${icon('scan',18)} ${T('Scan their code','สแกนโค้ดของเขา')}</button>
+      <button class="btn btn-ghost btn-block" id="fShow">${icon('qr',18)} ${T('Show my code','โชว์โค้ดของฉัน')}</button>
+      <button class="btn btn-block" id="fCancel">${T('Cancel','ยกเลิก')}</button>
+    </div></div>`;
+  document.body.appendChild(sc);
+  sc.onclick=e=>{ if(e.target===sc) sc.remove(); };
+  $('#fCancel',sc).onclick=()=>sc.remove();
+  $('#fScan',sc).onclick=()=>{ sc.remove(); scanFriendQR(); };
+  $('#fShow',sc).onclick=()=>{ sc.remove(); showMyQR(); };
+}
+
+// My QR — encodes my uid so a friend in person can scan & add me.
+function showMyQR(){
+  const sc=el('div','modal-scrim');
+  sc.innerHTML=`<div class="sheet" style="text-align:center">
+    <h3 style="font-size:22px;margin-bottom:4px;display:flex;align-items:center;gap:8px">${icon('qr',22)} ${T('My friend code','โค้ดเพื่อนของฉัน')}</h3>
+    <p class="small muted" style="margin:0 0 14px">${T('Let your new friend scan this in person. You both earn XP.','ให้เพื่อนใหม่สแกนอันนี้ตัวจริง คุณทั้งคู่จะได้ XP')}</p>
+    <div id="qrBox" style="background:#fff;width:224px;height:224px;border-radius:16px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center"></div>
+    <div class="keytag" style="font-size:15px">#${esc(S.profile.personalKey||'')}</div>
+    <button class="btn btn-ghost btn-block" id="qrClose" style="margin-top:16px">${T('Close','ปิด')}</button>
+  </div>`;
+  document.body.appendChild(sc);
+  sc.onclick=e=>{ if(e.target===sc) sc.remove(); };
+  $('#qrClose',sc).onclick=()=>sc.remove();
+  const box=$('#qrBox',sc), payload=QR_PREFIX+S.user.uid;
+  if(window.QRCode){
+    box.innerHTML='';
+    try{
+      new QRCode(box,{ text:payload, width:200, height:200, colorDark:'#000000', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M });
+    }catch(e){ box.innerHTML=`<span style="color:#000;font-weight:700">${esc(S.profile.personalKey||'?')}</span>`; }
+  } else box.innerHTML=`<span style="color:#000;font-weight:700;padding:10px">${T('QR unavailable — check your connection','QR ใช้ไม่ได้ — ตรวจสอบการเชื่อมต่อ')}</span>`;
+}
+
+// Scan a friend's QR with the camera.
+async function scanFriendQR(){
+  if(!window.Html5Qrcode){ toast(T('Scanner not ready — check your connection','สแกนเนอร์ยังไม่พร้อม — ตรวจสอบการเชื่อมต่อ')); return; }
+  const ov=el('div','overlay'); ov.id='scanOv';
+  ov.innerHTML=`<div class="overlay-header"><button class="icon-btn" id="sback">${icon('back')}</button><b class="row" style="gap:8px">${icon('scan',18)} ${T('Scan a friend code','สแกนโค้ดเพื่อน')}</b></div>
+    <div class="content col" style="align-items:center;gap:14px;padding:18px">
+      <p class="small muted" style="text-align:center;max-width:300px">${T('Point your camera at your friend’s code on their phone. You must be together in person.','เล็งกล้องไปที่โค้ดบนโทรศัพท์ของเพื่อน คุณต้องอยู่ด้วยกันตัวจริง')}</p>
+      <div id="reader" style="width:100%;max-width:340px;border-radius:16px;overflow:hidden;background:#000"></div>
+      <span class="small muted" id="scanStat">${T('Starting camera…','กำลังเปิดกล้อง…')}</span>
+    </div>`;
+  document.body.appendChild(ov);
+  const qr=new Html5Qrcode('reader'); let done=false;
+  const stop=async()=>{ try{ if(qr.isScanning) await qr.stop(); await qr.clear(); }catch(_){} };
+  $('#sback',ov).onclick=async()=>{ await stop(); ov.remove(); };
+  const onScan=async(text)=>{
+    if(done) return;
+    const t=(text||'').trim();
+    if(!t.startsWith(QR_PREFIX)){ const st=$('#scanStat',ov); if(st) st.textContent=T('That’s not a PubChat code — try again','นี่ไม่ใช่โค้ด PubChat ลองใหม่'); return; }
+    done=true; await stop();
+    const uid=t.slice(QR_PREFIX.length);
+    let name=''; try{ const us=await getDoc(doc(db,'users',uid)); if(us.exists()) name=us.data().displayName||''; }catch(_){}
+    await becomeFriends(uid,name);
+    ov.remove();
+    if(currentTab==='profile') renderProfile();
+  };
+  try{
+    await qr.start({facingMode:'environment'},{fps:10,qrbox:230},onScan,()=>{});
+    const st=$('#scanStat',ov); if(st) st.textContent=T('Point at the QR code','เล็งไปที่ QR โค้ด');
+  }catch(e){
+    const st=$('#scanStat',ov); if(st) st.textContent=T('Couldn’t open the camera — allow camera access and retry','เปิดกล้องไม่ได้ — อนุญาตกล้องแล้วลองใหม่');
+  }
+}
+
+/* ----- rewards: spend points earned from friends ----- */
+function openRewards(){
+  const sc=el('div','modal-scrim');
+  const cards=REWARDS.map(r=>`
+    <button class="card reward" data-id="${r.id}" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;margin-bottom:10px;cursor:pointer">
+      <div class="tut-icon" style="width:46px;height:46px;flex:0 0 auto">${icon(r.ic,22)}</div>
+      <div class="col" style="flex:1"><b>${T(r.en,r.th)}</b><span class="small muted">${T(r.den,r.dth)}</span></div>
+      <span class="pill"><b>${r.cost}</b>&nbsp;${T('pts','แต้ม')}</span>
+    </button>`).join('');
+  sc.innerHTML=`<div class="sheet"><h3 style="font-size:22px;display:flex;align-items:center;gap:8px">${icon('gift',22)} ${T('Rewards','รางวัล')}</h3>
+    <p class="small muted" style="margin:4px 0 14px">${T(`You have <b>${pointsOf()}</b> points. Add a friend in person to earn <b>${EXP_PER_FRIEND}</b> more.`,`คุณมี <b>${pointsOf()}</b> แต้ม เพิ่มเพื่อนตัวจริงเพื่อรับอีก <b>${EXP_PER_FRIEND}</b> แต้ม`)}</p>
+    ${cards}
+    <button class="btn btn-ghost btn-block" id="rwClose" style="margin-top:6px">${T('Close','ปิด')}</button></div>`;
+  document.body.appendChild(sc);
+  sc.onclick=e=>{ if(e.target===sc) sc.remove(); };
+  $('#rwClose',sc).onclick=()=>sc.remove();
+  sc.querySelectorAll('.reward').forEach(b=> b.onclick=()=>redeemReward(b.dataset.id,sc));
+}
+async function redeemReward(id,sc){
+  const r=REWARDS.find(x=>x.id===id); if(!r) return;
+  if((S.profile.points||0) < r.cost) return toast(T('Not enough points — add more friends to earn points','แต้มไม่พอ — เพิ่มเพื่อนเพื่อรับแต้มเพิ่ม'));
+  const patch={ points:increment(-r.cost) };
+  if(r.balls) patch.paidBalls=increment(r.balls);
+  if(r.coins) patch.coins=increment(r.coins);
+  try{
+    await updateDoc(doc(db,'users',S.user.uid),patch);
+    S.profile.points-=r.cost;
+    if(r.balls) S.profile.paidBalls=(S.profile.paidBalls||0)+r.balls;
+    if(r.coins) S.profile.coins=(S.profile.coins||0)+r.coins;
+  }catch(e){ return toast(T('Could not redeem — try again','แลกไม่สำเร็จ ลองใหม่')); }
+  toast(T(`Redeemed ${T(r.en,r.th)} 🎁`,`แลก ${T(r.en,r.th)} แล้ว 🎁`));
+  sc?.remove(); refreshWalletPill();
+  if(currentTab==='profile') renderProfile();
+}
+
+/* ========================= TAB: stranger mode ========================= */
+// Stranger Mode is an append-only QUEUE. _strangerSeen guarantees nobody you've already
+// passed (or that's already queued) is ever re-added, so skipped people never come back.
+let _strangerQueue=[], _strangerIdx=0, _strangerSeen=new Set(), _strangerWaiting=false;
+let _lastSkipped=null;   // index of the most recently skipped stranger (one-level undo only)
+function renderStranger(){
+  const v=$('#view');
+  if(!S.inStrangerMode){
+    v.innerHTML=`<div class="pad">
+      <div class="card col" style="gap:10px;align-items:center;text-align:center;padding:28px 18px">
+        <div>${icon('shuffle',40)}</div>
+        <h3 style="font-size:20px">${T('Stranger Mode','โหมดคนแปลกหน้า')}</h3>
+        <p class="muted small">${T('Get matched with random people in the pub — no chat-ball needed. Tinder-style.','จับคู่กับคนแบบสุ่มในผับ — ไม่ต้องใช้ลูกบอลแชท สไตล์ Tinder')}</p>
+        <button class="btn btn-cta btn-block" id="enter">${icon('shuffle',18)} ${T('Enter Stranger Mode','เข้าสู่โหมดคนแปลกหน้า')}</button>
+      </div>
+      <div class="row card" style="justify-content:space-between;margin-top:14px">
+        <div class="col"><b class="row" style="gap:7px">${icon('shuffle',16)} ${T('Findable by strangers','ให้คนแปลกหน้าค้นเจอได้')}</b><span class="small muted">${T('Let searchers match with you (separate from Nearby visibility)','ให้คนที่กำลังค้นหาจับคู่กับคุณได้ (แยกจากการมองเห็นแบบใกล้ฉัน)')}</span></div>
+        ${switchEl('strToggle', S.strangerVisible)}
+      </div>
+    </div>`;
+    $('#enter').onclick=async()=>{ S.inStrangerMode=true; await writePresence(); await initStrangerQueue(); renderStranger(); };
+    bindSwitch('strToggle', async on=>{ S.strangerVisible=on; await writePresence(); });
+    return;
+  }
+  v.innerHTML=`<div class="stranger-stage" id="strStage"></div>
+    <div class="pad col" style="gap:10px">
+      <button class="btn btn-ghost btn-block hidden" id="undoSkip">${icon('back')} ${T('Bring back last skip','เรียกคนที่เพิ่งข้ามกลับมา')}</button>
+      <button class="btn btn-ghost btn-block" id="leave">${T('Leave Stranger Mode','ออกจากโหมดคนแปลกหน้า')}</button>
+    </div>`;
+  $('#leave').onclick=async()=>{ stopStrangerShuffle(); S.inStrangerMode=false; await writePresence(); renderStranger(); };
+  $('#undoSkip').onclick=()=>{
+    if(_lastSkipped==null) return;
+    _strangerIdx=_lastSkipped; _lastSkipped=null;   // restore only the latest skip, then it's spent
+    showStrangerCard();
+  };
+  showStrangerCard();
+  startStrangerShuffle();
+}
+
+// Every 3s, quietly look for people who joined AFTER you and add them to the BACK of the
+// queue. It never reorders the line and never touches the card you're on — so skipped
+// strangers don't come back, and you keep moving through the list at your own pace.
+const STRANGER_REFRESH_MS = 3000;
+function startStrangerShuffle(){
+  stopStrangerShuffle();
+  S.strangerTimer = setInterval(()=>{
+    if(currentTab!=='stranger' || !S.inStrangerMode) return;
+    pollStrangers();
+  }, STRANGER_REFRESH_MS);
+}
+function stopStrangerShuffle(){
+  if(S.strangerTimer){ clearInterval(S.strangerTimer); S.strangerTimer=null; }
+}
+// fetch everyone currently discoverable in Stranger Mode
+async function fetchStrangerDocs(){
+  const [visSnap, modeSnap] = await Promise.all([
+    getDocs(query(collection(db,'presence'), where('strangerVisible','==',true))),
+    getDocs(query(collection(db,'presence'), where('inStrangerMode','==',true))),
+  ]);
+  return [...visSnap.docs, ...modeSnap.docs];
+}
+function validStranger(x, now){
+  return x.uid!==S.user.uid && !S.blocked.has(x.uid) && !_strangerSeen.has(x.uid)
+    && (now-(x.lastSeen||0)) < PRESENCE_FRESH_MS*4;
+}
+// (re)build the queue from scratch — used when you enter Stranger Mode
+async function initStrangerQueue(){
+  _strangerQueue=[]; _strangerIdx=0; _strangerSeen=new Set(); _strangerWaiting=false; _lastSkipped=null;
+  const me=myPos(), now=Date.now();
+  const batch=[];
+  (await fetchStrangerDocs()).forEach(d=>{ const x=d.data();
+    if(!validStranger(x,now)) return;
+    _strangerSeen.add(x.uid);
+    batch.push({...x, dist:haversine(me,{lat:x.lat,lng:x.lng})});
+  });
+  for(let i=batch.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [batch[i],batch[j]]=[batch[j],batch[i]]; } // shuffle the first batch only
+  _strangerQueue=batch;
+}
+// append newcomers to the end of the line (no reorder, no position change)
+async function pollStrangers(){
+  const me=myPos(), now=Date.now();
+  let added=0;
+  (await fetchStrangerDocs()).forEach(d=>{ const x=d.data();
+    if(!validStranger(x,now)) return;
+    _strangerSeen.add(x.uid);
+    _strangerQueue.push({...x, dist:haversine(me,{lat:x.lat,lng:x.lng})});
+    added++;
+  });
+  // only auto-show if you're parked at the end of the line waiting for new people
+  if(added>0 && _strangerWaiting && _strangerIdx<_strangerQueue.length) showStrangerCard();
+  return added;
+}
+function showStrangerCard(){
+  const st=$('#strStage'); if(!st) return;
+  $('#undoSkip')?.classList.toggle('hidden', _lastSkipped==null);   // show only when there's a skip to undo
+  if(_strangerIdx>=_strangerQueue.length){
+    _strangerWaiting=true;
+    st.innerHTML=`<div class="empty">${icon('shuffle',40)}<b>${T("You're all caught up",'คุณดูครบทุกคนแล้ว')}</b>
+      <span class="small">${T("You've gone through everyone in line. New strangers join the back of the queue automatically.",'คุณดูทุกคนในคิวครบแล้ว คนแปลกหน้าใหม่จะเข้าคิวต่อท้ายให้อัตโนมัติ')}</span>
+      <button class="btn btn-cta btn-sm" id="reshuffle">${icon('shuffle',16)} ${T('Reshuffle from the start','สับใหม่ตั้งแต่ต้น')}</button>
+      <button class="btn btn-ghost btn-sm" id="checkNow">${T('Check for new people','ตรวจหาคนใหม่')}</button></div>`;
+    $('#reshuffle').onclick=async()=>{ await initStrangerQueue(); showStrangerCard(); };   // rebuild the whole line (skipped people included) and start over
+    $('#checkNow').onclick=async()=>{ await pollStrangers(); showStrangerCard(); };
+    return;
+  }
+  _strangerWaiting=false;
+  const p=_strangerQueue[_strangerIdx];
+  const remaining=_strangerQueue.length-_strangerIdx-1;
+  st.innerHTML=`<div class="tcard">
+      <div class="photo" style="background:${p.photoURL?'#000':colorFor(p.displayName)}">${p.photoURL?`<img src="${esc(p.photoURL)}" style="width:100%;height:100%;object-fit:cover">`:esc(initials(p.displayName))}</div>
+      <div class="info"><div class="row"><b style="font-size:20px;flex:1" class="ellipsis">${esc(p.displayName)}</b><span class="pill">${icon('pin')} ${distLabel(p.dist)}</span></div>
+      <p class="muted small" style="margin-top:6px">${esc(p.bio||T('Up for a chat.','พร้อมคุย'))}</p></div>
+    </div>
+    <div class="small muted" style="text-align:center">${remaining>0?T(`${remaining} more in line`,`อีก ${remaining} คนในคิว`):T('Last one in line','คนสุดท้ายในคิว')}</div>
+    <div class="row" style="gap:14px"><button class="btn btn-ghost" id="skip" style="flex:1">${icon('close')} ${T('Next','ถัดไป')}</button>
+    <button class="btn btn-cta" id="chat" style="flex:1">${icon('chat')} ${T('Chat','แชท')}</button></div>`;
+  $('#skip').onclick=()=>{ _lastSkipped=_strangerIdx; _strangerIdx++; showStrangerCard(); };   // remember this skip so it can be undone
+  $('#chat').onclick=async()=>{ await createChatWith(p,'stranger'); toast(T(`Chat started with ${p.displayName}`,`เริ่มแชทกับ ${p.displayName} แล้ว`)); switchTab('chats'); openRoom(chatIdOf(S.user.uid,p.uid)); };
+}
+
+/* ========================= profile photo / edit ========================= */
+// Open the device file picker and resolve the chosen File (or null if cancelled).
+function pickImage(){
+  return new Promise(resolve=>{
+    const inp=document.createElement('input');
+    inp.type='file'; inp.accept='image/*';
+    inp.onchange=()=>resolve(inp.files?.[0]||null);
+    inp.click();
+  });
+}
+// Center-crop to a square and downscale to a small JPEG data URL (keeps Firestore writes light).
+function fileToSquareDataURL(file, size=256, quality=0.72){
+  return new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      const s=Math.min(img.width,img.height);
+      const sx=(img.width-s)/2, sy=(img.height-s)/2;
+      const c=document.createElement('canvas'); c.width=size; c.height=size;
+      c.getContext('2d').drawImage(img, sx, sy, s, s, 0, 0, size, size);
+      resolve(c.toDataURL('image/jpeg', quality));
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error('Could not read image')); };
+    img.src=url;
+  });
+}
+
+let _editPhoto=null; // pending new photo data URL (null = keep current)
+function openEditProfile(){
+  const p=S.profile; _editPhoto=null;
+  const ov=el('div','overlay'); ov.id='editOv';
+  ov.innerHTML=`
+    <div class="overlay-header"><button class="icon-btn" id="eback">${icon('back')}</button><b class="row" style="gap:7px">${icon('user',18)} ${T('Edit profile','แก้ไขโปรไฟล์')}</b></div>
+    <div class="content pad">
+      <div class="col" style="align-items:center;gap:12px;margin:8px 0 22px">
+        <div id="editAvatar">${avatar(p,'lg')}</div>
+        <button class="btn btn-ghost btn-sm" id="changePhoto">${icon('user',16)} ${T('Change photo','เปลี่ยนรูป')}</button>
+      </div>
+      <div class="field"><label for="enm" class="row" style="gap:6px">${icon('user',14)} ${T('Display name','ชื่อที่แสดง')}</label><input id="enm" maxlength="24" value="${esc(p.displayName||'')}" placeholder="${T('Your name','ชื่อของคุณ')}"></div>
+      <div class="field"><label for="ebio" class="row" style="gap:6px">${icon('chat',14)} ${T('Short bio','แนะนำตัวสั้น ๆ')}</label><textarea id="ebio" rows="3" maxlength="120" placeholder="${T('Here for a good chat 🍸','มาหาเพื่อนคุยเพลิน ๆ 🍸')}">${esc(p.bio||'')}</textarea></div>
+      <button class="btn btn-cta btn-block" id="esave">${T('Save changes','บันทึกการเปลี่ยนแปลง')}</button>
+    </div>`;
+  document.body.appendChild(ov);
+  $('#eback',ov).onclick=()=>ov.remove();
+  $('#changePhoto',ov).onclick=async()=>{
+    const f=await pickImage(); if(!f) return;
+    if(f.size>15*1024*1024) return toast(T('Image too large — pick one under 15 MB','รูปใหญ่เกินไป — เลือกรูปที่เล็กกว่า 15 MB'));
+    try{
+      _editPhoto=await fileToSquareDataURL(f);
+      $('#editAvatar',ov).innerHTML=`<div class="avatar lg"><img src="${_editPhoto}" alt="" style="width:100%;height:100%;object-fit:cover"></div>`;
+    }catch(e){ toast(T('Could not process that image — try another','ประมวลผลรูปนี้ไม่ได้ ลองรูปอื่น')); }
+  };
+  $('#esave',ov).onclick=async()=>{
+    const btn=$('#esave',ov); btn.disabled=true;
+    const patch={ displayName:$('#enm',ov).value.trim()||'Someone', bio:$('#ebio',ov).value.trim() };
+    if(_editPhoto) patch.photoURL=_editPhoto;
+    try{
+      await updateDoc(doc(db,'users',S.user.uid), patch);
+      Object.assign(S.profile, patch);
+      await writePresence();              // push new name/photo to the radar
+      ov.remove();
+      toast(T('Profile updated 🎉','อัปเดตโปรไฟล์แล้ว 🎉'));
+      renderProfile();
+    }catch(e){ btn.disabled=false; toast(T('Could not save — check your connection','บันทึกไม่ได้ — ตรวจสอบการเชื่อมต่อ')); }
+  };
+}
+
+/* ========================= TAB: profile / wallet ========================= */
+function renderProfile(){
+  const p=S.profile; const v=$('#view');
+  v.innerHTML=`<div class="pad">
+    <div class="col" style="align-items:center;gap:8px;margin:8px 0 14px">${avatar(p,'lg')}<b style="font-size:20px">${esc(p.displayName)}</b>
+      ${p.personalKey?`<span class="keytag">#${esc(p.personalKey)}</span>`:''}
+      <span class="small muted" style="text-align:center;max-width:280px">${esc(p.bio||'')}</span></div>
+
+    <button class="btn btn-ghost btn-block btn-sm" id="editProfile" style="margin-bottom:16px">${icon('user',16)} ${T('Edit profile','แก้ไขโปรไฟล์')}</button>
+
+    <div class="row" style="gap:10px;margin-bottom:16px">
+      <div class="card col" style="flex:1;align-items:center;gap:2px"><span style="font-size:24px;line-height:1">🪙</span><span style="font-size:22px;font-weight:800">${p.coins}</span><span class="small muted">${T('Coins','เหรียญ')}</span></div>
+      <div class="card col" style="flex:1;align-items:center;gap:2px"><span style="line-height:0">${pokeballSVG(26)}</span><span style="font-size:22px;font-weight:800" id="freeN">${p.freeBalls}</span><span class="small muted">${T('Free balls','ลูกบอลฟรี')}</span><span class="small muted freeRegenInfo" style="font-size:11px;color:var(--amber)"></span></div>
+      <div class="card col" style="flex:1;align-items:center;gap:2px"><span style="font-size:24px;line-height:1">💎</span><span style="font-size:22px;font-weight:800" id="paidN">${p.paidBalls}</span><span class="small muted">${T('Premium','พรีเมียม')}</span></div>
+    </div>
+
+    ${(()=>{ const exp=p.exp||0, lvl=levelOf(exp), prog=levelProgress(exp), pts=p.points||0, fc=(p.friends||[]).length;
+      return `<div class="card" style="margin-bottom:16px">
+      <div class="row" style="gap:10px;align-items:center">
+        <div class="tut-icon" style="width:44px;height:44px;flex:0 0 auto">${icon('star',22)}</div>
+        <div class="col" style="flex:1;min-width:0">
+          <div class="row" style="justify-content:space-between"><b>${T('Level','เลเวล')} ${lvl}</b><span class="small muted">${prog}/${EXP_PER_LEVEL} XP</span></div>
+          <div class="ob-progress" style="margin:6px 0 0"><div style="width:${Math.round(prog/EXP_PER_LEVEL*100)}%"></div></div>
+        </div>
+      </div>
+      <div class="row" style="gap:10px;margin-top:12px">
+        <div class="col" style="flex:1;align-items:center"><b style="font-size:18px">${pts}</b><span class="small muted">🏆 ${T('Points','แต้ม')}</span></div>
+        <div class="col" style="flex:1;align-items:center"><b style="font-size:18px">${fc}</b><span class="small muted">🤝 ${T('Friends','เพื่อน')}</span></div>
+      </div>
+      <p class="small muted" style="margin:12px 0 0">${T('Add friends in person (scan their QR) to earn XP & points. Friend chats never expire.','เพิ่มเพื่อนตัวจริง (สแกน QR) เพื่อรับ XP และแต้ม แชทเพื่อนจะไม่หมดอายุ')}</p>
+      <div class="row" style="gap:8px;margin-top:12px">
+        <button class="btn btn-rose btn-sm" id="pRewards" style="flex:1">${icon('gift',16)} ${T('Rewards','รางวัล')}</button>
+        <button class="btn btn-cta btn-sm" id="pScan" style="flex:1">${icon('scan',16)} ${T('Add friend','เพิ่มเพื่อน')}</button>
+      </div>
+      <button class="btn btn-ghost btn-block btn-sm" id="pQR" style="margin-top:8px">${icon('qr',16)} ${T('Show my code','โชว์โค้ดของฉัน')}</button>
+    </div>`; })()}
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="row" style="gap:8px"><span style="color:var(--amber);flex:0 0 auto;display:flex">${icon('coin',18)}</span><b style="flex:1">${T('Buy premium chat-balls','ซื้อลูกบอลแชทพรีเมียม')}</b></div>
+      <p class="small muted" style="margin:6px 0 12px">${T(`${PAID_BALL_COST} coins each · 100% catch rate`,`เหรียญละ ${PAID_BALL_COST} · จับติด 100%`)}</p>
+      <div class="row" style="gap:10px">
+        <button class="btn btn-rose btn-sm" id="buy1" style="flex:1">${T(`Buy 1 · ${PAID_BALL_COST}`,`ซื้อ 1 · ${PAID_BALL_COST}`)}</button>
+        <button class="btn btn-rose btn-sm" id="buy5" style="flex:1">${T(`Buy 5 · ${PAID_BALL_COST*5}`,`ซื้อ 5 · ${PAID_BALL_COST*5}`)}</button>
+      </div>
+      <button class="btn btn-ghost btn-block btn-sm" id="getCoins" style="margin-top:10px">${icon('coin',16)} ${T('Get more coins','รับเหรียญเพิ่ม')}</button>
+    </div>
+
+    <div class="row card" style="justify-content:space-between;margin-bottom:12px">
+      <div class="col"><b class="row" style="gap:7px">${icon('radar',16)} ${T('Visible nearby','มองเห็นได้แบบใกล้ฉัน')}</b><span class="small muted">${T('Appear on radars (feature #1)','ปรากฏบนเรดาร์')}</span></div>${switchEl('pVis',S.nearbyVisible)}</div>
+    <div class="row card" style="justify-content:space-between;margin-bottom:20px">
+      <div class="col"><b class="row" style="gap:7px">${icon('shuffle',16)} ${T('Findable by strangers','ให้คนแปลกหน้าค้นเจอได้')}</b><span class="small muted">${T('Stranger Mode visibility','การมองเห็นในโหมดคนแปลกหน้า')}</span></div>${switchEl('pStr',S.strangerVisible)}</div>
+
+    <button class="btn btn-ghost btn-block" id="howItWorks" style="margin-bottom:12px">${icon('compass',18)} ${T('How it works','วิธีใช้งาน')}</button>
+    <button class="btn btn-ghost btn-block" id="signout">👋 ${T('Sign out','ออกจากระบบ')}</button>
+  </div>`;
+  $('#editProfile').onclick=openEditProfile;
+  $('#howItWorks').onclick=()=>showTutorial();
+  $('#buy1').onclick=()=>buyBalls(1); $('#buy5').onclick=()=>buyBalls(5);
+  $('#getCoins').onclick=openCoinShop;
+  $('#pRewards').onclick=openRewards;
+  $('#pScan').onclick=scanFriendQR;
+  $('#pQR').onclick=showMyQR;
+  bindSwitch('pVis', async on=>{ S.nearbyVisible=on; await writePresence(); });
+  bindSwitch('pStr', async on=>{ S.strangerVisible=on; await writePresence(); });
+  $('#signout').onclick=async()=>{ teardown(); await signOut(auth); };
+  updateFreeBallCountdownUI();   // show the live refill countdown right away
+}
+async function buyBalls(n){
+  const cost=PAID_BALL_COST*n;
+  if(S.profile.coins<cost) return toast(T('Not enough coins — “Get more coins” (Phase 2)','เหรียญไม่พอ — “รับเหรียญเพิ่ม” (เฟส 2)'));
+  await updateDoc(doc(db,'users',S.user.uid),{coins:increment(-cost),paidBalls:increment(n)});
+  S.profile.coins-=cost; S.profile.paidBalls+=n;
+  toast(T(`+${n} premium ball${n>1?'s':''}`,`+${n} ลูกบอลพรีเมียม`)); renderProfile(); refreshWalletPill();
+}
+function refreshWalletPill(){
+  const p=S.profile;
+  const c=$('#coinN'); if(c) c.textContent=p.coins;
+  const fl=$('#freeLeftPill'); if(fl) fl.textContent=p.freeBalls;
+  const pl=$('#paidLeftPill'); if(pl) pl.textContent=p.paidBalls;
+  const fn=$('#freeN'); if(fn) fn.textContent=p.freeBalls;
+  const pn=$('#paidN'); if(pn) pn.textContent=p.paidBalls;
+  updateFreeBallCountdownUI();
+}
+
+/* ---- Stripe coin top-ups via Payment Links ---- */
+function openCoinShop(){
+  const sc=el('div','modal-scrim');
+  const cards = COIN_PACKS.map((p,i)=>`
+    <button class="card coinpack" data-i="${i}" style="display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;cursor:pointer;margin-bottom:10px">
+      <span class="col"><b style="font-size:18px;display:inline-flex;align-items:center;gap:5px">${p.coins} ${icon('coin',15)}</b>${p.best?`<span class="small" style="color:var(--amber)">${T('Best value','คุ้มที่สุด')}</span>`:''}</span>
+      <span class="badge">${p.price}</span>
+    </button>`).join('');
+  sc.innerHTML=`<div class="sheet"><h3 style="font-size:22px;display:flex;align-items:center;gap:8px">${icon('coin',22)} ${T('Get more coins','รับเหรียญเพิ่ม')}</h3>
+    <p class="small muted" style="margin:4px 0 14px">${T('Secure checkout via Stripe. Coins are added once your payment is confirmed.','ชำระเงินอย่างปลอดภัยผ่าน Stripe เหรียญจะถูกเพิ่มเมื่อยืนยันการชำระเงินแล้ว')}</p>
+    ${cards}
+    <button class="btn btn-ghost btn-block" id="csClose" style="margin-top:6px">${T('Close','ปิด')}</button></div>`;
+  document.body.appendChild(sc);
+  sc.onclick=e=>{ if(e.target===sc) sc.remove(); };
+  $('#csClose',sc).onclick=()=>sc.remove();
+  sc.querySelectorAll('.coinpack').forEach(b=> b.onclick=()=>{ sc.remove(); startCheckout(COIN_PACKS[+b.dataset.i]); });
+}
+// Open the pack's Stripe Payment Link, tagging it with the buyer so the payment can be
+// matched back to this account (for crediting via webhook / dashboard).
+function startCheckout(pack){
+  if(!pack.url){ toast(T('This pack isn’t set up yet — add its Stripe Payment Link in the code.','แพ็กนี้ยังไม่ถูกตั้งค่า — เพิ่มลิงก์ Stripe ในโค้ด'),3000); return; }
+  const u=new URL(pack.url);
+  u.searchParams.set('client_reference_id', S.user.uid);
+  if(S.user.email) u.searchParams.set('prefilled_email', S.user.email);
+  window.location.href = u.toString();
+}
+
+function teardown(){
+  Object.values(S.unsub).forEach(u=>u&&u());
+  clearInterval(S.presenceTimer); clearInterval(S.chatLocTimer); clearInterval(_freeBallTimer); clearInterval(_chatTtlTimer);
+}
+
+/* ========================= tiny UI utils ========================= */
+function el(tag,cls){ const e=document.createElement(tag); if(cls)e.className=cls; return e; }
+function switchEl(id,checked){ return `<label class="switch"><input type="checkbox" id="${id}" ${checked?'checked':''}><span class="track"></span><span class="thumb"></span></label>`; }
+function bindSwitch(id,fn){ const i=$('#'+id); if(i) i.onchange=e=>fn(e.target.checked); }
+function emptyState(ic,title,sub){ return `<div class="empty">${icon(ic,48)}<b style="color:var(--text);font-size:17px">${title}</b><span class="small">${sub}</span></div>`; }
+function errBox(msg){ return `<div class="card" style="border-color:var(--danger)"><span class="small" style="color:#fca5a5">${msg}</span></div>`; }
+
+/* ===== inline SVG icons (no emoji as icons) ===== */
+function icon(name,size=24){
+  const s=`width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"`;
+  const P={
+    radar:`<path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 12 19 5"/><circle cx="12" cy="12" r="5"/>`,
+    shuffle:`<path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="M4 4l5 5"/>`,
+    chat:`<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>`,
+    user:`<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>`,
+    pin:`<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>`,
+    coin:`<circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5h4a1.5 1.5 0 0 1 0 3h-3a1.5 1.5 0 0 0 0 3H15"/>`,
+    compass:`<circle cx="12" cy="12" r="10"/><path d="m16 8-2 6-6 2 2-6 6-2z"/>`,
+    arrow:`<path d="M12 2 4 21l8-5 8 5z" fill="#E7B580" stroke="#1A130C"/>`,
+    back:`<path d="m15 18-6-6 6-6"/>`, send:`<path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>`,
+    more:`<circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/>`,
+    close:`<path d="M18 6 6 18M6 6l12 12"/>`,
+    spark:`<path d="M12 2.2V21.8M19.9 7 4.1 17M4.1 7 19.9 17" stroke-width="2.4"/>`,
+    check:`<path d="M20 6 9 17l-5-5"/>`,
+    globe:`<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>`,
+    trash:`<path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6"/><path d="M10 11v6M14 11v6"/>`,
+    clock:`<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>`,
+    qr:`<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v7h-7M17 21h.01"/>`,
+    scan:`<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M3 12h18"/>`,
+    gift:`<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M5 12v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8"/><path d="M12 8S10.5 3 8 3a2.5 2.5 0 0 0 0 5zM12 8s1.5-5 4-5a2.5 2.5 0 0 1 0 5z"/>`,
+    star:`<path d="M12 2.5l2.9 6.1 6.6.9-4.8 4.6 1.2 6.7L12 18.7 5.9 21.8l1.2-6.7L2.3 9.5l6.6-.9z"/>`,
+    google:`<path d="M21 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.1a4.4 4.4 0 0 1-1.9 2.9v2.4h3.1c1.8-1.7 2.7-4.1 2.7-7.1z" fill="#4285F4" stroke="none"/><path d="M12 21c2.4 0 4.5-.8 6-2.2l-3.1-2.4c-.8.6-1.9.9-2.9.9-2.3 0-4.2-1.5-4.9-3.6H3.9v2.5A9 9 0 0 0 12 21z" fill="#34A853" stroke="none"/><path d="M7.1 13.7a5.4 5.4 0 0 1 0-3.4V7.8H3.9a9 9 0 0 0 0 8.4z" fill="#FBBC05" stroke="none"/><path d="M12 6.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 3.9 7.8l3.2 2.5C7.8 8.1 9.7 6.6 12 6.6z" fill="#EA4335" stroke="none"/>`,
+  };
+  return `<svg ${s}>${P[name]||''}</svg>`;
+}
+function ballSVG(kind){
+  const grad = kind==='paid'
+    ? `<defs><linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F4D1A1"/><stop offset="1" stop-color="#CE6A44"/></linearGradient></defs>`
+    : `<defs><linearGradient id="bg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E7B580"/><stop offset="1" stop-color="#D98A4E"/></linearGradient></defs>`;
+  if(kind==='broken') return `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="50" cy="50" r="38" fill="#26262e" stroke="#3a3a45" stroke-width="3"/><path d="M30 35 45 50 30 60M70 35 55 50 70 62" stroke="#6e6e7a" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`;
+  const fill = kind==='paid'?'url(#bg2)':'url(#bg1)';
+  return `<svg viewBox="0 0 100 100" width="100%" height="100%">${grad}
+    <circle cx="50" cy="50" r="40" fill="${fill}"/>
+    <path d="M10 50a40 40 0 0 1 80 0z" fill="#fff" opacity=".92"/>
+    <rect x="10" y="46" width="80" height="8" fill="#1A130C"/>
+    <circle cx="50" cy="50" r="11" fill="#1A130C"/><circle cx="50" cy="50" r="6" fill="#fff"/>
+    ${kind==='paid'?'<circle cx="50" cy="50" r="40" fill="none" stroke="#fff" stroke-width="2" opacity=".5"/>':''}</svg>`;
+}
+// Classic red/white Poké Ball — used for the free chat-ball icon.
+function pokeballSVG(size=26){
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" style="display:block">
+    <circle cx="50" cy="50" r="46" fill="#fff" stroke="#15110E" stroke-width="5"/>
+    <path d="M5 50a45 45 0 0 1 90 0z" fill="#F0522C"/>
+    <rect x="4" y="45.5" width="92" height="9" fill="#15110E"/>
+    <circle cx="50" cy="50" r="15" fill="#fff" stroke="#15110E" stroke-width="6"/>
+    <circle cx="50" cy="50" r="6" fill="#fff" stroke="#15110E" stroke-width="3"/>
+  </svg>`;
+}
+
+window.addEventListener('beforeunload', teardown);
+</script>
+</body>
+</html>

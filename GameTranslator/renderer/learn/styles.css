@@ -1,0 +1,1693 @@
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  /* ONE cursor for the chrome. Left to itself the window had 384 elements resolving cursor: auto, so
+     Chromium decided per-pixel whether there was selectable text underneath — and crossing a dense
+     card of labels and numbers swapped the pointer between I-beam and arrow the whole way across.
+     The pill window settled this long ago ("A per-element split swapped the cursor image on every
+     element edge"); this window never got the same treatment. Selection is given back explicitly
+     below, on the text that is actually worth copying. (jek, 2026-08-01) */
+  cursor: default;
+  color-scheme: dark; /* Windows draws native scrollbars/controls from this — without it the panel showed a
+                         fat light-grey native scrollbar over the game (jek, Win11 2026-07-30). */
+  background: #0f1115;
+  color: #e6edf3;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue",
+    "Sarabun", "Noto Sans Thai", sans-serif;
+}
+
+:root {
+  --accent: #7dd3fc;
+  --accent-rgb: 125, 211, 252;
+  --muted: #8a94a3;
+  --fg: #e6edf3;
+  --line: rgba(255, 255, 255, 0.09);        /* resting edge / divider */
+  --line-hover: rgba(255, 255, 255, 0.20);  /* the cursor is on it — everything else here lights with accent */
+  --btn: rgba(255, 255, 255, 0.06);
+  --btn-hover: rgba(255, 255, 255, 0.1);
+}
+
+/* The window is a RAIL plus a content pane (see the note in index.html). It was a header line, a
+   row of seven tab words, and everything below — a 344px-panel shape stretched across 1400px. */
+.wrap {
+  display: flex;
+  height: 100vh;
+  /* The WINDOW must never scroll as a whole — only the content pane does. Without this the rail
+     scrolled away with the page, which on a rail is the one thing that must stay put. */
+  overflow: hidden;
+}
+
+.rail {
+  flex: 0 0 188px;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 12px 14px;
+  border-right: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.018);
+  overflow-y: auto;
+  /* The labels are clipped by the rail's own edge as it narrows, rather than vanishing a frame
+     early — that clip IS the animation. Without this they would push out a scrollbar mid-slide. */
+  overflow-x: hidden;
+}
+.rail-brand {
+  padding: 2px 10px 16px;
+  font-size: 15px; font-weight: 800; letter-spacing: -0.02em; color: var(--fg);
+}
+.rail .tabs { display: flex; flex-direction: column; gap: 2px; padding: 0; border-bottom: none; }
+/* Plan and Settings drop to the foot; the saved-words line sits under them as a status, not a title. */
+.rail-foot { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); }
+.rail-stat { margin: 12px 10px 0; font-size: 11px; }
+
+.tab {
+  appearance: none;
+  display: flex; align-items: center; gap: 10px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 13.5px;
+  font-weight: 650;
+  text-align: left;
+  padding: 9px 10px;
+  cursor: pointer;
+  transition: background var(--t-fast, 0.14s) ease, color var(--t-fast, 0.14s) ease;
+}
+/* The icon is drawn from the tab's own data-ic, so markup carries one attribute instead of an inline
+   SVG per destination — and a new tab cannot end up as the only one without a glyph. */
+.tab::before {
+  content: '';
+  flex: 0 0 16px; height: 16px;
+  background: currentColor;
+  -webkit-mask: center / contain no-repeat var(--ic);
+  mask: center / contain no-repeat var(--ic);
+}
+.tab[data-ic="today"]    { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M3 10h18M8 3v4M16 3v4'/%3E%3C/svg%3E"); }
+.tab[data-ic="review"]   { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round'%3E%3Crect x='2' y='6' width='16' height='12' rx='2'/%3E%3Cpath d='M22 8v10a2 2 0 0 1-2 2H8'/%3E%3C/svg%3E"); }
+.tab[data-ic="words"]    { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 4h16v16H4z'/%3E%3Cpath d='M8 8h8M8 12h8M8 16h5'/%3E%3C/svg%3E"); }
+/* Calendar. Today already owns the plain calendar page, so this is the page with one day FILLED —
+   "which days gave you words" against "what happened today". Without a rule here --ic resolved to
+   nothing and the mask rendered as a solid block, which is what a missing icon looks like in this
+   system (jek, 2026-08-09 — the same shape of bug as .seg-btn having no CSS at all). */
+.tab[data-ic="calendar"] { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M3 10h18M8 3v4M16 3v4'/%3E%3Crect x='7' y='13' width='4.5' height='4.5' rx='1' fill='%23fff' stroke='none'/%3E%3C/svg%3E"); }
+.tab[data-ic="insights"] { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 20V10M10 20V4M16 20v-7M22 20H2'/%3E%3C/svg%3E"); }
+.tab[data-ic="guide"]    { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E"); }
+.tab[data-ic="plan"]     { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M12 3l2.6 5.7 6.4.7-4.8 4.3 1.4 6.3L12 17l-5.6 3 1.4-6.3L3 9.4l6.4-.7z'/%3E%3C/svg%3E"); }
+.tab[data-ic="settings"] { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3 15a2 2 0 0 1-1.8-1.2H1a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 2.6 8a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 8 3h.1A2 2 0 0 1 10 1.2V1a2 2 0 1 1 4 0v.1A1.6 1.6 0 0 0 16 2.6a1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.6 1.6 0 0 0 21 8v.1a2 2 0 0 1 0 4z'/%3E%3C/svg%3E"); }
+
+.tab:hover { color: var(--fg); background: rgba(255, 255, 255, 0.05); }
+.tab.active {
+  color: var(--fg);
+  background: rgba(var(--accent-rgb), 0.14);
+  border-bottom-color: transparent; /* the old underline lived on this element; a rail marks with fill */
+}
+.tab.active::before { color: var(--accent); background: var(--accent); }
+
+.content {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px 16px;
+}
+.page-head { padding: 4px 6px 12px; }
+.page-head h1 { font-size: 21px; font-weight: 780; letter-spacing: -0.02em; margin: 0; }
+/* The pane. The rail is the app's edge; this is the sheet of paper on it. Giving the content its own
+   surface is what stops a wide window reading as a rail with loose text beside it. */
+.pane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #12151b;
+  overflow: hidden;
+}
+
+.panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 22px 28px;
+  scrollbar-gutter: stable;
+}
+/* Thin, on-theme scrollbar — matches the main overlay's .log/.result bars. Windows' default is a fat
+   light slab that jarred against the dark panel (jek, 2026-07-30). */
+.panel::-webkit-scrollbar { width: 8px; }
+.panel::-webkit-scrollbar-track { background: transparent; }
+.panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background-clip: padding-box;
+}
+.panel::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); background-clip: padding-box; }
+
+.panel[hidden] {
+  display: none;
+}
+
+
+/* ---- shared "entry" row (Collected list + All-translations list) ---- */
+.wlist { display: flex; flex-direction: column; }
+.entry {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 11px 2px;
+  border-top: 1px solid var(--line);
+}
+.entry:first-child { border-top: none; }
+.entry-top { display: flex; align-items: flex-start; gap: 10px; }
+.entry-body { flex: 1; min-width: 0; cursor: default; }
+/* Same numbers as the pill's .entry rows (renderer/main/styles.css) — one component, one size. */
+.entry .th { font-size: 15px; line-height: 1.5; font-weight: 600; }
+.entry .en { margin-top: 4px; font-size: 12px; color: var(--muted); line-height: 1.4; }
+.entry-star {
+  flex: 0 0 auto;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 17px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1.3;
+}
+.entry-star.on, .entry-star:hover { color: #fbbf24; }
+.entry-star:disabled { opacity: 0.5; cursor: default; }
+
+.seen-badge {
+  display: inline-block;
+  font-size: 10px; /* matches the pill's badge */
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.14);
+  border-radius: 999px;
+  padding: 0 6px;
+  vertical-align: middle;
+}
+.known-badge {
+  display: inline-block;
+  font-size: 10px; /* matches the pill's badge */
+  font-weight: 700;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.14);
+  border-radius: 999px;
+  padding: 0 7px;
+  vertical-align: middle;
+}
+
+/* .saved-head is gone — the card head above the list carries that count now. */
+
+.empty {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+  padding: 26px 2px 10px;
+  max-width: 460px;
+}
+
+/* offline word-picker chips inside a History row */
+.entry-chips { display: none; flex-wrap: wrap; gap: 6px; }
+.entry-chips.open { display: flex; }
+.entry-chips .vocab-hint { font-size: 11px; color: var(--muted); }
+.vocab-chip {
+  border: 1px solid var(--line);
+  background: var(--btn);
+  color: var(--fg);
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.vocab-chip:hover { background: var(--btn-hover); }
+.vocab-chip.on { background: rgba(var(--accent-rgb), 0.22); border-color: var(--accent); color: var(--accent); }
+.vocab-chip.busy { opacity: 0.6; cursor: default; }
+.vocab-chip:disabled { cursor: default; }
+
+/* ---- Review tab: flashcards, built like ScoreUp's ---- */
+.review-start {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 60px 10px;
+}
+.review-start[hidden] { display: none; }
+.review-start-count { font-size: 14px; font-weight: 700; color: var(--muted); }
+.review-start-btn {
+  padding: 12px 26px;
+  border: 1px solid rgba(var(--accent-rgb), 0.4);
+  border-radius: 10px;
+  background: rgba(var(--accent-rgb), 0.14);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.review-start-btn:hover:not(:disabled) { background: rgba(var(--accent-rgb), 0.24); }
+.review-start-btn:disabled { opacity: 0.4; cursor: default; }
+
+.fc {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* the block sits in the middle of the panel — the leftover space reads as
+                              layout instead of as a hole under the card */
+  min-height: 100%;
+  padding: 10px;
+}
+.fc[hidden] { display: none; }
+
+/* how far through the session you are — the count says it, the bar makes it felt */
+.fc-bar {
+  width: min(520px, 94%);
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.fc-bar-fill { height: 100%; width: 0; background: var(--accent); border-radius: 999px; transition: width 0.35s ease; }
+
+.fc-stats { display: flex; gap: 16px; font-size: 12.5px; color: var(--muted); margin-bottom: 12px; }
+.fc-stats b { color: var(--fg); font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* the flip itself — same trick as ScoreUp: a perspective scene, one card, two backface-hidden faces */
+.fc-scene {
+  width: min(520px, 94%);
+  height: min(300px, 42vh);
+  perspective: 1400px;
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+.fc-card {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+  will-change: transform;
+  cursor: pointer;
+}
+.fc-card.flipped { transform: rotateY(180deg); }
+.fc-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  /* `safe` or a long answer scrolls with its first line already cut off above the top edge — the
+     classic centred-flex overflow trap. With it, centring gives way to start-alignment when the
+     content is taller than the face. */
+  justify-content: safe center;
+  align-items: center;
+  gap: 10px;
+  padding: 30px 26px;
+  text-align: center;
+  /* The scene is min(300px, 42vh) — about 116px of room at the window's 420px floor. A word with
+     several senses, or a Thai meaning (longer than the English), used to spill straight out of the
+     card and over the grade buttons, because nothing here bounded it. */
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+.fc-face.back { transform: rotateY(180deg); background: rgba(var(--accent-rgb), 0.07); }
+
+.fc-tag {
+  position: absolute;
+  top: 13px;
+  left: 15px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.14);
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.fc-idx { position: absolute; top: 15px; right: 16px; font-size: 11.5px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.fc-word { font-size: 40px; font-weight: 800; line-height: 1.1; word-break: break-word; }
+.fc-bword { font-size: 20px; font-weight: 700; color: var(--muted); }
+.fc-meaning { font-size: 27px; font-weight: 800; line-height: 1.25; word-break: break-word; }
+/* 27px is right for "ข้างหลัง" and absurd for a three-clause gloss. The face scrolls either way now,
+   but a long answer you have to scroll to finish is a worse answer — so it steps down instead. */
+.fc-face.long .fc-meaning { font-size: 21px; }
+.fc-face.longer .fc-meaning { font-size: 17px; line-height: 1.35; }
+.fc-reading { font-size: 13.5px; font-weight: 600; color: var(--accent); }
+.fc-reading[hidden] { display: none; }
+.fc-src {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  max-width: 92%;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+}
+.fc-src[hidden] { display: none; }
+
+.fc-speak {
+  border: 1px solid var(--line);
+  background: var(--btn);
+  color: var(--fg);
+  font-size: 13px;
+  padding: 5px 13px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.fc-speak:hover { background: var(--btn-hover); }
+
+.fc-hint { position: absolute; bottom: 13px; font-size: 11px; color: var(--muted); }
+.fc-hint kbd {
+  font-family: inherit;
+  font-size: 10.5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+
+/* grade row — three buttons because srs.js grades again/good/easy; each shows its real next interval */
+/* Four columns, and TWO when there isn't room for four. Left at three-plus-wrap after Hard arrived,
+   the row broke 3 + 1 — which reads as three choices and an afterthought, when the whole point is a
+   single ramp from Again to Easy. 2×2 keeps the ramp legible; 3+1 destroys it. */
+.fc-grades { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: min(560px, 94%); margin-top: 16px; }
+@media (max-width: 620px) { .fc-grades { grid-template-columns: repeat(2, 1fr); } }
+.fc-grades[hidden] { display: none; }
+/* .waiting is gone: the row is no longer shown before the flip at all (see setFlipped). It used to
+   sit there greyed out, which invited a click that silently did nothing. */
+.gbtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 11px 4px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 13.5px;
+  line-height: 1.1;
+}
+.gbtn small { font-size: 10.5px; font-weight: 700; opacity: 0.75; }
+.gbtn.again { background: rgba(248, 113, 113, 0.14); border-color: rgba(248, 113, 113, 0.35); color: #f87171; }
+/* Amber, between Again's red and Good's blue — the ramp reads as one scale left to right. */
+.gbtn.hard { background: rgba(251, 191, 36, 0.13); border-color: rgba(251, 191, 36, 0.34); color: #fbbf24; }
+.gbtn.good { background: rgba(var(--accent-rgb), 0.16); border-color: rgba(var(--accent-rgb), 0.4); color: var(--accent); }
+.gbtn.easy { background: rgba(74, 222, 128, 0.14); border-color: rgba(74, 222, 128, 0.35); color: #4ade80; }
+.gbtn:hover { filter: brightness(1.15); transform: translateY(-1px); }
+
+.fc-keys { margin-top: 12px; font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.2px; visibility: hidden; }
+.fc-keys.show { visibility: visible; }
+.fc-keys[hidden] { display: none; }
+
+.fc-done { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 40px 10px; }
+.fc-done[hidden] { display: none; }
+.review-done-msg { font-size: 17px; font-weight: 800; color: var(--accent); }
+.review-back {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background: var(--accent);
+  color: #0e1015;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+/* ---- Insights tab ---- */
+/* Same visual language as the rest of the window (raised 4% panels, hairline borders, one accent) —
+   the cards are just bigger versions of .entry so this page doesn't read as a different app. */
+.ins { display: flex; flex-direction: column; gap: 14px; max-width: 900px; }
+.ins[hidden] { display: none; }
+
+.ins-empty {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+  text-align: center;
+  margin-top: 70px;
+}
+.ins-empty[hidden] { display: none; }
+
+.ins-grid-3, .ins-grid-2 { display: grid; gap: 14px; }
+.ins-grid-3 { grid-template-columns: repeat(auto-fit, minmax(216px, 1fr)); }
+.ins-grid-2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+
+.ins-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ins-card[hidden] { display: none; }
+.ins-card-mid { align-items: center; text-align: center; }
+
+.ins-big {
+  font-size: 31px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  line-height: 1.1;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+.ins-label {
+  margin-top: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.9px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.ins-hr { height: 1px; background: var(--line); margin: 13px 0 11px; }
+
+.ins-rows { display: flex; flex-direction: column; gap: 8px; }
+.ins-rows .r { display: flex; align-items: baseline; gap: 6px; font-size: 12px; color: var(--muted); line-height: 1.35; }
+.ins-rows .r b { color: var(--fg); font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
+
+.ins-cta {
+  margin-top: 14px;
+  padding: 9px 12px;
+  border: 1px solid rgba(var(--accent-rgb), 0.4);
+  border-radius: 10px;
+  background: rgba(var(--accent-rgb), 0.14);
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.ins-cta:hover:not(:disabled) { background: rgba(var(--accent-rgb), 0.24); }
+.ins-cta:disabled { opacity: 0.35; cursor: default; border-color: var(--line); background: var(--btn); color: var(--muted); }
+
+/* Today — its own page (see the note in index.html). Two blocks and nothing else: a capped summary
+   band, then the words. The first version let every part of the summary drift to its own corner of a
+   1400px window — the streak against the right edge, the captures rows and the action button a
+   thousand pixels apart — and put the day's actual CONTENT into a single row of bare chips, which
+   left two thirds of the page empty and made it read as unfinished. (jek, 2026-08-02) */
+.today-band {
+  max-width: 640px;              /* a summary you scan in one look, not one you sweep your eyes across */
+  padding: 18px 20px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.022);
+  margin-bottom: 22px;
+}
+.today-band-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.today-kicker {
+  display: block;
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase;
+  color: rgba(var(--accent-rgb), 0.85);
+}
+/* The one piece of typography in this window allowed to be loud. Everything else is 11-13px chrome,
+   so a 64px number IS the hierarchy — you read the day's haul from across the desk. */
+.today-count { display: flex; align-items: baseline; gap: 10px; margin-top: 2px; font-size: 13px; color: var(--muted); }
+.today-count b {
+  font-size: 64px; font-weight: 800; line-height: 0.92; letter-spacing: -0.03em; color: var(--fg);
+  font-variant-numeric: tabular-nums; /* the number changes as you collect — don't let it dance */
+}
+/* Which words the page is about: this sitting, or the whole day. Pill pair like the Words tab's
+   sort bar rather than the segmented control, because this is a filter over one list and not a
+   switch between two different things. */
+.today-scope { display: flex; gap: 4px; margin-top: 12px; }
+/* Every hidden-toggled element in this file needs its own companion rule: a `display` on the class
+   outranks the UA stylesheet's [hidden] { display: none }, so without this the "hidden" element sits
+   there in full view while el.hidden still reads true — which is exactly what a DOM probe checks. */
+.today-scope[hidden] { display: none; }
+.scope-btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.scope-btn:hover { color: var(--fg); background: rgba(255, 255, 255, 0.05); }
+.scope-btn.on { color: var(--accent); border-color: rgba(var(--accent-rgb), 0.45); background: rgba(var(--accent-rgb), 0.14); }
+
+/* Context for the count, so it sits WITH the count. Small and to the side: never a competitor. */
+.today-streak {
+  flex: 0 0 auto;
+  padding: 7px 12px;
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.07);
+  font-size: 12px; color: var(--muted); white-space: nowrap;
+}
+.today-streak b { color: var(--fg); font-weight: 800; }
+.today-streak::before { content: '🔥 '; }
+.today-foot {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 16px;
+  margin-top: 14px; padding-top: 13px; border-top: 1px solid var(--line);
+}
+.today-foot[hidden] { display: none; }
+.today-cta { margin-top: 0; white-space: nowrap; }
+
+/* The words. auto-fill so a wide window fills with columns instead of leaving a gutter, and minmax
+   so a day with three words keeps them card-sized instead of stretching three cards across a metre
+   of screen. */
+.today-words { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 10px; }
+/* An empty day shows the LAST day's cards instead of nothing — faded, because they are a memory, not
+   today's score. Faded, never hidden: a real reward greyed out is an invitation, an opaque
+   placeholder is a wall. */
+.today-words.ghost { opacity: 0.4; filter: saturate(0.5); }
+.tw {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.tw-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+.tw-head b { font-size: 15px; font-weight: 800; color: var(--fg); }
+.tw-src {
+  margin-top: 7px;
+  font-size: 12px; line-height: 1.5; color: var(--muted);
+  /* Three lines is enough to recognise the moment; a whole paragraph of game text would bury the
+     word the card is about. */
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.tw-src::before { content: '\201C'; }
+.tw-src::after { content: '\201D'; }
+.tw-more {
+  display: grid; place-items: center;
+  font-size: 14px; font-weight: 800; color: var(--muted);
+  background: transparent; border-style: dashed;
+}
+
+/* picking */
+.pick-bar { display: flex; align-items: center; gap: 10px; margin: -6px 0 12px; flex-wrap: wrap; }
+.pick-bar[hidden] { display: none; }
+.pick-toggle, .pick-lnk {
+  appearance: none; border: 1px solid var(--line); background: transparent; color: var(--muted);
+  font-family: inherit; font-size: 11.5px; font-weight: 700; padding: 5px 12px;
+  border-radius: 999px; cursor: pointer;
+}
+.pick-toggle:hover, .pick-lnk:hover { color: var(--fg); background: rgba(255, 255, 255, 0.05); }
+.pick-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pick-tools[hidden] { display: none; }
+.pick-count { font-size: 11.5px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
+.pick-go {
+  appearance: none; border: 1px solid rgba(var(--accent-rgb), 0.45); background: rgba(var(--accent-rgb), 0.14);
+  color: var(--accent); font-family: inherit; font-size: 11.5px; font-weight: 800;
+  padding: 5px 14px; border-radius: 999px; cursor: pointer;
+}
+.pick-go:hover:not(:disabled) { background: rgba(var(--accent-rgb), 0.22); }
+.pick-go:disabled { opacity: 0.35; cursor: default; }
+/* A card you can tick. The tick sits in the corner rather than in front of the word, so the card
+   still reads as the word-and-its-sentence it was — the list is what you are choosing FROM. */
+.tw.pickable { cursor: pointer; position: relative; padding-right: 34px; }
+.tw.pickable::after {
+  content: ''; position: absolute; top: 12px; right: 12px; width: 15px; height: 15px;
+  border: 1.5px solid var(--line-hover); border-radius: 5px;
+}
+.tw.pickable:hover { border-color: var(--line-hover); }
+.tw.pickable.on { border-color: rgba(var(--accent-rgb), 0.45); background: rgba(var(--accent-rgb), 0.08); }
+.tw.pickable.on::after {
+  border-color: var(--accent); background: var(--accent);
+  /* The tick is drawn, not typed: a ✓ glyph lands differently in every font this window may fall
+     back to, and at 15px that difference is the whole box. */
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2 5 8.6 9.6 3.6' fill='none' stroke='%230f1115' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: 13px 13px; background-position: center; background-repeat: no-repeat;
+}
+
+/* the launcher sheet */
+.sheet-veil { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: rgba(8, 10, 14, 0.6); }
+.sheet-veil[hidden] { display: none; }
+.sheet {
+  width: min(400px, calc(100vw - 48px));
+  padding: 22px 22px 18px;
+  border: 1px solid var(--line); border-radius: 18px;
+  background: #161a21;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+.sheet-h { margin: 0; font-size: 17px; font-weight: 800; color: var(--fg); }
+.sheet-sub { margin: 6px 0 16px; font-size: 12.5px; color: var(--muted); }
+.sheet-modes { display: flex; flex-direction: column; gap: 8px; }
+.sheet-mode {
+  display: flex; align-items: baseline; gap: 8px; width: 100%; text-align: left;
+  appearance: none; border: 1px solid var(--line); background: transparent; color: var(--fg);
+  font-family: inherit; font-size: 13px; font-weight: 700; padding: 10px 14px;
+  border-radius: 11px; cursor: pointer;
+}
+.sheet-mode:hover:not(:disabled) { border-color: var(--line-hover); }
+.sheet-mode.on { border-color: rgba(var(--accent-rgb), 0.5); background: rgba(var(--accent-rgb), 0.13); color: var(--accent); }
+.sheet-mode:disabled { opacity: 0.35; cursor: default; }
+.sheet-mode i { font-style: normal; font-size: 11.5px; font-weight: 700; color: var(--muted); margin-left: auto; }
+.sheet-mode.on i { color: var(--accent); }
+.sheet-foot { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.sheet-cancel {
+  appearance: none; border: 0; background: none; color: var(--muted);
+  font-family: inherit; font-size: 12.5px; font-weight: 700; padding: 8px 12px; border-radius: 9px; cursor: pointer;
+}
+.sheet-cancel:hover { color: var(--fg); background: rgba(255, 255, 255, 0.06); }
+.sheet-go {
+  appearance: none; border: 1px solid rgba(var(--accent-rgb), 0.5); background: rgba(var(--accent-rgb), 0.16);
+  color: var(--accent); font-family: inherit; font-size: 12.5px; font-weight: 800;
+  padding: 9px 18px; border-radius: 10px; cursor: pointer;
+}
+.sheet-go:hover { background: rgba(var(--accent-rgb), 0.24); }
+
+.today-empty { margin-top: 18px; }
+.today-empty-line { font-size: 13px; font-weight: 700; color: var(--fg); }
+.today-empty-tip { margin-top: 6px; font-size: 12px; color: var(--muted); line-height: 1.55; }
+.today-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-top: 16px; }
+.today-cta { margin-top: 0; white-space: nowrap; }
+
+/* recognition arc */
+.ins-gauge { position: relative; margin-top: 10px; }
+.gauge-track, .gauge-fill { fill: none; stroke-width: 11; stroke-linecap: round; }
+.gauge-track { stroke: rgba(255, 255, 255, 0.07); }
+.gauge-fill {
+  stroke: var(--accent);
+  stroke-dasharray: 157.08;
+  stroke-dashoffset: 157.08;
+  transition: stroke-dashoffset 0.6s ease;
+}
+.ins-gauge-text { position: absolute; left: 0; right: 0; bottom: 4px; }
+.ins-gauge-cap { font-size: 10px; font-weight: 700; letter-spacing: 0.7px; color: var(--muted); text-transform: uppercase; }
+.ins-gauge-num { font-size: 21px; font-weight: 800; color: var(--fg); font-variant-numeric: tabular-nums; }
+.ins-gauge-sub { margin-top: 8px; font-size: 11.5px; color: var(--muted); line-height: 1.4; }
+
+.ins-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.ins-h2 { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.3px; }
+.ins-note { font-size: 10px; font-weight: 700; letter-spacing: 0.8px; color: var(--muted); text-transform: uppercase; white-space: nowrap; }
+
+/* capture-source bars */
+.ins-bars { display: flex; flex-direction: column; gap: 12px; flex: 1; justify-content: space-evenly; }
+.bar-row { display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 10px; }
+.bar-pct { font-size: 11px; font-weight: 800; color: var(--accent); text-align: right; font-variant-numeric: tabular-nums; }
+.bar-track { height: 9px; background: rgba(255, 255, 255, 0.06); border-radius: 999px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--accent); border-radius: 999px; min-width: 2px; transition: width 0.5s ease; }
+.bar-text { font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px; color: var(--muted); text-transform: uppercase; white-space: nowrap; }
+
+/* the year, as twelve columns. Vertical, not the horizontal bar-row above: twelve months read as a
+   shape you compare at a glance, and twelve stacked rows would be a list you have to read. */
+.yr { display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; align-items: end; height: 120px; }
+.yr-col { display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; justify-content: flex-end; }
+.yr-n { font-size: 10px; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* Bars grow from the bottom of a fixed track, so an empty month is a visible gap and not a missing
+   column that shifts its neighbours' labels out from under them. */
+.yr-track { width: 100%; flex: 1; display: flex; align-items: flex-end; }
+.yr-fill { width: 100%; background: var(--accent); border-radius: 3px 3px 0 0; min-height: 2px; transition: height 0.4s ease; }
+.yr-col.empty .yr-fill { background: rgba(255, 255, 255, 0.11); border-radius: 999px; }
+.yr-col.now .yr-fill { box-shadow: 0 0 0 1.5px var(--accent), 0 0 10px rgba(255, 255, 255, 0.12); }
+.yr-m { font-size: 9.5px; font-weight: 700; letter-spacing: 0.4px; color: var(--muted); text-transform: uppercase; }
+.yr-foot { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 12px; }
+.yr-total { font-size: 11px; font-weight: 800; letter-spacing: 0.5px; color: var(--muted); text-transform: uppercase; }
+.yr-nav { background: none; border: 0; color: var(--muted); font-size: 17px; line-height: 1; padding: 2px 8px; cursor: pointer; border-radius: 6px; }
+.yr-nav:hover:not(:disabled) { color: var(--fg); background: rgba(255, 255, 255, 0.06); }
+.yr-nav:disabled { opacity: 0.25; cursor: default; }
+
+/* streak heatmap */
+.ins-heat { overflow-x: auto; padding-bottom: 2px; }
+.heat-months, .heat-cells { display: grid; gap: 3px; }
+.heat-cells { grid-template-rows: repeat(7, 11px); grid-auto-flow: column; }
+.heat-months { margin-bottom: 5px; }
+.heat-months span { font-size: 10px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.heat-cell { border-radius: 2.5px; background: rgba(255, 255, 255, 0.06); }
+.heat-cell.l1 { background: rgba(var(--accent-rgb), 0.25); }
+.heat-cell.l2 { background: rgba(var(--accent-rgb), 0.45); }
+.heat-cell.l3 { background: rgba(var(--accent-rgb), 0.7); }
+.heat-cell.l4 { background: var(--accent); }
+.heat-cell.today { box-shadow: inset 0 0 0 1.5px var(--fg); }
+.heat-cell.future { background: transparent; }
+
+.ins-heat-key { display: flex; align-items: center; gap: 5px; margin-top: 11px; font-size: 10px; color: var(--muted); font-weight: 700; }
+.ins-heat-key .hl { width: 10px; height: 10px; border-radius: 2.5px; background: rgba(255, 255, 255, 0.06); }
+.ins-heat-key .hl.l1 { background: rgba(var(--accent-rgb), 0.25); }
+.ins-heat-key .hl.l2 { background: rgba(var(--accent-rgb), 0.45); }
+.ins-heat-key .hl.l3 { background: rgba(var(--accent-rgb), 0.7); }
+.ins-heat-key .hl.l4 { background: var(--accent); }
+.ins-heat-today { margin-left: auto; }
+
+/* words you keep meeting */
+.ins-top { display: flex; flex-direction: column; }
+.top-row { display: flex; align-items: baseline; gap: 10px; padding: 9px 2px; border-top: 1px solid var(--line); }
+.top-row:first-child { border-top: none; }
+.top-row .tw { font-size: 14px; font-weight: 700; color: var(--fg); flex: 0 0 auto; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.top-row .tm { font-size: 12px; color: var(--muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Words tab: the two lists live in Insights-style cards, same 900px measure as that page */
+#panel-words .ins-card { max-width: 900px; }
+
+/* ---- Plan tab ---- */
+.plan-now {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  background: rgba(var(--accent-rgb), 0.08);
+  border: 1px solid rgba(var(--accent-rgb), 0.28);
+  border-radius: 14px;
+}
+.plan-now-cap { font-size: 10px; font-weight: 700; letter-spacing: 0.9px; color: var(--muted); text-transform: uppercase; }
+.plan-now-name { font-size: 21px; font-weight: 800; letter-spacing: 0.4px; color: var(--accent); }
+.plan-now-note { font-size: 12px; color: var(--muted); }
+/* The allowance counter, under the plan strip. Quiet until it runs out — then it is the one thing
+   on the page with something to say. */
+.plan-buy {
+  display: block; width: 100%; margin: 10px 0 0; padding: 9px 12px;
+  border: 0; border-radius: 10px; cursor: pointer;
+  background: var(--accent); color: #0b0b0d; font-size: 13px; font-weight: 700;
+}
+.plan-buy:hover { filter: brightness(1.08); }
+.plan-buy[hidden] { display: none; }
+.plan-or { margin: 8px 0 4px; text-align: center; font-size: 11px; color: var(--muted); }
+.plan-quota { margin-top: 8px; padding: 0 4px; font-size: 12px; color: var(--muted); }
+.plan-quota.out { color: var(--accent); font-weight: 700; }
+.plan-quota[hidden] { display: none; }
+
+.plan-card { gap: 0; }
+/* The plan you are NOT on stays fully legible — a faded card reads as "unavailable" (see the ✓ known
+   badge lesson); the badge in the head is what says which one is live. */
+.plan-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.plan-list li {
+  position: relative;
+  padding-left: 18px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--fg);
+}
+.plan-list li::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 7px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.plan-pro .plan-list li::before { background: #4ade80; }
+
+.plan-tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  /* cyan, not green: green is "known / correct / passed" everywhere else in the app, so a green Pro
+     badge read as "you've already got this" (designer review, 2026-07-30). The pill's PRO tag is cyan. */
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.16);
+  border-radius: 999px;
+  padding: 2px 7px;
+  vertical-align: 2px;
+}
+
+.plan-foot { margin-top: 14px; font-size: 11.5px; line-height: 1.6; color: var(--muted); }
+.plan-foot b { color: var(--fg); font-weight: 700; }
+.plan-foot a { color: var(--accent); text-decoration: none; }
+.plan-foot a:hover { text-decoration: underline; }
+
+.plan-key { display: flex; gap: 8px; margin-top: 16px; }
+.plan-key input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 9px 11px;
+  color: var(--fg);
+  font-size: 12.5px;
+  font-family: inherit;
+}
+.plan-key input:focus { outline: none; border-color: rgba(var(--accent-rgb), 0.55); }
+.plan-key button {
+  border: 1px solid rgba(var(--accent-rgb), 0.4);
+  background: rgba(var(--accent-rgb), 0.14);
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 800;
+  padding: 9px 16px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+.plan-key button:hover { background: rgba(var(--accent-rgb), 0.24); }
+.plan-key button:disabled { opacity: 0.4; cursor: default; }
+
+/* ---- Review: toolbar, nav, test mode, session summary (ScoreUp's flashcard furniture) ---- */
+.fc-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+
+.fc-mode {
+  display: inline-flex;
+  /* Five pills fit at the 600px window floor with little to spare, and the panes clip rather than
+     scroll — so at a larger system font, or with a sixth mode, a row that cannot wrap loses buttons
+     off the edge with nothing to say so. Wrapping costs nothing at the normal width. */
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+.fc-mode button {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 6px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.fc-mode button:hover { color: var(--fg); }
+.fc-mode button.on { background: rgba(var(--accent-rgb), 0.16); color: var(--accent); }
+
+.fc-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 6px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.fc-opt:hover { color: var(--fg); }
+.fc-opt input { margin: 0; accent-color: #7dd3fc; }
+
+.fc-tool {
+  border: 1px solid var(--line);
+  background: var(--btn);
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 6px 13px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.fc-tool:hover { background: var(--btn-hover); }
+
+/* prev / next peek at the queue without grading — the row also fills the gap under the card */
+.fc-nav { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+/* an author `display` beats the UA's [hidden] rule, so renderDone()'s .hidden = true needs this */
+.fc-nav[hidden] { display: none; }
+.fc-navbtn {
+  border: 1px solid var(--line);
+  background: var(--btn);
+  color: var(--fg);
+  font-size: 13px;
+  font-weight: 800;
+  min-width: 40px;
+  padding: 6px 0;
+  border-radius: 9px;
+  cursor: pointer;
+}
+.fc-navbtn:hover:not(:disabled) { background: var(--btn-hover); }
+.fc-navbtn:disabled { opacity: 0.3; cursor: default; }
+.fc-navhint { font-size: 11px; color: var(--muted); font-weight: 600; }
+
+/* Test mode swaps the card for a multiple-choice question — same queue, same grading underneath. */
+.fc-quiz { display: none; width: min(520px, 94%); }
+.fc.testmode .fc-scene, .fc.testmode .fc-nav, .fc.testmode .fc-grades, .fc.testmode .fc-keys { display: none; }
+.fc.testmode .fc-quiz { display: block; }
+
+.q-word { font-size: 30px; font-weight: 800; text-align: center; word-break: break-word; }
+.q-sub { margin: 4px 0 16px; font-size: 11.5px; font-weight: 600; color: var(--muted); text-align: center; letter-spacing: 0.3px; }
+.q-opts { display: flex; flex-direction: column; gap: 9px; }
+.qopt {
+  padding: 13px 15px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.qopt:hover:not(:disabled) { border-color: rgba(var(--accent-rgb), 0.5); }
+.qopt:disabled { cursor: default; }
+.qopt.correct { border-color: rgba(74, 222, 128, 0.55); background: rgba(74, 222, 128, 0.14); color: #4ade80; }
+.qopt.wrong { border-color: rgba(248, 113, 113, 0.5); background: rgba(248, 113, 113, 0.13); color: #f87171; }
+.qopt-key { display: inline-block; width: 15px; color: var(--muted); font-weight: 800; font-size: 11.5px; }
+
+.q-next {
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px;
+  border: none;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #0e1015;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.q-next[hidden] { display: none; }
+.q-note { margin-top: 14px; font-size: 12px; color: var(--muted); text-align: center; line-height: 1.6; }
+.q-note[hidden] { display: none; }
+
+/* Recall's hint row. Thinned options stay in place, greyed — removing them would reflow the column
+   under a finger already moving toward a button. */
+.qopt.thinned { opacity: 0.28; }
+.q-hint { display: flex; align-items: center; justify-content: center; gap: 12px; margin: -6px 0 14px; min-height: 30px; flex-wrap: wrap; }
+/* Six options instead of four have to fit the same window, so Recall's rows are a shade tighter.
+   Only in this mode — Test and Usage keep the roomier row they were designed with. */
+.recallmode .qopt { padding: 10px 15px; }
+.recallmode .q-opts { gap: 7px; }
+.q-hint[hidden] { display: none; }
+.q-hint-btn {
+  appearance: none; border: 1px dashed var(--line-hover); background: transparent; color: var(--muted);
+  font-family: inherit; font-size: 11.5px; font-weight: 700; padding: 5px 14px; border-radius: 999px; cursor: pointer;
+}
+.q-hint-btn:hover:not(:disabled) { color: var(--fg); border-color: var(--fg); }
+.q-hint-btn:disabled { opacity: 0.3; cursor: default; }
+.q-hint-out { font-size: 12.5px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+/* the plan rail */
+.fc-plan { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.fc-plan[hidden] { display: none; }
+.fc-plan-step {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 13px; border: 1px solid var(--line); border-radius: 999px;
+  font-size: 11.5px; font-weight: 700; color: var(--muted);
+}
+.fc-plan-step b {
+  display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08); font-size: 10px; font-weight: 800;
+}
+.fc-plan-step.now { color: var(--accent); border-color: rgba(var(--accent-rgb), 0.45); background: rgba(var(--accent-rgb), 0.12); }
+.fc-plan-step.now b { background: var(--accent); color: #0f1115; }
+/* A finished stage stays on the rail, dimmed — the row is the record of what you got through. */
+.fc-plan-step.done { color: #4ade80; border-color: rgba(74, 222, 128, 0.35); }
+.fc-plan-step.done b { background: rgba(74, 222, 128, 0.2); color: #4ade80; }
+.fc-plan-sep { color: var(--muted); font-size: 12px; opacity: 0.5; }
+.done-next { margin: 4px auto 0; display: block; }
+.done-next[hidden] { display: none; }
+.sheet-tick { display: inline-grid; place-items: center; width: 14px; color: var(--accent); font-size: 12px; font-weight: 800; }
+.sheet-ai { font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--accent); opacity: 0.85; margin-left: 8px; }
+
+/* Usage mode reuses the quiz block, but the prompt is a sentence, not a word — so it reads as prose
+   (left-aligned, sentence-sized) instead of the 30px single word Test puts there. */
+.fc.usagemode .fc-scene, .fc.usagemode .fc-nav, .fc.usagemode .fc-grades, .fc.usagemode .fc-keys { display: none; }
+.fc.usagemode .fc-quiz { display: block; }
+.fc.usagemode #fcReverseWrap { visibility: hidden; } /* direction means nothing when the prompt is the sentence */
+.fc.usagemode .q-word {
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.035);
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.7;
+  text-align: left;
+}
+.cloze-gap {
+  display: inline-block;
+  min-width: 62px;
+  margin: 0 3px;
+  border-bottom: 2px solid rgba(var(--accent-rgb), 0.75);
+  color: transparent; /* the underscores are the gap's width, not something to read */
+  vertical-align: baseline;
+}
+.cloze-hit { color: var(--accent); font-weight: 800; }
+.q-mean { margin: 10px 2px 0; font-size: 13.5px; font-weight: 700; color: var(--muted); text-align: left; }
+.q-mean[hidden] { display: none; }
+
+/* Session summary — "All caught up" alone said nothing about how it went. */
+.done-stats { display: flex; gap: 18px; font-size: 12.5px; color: var(--muted); }
+.done-stats b { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.done-stats .s-again b { color: #f87171; }
+.done-stats .s-hard b { color: #fbbf24; }
+.done-stats .s-good b { color: var(--accent); }
+.done-stats .s-easy b { color: #4ade80; }
+.done-again {
+  max-width: 420px;
+  padding: 12px 14px;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--fg);
+  text-align: center;
+}
+.done-again[hidden] { display: none; }
+.done-again b { color: #f87171; font-weight: 800; }
+
+/* ---- History day dividers + per-row clock ---- */
+/* Not sticky, for the reason the overlay's own .day-head gives at length: flat sticky siblings pile at
+   top: 0 instead of pushing each other off, so two dates end up in one strip. Same list, same headings,
+   same answer — they scroll away with their rows. (jek, 2026-08-13) */
+.day-head {
+  padding: 9px 2px 5px;
+  /* Opaque, and the pane's own colour: at 0.9 alpha the line scrolling underneath showed straight
+     through the heading, so "TODAY" sat on top of a sentence. */
+  background: #12151b;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.entry-time { font-size: 10.5px; font-weight: 700; color: rgba(138, 148, 163, 0.75); font-variant-numeric: tabular-nums; }
+/* Sits above the oldest line in the DOM when there are older ones still in memory. */
+.hist-earlier {
+  display: block;
+  width: 100%;
+  margin: 4px 0 10px;
+  padding: 8px 0;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.hist-earlier:hover { border-color: var(--line-hover); color: var(--fg); }
+
+/* ---- Collected sort switch ---- */
+.sortbar { display: flex; gap: 4px; margin: -2px 0 12px; }
+.sort-btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.sort-btn:hover { color: var(--fg); background: rgba(255, 255, 255, 0.05); }
+.sort-btn.on { color: var(--accent); border-color: rgba(var(--accent-rgb), 0.45); background: rgba(var(--accent-rgb), 0.14); }
+
+/* ---- Collected / All translations switch ---- */
+/* Two rows of controls sit here and they do DIFFERENT jobs: this one picks which list you are
+   looking at, the .sortbar below only reorders whatever that list is. Giving them the same pill
+   shape (which is what the last pass did, to rescue this row from having no CSS at all) made them
+   read as one five-button group that had been split for no reason (jek: "looks weird").
+
+   So: a JOINED segmented control — one border around the pair, one divider between them — which is
+   the shape everything else in this app uses for "pick one of these", against loose pills for "sort
+   by". Different question, different shape. */
+.seg {
+  display: inline-flex;
+  margin: 0 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.seg-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 5px 14px;
+  cursor: pointer;
+}
+.seg-btn + .seg-btn { border-left: 1px solid var(--line); }
+.seg-btn:hover { color: var(--fg); background: rgba(255, 255, 255, 0.05); }
+.seg-btn.on { color: var(--accent); background: rgba(var(--accent-rgb), 0.14); }
+
+/* Part of speech on a collected word, and every sense on the flashcard's answer side — the chip is
+   shared/pos-badge.css now, so a verb is the same blue-on-blue mark here, on the card, and in the
+   bubble that appears over the game. */
+.fc-senses { font-size: 12px; font-weight: 600; color: var(--muted); line-height: 1.5; max-width: 92%; }
+.fc-senses[hidden] { display: none; }
+/* Quieter and lighter than the senses above it: this is the line you read when the chip and the Thai
+   were not enough, not the line you check first. Left-aligned inside a centred card because a
+   definition is a sentence, and a centred sentence has to be found before it can be read. */
+.fc-defs { margin-top: 6px; font-size: 12px; font-weight: 400; color: var(--muted); line-height: 1.5; max-width: 92%; text-align: left; }
+.fc-defs[hidden] { display: none; }
+.fc-defs .fc-def { display: block; }
+.fc-defs .fc-def + .fc-def { margin-top: 2px; }
+
+/* ---- Settings tab ---- */
+.set-list { display: flex; flex-direction: column; }
+.set-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 2px;
+  border-top: 1px solid var(--line);
+  cursor: default;
+}
+.set-row:first-child { border-top: none; }
+.set-row.set-toggle { flex-direction: row; align-items: center; gap: 10px; cursor: pointer; }
+.set-text { font-size: 13px; line-height: 1.9; color: var(--fg); }
+.set-text b { font-weight: 800; }
+.set-note { font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+
+.set-row input[type="number"], .set-row select {
+  width: 62px;
+  margin: 0 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px 7px;
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+.set-row select { width: auto; text-align: left; font-weight: 600; }
+.set-row input[type="number"]:focus, .set-row select:focus { outline: none; border-color: rgba(var(--accent-rgb), 0.55); }
+
+/* ON/OFF switch, the same object the pill's Settings uses (jek, 2026-07-31). The sentence-shaped rows
+   here stay as they are — they read better than a game menu's LABEL … VALUE and that was the point of
+   writing them — but a state control should look the same in both windows, and a 15px tick is hard to
+   read at a glance on a dark card. The switch sits at the END of the row: you read the sentence, then
+   its state, instead of a tick sitting in front of the words. */
+.set-row.set-toggle { justify-content: space-between; }
+.set-row.set-toggle .set-text { flex: 1; }
+/* Kept in the layout (not display:none) so it still takes focus and keyboard Space works unchanged. */
+.set-row input[type="checkbox"] {
+  position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; margin: 0;
+}
+.set-switch {
+  position: relative; flex: 0 0 auto;
+  width: 38px; height: 21px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid var(--line);
+  transition: background 0.14s ease, border-color 0.14s ease;
+}
+.set-switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 15px; height: 15px; border-radius: 50%;
+  background: var(--muted);
+  transition: transform 0.14s cubic-bezier(0.4, 0, 0.2, 1), background 0.14s ease;
+}
+.set-row input:checked ~ .set-switch {
+  background: rgba(var(--accent-rgb), 0.28); border-color: rgba(var(--accent-rgb), 0.5);
+}
+.set-row input:checked ~ .set-switch::after { transform: translateX(17px); background: var(--accent); }
+.set-row input:focus-visible ~ .set-switch { outline: 2px solid var(--accent); outline-offset: 2px; }
+.set-row.set-toggle:hover .set-switch { border-color: var(--line-hover); }
+
+/* ‹ value › stepper — replaces the native <select>, whose OPEN popup Windows draws itself as an
+   un-stylable grey list (the same reason the pill stopped using one). Three options; stepping beats
+   opening a menu. */
+.set-stepper { display: inline-flex; align-items: center; gap: 3px; margin: 0 3px; vertical-align: middle; }
+.set-stepper__arrow {
+  width: 24px; height: 24px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0; font-size: 15px; line-height: 1; font-family: inherit;
+  color: var(--muted); background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line); border-radius: 8px; cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.set-stepper__arrow:hover { background: rgba(255, 255, 255, 0.14); color: var(--fg); }
+.set-stepper__arrow:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.set-stepper__val {
+  min-width: 128px; text-align: center;
+  font-size: 13px; font-weight: 600; color: var(--fg);
+}
+
+.set-foot { margin-top: 14px; font-size: 11.5px; line-height: 1.6; color: var(--muted); }
+
+/* The words themselves stay selectable — a vocabulary list you cannot copy out of is a worse trade
+   than a steady cursor. Everything else in the window is chrome and keeps the arrow. */
+.entry-body .th, .entry-body .en, .q-word, .q-mean { cursor: text; }
+
+/* The grading buttons lifted on hover with a transform, which moves the element's HIT AREA as well as
+   its paint: along the bottom edge the lift pulled the button out from under the cursor, hover
+   dropped, it fell back, and it caught the cursor again — a 1px oscillation you feel as jitter.
+   Lifting the CONTENTS instead keeps the button's box exactly where it is. */
+.gbtn:hover { transform: none; }
+.gbtn:hover > * { transform: translateY(-1px); }
+
+
+
+/* The settings list keeps the arrow throughout — the switch on the right of a row is the affordance,
+   not the cursor. This app already decided that: the pill's own controls keep the arrow, on the
+   grounds that "macOS clickable controls keep the arrow; the finger-pointer is a web-ism". The list
+   had it both ways, pointer on the toggle rows and arrow on the rest, so reading DOWN the column
+   swapped the pointer at every row boundary — 3.4 changes per pass, measured. Now a vertical pass
+   changes nothing. The number fields keep the I-beam: that is a box you type into, and it is the one
+   change in the panel that earns itself. (jek, 2026-08-01) */
+.set-list, .set-list *, .set-list .set-row.set-toggle, .set-stepper__arrow { cursor: default; }
+.set-list input[type="number"] { cursor: text; }
+
+/* ---- Guide -----------------------------------------------------------------------------------
+   Every item on this page is a feature you cannot see: a hold-modifier gesture, a word that turns
+   out to be tappable, a whole mode behind one button. That class of feature dies unused no matter
+   how well it works, and no paragraph fixes it — so each one is a PICTURE of the app doing it,
+   over a scene, at the app's real proportions. Same recipe as the shot on the website: soft lights,
+   nothing legible, just enough for the overlay to sit on something. (jek, 2026-08-02) */
+.guide-lead { color: var(--muted); font-size: 14px; margin: 0 0 20px; max-width: 54ch; }
+.tut {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 22px;
+  align-items: center;
+  padding: 20px 0;
+  border-top: 1px solid var(--line);
+}
+.tut:first-of-type { border-top: none; padding-top: 4px; }
+@media (max-width: 720px) { .tut { grid-template-columns: 1fr; gap: 14px; } }
+
+.tut-shot {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, #20304a 0%, #3b2f4d 46%, #4a2f38 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px;
+}
+.tut-shot::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(38% 46% at 22% 26%, rgba(255, 196, 120, 0.4), transparent 70%),
+    radial-gradient(30% 36% at 78% 20%, rgba(120, 200, 255, 0.32), transparent 70%),
+    radial-gradient(52% 40% at 60% 92%, rgba(0, 0, 0, 0.5), transparent 70%);
+}
+/* Today is a WINDOW, not an overlay — showing it over a game scene would be a lie about where it
+   lives. Same frame, flat panel colour. */
+.tut-shot--flat { background: #12151b; }
+.tut-shot--flat::before { display: none; }
+.tut-shot > * { position: relative; }
+
+/* The glass, at the same recipe the real surfaces use. Here backdrop-filter genuinely works —
+   this is an ordinary window with a scene painted behind it, not a transparent overlay. */
+.tut-glass {
+  background: rgba(18, 20, 26, 0.62);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.5), 0 4px 14px rgba(0, 0, 0, 0.4);
+  color: #f3f4f6;
+}
+
+/* 1 — the snip */
+.tut-src { font-size: 15px; font-weight: 600; color: rgba(255, 255, 255, 0.94); text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7); }
+/* The REAL selection box, copied off renderer/snip/snip.css #selection: solid 1px cyan over an 18%
+   cyan fill at 2px radius. It was drawn dashed at 6px — which is the universal convention for "this
+   is a placeholder", the one thing a picture of a real feature must not say. (jek asked whether the
+   images match the functions, 2026-08-02. Four of them did not.) */
+.tut-boxed { padding: 2px 7px; border: 1px solid rgba(125, 211, 252, 0.95); border-radius: 2px; background: rgba(125, 211, 252, 0.18); }
+.tut-keycap {
+  position: absolute; right: 12px; bottom: 11px;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.04em;
+  padding: 4px 9px; border-radius: 7px;
+  background: rgba(0, 0, 0, 0.55); border: 1px solid rgba(255, 255, 255, 0.28); color: #fff;
+}
+
+/* 2 — the tappable word */
+.tut-stack { display: flex; flex-direction: column; align-items: center; gap: 7px; width: 100%; }
+.tut-card { width: 100%; border-radius: 13px; padding: 10px 12px; }
+.tut-th { font-size: 13.5px; font-weight: 700; line-height: 1.45; }
+.tut-en { margin-top: 4px; font-size: 11px; color: #9aa3b2; }
+/* .src-word:hover in the pill: an accent TINT, not an underline. And it lives in the card's SOURCE
+   line — fillSourceWords runs on .en — so the mock highlights the English, not the translation. */
+.tut-word { border-radius: 4px; padding: 0 3px; margin: 0 -3px; background: rgba(var(--accent-rgb), 0.18); color: var(--accent); }
+/* What the tap actually opens: the word with its part of speech, the meaning, and the star. */
+.tut-bubble {
+  display: flex; align-items: baseline; gap: 6px;
+  font-size: 11px; padding: 5px 11px; border-radius: 10px;
+  background: rgba(18, 20, 26, 0.82); border: 1px solid rgba(var(--accent-rgb), 0.45); color: var(--fg);
+}
+.tut-bubble b { color: var(--accent); font-weight: 800; }
+.tut-bubble i { color: #fbbf24; font-style: normal; margin-left: auto; }
+
+/* 3 — live captions */
+.tut-cc { width: 100%; border-radius: 11px; padding: 8px 12px; text-align: center; margin-top: auto; }
+.tut-cc-src { font-size: 10.5px; color: #9aa3b2; }
+.tut-cc-th { margin-top: 2px; font-size: 14px; font-weight: 700; }
+
+/* 4 — Today */
+.tut-today { width: 100%; text-align: left; }
+.tut-today-k { font-size: 9px; font-weight: 800; letter-spacing: 0.09em; color: rgba(var(--accent-rgb), 0.85); }
+.tut-today-n { display: flex; align-items: baseline; gap: 7px; font-size: 11px; color: var(--muted); margin-top: 1px; }
+.tut-today-n b { font-size: 38px; font-weight: 800; line-height: 1; color: var(--fg); }
+/* Today's words are CARDS carrying their sentence now — a guide picture showing the old row of
+   chips would teach a page that no longer exists. */
+.tut-tw { display: grid; gap: 5px; margin-top: 9px; }
+.tut-tw > div { padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 255, 255, 0.03); font-size: 10px; color: var(--muted); }
+.tut-tw b { font-size: 11.5px; font-weight: 800; color: var(--fg); }
+.tut-tw em { display: block; margin-top: 2px; font-style: normal; opacity: 0.8; }
+.tut-cta {
+  display: inline-block; margin-top: 11px; font-size: 11px; font-weight: 800;
+  padding: 5px 12px; border-radius: 8px;
+  background: rgba(var(--accent-rgb), 0.16); border: 1px solid rgba(var(--accent-rgb), 0.4); color: var(--accent);
+}
+
+/* 5 — the pill styles, both states in one frame */
+.tut-pill { width: 78%; height: 32px; border-radius: 16px; display: flex; align-items: center; gap: 8px; padding: 0 11px; font-size: 12px; font-weight: 700; }
+.tut-pill--faded span:not(.tut-dot) { opacity: 0.4; }
+.tut-dot { width: 9px; height: 9px; border-radius: 50%; background: #9aa3b2; flex: 0 0 auto; }
+.tut-tab {
+  position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+  width: 24px; height: 32px; display: flex; align-items: center; padding-left: 7px;
+  border-radius: 16px 0 0 16px; border-right: none;
+}
+
+.tut-txt h2 { font-size: 16px; font-weight: 750; margin: 0 0 6px; letter-spacing: -0.01em; }
+.tut-txt p { font-size: 13.5px; color: var(--muted); line-height: 1.6; margin: 0; }
+.tut-key { margin-top: 9px !important; font-size: 12px !important; color: var(--muted); }
+.tut-key b {
+  display: inline-block; padding: 2px 7px; margin: 0 1px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11.5px; font-weight: 700;
+  border: 1px solid var(--line); border-radius: 5px; background: rgba(255, 255, 255, 0.05); color: var(--fg);
+}
+
+/* 6 — type to translate. The Type page is a WINDOW surface, so flat frame, no game behind it. */
+.tut-typebar {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 9px; font-size: 12px; color: var(--fg);
+}
+.tut-typebar i { margin-left: auto; font-style: normal; color: var(--accent); }
+.tut-peek { width: 100%; margin-top: 7px; padding: 0 2px; }
+.tut-peek b { display: block; font-size: 14px; font-weight: 700; }
+.tut-peek span { font-size: 10.5px; color: var(--muted); }
+
+/* 7 — hide from capture. Invisibility has no picture of its own, so it is shown as the same moment
+   twice: what the eye gets, and what the recording gets. */
+.tut-split { flex-direction: row; gap: 0; padding: 0; }
+.tut-half {
+  flex: 1; min-width: 0; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px 10px;
+}
+.tut-half + .tut-half { border-left: 1px solid rgba(255, 255, 255, 0.16); }
+.tut-half-lbl {
+  font-size: 9px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+.tut-half .tut-pill { width: 100%; height: 28px; font-size: 10.5px; gap: 6px; padding: 0 9px; }
+.tut-rec {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.06em;
+  padding: 3px 9px; border-radius: 999px;
+  background: rgba(220, 38, 38, 0.25); border: 1px solid rgba(248, 113, 113, 0.55); color: #fca5a5;
+}
+
+/* A setting this window READS but does not own. No control, because two owners of one value is how
+   settings drift apart — but jek went looking for the language and did not find it, so it says what
+   it is set to and points at the ⚙ that changes it. */
+/* .set-row's layout rules are written for the <label> the real controls use; this row is a <div>,
+   so it states the same shape itself instead of wrapping onto two lines. */
+.set-row--ro { display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: default; }
+.set-ro { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.set-ro::after { content: ' · ⚙'; opacity: 0.6; font-weight: 400; }
+
+/* ---- Words, inside the pane ------------------------------------------------------------------
+   This page borrowed Insights' card component back when the window had no pane of its own. Now
+   there is one, and the result was a card inside a card: two borders, two backgrounds, one list —
+   with the inner frame's own width leaving a third of the pane empty beside it. The pane IS the
+   card. What was the card's head becomes the section head, and its count goes: the rail already
+   prints "11 words · 0 known" at the bottom of every page, and a number that appears twice on one
+   screen is a number you have to check against itself. (jek, 2026-08-02) */
+#panel-words > .ins-card {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
+/* And the head goes with it. "Collected words" sat directly under a segment button already reading
+   "Collected", on a page already titled "Words" — the same noun three times down the left edge in
+   40px. The segment IS the label. */
+#panel-words > .ins-card > .ins-card-head { display: none; }
+#panel-words #vocabNote, #panel-words #histNote { display: none; }
+
+/* ---- Rail collapse -----------------------------------------------------------------------------
+   The rail is a permanent 188px tax on width, and some pages want it back: a long history row, the
+   Guide's pictures, the Insights grid. Collapsing narrows it to its icons rather than removing it,
+   so the destinations stay where your hand expects them. (jek pointed at Wispr Flow's toggle and
+   asked where ours was, 2026-08-02.) */
+.rail-head { display: flex; align-items: center; gap: 8px; padding: 2px 4px 16px; }
+.rail-brand { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; color: var(--fg); white-space: nowrap; }
+.rail-toggle {
+  flex: 0 0 auto;
+  display: grid; place-items: center;
+  width: 28px; height: 28px;
+  border: none; border-radius: 7px;
+  background: transparent; color: var(--muted);
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.rail-toggle:hover { background: rgba(255, 255, 255, 0.06); color: var(--fg); }
+.rail-toggle:active { transform: scale(0.92); }
+/* The icon mirrors to point the way the rail is about to go: the filled edge sits where the pane
+   will be, so the button reads as "open" rather than as a second, identical "collapse". */
+.rail-narrow .rail-toggle svg,
+.rail-forced .rail-toggle svg { transform: scaleX(-1); }
+/* Below the breakpoint the rail is collapsed by the media query and this button cannot change that.
+   Dimmed and inert rather than removed, so the header does not reflow as the window is resized. */
+.rail-toggle:disabled { opacity: 0.35; cursor: default; }
+.rail-toggle:disabled:hover { background: none; color: var(--muted); }
+.rail-toggle:disabled:active { transform: none; }
+
+/* The slide, switched on only AFTER the saved state is restored (index.js adds .rail-anim on the
+   next frame). Otherwise a window that opens collapsed would animate itself shut in front of you —
+   the restore is a starting position, not a thing that just happened. */
+.rail-anim .rail {
+  transition: flex-basis 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              padding-left 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              padding-right 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.rail-anim .tab {
+  transition: background var(--t-fast, 0.14s) ease, color var(--t-fast, 0.14s) ease,
+              font-size 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              gap 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.rail-anim .rail-brand,
+.rail-anim .rail-stat { transition: opacity 0.16s ease, transform 0.22s cubic-bezier(0.4, 0, 0.2, 1); }
+.rail-anim .rail-toggle svg { transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1); }
+
+.rail-narrow .rail { flex-basis: 56px; padding-left: 8px; padding-right: 8px; }
+/* Faded and slid out, not display:none — display cannot be animated, and the old jump was the whole
+   complaint. They keep their box so nothing below them reflows; the rail's clip hides the rest. */
+.rail-brand, .rail-stat { white-space: nowrap; }
+.rail-narrow .rail-brand,
+.rail-narrow .rail-stat {
+  opacity: 0;
+  transform: translateX(-8px);
+  pointer-events: none;
+}
+/* The label is hidden, not removed: it stays the accessible name and the tooltip. */
+.rail-narrow .tab { justify-content: center; padding-left: 0; padding-right: 0; font-size: 0; gap: 0; }
+.rail-narrow .tab::before { font-size: 16px; }
+
+/* A collapse is a view change, not information. Anyone who has asked the OS to stop moving things
+   gets the same two states with no travel between them. */
+@media (prefers-reduced-motion: reduce) {
+  .rail-anim .rail,
+  .rail-anim .rail-brand,
+  .rail-anim .rail-stat,
+  .rail-anim .rail-toggle svg { transition: none; }
+  .rail-anim .tab { transition: background var(--t-fast, 0.14s) ease, color var(--t-fast, 0.14s) ease; }
+  .rail-toggle:active { transform: none; }
+}
+
+/* And it collapses ITSELF when there isn't room to be generous. The window can be dragged down to
+   600px (main.js minWidth), where a 188px rail is nearly a third of everything — the pane would be
+   narrower than the content it holds. Below 780 the rail gives the width back without being asked;
+   the toggle still works above that. */
+@media (max-width: 780px) {
+  .rail { flex-basis: 56px; padding-left: 8px; padding-right: 8px; }
+  .rail-brand, .rail-stat { display: none; }
+  .tab { justify-content: center; padding-left: 0; padding-right: 0; font-size: 0; gap: 0; }
+  .tab::before { font-size: 16px; }
+  .content { padding: 12px 12px 12px; }
+}
+
+/* ---- Card mode ---------------------------------------------------------------------------------
+   Reading, not testing: no flip, no grade row, arrows to move. Laid out as a dictionary entry
+   because that is what it is — the headword large, the line you met it in underneath in quotes, and
+   the usage notes as label/value rows you can scan down rather than read through. */
+.lex {
+  width: min(560px, 100%);
+  margin: 0 auto;
+  padding: 22px 24px 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.lex[hidden] { display: none; }
+.lex-head { display: flex; align-items: baseline; gap: 10px; }
+.lex-word { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; margin: 0; }
+.lex-mean { font-size: 14px; color: var(--muted); }
+.lex-speak {
+  margin-left: auto; flex: 0 0 auto;
+  width: 28px; height: 28px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--btn); color: var(--fg);
+  font-size: 10px; cursor: pointer;
+}
+.lex-speak:hover { background: var(--btn-hover); }
+/* The line you actually met it in. It is the reason this card is not a dictionary entry: no
+   dictionary can tell you where YOU ran into the word. */
+.lex-src {
+  margin: 12px 0 0;
+  font-size: 13.5px; line-height: 1.6; color: var(--muted);
+  padding-left: 12px; border-left: 2px solid rgba(var(--accent-rgb), 0.5);
+}
+.lex-src[hidden] { display: none; }
+.lex-rows { margin-top: 18px; display: grid; gap: 1px; background: var(--line); border-radius: 10px; overflow: hidden; }
+.lex-row { display: grid; grid-template-columns: 120px 1fr; gap: 14px; padding: 11px 13px; background: #12151b; }
+@media (max-width: 620px) { .lex-row { grid-template-columns: 1fr; gap: 3px; } }
+.lex-k { font-size: 11px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.lex-v { font-size: 13.5px; line-height: 1.55; }
+.lex-state { margin-top: 16px; font-size: 13px; color: var(--muted); }
+.lex-state[hidden] { display: none; }
+/* Card mode borrows the flashcard frame, so the bits that belong to grading have to stand down. */
+.cardmode .fc-grades, .cardmode .fc-keys { display: none; }
+/* Meaning-first and Shuffle are answers to questions Card mode does not ask. */
+.cardmode #fcReverseWrap, .cardmode #fcShuffle { display: none; }
+
+/* Show answer — the whole grade row's worth of space, since it is the only thing to do here. */
+.fc-show {
+  margin-top: 18px;
+  padding: 13px 30px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--btn);
+  color: var(--fg);
+  font-size: 14px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: background 0.14s ease;
+}
+.fc-show:hover { background: var(--btn-hover); }
+.fc-show[hidden] { display: none; }
+/* A row that performs an action rather than holding a value. */
+.set-btn {
+  padding: 7px 14px; border: 1px solid var(--line); border-radius: 9px;
+  background: var(--btn); color: var(--fg);
+  font-size: 12.5px; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.set-btn:hover:not(:disabled) { background: var(--btn-hover); }
+.set-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* ---- Write mode --------------------------------------------------------------------------------
+   Same frame as the word card: reading and writing, not testing. The verdict is colour-coded because
+   it is the one thing you look for before anything else. */
+.wr { width: min(560px, 100%); margin: 0 auto; padding: 22px 24px 20px;
+  border: 1px solid var(--line); border-radius: 16px; background: rgba(255, 255, 255, 0.03); }
+.wr[hidden] { display: none; }
+.wr-head { display: flex; align-items: baseline; gap: 10px; }
+.wr-word { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin: 0; }
+.wr-mean { font-size: 13.5px; color: var(--muted); }
+.wr-situation { margin: 12px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--fg);
+  padding-left: 12px; border-left: 2px solid rgba(var(--accent-rgb), 0.5); }
+.wr-situation[hidden] { display: none; }
+.wr-input { width: 100%; margin-top: 14px; padding: 11px 13px; resize: vertical;
+  border: 1px solid var(--line); border-radius: 10px; background: rgba(255, 255, 255, 0.04);
+  color: var(--fg); font: inherit; font-size: 14px; line-height: 1.5; }
+.wr-input:focus { outline: none; border-color: rgba(var(--accent-rgb), 0.55); }
+.wr-go { margin-top: 10px; padding: 9px 18px; border-radius: 10px; cursor: pointer;
+  border: 1px solid rgba(var(--accent-rgb), 0.4); background: rgba(var(--accent-rgb), 0.16);
+  color: var(--accent); font-size: 13px; font-weight: 800; }
+.wr-go:hover:not(:disabled) { background: rgba(var(--accent-rgb), 0.26); }
+.wr-go:disabled { opacity: 0.5; cursor: default; }
+.wr-out { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.wr-out[hidden] { display: none; }
+.wr-verdict { font-size: 14px; font-weight: 800; }
+.wr-verdict.good { color: #4ade80; }
+.wr-verdict.ok { color: #fbbf24; }
+.wr-verdict.wrong { color: #f87171; }
+.wr-notes { margin: 9px 0 0; padding-left: 18px; }
+.wr-notes li { font-size: 13px; line-height: 1.6; color: var(--muted); }
+.wr-better { margin-top: 10px; font-size: 13.5px; line-height: 1.55; }
+.wr-better:empty { display: none; }
+/* Write borrows the flashcard frame, so grading chrome stands down here too. */
+.writemode .fc-grades, .writemode .fc-keys,
+.writemode #fcReverseWrap, .writemode #fcShuffle { display: none; }
+
+/* Synonym rows carry a note per line; keep the line breaks the model sent. */
+.lex-row .lex-v { white-space: pre-line; }
+
+/* Words you can pick out of a history line — the same amber the pill uses for a collected word,
+   so a word starred in either window looks starred in both. */
+.src-word { border-radius: 4px; padding: 0 2px; margin: 0 -2px; cursor: pointer;
+  transition: background .12s ease, color .12s ease, opacity .12s ease; }
+.src-word:hover { background: rgba(var(--accent-rgb, 96 165 250), 0.18); color: var(--accent, #7cb6ff); }
+.src-word.on { color: #fbbf24; background: rgba(251, 191, 36, 0.13); }
+.src-word.on:hover { background: rgba(251, 191, 36, 0.22); color: #fbbf24; }
+.src-word.busy { opacity: 0.5; cursor: default; }
+/* The meaning of the word just collected, under the line it came from. */
+.word-note { margin-top: 4px; font-size: 12px; color: #fbbf24; }
+.word-note[hidden] { display: none; }
+
+/* ---- Calendar ---- */
+/* A month of squares, one per day, the count inside the day it belongs to. Days with nothing are
+   drawn but not clickable — an empty box that opens to nothing reads as a failure. */
+.cal-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.cal-title { font-size: 14px; font-weight: 800; letter-spacing: .01em; }
+/* Pushed to the far end so the month and its arrows stay one unit and the total reads as a caption
+   on the whole grid rather than as part of the navigation. */
+.cal-sum { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--muted); }
+.cal-nav {
+  appearance: none; border: 1px solid var(--line); background: transparent; color: var(--muted);
+  width: 26px; height: 26px; border-radius: 8px; cursor: pointer; font-size: 15px; line-height: 1;
+}
+.cal-nav:hover { color: var(--fg); background: rgba(255, 255, 255, 0.05); }
+/* Capped and centred rather than stretched. Left to fill the width, a 1/1 cell became a giant box on
+   a wide window — the same reason .ins-card carries a max-width in this file. */
+.cal-dow, .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; max-width: 460px; }
+.cal-dow { margin-bottom: 4px; font-size: 10.5px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted); text-align: center; }
+.cal-cell {
+  /* Fixed height, not aspect-ratio: the square grew with the window and turned a month of mostly
+     nothing into a wall of large empty boxes. */
+  appearance: none; position: relative; height: 46px;
+  border: 1px solid transparent; border-radius: 10px; background: transparent;
+  color: var(--muted); font-family: inherit; cursor: default; padding: 4px 6px; text-align: left;
+}
+/* A day with nothing in it gets no ceremony — no border, no box, just a dim number holding its place
+   in the grid. Drawing 28 empty boxes at the same weight as the three days that have something is
+   what made this page read as mostly nothing; the same panel's Today card already takes this line
+   (show the real thing faintly, never a blank frame). */
+.cal-cell:not(.has) .cal-num { opacity: 0.35; }
+.cal-num { font-size: 11px; font-weight: 700; }
+/* A day that gave you words: the count is the point, so it is the biggest thing in the square. */
+.cal-cell.has { color: var(--fg); cursor: pointer; border-color: rgba(var(--accent-rgb), 0.35); background: rgba(var(--accent-rgb), 0.05); }
+.cal-cell.has:hover { background: rgba(var(--accent-rgb), 0.10); }
+.cal-count {
+  position: absolute; left: 0; right: 0; bottom: 6px; text-align: center;
+  font-size: 15px; font-weight: 800; color: var(--accent);
+}
+/* Today is marked even when it is empty — it is the one day you are deciding about. */
+.cal-cell.today { border-color: rgba(255, 255, 255, 0.3); }
+.cal-cell.today .cal-num { opacity: 1; color: var(--fg); }
+.cal-cell.picked { background: rgba(var(--accent-rgb), 0.16); border-color: rgba(var(--accent-rgb), 0.6); }
+.cal-day { margin-top: 14px; }
+.cal-day__head { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 8px; }
+
+/* ---- macOS: the window's own chrome lives in the page (see is-mac in index.js) ---------------- */
+/* 34px clears the traffic lights (they sit ~12-32px down) and leaves the brand row breathing space
+   rather than tucking it right under them. Windows and Linux keep a real title bar, so neither the
+   inset nor the drag strip exists there — the padding would just be a gap. */
+.is-mac .rail-head { padding-top: 34px; }
+/* The one draggable strip. Full width rather than sidebar-only: on the pane side the first 30px is
+   empty margin above the page title, so nothing loses a click to it, and a user reaching for "the
+   title bar" reaches for the whole top edge. */
+.is-mac .mac-drag {
+  position: fixed; top: 0; left: 0; right: 0; height: 30px;
+  -webkit-app-region: drag;
+  z-index: 5;
+}
+/* Anything interactive that ends up under the strip has to opt back out, or it becomes scenery. */
+.is-mac .rail-head button,
+.is-mac .rail-toggle { -webkit-app-region: no-drag; }

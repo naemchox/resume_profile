@@ -1,0 +1,241 @@
+# ══════════════════════════════════════════════════════════════════
+#  HIGHLAND CAFÉ — Netlify deploy configuration
+#
+#  In the Netlify UI set:
+#
+#      Base directory    :  Highland cafe 2/Highland cafe_finished
+#      Publish directory :  Highland cafe 2/Highland cafe_finished
+#      Build command     :  (leave empty)
+#
+#  This directory is an ALLOWLIST. It contains only the 65 files the
+#  site actually serves. FACTS.md, SPEC.md, tools/build_en.py and the
+#  ~60 MB of working photography in source-photos/ live one level up
+#  and are not copied here, so no blocklist of redirect rules is
+#  needed to keep them private — they are simply not deployed.
+#
+#  Regenerate this directory from the parent after any content change.
+#  Editing files in here directly means the next regeneration silently
+#  discards your work.
+# ══════════════════════════════════════════════════════════════════
+
+[build]
+  publish = "."
+  # No build command. The English page is generated ahead of time by
+  # tools/build_en.py in the parent directory, so there is nothing for
+  # Netlify to run and nowhere for code to execute during a deploy.
+
+[build.processing]
+  # Netlify's post-processing rewrites HTML, CSS and JS. This site
+  # carries its entire stylesheet and script inline, so any rewrite
+  # changes those bytes and invalidates every sha256 below — which
+  # would silently kill the stylesheet and all behaviour at once.
+  skip_processing = true
+
+
+# ── Security headers ──────────────────────────────────────────────
+# Do NOT also add a _headers file. When both exist Netlify merges them
+# and the result is hard to reason about. This file is the only source.
+
+[[headers]]
+  for = "/*"
+
+  [headers.values]
+
+    # CSP hashes, recomputed 2026-07-26 from the deployed files after the
+    # quote font-size fix, the removal of the hero dots, and the swap of the
+    # CSS map for a real Google Maps embed — all three changed inline bytes.
+    #
+    #   script 1  the <head> reveal watchdog        (both pages, identical)
+    #   script 2  CafeOrStore JSON-LD               (differs th/en)
+    #   script 3  FAQPage JSON-LD                   (differs th/en)
+    #   script 4  the site behaviour                (both pages, identical)
+    #   style  1  the whole stylesheet              (differs th/en — the
+    #             English build rewrites @font-face url() to ../assets/)
+    #
+    # JSON-LD is not executable, but Chrome still applies script-src to
+    # it, so those two blocks need hashes as well.
+    #
+    # ANY edit to an inline block — including whitespace — changes its
+    # hash and takes the site down. Recompute before deploying HTML:
+    #
+    #   python3 - <<'EOF'
+    #   import re,hashlib,base64
+    #   h=lambda s:"sha256-"+base64.b64encode(hashlib.sha256(s.encode()).digest()).decode()
+    #   for p in ['index.html','en/index.html']:
+    #       s=open(p,encoding='utf-8').read()
+    #       for b in re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>',s,re.S): print(p,h(b))
+    #       for b in re.findall(r'<style[^>]*>(.*?)</style>',s,re.S): print(p,h(b))
+    #   EOF
+    #
+    # font-src is 'self' only: the fonts are self-hosted in
+    # assets/fonts/, so nothing is requested from fonts.gstatic.com and
+    # no visitor IP is handed to Google (PDPA).
+    #
+    # frame-src allows Google Maps: the map is a real embedded iframe as of
+    # 2026-07-26 (it used to be drawn in CSS, and this was 'none'). Both hosts
+    # are required — the src is maps.google.com, which 301-redirects to
+    # www.google.com/maps/embed, and CSP is enforced on the redirect target
+    # as well as the initial URL. Nothing else is widened: everything the map
+    # then fetches (tiles, the Maps JS API, fonts) is loaded *inside* that
+    # cross-origin frame, which has its own CSP context, so img-src and
+    # script-src here stay 'self'.
+    Content-Security-Policy = """\
+      default-src 'self'; \
+      script-src 'self' \
+        'sha256-J72qYriM1XvpiwGR14kYhU/QAdcUHFtLbPc9W5210KI=' \
+        'sha256-ChnbPLj9azdPZT/Pm+WX2vMng/gYBh1BEEzT0pT5FNU=' \
+        'sha256-VcKLMZCqYt2X4bEnMBOXil9EOFybdlW7jUzKQPca8B8=' \
+        'sha256-znBQlIpQOwEFYyZOpqqbSg829KfxpHYaq/tRRtKUn5o=' \
+        'sha256-8HaJ71db9PkeBF/bniYIgv+L9AG59XKU3vQzFePhsyo=' \
+        'sha256-fYaNQyp54+QX4nEKdC1SaEq7WSMyAH+oL8Tte4JVuHk='; \
+      style-src 'self' \
+        'sha256-vFzcvkXR9o00PT8Iy7A2wuigUrVzc3KJ4RMPoTqv9K4=' \
+        'sha256-OFBiODG7+UKzjkyWKsaV5KM8rjchyG13cJYKUxuf3vo='; \
+      style-src-attr 'unsafe-inline'; \
+      font-src 'self'; \
+      img-src 'self' data:; \
+      frame-src https://maps.google.com https://www.google.com; \
+      connect-src 'self'; \
+      base-uri 'none'; \
+      form-action 'none'; \
+      object-src 'none'; \
+      frame-ancestors 'none'; \
+      upgrade-insecure-requests\
+      """
+
+    # Netlify provisions the certificate and the HTTP->HTTPS redirect
+    # (the "Force HTTPS" toggle) but does not send HSTS. This is the
+    # only place it is set. Consider starting at max-age=300, confirming
+    # nothing breaks, then raising. Add "; preload" only when certain —
+    # it is hard to undo.
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options        = "DENY"
+    Referrer-Policy        = "strict-origin-when-cross-origin"
+    Permissions-Policy     = "geolocation=(), camera=(), microphone=(), payment=(), usb=(), interest-cohort=()"
+    Cross-Origin-Opener-Policy   = "same-origin"
+    Cross-Origin-Resource-Policy = "same-origin"
+
+    # NOT set, deliberately:
+    #   Cross-Origin-Embedder-Policy — no cross-origin subresources left
+    #                                  to protect, and it breaks nothing
+    #                                  here but buys nothing either.
+    #   X-XSS-Protection             — removed from modern browsers and
+    #                                  historically a vulnerability itself.
+
+
+# ── Caching ───────────────────────────────────────────────────────
+# HTML must revalidate so a correction — or a rollback after an
+# incident — reaches visitors immediately. The page carries its own CSS
+# and JS inline, so there is no separate stylesheet to cache-bust; the
+# HTML is the cache boundary for the entire design.
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Fonts and images are content-addressed by filename in practice — a
+# different image means a different name — so they can be cached hard.
+[[headers]]
+  for = "/assets/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/images/*"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+
+[[headers]]
+  for = "/assets/og-image.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+
+# ── Redirects ─────────────────────────────────────────────────────
+#
+# NETLIFY BEHAVIOUR: an existing static file normally beats a redirect.
+# These rules only take effect because of `force = true`. Drop it and
+# they are silently ignored and the file is served in full.
+
+# This config sits inside the publish directory, so Netlify serves it
+# like any other file. Nothing here is secret — the CSP hashes are
+# derivable from the HTML — but the deploy notes are not for visitors.
+[[redirects]]
+  from = "/netlify.toml"
+  to = "/index.html"
+  status = 404
+  force = true
+
+# The site was three pages until 2026-07-26. Anyone holding an old
+# link, and any search result not yet recrawled, lands on a 404 without
+# these. The menu and visit content now live as anchors on one page.
+
+[[redirects]]
+  from = "/menu.html"
+  to = "/#menu"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/visit.html"
+  to = "/#visit"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/menu.html"
+  to = "/en/index.html#menu"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/visit.html"
+  to = "/en/index.html#visit"
+  status = 301
+  force = true
+
+
+# ── Deploy previews and branch deploys ────────────────────────────
+#
+# Every preview and branch deploy gets its own public *.netlify.app URL.
+# On the free tier it is not password protected and it is crawlable —
+# which means an unfinished version of a site listing prices for a
+# regulated product can be indexed at a URL nobody is watching.
+#
+# These contexts inherit the headers above and add noindex on top.
+
+[context.deploy-preview]
+  [[context.deploy-preview.headers]]
+    for = "/*"
+    [context.deploy-preview.headers.values]
+      X-Robots-Tag = "noindex, nofollow"
+
+[context.branch-deploy]
+  [[context.branch-deploy.headers]]
+    for = "/*"
+    [context.branch-deploy.headers.values]
+      X-Robots-Tag = "noindex, nofollow"
+
+
+# ── After the custom domain is attached ───────────────────────────
+#
+# The <site-name>.netlify.app address stays live and public forever
+# alongside the custom domain. Left alone it is a second, unmonitored
+# copy that Google will index as duplicate content — and every
+# canonical tag in this site already points at highlandcafe.co.th.
+#
+# Uncomment and set the real site name at launch:
+#
+# [[redirects]]
+#   from = "https://<site-name>.netlify.app/*"
+#   to = "https://highlandcafe.co.th/:splat"
+#   status = 301
+#   force = true

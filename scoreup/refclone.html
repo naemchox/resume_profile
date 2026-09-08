@@ -1,0 +1,1013 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CBD Store Template — reference reproduction</title>
+<style>
+/* ============================================================
+   ทำตามภาพอ้างอิงให้ใกล้ที่สุด — โครง สัดส่วน สี ตัวอักษร
+   สีทุกค่าดูดมาจากภาพจริงด้วยการวัดพิกเซล ไม่ได้เดา
+   ชื่อแบรนด์และโลโก้เว้นเป็น [ช่องว่าง] — ไม่ก๊อปของจริง
+   ============================================================ */
+:root{
+  --white:#ffffff;
+  --off:#f6f7f4;
+  --grey:#d3d5d8;
+  --ink:#1f2416;
+  --ink-2:#5c6350;
+  --ink-3:#8a9479;
+  --line:#e6e7e0;
+
+  /* ── ค่าที่วัดจากภาพอ้างอิง ── */
+  --g-left:#80a861;      /* เขียวซ้ายของแถบไล่สี */
+  --g-right:#a08e3a;     /* ทองมะกอกขวาของแถบไล่สี */
+  --hero-dk:#403d0e;     /* น้ำตาลมะกอกเข้มในฮีโร่ */
+  --hero-dkr:#292908;
+  --hero-dkst:#151403;
+  --contact-dk:#473c2a;
+  --gold:#be9a30;        /* ปุ่มทอง */
+  --gold-d:#a8841c;
+  --leaf:#8a9479;
+
+  --disp:"DIN Condensed","Arial Narrow","Helvetica Neue Condensed","Noto Sans Thai",-apple-system,sans-serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Thai",system-ui,sans-serif;
+  --ease:cubic-bezier(.22,.72,.24,1);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%; scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto} }
+body{margin:0; background:var(--white); color:var(--ink); overflow-x:hidden;
+  font:400 15px/1.85 var(--sans); -webkit-font-smoothing:antialiased}
+.w{max-width:1180px; margin:0 auto; padding:0 26px}
+img{max-width:100%; display:block}
+
+/* หัวข้อแบบต้นฉบับ: ตัวพิมพ์ใหญ่ทรงแคบ ผสมหนา/บางในบรรทัดเดียว */
+.h{font-family:var(--disp); font-weight:700; letter-spacing:.02em; text-transform:uppercase; margin:0}
+/* ภาษาไทยไม่มีฟอนต์ทรงแคบ — ใช้ฟอนต์ปกติน้ำหนักหนาและบีบระยะแทน
+   ต้องระบุด้วย attribute ไม่ใช่ :lang() เพราะทั้งหน้าตั้ง lang="th"
+   :lang(th) จะจับหัวข้อภาษาอังกฤษไปด้วยทั้งหมด */
+.h[lang="th"]{font-family:var(--sans); font-weight:800; letter-spacing:-.02em; text-transform:none}
+.h .lt{font-weight:400; opacity:.75}
+.sec-h{font-size:clamp(26px,3.6vw,38px); line-height:1.1; text-align:center}
+
+.btn{display:inline-flex; align-items:center; justify-content:center; cursor:pointer; border:none;
+  padding:13px 30px; text-decoration:none; font:800 11.5px/1 var(--sans); letter-spacing:.14em;
+  text-transform:uppercase; color:#fff; background:var(--gold);
+  transition:background .2s, transform .2s var(--ease)}
+.btn:hover{background:var(--gold-d); transform:translateY(-1px)}
+.btn:focus-visible{outline:2px solid var(--gold); outline-offset:3px}
+
+/* ---------- แถบบนสุด ---------- */
+/* เดิมใช้ backdrop-filter ซึ่งบังคับให้เบราว์เซอร์เบลอพื้นหลังใหม่ทุกเฟรมตอนเลื่อน
+   แถบนี้ทึบอยู่แล้ว จึงไม่จำเป็นเลย */
+.top{border-bottom:1px solid var(--line); background:var(--white); position:relative; z-index:20}
+.top-in{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:20px; padding:12px 0}
+.nav{display:flex; gap:26px; font:800 11px/1 var(--sans); letter-spacing:.13em; text-transform:uppercase}
+.nav a{color:var(--ink-2); text-decoration:none; transition:color .2s}
+.nav a:hover,.nav a.on{color:var(--g-left)}
+.brandmark{display:grid; justify-items:center; gap:3px; padding:0 10px}
+.brandmark svg{width:34px; height:34px; color:var(--g-left)}
+.brandmark b{font-family:var(--disp); font-weight:700; font-size:15px; letter-spacing:.16em; text-transform:uppercase}
+.brandmark small{font:600 7.5px/1 var(--sans); letter-spacing:.34em; text-transform:uppercase; color:var(--ink-3)}
+.top-r{display:flex; align-items:center; justify-content:flex-end; gap:14px}
+.tel{display:flex; align-items:center; gap:9px; font:800 12.5px/1 var(--sans);
+  color:var(--ink); text-decoration:none; transition:color .2s}
+.tel:hover{color:var(--g-left)}
+.tel:focus-visible{outline:2px solid var(--gold); outline-offset:3px}
+.tel .ic{width:32px; height:32px; border-radius:50%; background:var(--g-left); display:grid; place-items:center}
+.tel .ic svg{width:15px; height:15px; color:#fff}
+.chipbtn{display:inline-flex; align-items:center; gap:8px; padding:10px 18px; border-radius:999px;
+  background:var(--g-left); color:#fff; font:800 10.5px/1 var(--sans); letter-spacing:.11em;
+  text-transform:uppercase; text-decoration:none}
+.cart{width:34px; height:34px; border-radius:50%; background:var(--g-left); display:grid; place-items:center;
+  color:#fff; font:800 12px/1 var(--sans); position:relative}
+@media (max-width:1040px){ .nav{display:none} .top-in{grid-template-columns:1fr auto} }
+@media (max-width:620px){ .tel span,.chipbtn span{display:none} }
+
+/* ---------- ฮีโร่ ---------- */
+.hero{position:relative; min-height:clamp(400px,54vw,470px); display:grid; align-items:center;
+  overflow:hidden; color:#fff;
+  background:linear-gradient(100deg,var(--hero-dkst) 0%, var(--hero-dkr) 18%, var(--hero-dk) 40%, #7a7420 68%, #a89a3e 100%)}
+/* ชั้นเลียนแบบภาพถ่ายไร่ — ไล่สีซ้อนหลายชั้นแทนรูปจริง */
+.hero .field{position:absolute; inset:0; opacity:.5; pointer-events:none;
+  background:
+    radial-gradient(58% 78% at 84% 40%, rgba(214,206,120,.55), transparent 64%),
+    radial-gradient(46% 66% at 62% 92%, rgba(110,128,40,.6), transparent 66%),
+    radial-gradient(30% 44% at 24% 16%, rgba(255,255,255,.10), transparent 70%)}
+.hero .ghost{position:absolute; left:50%; top:21%; transform:translate(-50%,-50%);
+  font:700 clamp(38px,7.4vw,96px)/1 var(--disp); letter-spacing:.14em; text-transform:uppercase;
+  color:#fff; opacity:.05; white-space:nowrap; pointer-events:none; user-select:none;
+  max-width:96%; overflow:hidden; text-overflow:clip}
+.hero-in{position:relative; z-index:2; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,.9fr);
+  gap:30px; align-items:center; padding:54px 0}
+@media (max-width:880px){ .hero-in{grid-template-columns:1fr; text-align:center; padding:44px 0} }
+.eyebrow{font:800 12px/1 var(--sans); letter-spacing:.3em; text-transform:uppercase; margin-bottom:16px}
+.eyebrow b{color:#c9dd8e; font-weight:800}
+.hero h1{font-size:clamp(40px,7.4vw,76px); line-height:1}
+.hero .sub{margin:14px 0 0; font:600 12.5px/1.7 var(--sans); letter-spacing:.24em;
+  text-transform:uppercase; color:rgba(255,255,255,.72)}
+.hero .btn{margin-top:26px}
+.arrow{position:absolute; top:50%; z-index:3; width:40px; height:40px; display:grid; place-items:center;
+  color:rgba(255,255,255,.6); border:1px solid rgba(255,255,255,.3); rotate:45deg}
+.arrow svg{width:15px; height:15px; rotate:-45deg}
+.arrow.l{left:20px; translate:0 -50%} .arrow.r{right:20px; translate:0 -50%}
+@media (max-width:900px){ .arrow{display:none} }
+.hero-art{position:relative; display:grid; place-items:center; min-height:330px}
+.hero-art .item{position:relative; z-index:2; width:88%; max-width:320px; translate:0 0;
+  display:grid; place-items:center; min-height:266px; overflow:visible}
+.photo-round{width:100%; aspect-ratio:1; border-radius:50%; overflow:hidden;
+  box-shadow:0 26px 60px -28px rgba(0,0,0,.6); background:#26290f}
+.photo-round img{width:100%; height:100%; object-fit:cover; display:block}
+.hero-art .item > svg{grid-area:1/1; width:100%; height:auto}   /* เผื่อกรณีกลับไปใช้ภาพวาด */
+/* ---------- สลับสินค้าในฮีโร่: ซ้อนช่องเดียวกัน สลับด้วย opacity/transform ---------- */
+.hero-art .item > .art-slide{grid-area:1/1; width:100%;
+  opacity:0; pointer-events:none;
+  backface-visibility:hidden; transform-origin:50% 62%}
+.hero.animating .art-slide{will-change:opacity,transform}
+.hero-art .item > .art-slide.on{opacity:1}
+/* ไม่ตั้ง will-change ค้างไว้ — จะถูกเปิดชั่วคราวด้วย JS ตอนสไลด์เท่านั้น
+   ถ้าตั้งค้างไว้ เบราว์เซอร์จะจองเลเยอร์การ์ดจอไว้ตลอดโดยไม่ได้ใช้ */
+.hero .eyebrow,.hero h1,.hero .sub,.hero .btn{backface-visibility:hidden}
+.hero.animating .eyebrow,.hero.animating h1,
+.hero.animating .sub,.hero.animating .btn{will-change:transform,opacity,filter}
+
+
+/* ---------- หมวดแนะนำ ---------- */
+.about{padding:clamp(52px,7vw,86px) 0; position:relative; overflow:hidden}
+.ghost-a{position:absolute; left:50%; top:13%; transform:translate(-50%,-50%);
+  font:700 clamp(34px,6.6vw,84px)/1 var(--disp); letter-spacing:.16em; text-transform:uppercase;
+  color:var(--ink); opacity:.05; white-space:nowrap; pointer-events:none; user-select:none; max-width:96%}
+.about-in{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.05fr); gap:46px; align-items:center}
+@media (max-width:880px){ .about-in{grid-template-columns:1fr; gap:32px} }
+.stack{position:relative; min-height:330px}
+.stack .ph{position:absolute; border-radius:8px; overflow:hidden}
+.stack .p1{width:46%; height:52%; left:2%; top:0;
+  background:linear-gradient(150deg,#9fbb63,#6f8f3f)}
+.stack .p2{width:58%; height:60%; left:14%; top:16%;
+  background:radial-gradient(60% 70% at 40% 30%, rgba(255,255,255,.28), transparent 62%),
+    linear-gradient(160deg,#c8b878,#8a7c33);
+  box-shadow:0 16px 40px -18px rgba(0,0,0,.45)}
+.stack .p3{width:52%; height:56%; right:0; bottom:0; background:var(--white);
+  box-shadow:0 16px 40px -18px rgba(0,0,0,.3); display:grid; place-items:center; border:1px solid var(--line)}
+.stack .p3 svg{width:60%; height:auto}
+.explore{position:absolute; left:0; bottom:8%; z-index:4; width:78px; height:78px; border-radius:50%;
+  background:var(--white); border:1px solid var(--line); box-shadow:0 10px 26px -12px rgba(0,0,0,.35);
+  display:grid; place-items:center; text-align:center; font:800 9.5px/1.35 var(--sans);
+  letter-spacing:.1em; text-transform:uppercase; color:var(--ink-2);
+  transition:transform .3s var(--ease)}
+.explore:hover{transform:scale(1.07)}
+.badges{display:flex; gap:22px; flex-wrap:wrap; margin-bottom:24px}
+.badge{width:96px; text-align:center}
+.badge .ring{width:80px; height:80px; margin:0 auto 9px; border-radius:50%;
+  border:2px solid var(--leaf); outline:1px solid var(--line); outline-offset:4px;
+  display:grid; place-items:center; color:var(--ink-2); background:var(--off)}
+.badge .ring svg{width:30px; height:30px}
+.badge b{display:block; font:800 9.5px/1.35 var(--sans); letter-spacing:.09em; text-transform:uppercase; color:var(--ink-2)}
+.about h2{font-size:clamp(24px,3.4vw,34px); line-height:1.15; margin-bottom:16px}
+.about h2 .lt{color:var(--ink-3)}
+.about p{margin:0 0 14px; color:var(--ink-2); max-width:54ch; font-size:14.5px; line-height:1.9}
+
+/* ---------- แถบสินค้า ---------- */
+.products{padding:clamp(52px,7vw,84px) 0 clamp(56px,7vw,80px); position:relative; color:#fff;
+  background:transparent}
+/* แถบเขียวคลุมแค่ครึ่งบน — การ์ดครึ่งล่างจึงทิ้งตัวลงบนพื้นขาว
+   วัดจากภาพอ้างอิง: เขียวจบที่ 49% ของความสูงการ์ดพอดี */
+.products::before{content:""; position:absolute; left:0; right:0; top:0; height:58%;
+  background:linear-gradient(100deg, var(--g-left) 0%, #98a44e 52%, var(--g-right) 100%);
+  z-index:0}
+.products .ghost{position:absolute; z-index:1; left:50%; top:11%; transform:translate(-50%,-50%);
+  font:700 clamp(36px,7vw,92px)/1 var(--disp); letter-spacing:.16em; text-transform:uppercase;
+  color:#fff; opacity:.085; white-space:nowrap; pointer-events:none; user-select:none; max-width:94%}
+.products .sec-h{position:relative; z-index:2; margin-bottom:46px}
+.pgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(248px,1fr)); gap:26px;
+  position:relative; z-index:2; max-width:940px; margin:0 auto; align-items:start}
+.pcard{background:var(--white); color:var(--ink); border-radius:4px; padding:44px 22px 0;
+  text-align:center; position:relative;
+  /* เงาเฉพาะช่วงบนที่อยู่บนพื้นเขียว — ครึ่งล่างบนพื้นขาวปล่อยให้กลืนหายไป */
+  box-shadow:0 -2px 30px -14px rgba(0,0,0,.34), 14px 0 34px -30px rgba(0,0,0,.4), -14px 0 34px -30px rgba(0,0,0,.4);
+  transition:transform .32s var(--ease)}
+.pcard:hover{transform:translateY(-8px)}
+/* ยกการ์ดกลางเฉพาะตอนไม่ใช่แถบเลื่อน — ในแถบเลื่อนการยกใบที่ 2 จะดูสุ่ม */
+.pgrid:not(.carousel) > .pcard:nth-child(2){margin-top:-22px; padding-bottom:22px}
+@media (max-width:820px){ .pgrid > .pcard:nth-child(2){margin-top:0} }
+.pcard .medal{position:absolute; left:50%; top:0; translate:-50% -50%; width:54px; height:54px;
+  border-radius:50%; background:var(--g-left); border:4px solid var(--white);
+  display:grid; place-items:center; box-shadow:0 8px 18px -8px rgba(0,0,0,.5)}
+.pcard .medal svg{width:24px; height:24px; color:#fff}
+.pcard h3{font-size:19px; line-height:1.2; color:var(--g-left)}
+.pcard .net{margin:6px 0 0; font:600 10px/1 var(--sans); letter-spacing:.19em; text-transform:uppercase; color:var(--ink-3)}
+.pcard .from{margin:18px 0 5px; font:700 10.5px/1 var(--sans); letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3)}
+.pcard .price{font:700 30px/1 var(--disp); letter-spacing:.01em; font-variant-numeric:tabular-nums}
+.pcard .btn{margin:15px 0 4px}
+.pcard .shot{aspect-ratio:1/1; display:grid; place-items:center; overflow:visible;
+  margin:14px 0 0; padding:0 0 20px}
+.pcard .shot svg{width:auto; height:100%; max-width:80%}
+.card-photo{width:86%; margin:0 auto;
+  box-shadow:0 16px 34px -20px rgba(0,0,0,.42)}
+.parrow{position:absolute; top:52%; z-index:2; color:rgba(255,255,255,.75); width:34px; height:34px;
+  display:grid; place-items:center}
+.parrow svg{width:26px; height:26px}
+.parrow.l{left:6px} .parrow.r{right:6px}
+@media (max-width:1080px){ .parrow{display:none} }
+
+/* ---------- แถบสมัครรับข่าว ---------- */
+.subs{padding:clamp(30px,4vw,44px) 0 clamp(46px,6vw,70px); position:relative; z-index:2}
+.subs-in{background:linear-gradient(100deg,#6f9a50,#8f7f2e); border-radius:4px;
+  box-shadow:0 26px 54px -26px rgba(0,0,0,.55); padding:34px 36px; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:26px; align-items:center; color:#fff}
+@media (max-width:760px){ .subs-in{grid-template-columns:1fr; padding:28px 24px} }
+.subs h3{font-size:clamp(22px,3vw,30px); line-height:1.14}
+.subs h3 .lt{opacity:.82}
+.subform{display:flex; align-items:center; gap:14px; border-bottom:1px solid rgba(255,255,255,.5); padding-bottom:6px}
+.subform input{flex:1; min-width:0; background:transparent; border:none; color:#fff;
+  font:400 14px/1 var(--sans); padding:12px 0}
+.subform input::placeholder{color:rgba(255,255,255,.72)}
+.subform input:focus{outline:none}
+.subform button{background:var(--white); color:var(--ink); border:none; cursor:pointer; flex-shrink:0;
+  padding:13px 22px; font:800 10.5px/1 var(--sans); letter-spacing:.14em; text-transform:uppercase}
+.subform button:focus-visible{outline:2px solid #fff; outline-offset:3px}
+
+/* ---------- ติดต่อ ---------- */
+.contact{position:relative; overflow:hidden; color:#fff; padding:clamp(52px,7vw,86px) 0;
+  background:linear-gradient(120deg,#20200a 0%, var(--contact-dk) 55%, #5d5320 100%)}
+.contact .field{position:absolute; inset:0; opacity:.45; pointer-events:none;
+  background:radial-gradient(46% 62% at 74% 46%, rgba(150,165,70,.5), transparent 64%)}
+.contact-in{position:relative; z-index:1; display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);
+  gap:38px; align-items:center}
+@media (max-width:880px){ .contact-in{grid-template-columns:1fr} }
+.contact h2{font-size:clamp(26px,3.8vw,38px); margin-bottom:26px}
+.contact h2 .lt{opacity:.78}
+.f2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+@media (max-width:520px){ .f2{grid-template-columns:1fr} }
+.fld{width:100%; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.42);
+  color:#fff; padding:14px 15px; font:400 14px/1.5 var(--sans); border-radius:2px}
+.fld::placeholder{color:rgba(255,255,255,.82)}
+.fld:focus{outline:none; border-color:var(--gold); background:rgba(255,255,255,.1)}
+textarea.fld{margin-top:12px; min-height:118px; resize:vertical}
+.cmeta{margin-top:24px; display:flex; flex-wrap:wrap; gap:22px; font-size:13px; color:rgba(255,255,255,.82)}
+.cmeta b{color:#fff; font-weight:800}
+.contact-art{display:grid; place-items:center}
+.contact-art svg{width:100%; max-width:168px}
+
+/* ---------- ท้ายเว็บ ---------- */
+footer{background:var(--white); padding:44px 0 0}
+.fgrid{display:grid; grid-template-columns:1.2fr repeat(3,1fr) 1.1fr; gap:26px}
+@media (max-width:900px){ .fgrid{grid-template-columns:1fr 1fr} }
+@media (max-width:520px){ .fgrid{grid-template-columns:1fr} }
+.fgrid b{display:block; font:800 10.5px/1 var(--sans); letter-spacing:.16em; text-transform:uppercase;
+  color:var(--ink); margin-bottom:14px}
+.fgrid a{display:block; color:var(--ink-3); text-decoration:none; font-size:13.5px; line-height:2.05}
+.fgrid a:hover{color:var(--g-left)}
+.flogo{display:flex; align-items:center; gap:11px}
+.flogo svg{width:44px; height:44px; color:var(--g-left)}
+.flogo .t{font-family:var(--disp); font-weight:700; font-size:19px; letter-spacing:.15em; text-transform:uppercase}
+.flogo .t small{display:block; font:600 7.5px/1 var(--sans); letter-spacing:.36em; color:var(--ink-3); margin-top:3px}
+.socials{display:flex; gap:9px; margin-top:4px}
+.socials i{width:30px; height:30px; border:1px solid var(--line); display:grid; place-items:center;
+  rotate:45deg; color:var(--ink-3); font-style:normal; font-size:11px; font-weight:800}
+.socials i span{rotate:-45deg}
+.credit{margin:34px 0 0; font-size:11.5px; line-height:1.7; color:var(--ink-3)}
+.credit a{color:var(--g-left)}
+.copy{margin-top:16px; border-top:1px solid var(--line); padding:18px 0 30px;
+  display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;
+  font-size:12px; color:var(--ink-3)}
+.pays{display:flex; gap:7px}
+.pays i{font-style:normal; font:800 9px/1 var(--sans); letter-spacing:.08em; padding:7px 10px;
+  border:1px solid var(--line); border-radius:3px; color:var(--ink-3)}
+
+
+/* ---------- ปุ่มที่แปลงจากของตกแต่ง ---------- */
+.arrow,.parrow,.explore,.chipbtn,.cart{font-family:inherit; cursor:pointer}
+.arrow{background:transparent; border:1px solid rgba(255,255,255,.3); padding:0}
+.arrow:hover{background:rgba(255,255,255,.14); color:#fff}
+.parrow{background:transparent; border:none; padding:0; cursor:pointer}
+.parrow:hover{color:#fff}
+.explore{cursor:pointer}
+.cart{border:none; cursor:pointer}
+.arrow:focus-visible,.parrow:focus-visible,.explore:focus-visible,
+.chipbtn:focus-visible,.cart:focus-visible{outline:2px solid var(--gold); outline-offset:3px}
+/* เลขอยู่ในวงกลมอยู่แล้ว ไม่ต้องมีป้ายมุมซ้ำ — ตอนว่างโชว์ไอคอนตะกร้าแทนเลข 0 */
+.cart[data-n="0"] #cartN{display:none}
+.cart[data-n="0"] .cico{display:block}
+.cart .cico{display:none; width:15px; height:15px}
+
+/* ---------- แถบสินค้าเลื่อนได้ ---------- */
+.pgrid{scroll-behavior:smooth}
+@media (min-width:821px){
+  .pgrid.carousel{display:flex; overflow-x:auto; scroll-snap-type:x mandatory;
+    gap:26px; padding-bottom:6px; scrollbar-width:none}
+  .pgrid.carousel::-webkit-scrollbar{display:none}
+  .pgrid.carousel > .pcard{flex:0 0 calc((100% - 52px)/3); scroll-snap-align:start}
+}
+
+/* ---------- ตะกร้า / เข้าสู่ระบบ ---------- */
+.scrim{position:fixed; inset:0; background:rgba(15,18,8,.55); backdrop-filter:blur(3px);
+  opacity:0; visibility:hidden; transition:opacity .3s var(--ease), visibility .3s; z-index:80}
+.scrim.on{opacity:1; visibility:visible}
+.drawer{position:fixed; top:0; right:0; bottom:0; width:min(380px,92vw); background:var(--white);
+  z-index:90; transform:translateX(102%); transition:transform .38s var(--ease);
+  display:flex; flex-direction:column; box-shadow:-14px 0 44px -20px rgba(0,0,0,.5)}
+.drawer.on{transform:none}
+.drawer header{display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:20px 22px; border-bottom:1px solid var(--line)}
+.drawer h3{margin:0; font-family:var(--disp); font-weight:700; font-size:19px; letter-spacing:.06em; text-transform:uppercase}
+.xbtn{background:transparent; border:none; cursor:pointer; font:400 24px/1 var(--sans); color:var(--ink-3); padding:4px 8px}
+.xbtn:hover{color:var(--ink)}
+.xbtn:focus-visible{outline:2px solid var(--gold); outline-offset:2px}
+.drawer .body{flex:1; overflow-y:auto; padding:18px 22px}
+.drawer .foot{padding:18px 22px; border-top:1px solid var(--line)}
+.citem{display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center;
+  padding:13px 0; border-bottom:1px solid var(--line)}
+.citem .nm{font-weight:700; font-size:14.5px}
+.citem .pr{font:600 12.5px/1.5 var(--sans); color:var(--ink-3)}
+.citem .qty{display:flex; align-items:center; gap:8px}
+.citem .qty button{width:26px; height:26px; border:1px solid var(--line); background:var(--white);
+  cursor:pointer; font:700 14px/1 var(--sans); color:var(--ink)}
+.citem .qty button:hover{border-color:var(--gold); color:var(--gold)}
+.citem .qty span{font:700 13px/1 var(--sans); min-width:16px; text-align:center}
+.empty{color:var(--ink-3); text-align:center; padding:34px 0; font-size:14px}
+.total{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;
+  font-weight:800; font-size:17px}
+.modal{position:fixed; left:50%; top:50%; translate:-50% -50%; z-index:90; width:min(390px,92vw);
+  background:var(--white); padding:30px 28px; opacity:0; visibility:hidden; scale:.96;
+  transition:opacity .28s var(--ease), visibility .28s, scale .28s var(--ease);
+  box-shadow:0 30px 70px -30px rgba(0,0,0,.6)}
+.modal.on{opacity:1; visibility:visible; scale:1}
+.modal h3{margin:0 0 6px; font-family:var(--disp); font-weight:700; font-size:22px; letter-spacing:.05em; text-transform:uppercase}
+.modal p{margin:0 0 20px; color:var(--ink-2); font-size:14px}
+.modal .fld2{width:100%; padding:13px 14px; border:1px solid var(--line); margin-bottom:10px;
+  font:400 14px/1.5 var(--sans); background:var(--off); color:var(--ink)}
+.modal .fld2:focus{outline:none; border-color:var(--gold); background:var(--white)}
+
+/* ---------- ข้อความแจ้งเตือน ---------- */
+.toast{position:fixed; left:50%; bottom:26px; translate:-50% 0; z-index:120; background:var(--ink);
+  color:#fff; padding:14px 22px; font:600 14px/1.4 var(--sans); max-width:88vw;
+  opacity:0; visibility:hidden; transition:opacity .3s, visibility .3s, translate .3s var(--ease)}
+.toast.on{opacity:1; visibility:visible; translate:-50% -8px}
+.toast.bad{background:#8f3226}
+
+/* ---------- สถานะฟอร์มผิด ---------- */
+.fld.err,.subform.err input{border-color:#e88a7d; background:rgba(232,138,125,.12)}
+.formmsg{margin-top:12px; font:600 13.5px/1.5 var(--sans); color:#cfe6a8}
+.formmsg.bad{color:#f3b0a5}
+
+/* ---------- แอนิเมชันตอนเลื่อนถึง ---------- */
+.rv{opacity:0; transform:translateY(26px)}
+.rv.in{opacity:1; transform:none;
+  transition:opacity .85s var(--ease), transform .85s var(--ease)}
+.rv.d1.in{transition-delay:.08s} .rv.d2.in{transition-delay:.16s}
+.rv.d3.in{transition-delay:.24s} .rv.d4.in{transition-delay:.32s}
+/* การ์ดสินค้าเด้งขึ้นทีละใบ */
+.pcard.rv{transform:translateY(34px) scale(.97)}
+.pcard.rv.in{transform:none; transition:opacity .7s var(--ease), transform .75s cubic-bezier(.2,1.25,.35,1)}
+/* ตรากลมหมุนเข้า */
+.badge.rv{transform:translateY(18px) scale(.85)}
+.badge.rv.in{transform:none; transition:opacity .6s var(--ease), transform .7s cubic-bezier(.2,1.4,.4,1)}
+/* กองรูปในหมวดแนะนำ ไล่เข้าทีละแผ่น */
+.stack .ph{opacity:0; transform:translateY(24px) scale(.96)}
+.stack.in .ph{opacity:1; transform:none; transition:opacity .8s var(--ease), transform .85s var(--ease)}
+.stack.in .p2{transition-delay:.1s} .stack.in .p3{transition-delay:.2s}
+.stack .explore{opacity:0; scale:.6}
+.stack.in .explore{opacity:1; scale:1; transition:opacity .5s .38s var(--ease), scale .55s .38s cubic-bezier(.2,1.5,.4,1)}
+
+/* ---------- ปุ่มกดแล้วรู้สึกได้ ---------- */
+.btn:active{transform:translateY(1px) scale(.985)}
+.pill:active,.chipbtn:active,.cart:active{transform:scale(.94)}
+.chipbtn,.cart{transition:transform .16s var(--ease), background .2s}
+.arrow,.parrow{transition:background .22s, color .22s, transform .22s var(--ease)}
+.arrow:active,.parrow:active{transform:scale(.9) rotate(45deg)}
+.parrow:active{transform:scale(.88)}
+.explore{transition:transform .3s var(--ease), box-shadow .3s var(--ease)}
+.explore:active{transform:scale(.94)}
+/* ลิงก์เมนูมีเส้นใต้วิ่ง */
+.nav a{position:relative}
+.nav a::after{content:""; position:absolute; left:0; right:0; bottom:-6px; height:2px;
+  background:var(--g-left); transform:scaleX(0); transform-origin:right;
+  transition:transform .3s var(--ease)}
+.nav a:hover::after,.nav a.on::after{transform:scaleX(1); transform-origin:left}
+/* การ์ดสินค้า: รูปขยับตอนชี้ */
+.pcard .shot svg{transition:transform .45s var(--ease)}
+.pcard:hover .shot svg{transform:translateY(-6px) scale(1.03)}
+.pcard .medal{transition:transform .45s var(--ease)}
+.pcard:hover .medal{transform:translate(-50%,-50%) rotate(-8deg) scale(1.08)}
+/* ตะกร้าเด้งเมื่อมีของเพิ่ม */
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.22)}100%{transform:scale(1)}}
+.cart.bump{animation:bump .42s var(--ease)}
+/* รายการในตะกร้าไหลเข้า */
+@keyframes slideIn{from{opacity:0; transform:translateX(16px)}to{opacity:1; transform:none}}
+.citem{animation:slideIn .32s var(--ease) both}
+
+@media (prefers-reduced-motion:reduce){
+  .rv,.pcard.rv,.badge.rv,.stack .ph,.stack .explore{opacity:1!important; transform:none!important; scale:1!important}
+  .citem{animation:none}
+}
+
+@media (prefers-reduced-motion:reduce){ *{transition:none!important; animation:none!important} }
+</style>
+</head>
+<body>
+
+
+<!-- ============ แถบบนสุด ============ -->
+<header class="top" id="top">
+  <div class="w top-in">
+    <nav class="nav">
+      <a href="#top" class="on">Home</a><a href="#products">Shop</a><a href="#about">About</a><a href="#products">Store</a><a href="#contact">Contact Us</a>
+    </nav>
+    <div class="brandmark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true">
+        <path d="M12 22V11M12 11c0-3.4 1.2-6.4 0-9-1.2 2.6 0 5.6 0 9zM12 14.5c-1.8-3-4.2-4.4-7.6-4.8 .7 3.7 3 6 7.6 6.4M12 14.5c1.8-3 4.2-4.4 7.6-4.8 -.7 3.7-3 6-7.6 6.4M12 19c-1.6-2.3-3.9-3.2-6.9-3 1.2 2.8 3.7 3.9 6.9 3.4M12 19c1.6-2.3 3.9-3.2 6.9-3 -1.2 2.8-3.7 3.9-6.9 3.4"/>
+      </svg>
+      <b>[ชื่อแบรนด์]</b>
+      <small>reserve</small>
+    </div>
+    <div class="top-r">
+      <a class="tel" href="tel:+660000000"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5c0 8 7 15 15 15l2-3-4-2-2 2c-2-1-5-4-6-6l2-2-2-4z"/></svg></span><span>[เบอร์โทร]</span></a>
+      <button class="chipbtn" type="button" id="loginBtn"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1.6-3.6 4.2-5.4 7.5-5.4S18 16.4 19.5 20"/></svg><span>Login / Register</span></button>
+      <button class="cart" type="button" id="cartBtn" aria-label="ตะกร้าสินค้า"><svg class="cico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2l2.4 11.2a2 2 0 002 1.6h7.4a2 2 0 002-1.6L20.5 8H6"/><circle cx="10" cy="20" r="1.2"/><circle cx="17" cy="20" r="1.2"/></svg><span id="cartN">0</span></button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- ============ ฮีโร่ ============ -->
+<section class="hero">
+  <div class="field" aria-hidden="true"></div>
+  <div class="ghost" aria-hidden="true">[ชื่อแบรนด์]</div>
+  <button class="arrow l" type="button" id="heroPrev" aria-label="สไลด์ก่อนหน้า"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+  <button class="arrow r" type="button" id="heroNext" aria-label="สไลด์ถัดไป"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+  <div class="w hero-in">
+    <div>
+      <div class="eyebrow"><b>100%</b> NATURAL</div>
+      <h1 class="h" lang="th">[สินค้า] <span class="lt">[รุ่น]</span></h1>
+      <p class="sub">[ประโยครองสั้นๆ · หนึ่งบรรทัด]</p>
+      <a class="btn" href="#products">Shop Now</a>
+    </div>
+    <div class="hero-art">
+      <div class="item" id="heroItem"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ หมวดแนะนำ ============ -->
+<section class="about" id="about">
+  <div class="w">
+    <h2 class="h sec-h" lang="th" style="margin-bottom:44px">[หัวข้อหมวด] <span class="lt">คืออะไร</span></h2>
+  </div>
+  <div class="w about-in">
+    <div class="stack" aria-hidden="true">
+      <div class="ph p1"></div>
+      <div class="ph p2"></div>
+      <div class="ph p3" id="stackItem"></div>
+      <button class="explore" type="button" id="exploreBtn">Explore<br>More</button>
+    </div>
+    <div>
+      <div class="badges" id="badges"></div>
+      <h2 class="h" lang="th">[หัวข้อหลัก] <span class="lt">[คำขยาย]</span></h2>
+      <p>[ย่อหน้าอธิบายแบรนด์ ประมาณสามถึงสี่บรรทัด บอกว่าสินค้ามาจากไหน ผลิตอย่างไร และทำไมถึงต่างจากเจ้าอื่น เขียนให้อ่านจบได้ในหนึ่งลมหายใจ]</p>
+      <p>[ย่อหน้าที่สอง สั้นกว่าย่อหน้าแรก ใช้เสริมรายละเอียดที่คนถามบ่อย]</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ สินค้า ============ -->
+<section class="products" id="products">
+  <div class="ghost" aria-hidden="true">Products We Deliver</div>
+  <button class="parrow l" type="button" id="pPrev" aria-label="เลื่อนสินค้าไปทางซ้าย"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M14 5l-7 7 7 7"/></svg></button>
+  <button class="parrow r" type="button" id="pNext" aria-label="เลื่อนสินค้าไปทางขวา"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M10 5l7 7-7 7"/></svg></button>
+  <div class="w">
+    <h2 class="h sec-h">Products <span class="lt">We Deliver</span></h2>
+    <div class="pgrid" id="pgrid"></div>
+  </div>
+</section>
+
+<!-- ============ สมัครรับข่าว ============ -->
+<section class="subs">
+  <div class="w">
+    <div class="subs-in">
+      <h3 class="h">Subscribe<br><span class="lt">Our Newsletter</span></h3>
+      <form class="subform" id="subForm" novalidate>
+        <label for="em" style="position:absolute;left:-9999px">อีเมล</label>
+        <input id="em" type="email" placeholder="Enter your email address">
+        <button type="submit">Subscribe</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ติดต่อ ============ -->
+<section class="contact" id="contact">
+  <div class="field" aria-hidden="true"></div>
+  <div class="w contact-in">
+    <div>
+      <h2 class="h">Get <span class="lt">In Touch</span></h2>
+      <form id="contactForm" novalidate>
+        <div class="f2">
+          <input class="fld" required type="text" placeholder="Full name*" aria-label="ชื่อ-นามสกุล">
+          <input class="fld" required type="email" placeholder="Email address*" aria-label="อีเมล">
+          <input class="fld" required type="tel" placeholder="Phone number*" aria-label="เบอร์โทร">
+          <input class="fld" type="text" placeholder="Company name*" aria-label="ชื่อบริษัท">
+        </div>
+        <textarea class="fld" placeholder="Message*" aria-label="ข้อความ" required></textarea>
+        <button class="btn" type="submit" style="margin-top:14px">Send Message</button>
+      </form>
+      <div class="cmeta">
+        <span><b>Location:</b> [ที่อยู่]</span>
+        <span><b>Phone:</b> [เบอร์โทร]</span>
+        <span><b>Email:</b> [อีเมล]</span>
+      </div>
+    </div>
+    <div class="contact-art" id="contactItem" aria-hidden="true"></div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="w">
+    <div class="fgrid">
+      <div>
+        <div class="flogo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true">
+            <path d="M12 22V11M12 11c0-3.4 1.2-6.4 0-9-1.2 2.6 0 5.6 0 9zM12 14.5c-1.8-3-4.2-4.4-7.6-4.8 .7 3.7 3 6 7.6 6.4M12 14.5c1.8-3 4.2-4.4 7.6-4.8 -.7 3.7-3 6-7.6 6.4M12 19c-1.6-2.3-3.9-3.2-6.9-3 1.2 2.8 3.7 3.9 6.9 3.4M12 19c1.6-2.3 3.9-3.2 6.9-3 -1.2 2.8-3.7 3.9-6.9 3.4"/>
+          </svg>
+          <span class="t">[ชื่อแบรนด์]<small>reserve</small></span>
+        </div>
+      </div>
+      <div><b>Site Navigation</b><a href="#top">Home</a><a href="#products">Shop</a><a href="#about">About</a><a href="#contact">Contact Us</a></div>
+      <div><b>Explore</b><a href="#">Login</a><a href="#">About us</a><a href="#">Contacts</a><a href="#">FAQ</a></div>
+      <div><b>Legal</b><a href="#">Returns &amp; Refunds</a><a href="#">Privacy Policy</a><a href="#">Terms of Service</a></div>
+      <div><b>Follow Us On</b>
+        <div class="socials"><i><span>f</span></i><i><span>ig</span></i><i><span>tw</span></i><i><span>yt</span></i></div>
+      </div>
+    </div>
+    <p class="credit">รูปสินค้า: “CBD Hemp Oil Bottle” และ “CBD oil bottle” โดย Elsa Olofsson ·
+      “JarOfMarijuana” โดย Cannabis Culture — ทั้งหมดจาก Wikimedia Commons สัญญาอนุญาต
+      <a href="https://creativecommons.org/licenses/by/2.0/" target="_blank" rel="noopener">CC BY 2.0</a></p>
+    <div class="copy">
+      <span>© [ปี] [ชื่อแบรนด์]. All rights reserved. &nbsp;|&nbsp; Privacy Policy &nbsp;|&nbsp; Terms &amp; Conditions</span>
+      <span class="pays"><i>AMEX</i><i>VISA</i><i>MC</i><i>DINERS</i></span>
+    </div>
+  </div>
+</footer>
+
+<div class="scrim" id="scrim"></div>
+
+<aside class="drawer" id="cartDrawer" role="dialog" aria-modal="true" aria-labelledby="cartTitle" aria-hidden="true">
+  <header><h3 id="cartTitle">ตะกร้าสินค้า</h3><button class="xbtn" type="button" data-close aria-label="ปิดตะกร้า">&times;</button></header>
+  <div class="body" id="cartBody"></div>
+  <div class="foot">
+    <div class="total"><span>รวมทั้งหมด</span><span id="cartTotal">฿0</span></div>
+    <button class="btn" type="button" style="width:100%" id="checkoutBtn">Checkout</button>
+  </div>
+</aside>
+
+<div class="modal" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginTitle" aria-hidden="true">
+  <h3 id="loginTitle">เข้าสู่ระบบ</h3>
+  <p>ตัวอย่างหน้าจอเท่านั้น ยังไม่ได้ต่อระบบสมาชิกจริง</p>
+  <form id="loginForm" novalidate>
+    <input class="fld2" type="email" placeholder="อีเมล" aria-label="อีเมล" required>
+    <input class="fld2" type="password" placeholder="รหัสผ่าน" aria-label="รหัสผ่าน" required>
+    <button class="btn" type="submit" style="width:100%; margin-top:8px">Login</button>
+  </form>
+  <button class="xbtn" type="button" data-close aria-label="ปิด"
+    style="position:absolute; top:8px; right:8px">&times;</button>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+
+<script>
+(function(){
+  var NS='http://www.w3.org/2000/svg';
+  function el(n,a){ var e=document.createElementNS(NS,n); for(var k in a) e.setAttribute(k,a[k]); return e; }
+
+  /* ============================================================
+     ▼ ช่องใส่รูปสินค้าจริง ▼
+     ต้นฉบับใช้ภาพถ่ายขวดตัดพื้นหลัง วางบนพื้นสว่าง
+     ใส่ที่อยู่รูปในช่อง photo ของแต่ละรายการ ถ้าเว้นว่าง
+     จะวาดรูปขวดแทนให้อัตโนมัติ
+     ============================================================ */
+  /* photo: ใส่ที่อยู่รูปสินค้าของร้านเองได้เลย ถ้าเว้นว่างจะใช้ภาพวาดแทน */
+  var ITEMS=[
+    {id:'p1', name:'[สินค้า 1]', net:'net wt. 300g', price:1290, photo:'img/prod-tincture-sm.jpg'},
+    {id:'p2', name:'[สินค้า 2]', net:'net wt. 300g', price:1590, photo:'img/prod-flower-sm.jpg'},
+    {id:'p3', name:'[สินค้า 3]', net:'net wt. 300g', price:990,  photo:'img/prod-oil-sm.jpg'},
+    {id:'p4', name:'[สินค้า 4]', net:'net wt. 300g', price:1450, photo:'img/prod-flower-sm.jpg'},
+    {id:'p5', name:'[สินค้า 5]', net:'net wt. 300g', price:1150, photo:'img/prod-tincture-sm.jpg'},
+    {id:'p6', name:'[สินค้า 6]', net:'net wt. 300g', price:1790, photo:'img/prod-oil-sm.jpg'}
+  ];
+  var baht=function(n){ return '฿'+n.toLocaleString(); };
+
+  /* รูปขวดวาดเอง — ใช้แทนภาพถ่ายจนกว่าจะมีรูปจริง */
+  /* ============================================================
+     สินค้าทั้ง 3 แบบวาดในกรอบเดียวกันเป๊ะ: x 38→82 · y 52→228
+     เดิมขวดกว้าง 38 แต่กระปุกกับกล่องกว้าง ~70 (เกือบสองเท่า)
+     พอสลับกันจึงเห็นเป็นของใหญ่ขึ้น-เล็กลง และกล่องทะลุวงกลมออกมา
+     ============================================================ */
+  function bottle(){
+    var s=el('svg',{viewBox:'0 0 120 260','aria-hidden':'true'}), g=el('g',{});
+    g.appendChild(el('rect',{x:'52',y:'52',width:'16',height:'30',rx:'3',fill:'#15170d'}));
+    g.appendChild(el('rect',{x:'49',y:'80',width:'22',height:'11',rx:'3',fill:'#22261a'}));
+    g.appendChild(el('path',{d:'M42 91 q-2 6 -2 14 v107 q0 16 14 16 h12 q14 0 14 -16 v-107 q0 -8 -2 -14z',fill:'#1b1e12'}));
+    g.appendChild(el('rect',{x:'42',y:'128',width:'36',height:'70',rx:'3',fill:'#0e1009'}));
+    g.appendChild(el('rect',{x:'46',y:'136',width:'28',height:'3',rx:'1.5',fill:'#7fa85c'}));
+    g.appendChild(el('rect',{x:'49',y:'148',width:'22',height:'8',rx:'3',fill:'#e8ecdf'}));
+    g.appendChild(el('rect',{x:'51',y:'166',width:'18',height:'3',rx:'1.5',fill:'#6f9a4e'}));
+    g.appendChild(el('rect',{x:'47',y:'186',width:'26',height:'3',rx:'1.5',fill:'#7fa85c'}));
+    g.appendChild(el('path',{d:'M47 98 q-2 5 -2 12 v100',stroke:'rgba(255,255,255,.16)','stroke-width':'4',fill:'none','stroke-linecap':'round'}));
+    s.appendChild(g); return s;
+  }
+  function leafArt(){
+    var s=el('svg',{viewBox:'0 0 120 200','aria-hidden':'true'}), g=el('g',{});
+    ['#8fbb62','#6d9c46','#a9cd80'].forEach(function(c,i){
+      g.appendChild(el('ellipse',{cx:60,cy:60+i*12,rx:14-i*2,ry:44-i*8,fill:c,opacity:.9,
+        transform:'rotate('+((i-1)*38)+' 60 100)'}));
+    });
+    g.appendChild(el('path',{d:'M60 150 L60 190',stroke:'#5c8a3c','stroke-width':'4','stroke-linecap':'round'}));
+    s.appendChild(g); return s;
+  }
+
+  var si=document.getElementById('stackItem'); if(si) si.appendChild(leafArt());
+  var ci=document.getElementById('contactItem');
+  if(ci){ var cp=document.createElement('div'); cp.className='photo-round';
+    var cim=document.createElement('img'); cim.src='img/prod-flower.jpg';
+    cim.alt='โหลแก้วบรรจุดอกแห้ง'; cim.width=560; cim.height=560;
+    cp.appendChild(cim); ci.appendChild(cp); }
+
+  /* ตราความน่าเชื่อถือ 3 วง — ต้นฉบับมี 3 วงเรียงกัน */
+  var B=[
+    {t:'[จุดเด่น 1]', d:'M12 21V9M12 9c-3-1-5-3.4-5.4-6.6C9.8 2.8 12 5 12 9zm0 0c3-1 5-3.4 5.4-6.6C14.2 2.8 12 5 12 9zM12 15c-2.4-1.6-5-1.8-7.4-.6C6.2 17 9 17.4 12 15zm0 0c2.4-1.6 5-1.8 7.4-.6C17.8 17 15 17.4 12 15z'},
+    {t:'[จุดเด่น 2]', d:'M12 3l2.5 5.2 5.5.8-4 3.9 1 5.6L12 16l-5 2.5 1-5.6-4-3.9 5.5-.8z'},
+    {t:'[จุดเด่น 3]', d:'M12 21a9 9 0 100-18 9 9 0 000 18zM8.5 12.4l2.4 2.4 4.6-5'}
+  ];
+  var bw=document.getElementById('badges');
+  if(bw) B.forEach(function(b){
+    var d=document.createElement('div'); d.className='badge';
+    d.innerHTML='<div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" '+
+      'stroke-linecap="round" stroke-linejoin="round"><path d="'+b.d+'"/></svg></div><b>'+b.t+'</b>';
+    bw.appendChild(d);
+  });
+
+  /* การ์ดสินค้า */
+  var pg=document.getElementById('pgrid');
+  if(pg){ pg.classList.add('carousel'); } if(pg) ITEMS.forEach(function(it){
+    var c=document.createElement('article'); c.className='pcard';
+    c.innerHTML=
+      '<div class="medal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">'+
+      '<path d="M12 21V11M12 11c0-3 1-5.6 0-8-1 2.4 0 5 0 8zM12 14c-1.6-2.6-3.8-3.9-6.9-4.3 .6 3.3 2.7 5.4 6.9 5.8M12 14c1.6-2.6 3.8-3.9 6.9-4.3 -.6 3.3-2.7 5.4-6.9 5.8"/></svg></div>'+
+      '<h3 class="h" lang="th">'+it.name+'</h3>'+
+      '<div class="net">'+it.net+'</div>'+
+      '<div class="from">Starting at:</div>'+
+      '<div class="price">'+baht(it.price)+'</div>'+
+      '<button class="btn" type="button" data-add="'+it.id+'">Shop Now</button>'+
+      '<div class="shot"></div>';
+    var shot=c.querySelector('.shot');
+    if(it.photo){
+      var pw=document.createElement('div'); pw.className='photo-round card-photo';
+      var im=document.createElement('img'); im.src=it.photo; im.alt='รูป '+it.name;
+      im.width=400; im.height=400; im.loading='lazy'; im.decoding='async';
+      pw.appendChild(im); shot.appendChild(pw);
+    } else shot.appendChild(bottle());
+    pg.appendChild(c);
+  });
+  /* ============================================================
+     ทำให้ทุกปุ่มในหน้าทำงานจริง
+     (หน้านี้ไม่มีเซิร์ฟเวอร์ ทุกอย่างจึงทำงานฝั่งผู้ใช้ล้วน)
+     ============================================================ */
+  var $=function(id){ return document.getElementById(id); };
+
+  /* ---- ข้อความแจ้งเตือน ---- */
+  var toastEl=$('toast'), toastT;
+  function toast(msg,bad){
+    if(!toastEl) return;
+    toastEl.textContent=msg;
+    toastEl.classList.toggle('bad',!!bad);
+    toastEl.classList.add('on');
+    clearTimeout(toastT); toastT=setTimeout(function(){ toastEl.classList.remove('on'); },2600);
+  }
+
+  /* ---- เปิด/ปิดแผงและโมดัล ---- */
+  var scrim=$('scrim'), openPanel=null, lastFocus=null;
+  function closePanel(){
+    if(!openPanel) return;
+    openPanel.classList.remove('on'); openPanel.setAttribute('aria-hidden','true');
+    scrim.classList.remove('on'); openPanel=null;
+    if(lastFocus) lastFocus.focus();
+  }
+  function open(p){
+    lastFocus=document.activeElement;
+    if(openPanel) closePanel();
+    openPanel=p; p.classList.add('on'); p.setAttribute('aria-hidden','false'); scrim.classList.add('on');
+    var f=p.querySelector('input,button'); if(f) f.focus();
+  }
+  if(scrim) scrim.addEventListener('click',closePanel);
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape') closePanel(); });
+  [].slice.call(document.querySelectorAll('[data-close]')).forEach(function(b){
+    b.addEventListener('click',closePanel);
+  });
+
+  /* ---- ตะกร้าสินค้า ---- */
+  var cart={};
+  function cartCount(){ var n=0; for(var k in cart) n+=cart[k]; return n; }
+  function cartTotal(){ var t=0; ITEMS.forEach(function(i){ t+=(cart[i.id]||0)*i.price; }); return t; }
+  function drawCart(){
+    var b=$('cartBody'); if(!b) return;
+    var rows='';
+    ITEMS.forEach(function(i){
+      if(!cart[i.id]) return;
+      rows+='<div class="citem"><div><div class="nm">'+i.name+'</div><div class="pr">'+baht(i.price)+'</div></div>'+
+        '<div></div><div class="qty">'+
+        '<button type="button" data-dec="'+i.id+'" aria-label="ลด '+i.name+'">−</button>'+
+        '<span>'+cart[i.id]+'</span>'+
+        '<button type="button" data-inc="'+i.id+'" aria-label="เพิ่ม '+i.name+'">+</button></div></div>';
+    });
+    b.innerHTML = rows || '<p class="empty">ยังไม่มีสินค้าในตะกร้า</p>';
+    $('cartTotal').textContent = baht(cartTotal());
+    var c=$('cartBtn'), n=cartCount();
+    if(c){ c.dataset.n=n; var s=$('cartN'); if(s) s.textContent=n; }
+  }
+  document.addEventListener('click',function(e){
+    var add=e.target.closest && e.target.closest('[data-add]');
+    if(add){ var id=add.dataset.add; cart[id]=(cart[id]||0)+1; drawCart();
+      var it=ITEMS.filter(function(x){return x.id===id;})[0];
+      toast('เพิ่ม '+(it?it.name:'สินค้า')+' ลงตะกร้าแล้ว'); return; }
+    var inc=e.target.closest && e.target.closest('[data-inc]');
+    if(inc){ cart[inc.dataset.inc]++; drawCart(); return; }
+    var dec=e.target.closest && e.target.closest('[data-dec]');
+    if(dec){ var k=dec.dataset.dec; cart[k]--; if(cart[k]<=0) delete cart[k]; drawCart(); return; }
+  });
+  if($('cartBtn')) $('cartBtn').addEventListener('click',function(){ drawCart(); open($('cartDrawer')); });
+  if($('checkoutBtn')) $('checkoutBtn').addEventListener('click',function(){
+    if(!cartCount()){ toast('ตะกร้ายังว่างอยู่',true); return; }
+    toast('ตัวอย่างเท่านั้น — ยังไม่ได้ต่อระบบชำระเงิน');
+  });
+  drawCart();
+
+  /* ---- เข้าสู่ระบบ ---- */
+  if($('loginBtn')) $('loginBtn').addEventListener('click',function(){ open($('loginModal')); });
+  if($('loginForm')) $('loginForm').addEventListener('submit',function(e){
+    e.preventDefault();
+    var ins=this.querySelectorAll('input'), ok=true;
+    [].slice.call(ins).forEach(function(i){ if(!i.value.trim()){ ok=false; i.style.borderColor='#e88a7d'; }
+      else i.style.borderColor=''; });
+    if(!ok){ toast('กรอกอีเมลและรหัสผ่านให้ครบ',true); return; }
+    closePanel(); toast('ตัวอย่างเท่านั้น — ยังไม่ได้ต่อระบบสมาชิก');
+  });
+
+  /* ---- สไลด์ในฮีโร่ ---- */
+  var SLIDES=[
+    {eye:'<b>100%</b> NATURAL', h:'[สินค้า] <span class="lt">[รุ่น]</span>',
+     sub:'[ประโยครองสั้นๆ · หนึ่งบรรทัด]', art:'bottle'},
+    {eye:'<b>NEW</b> ARRIVAL',  h:'[สินค้าใหม่] <span class="lt">[รุ่น]</span>',
+     sub:'[จุดขายของสินค้าใหม่ · หนึ่งบรรทัด]', art:'jar'},
+    {eye:'<b>BEST</b> SELLER',  h:'[ขายดี] <span class="lt">[รุ่น]</span>',
+     sub:'[เหตุผลที่ลูกค้าซื้อซ้ำ · หนึ่งบรรทัด]', art:'box'}
+  ];
+  /* สินค้า 3 แบบให้สลับกันในสไลด์ — โหล / กระปุก / กล่อง */
+  function jarArt(){
+    var s=el('svg',{viewBox:'0 0 120 260','aria-hidden':'true'}), g=el('g',{});
+    g.appendChild(el('path',{d:'M28 78 q-4 -22 14 -26 h36 q18 4 14 26z',fill:'#6b5a34'}));
+    g.appendChild(el('rect',{x:'24',y:'78',width:'72',height:'164',rx:'14',fill:'#1b1e12'}));
+    g.appendChild(el('rect',{x:'24',y:'78',width:'72',height:'164',rx:'14',fill:'none',stroke:'rgba(255,255,255,.14)','stroke-width':'2'}));
+    g.appendChild(el('rect',{x:'33',y:'112',width:'54',height:'92',rx:'4',fill:'#0e1009'}));
+    g.appendChild(el('rect',{x:'42',y:'128',width:'36',height:'9',rx:'3',fill:'#e8ecdf'}));
+    g.appendChild(el('rect',{x:'46',y:'150',width:'28',height:'4',rx:'2',fill:'#7fa85c'}));
+    g.appendChild(el('rect',{x:'50',y:'170',width:'20',height:'4',rx:'2',fill:'#6f9a4e'}));
+    g.appendChild(el('path',{d:'M35 98 v128',stroke:'rgba(255,255,255,.16)','stroke-width':'5',fill:'none','stroke-linecap':'round'}));
+    s.appendChild(g); return s;
+  }
+  function boxArt(){
+    var s=el('svg',{viewBox:'0 0 120 260','aria-hidden':'true'}), g=el('g',{});
+    g.appendChild(el('rect',{x:'32',y:'46',width:'54',height:'196',rx:'4',fill:'#1b1e12'}));
+    g.appendChild(el('path',{d:'M86 46 l14 12 v196 l-14 -12z',fill:'#0d0f08'}));
+    g.appendChild(el('path',{d:'M32 46 l14 -12 h54 l-14 12z',fill:'#262a19'}));
+    g.appendChild(el('rect',{x:'41',y:'104',width:'36',height:'74',rx:'3',fill:'#0e1009'}));
+    g.appendChild(el('rect',{x:'47',y:'118',width:'24',height:'8',rx:'3',fill:'#e8ecdf'}));
+    g.appendChild(el('rect',{x:'49',y:'138',width:'20',height:'4',rx:'2',fill:'#7fa85c'}));
+    g.appendChild(el('rect',{x:'43',y:'206',width:'32',height:'4',rx:'2',fill:'#6f9a4e'}));
+    s.appendChild(g); return s;
+  }
+  var ART={bottle:bottle, jar:jarArt, box:boxArt};
+
+  /* ============================================================
+     รูปสินค้าจริงจาก Wikimedia Commons (สัญญาอนุญาต CC BY)
+     ให้เครดิตผู้ถ่ายไว้ท้ายหน้าแล้ว — เงื่อนไขบังคับของ CC BY
+     ถ้าจะใช้เชิงพาณิชย์จริง แนะนำถ่ายรูปสินค้าของร้านเองแทน
+     จะได้ไม่ติดเงื่อนไขให้เครดิต และได้ภาพที่ตรงกับของที่ขายจริง
+     ============================================================ */
+  var PHOTOS={
+    bottle:{src:'img/prod-tincture.jpg', alt:'ขวดหยดน้ำมันสกัด'},
+    jar   :{src:'img/prod-flower.jpg',   alt:'โหลแก้วบรรจุดอกแห้ง'},
+    box   :{src:'img/prod-oil.jpg',      alt:'ขวดน้ำมันสกัดขนาดพกพา'}
+  };
+  function photoArt(key){
+    var wrap=document.createElement('div');
+    wrap.className='photo-round';
+    var im=document.createElement('img');
+    im.src=PHOTOS[key].src; im.alt=PHOTOS[key].alt;
+    im.loading='eager'; im.decoding='async';
+    im.width=760; im.height=760;      /* จองพื้นที่ล่วงหน้า กันหน้ากระตุกตอนรูปโหลดเสร็จ */
+    wrap.appendChild(im);
+    return wrap;
+  }
+
+  var artHost=document.getElementById('heroItem');
+  var artEls={};
+  ['bottle','jar','box'].forEach(function(k,i){
+    if(!artHost) return;
+    var node=photoArt(k);
+    node.classList.add('art-slide');
+    if(i===0) node.classList.add('on');
+    artHost.appendChild(node);
+    artEls[k]=node;
+  });
+  var curArt='bottle';
+
+  /* ============================================================
+     สลับรูปสินค้า — จางออก/จางเข้าอยู่กับที่ พร้อมคลี่ขยายเบาๆ
+     ไม่มีของประดับด้านหลังแล้ว รูปเป็นพระเอกเดี่ยว
+     ============================================================ */
+  function swapArt(name, dir){
+    var neu=artEls[name];
+    if(!neu || name===curArt) return;
+    var prevKey=curArt, old=artEls[prevKey];
+    curArt=name;
+
+    /* ล้างสไลด์ที่ไม่ได้อยู่ในรอบนี้ กันตัวค้างจากรอบก่อนโผล่ */
+    Object.keys(artEls).forEach(function(k){
+      if(k===name || k===prevKey) return;
+      var a=artEls[k];
+      if(a){ a.classList.remove('on'); a.style.transition='none';
+             a.style.opacity='0'; a.style.transform=''; }
+    });
+
+    if(reduce){
+      if(old){ old.classList.remove('on'); old.style.opacity='0'; }
+      neu.style.transition='none'; neu.style.transform='';
+      neu.style.opacity='1'; neu.classList.add('on');
+      return;
+    }
+
+    if(old){
+      old.style.transition='opacity .38s '+OUT+', transform .46s '+OUT;
+      old.style.opacity='0';
+      old.style.transform='scale(.965)';
+    }
+    setTimeout(function(){
+      if(old && curArt!==prevKey) old.classList.remove('on');
+    }, 400);
+
+    neu.style.transition='none';
+    neu.style.opacity='0';
+    neu.style.transform='scale(.965)';
+    neu.classList.add('on');
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){
+      if(curArt!==name) return;
+      neu.style.transition='opacity .62s '+IN+' 150ms, transform .82s '+IN+' 150ms';
+      neu.style.opacity='1';
+      neu.style.transform='scale(1)';
+    }); });
+  }
+
+  if($('heroPrev')) $('heroPrev').addEventListener('click',function(){ slide(si-1,-1); });
+  if($('heroNext')) $('heroNext').addEventListener('click',function(){ slide(si+1,1); });
+  /* เลื่อนด้วยลูกศรคีย์บอร์ดได้ด้วย */
+  document.addEventListener('keydown',function(e){
+    if(openPanel) return;
+    var h=document.querySelector('.hero'); if(!h) return;
+    var r=h.getBoundingClientRect(); if(r.bottom<80) return;
+    if(e.key==='ArrowLeft') slide(si-1,-1);
+    if(e.key==='ArrowRight') slide(si+1,1);
+  });
+
+  /* ---- เลื่อนแถบสินค้า ---- */
+  function pageScroll(dir){
+    if(!pg) return;
+    var card=pg.querySelector('.pcard');
+    var step=card ? card.getBoundingClientRect().width+26 : 280;
+    pg.scrollBy({left:dir*step, behavior:'smooth'});
+  }
+  if($('pPrev')) $('pPrev').addEventListener('click',function(){ pageScroll(-1); });
+  if($('pNext')) $('pNext').addEventListener('click',function(){ pageScroll(1); });
+
+  /* ---- ปุ่ม Explore More ---- */
+  if($('exploreBtn')) $('exploreBtn').addEventListener('click',function(){
+    var t=document.getElementById('products');
+    if(t) t.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+
+  /* ---- ฟอร์มสมัครรับข่าว ---- */
+  var sf=$('subForm');
+  if(sf) sf.addEventListener('submit',function(e){
+    e.preventDefault();
+    var i=this.querySelector('input'), v=i.value.trim();
+    var ok=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
+    this.classList.toggle('err',!ok);
+    if(!ok){ toast('กรอกอีเมลให้ถูกต้อง',true); i.focus(); return; }
+    i.value=''; toast('สมัครรับข่าวเรียบร้อย ขอบคุณครับ');
+  });
+
+  /* ---- ฟอร์มติดต่อ ---- */
+  var cf=$('contactForm');
+  if(cf) cf.addEventListener('submit',function(e){
+    e.preventDefault();
+    var bad=0;
+    [].slice.call(this.querySelectorAll('[required]')).forEach(function(f){
+      var empty=!f.value.trim();
+      var mail=f.type==='email' && f.value && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.value);
+      f.classList.toggle('err', empty||mail);
+      if(empty||mail) bad++;
+    });
+    var old=cf.querySelector('.formmsg'); if(old) old.remove();
+    var m=document.createElement('p'); m.className='formmsg'+(bad?' bad':'');
+    m.textContent = bad ? 'กรอกข้อมูลให้ครบทุกช่องที่มีเครื่องหมาย *' : 'ส่งข้อความแล้ว เราจะติดต่อกลับโดยเร็ว';
+    cf.appendChild(m);
+    if(!bad){ cf.reset(); toast('ส่งข้อความเรียบร้อย'); }
+    else toast('ยังกรอกไม่ครบ',true);
+  });
+
+  /* ---- ลิงก์ที่ยังไม่มีปลายทาง: บอกตรงๆ แทนที่จะเงียบ ---- */
+  [].slice.call(document.querySelectorAll('a[href="#"]')).forEach(function(a){
+    a.addEventListener('click',function(e){ e.preventDefault(); toast('หน้านี้ยังไม่ได้ทำ'); });
+  });
+  [].slice.call(document.querySelectorAll('.socials i')).forEach(function(ic){
+    ic.setAttribute('role','button'); ic.setAttribute('tabindex','0');
+    var go=function(){ toast('ยังไม่ได้ผูกโซเชียล'); };
+    ic.addEventListener('click',go);
+    ic.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } });
+  });
+
+  /* ---- เผยเนื้อหาตอนเลื่อนถึง ---- */
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  (function reveal(){
+    var targets = [];
+    function mark(sel, cls){
+      [].slice.call(document.querySelectorAll(sel)).forEach(function(el,i){
+        el.classList.add('rv'); if(cls) el.classList.add(cls==='auto' ? ('d'+Math.min(4,i+1)) : cls);
+        targets.push(el);
+      });
+    }
+    mark('.about .sec-h'); mark('.badge','auto'); mark('.about-in > div:last-child > h2, .about-in > div:last-child > p','auto');
+    mark('.products .sec-h'); mark('.pcard','auto'); mark('.subs-in');
+    mark('.contact h2'); mark('.contact form'); mark('.contact .cmeta'); mark('.contact-art');
+    mark('.fgrid > div','auto'); mark('.copy');
+    var stack = document.querySelector('.stack'); if(stack) targets.push(stack);
+
+    if(reduce || !('IntersectionObserver' in window)){
+      targets.forEach(function(t){ t.classList.add('in'); }); return;
+    }
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, {rootMargin:'0px 0px -9% 0px', threshold:0.08});
+    targets.forEach(function(t){ io.observe(t); });
+  })();
+
+  /* ---- ตะกร้าเด้งเมื่อของเพิ่ม ---- */
+  (function(){
+    var c=$('cartBtn'); if(!c) return;
+    var last=0;
+    var orig=drawCart;
+    drawCart=function(){ orig(); var n=cartCount();
+      if(n>last && !reduce){ c.classList.remove('bump'); void c.offsetWidth; c.classList.add('bump'); }
+      last=n; };
+    drawCart();
+  })();
+
+  /* ---- กันโฟกัสหลุดออกนอกแผงที่เปิดอยู่ ---- */
+  document.addEventListener('keydown', function(e){
+    if(e.key!=='Tab' || !openPanel) return;
+    var f = openPanel.querySelectorAll('a[href],button:not([disabled]),input,textarea,select');
+    if(!f.length) return;
+    var first=f[0], last=f[f.length-1];
+    if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+  });
+
+  /* ---- ปิดปุ่มลูกศรเมื่อเลื่อนสุดทางแล้ว ---- */
+  (function(){
+    if(!pg) return;
+    /* เดิมอ่าน scrollWidth/clientWidth ทุกครั้งที่เลื่อน ซึ่งบังคับให้เบราว์เซอร์
+       คำนวณผังใหม่กลางการเลื่อน = สะดุด แก้เป็นวัดครั้งเดียวแล้วเก็บไว้
+       และรวบงานไว้ทำเฟรมละครั้งด้วย requestAnimationFrame */
+    var maxScroll=0, ticking=false;
+    function measure(){ maxScroll = pg.scrollWidth - pg.clientWidth - 2; }
+    function paint(){
+      ticking=false;
+      var p=$('pPrev'), n=$('pNext'), x=pg.scrollLeft;
+      if(p){ p.style.opacity = x<=2 ? '.28' : '1'; p.disabled = x<=2; }
+      if(n){ n.style.opacity = x>=maxScroll ? '.28' : '1'; n.disabled = x>=maxScroll; }
+    }
+    function upd(){ if(ticking) return; ticking=true; requestAnimationFrame(paint); }
+    pg.addEventListener('scroll', upd, {passive:true});
+    window.addEventListener('resize', function(){ measure(); upd(); });
+    setTimeout(function(){ measure(); upd(); }, 60);
+  })();
+
+})();
+</script>
+
+</body>
+</html>

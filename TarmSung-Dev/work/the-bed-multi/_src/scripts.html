@@ -1,0 +1,190 @@
+<script>
+  // Navbar background + hero parallax (rAF-throttled, transform-only = compositor path)
+  const nav = document.getElementById('navShell');
+  const heroLayer = document.getElementById('heroLayer');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let chromeTicking = false;
+  const onScroll = () => {
+    if (chromeTicking) return;
+    chromeTicking = true;
+    requestAnimationFrame(() => {
+      const y = window.scrollY;
+      if (y > 40) nav.classList.add('scrolled');
+      else nav.classList.remove('scrolled');
+      if (heroLayer && !reduceMotion && y < window.innerHeight * 1.2) {
+        // Move bg ~30% of scroll — subtle, jank-free (no background-attachment:fixed)
+        heroLayer.style.transform = `translate3d(0, ${(y * 0.30).toFixed(2)}px, 0)`;
+      }
+      chromeTicking = false;
+    });
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // Mobile menu
+  const toggle = document.getElementById('navToggle');
+  const menu = document.getElementById('mobileMenu');
+  toggle?.addEventListener('click', () => menu.classList.toggle('hidden'));
+  menu?.querySelectorAll('a').forEach(a => a.addEventListener('click', () => menu.classList.add('hidden')));
+
+  // ---- Words rise out of a mask -------------------------------------------
+  // Only text nodes are wrapped, and the whitespace between words is left as
+  // real text, so <br>, the italic spans, and copy-paste all survive intact.
+  const splitWords = (root) => {
+    let n = 0;
+    const walk = (node) => {
+      [...node.childNodes].forEach(child => {
+        if (child.nodeType === 3) {
+          const parts = child.textContent.split(/(\s+)/);
+          if (parts.length === 1 && !parts[0].trim()) return;
+          const frag = document.createDocumentFragment();
+          parts.forEach(part => {
+            if (!part) return;
+            if (!part.trim()) { frag.appendChild(document.createTextNode(part)); return; }
+            const outer = document.createElement('span');
+            outer.className = 'w';
+            const inner = document.createElement('span');
+            inner.className = 'wi';
+            /* หยุดสะสมคิวที่คำที่ 7: หัวข้อ 9 คำเคยลากคิวไปถึง 8 ช่วง ทำให้ทั้งบรรทัด
+               จบช้ากว่าที่ตาเลื่อนผ่าน — cap ไว้ให้หัวข้อทุกความยาวจบในเวลาเท่ากัน */
+            inner.style.setProperty('--wi', Math.min(n++, 6));
+            inner.textContent = part;
+            outer.appendChild(inner);
+            frag.appendChild(outer);
+          });
+          child.replaceWith(frag);
+        } else if (child.nodeType === 1 && !child.classList.contains('w')) {
+          walk(child);
+        }
+      });
+    };
+    walk(root);
+  };
+  document.querySelectorAll('.split').forEach(splitWords);
+
+  // ---- Numbers arrive ------------------------------------------------------
+  const countUp = (el) => {
+    const target   = parseFloat(el.dataset.count);
+    const decimals = parseInt(el.dataset.decimals || '0', 10);
+    const pad      = parseInt(el.dataset.pad || '0', 10);
+    const suffix   = el.dataset.suffix || '';
+    const render = (v) => {
+      let out = v.toFixed(decimals);
+      if (pad) out = out.padStart(pad, '0');
+      el.textContent = out + suffix;
+    };
+    // Reduced motion still needs the final value written, since the tween that
+    // would have produced it never runs.
+    if (reduceMotion || !Number.isFinite(target)) { render(target); return; }
+    const DUR = 1400, t0 = performance.now();
+    const step = (now) => {
+      const p = Math.min(1, (now - t0) / DUR);
+      render(target * (1 - Math.pow(1 - p, 3)));   // ease-out, so it settles rather than stops
+      if (p < 1) requestAnimationFrame(step);
+    };
+    render(0);
+    requestAnimationFrame(step);
+  };
+
+  // ---- One observer for everything that arrives ----------------------------
+  // rootMargin is POSITIVE at the bottom: an element starts moving while it is
+  // still a quarter-viewport below the fold, so the motion has finished by the
+  // time the eye reaches it. A negative margin is what reads as "not smooth".
+  const arrive = (el) => {
+    el.classList.add('in');
+    if (el.dataset.count !== undefined) countUp(el);   // every counter is observed in its own right
+  };
+  const animated = document.querySelectorAll('.reveal, .curtain, .rule, .split, .rate, .bar, .foot-mark, [data-count]');
+
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        arrive(e.target);
+        io.unobserve(e.target);      // one direction only; nothing re-hides on the way back up
+      });
+    }, {
+      // threshold 0 ไม่ใช่ 0.12: ของที่สูงกว่าจอ (หรือถูก clip ไว้) ต้องรอให้ "12% ของตัวเอง"
+      // โผล่ก่อน ซึ่งสำหรับรูปแกลเลอรีสูง 332px แปลว่ามันเข้ามาในจอไปแล้วหลายร้อย px
+      // ถึงค่อยเริ่มเผย ผู้ใช้เห็นเป็นภาพพรวดขึ้นมากลางจอ (วัดแล้ว: ช้าสุด 628px)
+      // 0 = ยิงตั้งแต่พิกเซลแรก แล้วปล่อยให้ rootMargin ด้านล่างเป็นตัวเริ่มก่อนเข้าจอ
+      threshold: 0, rootMargin: '0px 0px 0px 0px' });
+
+    const onScreen = [];
+    animated.forEach(el => {
+      // Anything already on screen at load is measured, not waited for:
+      // IntersectionObserver does not fire in a prerendered or background tab,
+      // which is exactly how a shared link is usually opened.
+      const r = el.getBoundingClientRect();
+      if (r.top < window.innerHeight && r.bottom > 0) onScreen.push(el);
+      else io.observe(el);
+    });
+    // Two frames, not zero: the words above were only just created, so the browser
+    // has not resolved their start style yet. Flipping the class in the same tick
+    // would make the hero snap into place with no transition at all.
+    requestAnimationFrame(() => requestAnimationFrame(() => onScreen.forEach(arrive)));
+
+    /* ตาข่ายกันของหาย: ถ้าเลื่อนเร็วกว่าที่ observer ยิงทัน (หรือ observer ไม่ยิงเลย
+       เพราะ tab ถูกซ่อนตอนโหลด) จะมีของที่ "อยู่ในจอแล้วแต่ยังมองไม่เห็น" ค้างอยู่
+       ผู้ใช้เห็นเป็นภาพพรวดขึ้นมากลางจอ — วัดแล้วก่อนแก้มีมากสุด 5 ชิ้นพร้อมกัน
+       กติกาที่ยึด: ของที่ยังไม่มีคิวจะเผย ต้องโชว์ไปเลย ห้ามค้างว่าง
+       เช็คตอนเลื่อนเท่านั้นและตัดตัวเองทิ้งเมื่อไม่เหลือใคร จึงไม่กินแรงหลังจากนั้น */
+    let pending = [...animated];
+    const sweep = () => {
+      if (!pending.length) { removeEventListener('scroll', onScroll); return; }
+      const h = innerHeight;
+      pending = pending.filter((el) => {
+        if (el.classList.contains('in')) return false;
+        const r = el.getBoundingClientRect();
+        if (r.top < h * 0.85 && r.bottom > 0) { arrive(el); io.unobserve(el); return false; }
+        return true;
+      });
+    };
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => { ticking = false; sweep(); });
+    };
+    addEventListener('scroll', onScroll, { passive: true });
+    sweep();
+  } else {
+    animated.forEach(arrive);
+  }
+
+</script>
+
+<!-- ปิดการเคลื่อนไหวได้จริง (เพิ่ม 21/8/26 หลัง audit) ---------------------------
+     วัดด้วยเบราว์เซอร์จริง ไม่ใช่อ่านโค้ด: หน้านี้ยังมี animation วิ่งอยู่แม้ผู้ใช้ตั้ง
+     prefers-reduced-motion: reduce ไว้ในระบบ (velvet-leaf 18 ตัว · homecraft 24 ตัว)
+     และ ?reduce=1 ซึ่งเป็นสวิตช์ที่สคริปต์ถ่ายภาพของ playbook ใช้ ก็ไม่มีผลกับหน้าเก่า
+     สี่หน้านี้ กฎกวาดข้างล่างจึงคุมทั้งสองทางในที่เดียว วางไว้ท้าย <body> เพื่อให้
+     ชนะกฎที่ประกาศไว้ก่อนหน้าโดยไม่ต้องไปไล่แก้ทีละอนิเมชันในไฟล์ที่เป็นบันเดิล -->
+<style>
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 1ms !important; animation-delay: 0ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important; transition-delay: 0ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+  html.still *, html.still *::before, html.still *::after {
+    animation-duration: 1ms !important; animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important; transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* พื้นที่กดของปุ่มเมนู — วัดได้ 24x24 บนมือถือ (audit 21/8/26) ซึ่งต่ำกว่าเกณฑ์
+     นิ้วโป้งของทั้ง Apple (44) และ Google (48) ปุ่มเปิดเมนูคือทางเดียวที่คนบนมือถือ
+     ไปหน้าอื่นได้ กดพลาดคือจบตรงนั้น
+     ขยายด้วย ::after ไม่ใช่ padding: ไอคอนต้องคงขนาดเดิมเป๊ะและหัวเว็บต้องไม่ขยับ
+     — สิ่งที่ใหญ่ขึ้นคือพื้นที่ที่นิ้วแตะโดน ไม่ใช่สิ่งที่ตาเห็น */
+  #navToggle { position: relative; }
+  #navToggle::after {
+    content: ""; position: absolute; top: 50%; left: 50%;
+    width: 44px; height: 44px; transform: translate(-50%, -50%);
+  }
+</style>
+<script>if (new URLSearchParams(location.search).get("reduce") === "1") document.documentElement.classList.add("still");</script>

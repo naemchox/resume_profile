@@ -1,0 +1,385 @@
+/* =============================================================================
+   โกลว์ คลินิก — ทิศทาง A "โมเดิร์นสปา" (24 ส.ค. 2569)
+
+   ทำไมทิศนี้ ไม่ใช่ "เวชระเบียน" ที่ทำรอบก่อน
+   รอบก่อนเลือกจากตรรกะในห้อง (ข้อโต้แย้งของร้านคือ "แพทย์ตรวจ ไม่ใช่เซลส์" จึงทำให้
+   หน้าตาเหมือนใบฟอร์มหมอ) แล้ว jek ดูแล้วบอกว่าเกลียดทั้งหน้า พอไปวัดคลินิกไทยจริง
+   3 เจ้าถึงเห็นว่าเป็นคนละโลก: SLC 160 รูปในหน้าแรก · Timeless 96 รูป · ทุกเจ้าสว่าง
+   อบอุ่น ราคาเห็นชัด — คนไข้มาเพราะ "อยากสวยขึ้น" ไม่ใช่เพราะ "ป่วย"
+   ทิศนี้จึงเก็บความอบอุ่นของตลาดไว้ แต่จัดให้สะอาดกว่าของจริงที่มักรกและปนสีเยอะ
+
+   คุมโทนเดียว (สว่าง) ตั้งใจ — คลินิกความงามไม่มีเวอร์ชันกลางคืน
+   จึงระบายพื้นและสีตัวอักษรเองทุกจุด ไม่พึ่งค่าเริ่มต้นของ host
+   ========================================================================== */
+
+:root{
+  --bg:#FDF9F6;        /* ครีมอุ่น พื้นหลังหลัก */
+  --surface:#FFFFFF;   /* การ์ด/กล่อง */
+  --blush:#F6E7E3;     /* แถบสลับ + สถานะเลือก */
+  --blush-2:#EFD6D0;
+  --ink:#2A2223;
+  --ink-2:#6B5C5E;
+  --ink-3:#9C8C8E;
+  --gold:#B08655;      /* ป้ายกำกับ — ใช้กับ .lab เท่านั้น */
+  --rose:#C4736B;      /* ปุ่มหลัก ราคา ลิงก์ */
+  --rose-dark:#B3635B;
+  --line:#EADCD8;
+
+  --serif:"Noto Serif Thai",Georgia,serif;
+  --sans:"IBM Plex Sans Thai",system-ui,-apple-system,sans-serif;
+
+  --r:18px;            /* มุมโค้งของการ์ดใหญ่ */
+  --r-s:12px;          /* ของเล็ก */
+  --shell:74rem;
+  --s1:.4rem; --s2:.8rem; --s3:1.2rem; --s4:1.8rem; --s5:2.8rem; --s6:4.5rem;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 1rem/1.75 var(--sans);
+}
+
+.wrap{width:min(100% - 2.5rem,var(--shell));margin-inline:auto}
+
+/* ---- ตัวหนังสือ ----------------------------------------------------------- */
+h1,h2,h3{font-family:var(--serif);font-weight:500;line-height:1.28;margin:0;text-wrap:balance}
+h1{font-size:clamp(2rem,1.3rem+2.6vw,3.4rem);letter-spacing:-.015em}
+h2{font-size:clamp(1.5rem,1.1rem+1.4vw,2.2rem)}
+h3{font-size:1.18rem}
+p{margin:0 0 var(--s3);max-width:62ch}
+a{color:var(--rose);text-underline-offset:.22em;text-decoration-thickness:1px}
+a:focus-visible,button:focus-visible,summary:focus-visible,
+input:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:2px solid var(--rose);outline-offset:2px}
+
+/* ป้ายกำกับหัวข้อ — ตัวเล็กสุดของเว็บนี้คือ .78rem (~12.5px) ห้ามต่ำกว่านี้
+   บนมือถือ 9-11px คืออ่านไม่ออก (ด่าน audit-mobile จับได้ตอนรอบก่อน) */
+.lab{display:block;font:600 .78rem/1.3 var(--sans);letter-spacing:.2em;
+  text-transform:uppercase;color:var(--gold);margin-bottom:var(--s2)}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---- ตราประทับ: หนึ่งดวงต่อหน้า ------------------------------------------ */
+.stamp{display:inline-flex;align-items:center;gap:.5rem;background:var(--blush);
+  color:var(--rose);border-radius:999px;padding:.6rem 1.2rem;
+  font:600 .92rem/1.3 var(--sans)}
+
+/* ---- แถบหัวเว็บ ----------------------------------------------------------- */
+.top{position:sticky;top:0;z-index:50;background:rgba(253,249,246,.93);
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top__in{display:flex;align-items:center;gap:var(--s4);padding:var(--s2) 0}
+.brand{display:flex;flex-direction:column;justify-content:center;min-height:44px;
+  text-decoration:none;color:var(--ink);line-height:1.15}
+.brand b{font:500 1.2rem/1.2 var(--serif)}
+.brand span{font:600 .78rem/1.3 var(--sans);letter-spacing:.24em;color:var(--ink-3)}
+.nav{margin-left:auto;display:flex;gap:var(--s3);flex-wrap:wrap}
+.nav a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;min-width:44px;
+  font-size:.94rem;text-decoration:none;color:var(--ink-2);padding:.2rem .1rem;
+  border-bottom:2px solid transparent}
+.nav a:hover{color:var(--rose)}
+.nav a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--rose)}
+
+.btn{display:inline-flex;align-items:center;gap:.5rem;min-height:46px;
+  padding:.7rem 1.4rem;border-radius:999px;background:var(--rose);color:#fff;
+  font:500 .96rem/1 var(--sans);text-decoration:none;border:0;cursor:pointer}
+.btn:hover{background:var(--rose-dark);color:#fff}
+.btn--ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn--ghost:hover{background:var(--blush);color:var(--ink);border-color:var(--blush-2)}
+
+/* ---- กล่องเนื้อหา --------------------------------------------------------- */
+.field{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:var(--s4);position:relative}
+
+.sec{padding-block:var(--s6)}
+.sec--tint{background:var(--blush)}
+.sec__head{margin-bottom:var(--s4)}
+
+/* ---- ตาราง ---------------------------------------------------------------- */
+.tbl{width:100%;border-collapse:collapse;font-size:.96rem}
+.tbl caption{text-align:left;margin-bottom:var(--s2);color:var(--ink-2);font-size:.94rem}
+.tbl th,.tbl td{padding:.78rem .7rem;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.tbl th{font:600 .78rem/1.4 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+/* .n = ตัวเลขล้วน · .r = ชิดขวาแต่เป็นข้อความไทย (ฟอนต์ปกติ ไม่ใช่ tabular) */
+.tbl td.n,.tbl th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl td.r,.tbl th.r{text-align:right;white-space:nowrap}
+.tbl tbody tr:hover{background:var(--bg)}
+/* ลิงก์ในตารางสูงตามตัวอักษรแค่ ~25px — ขยายเขตกดด้วย padding แล้วหักกลับด้วย
+   margin ติดลบเท่ากัน แถวจึงสูงเท่าเดิมแต่พื้นที่กดถึง 44px */
+.tbl td a{display:inline-block;padding-block:.6rem;margin-block:-.6rem}
+.scroll-x{overflow-x:auto}
+
+/* ---- ตัวเลือกปัญหา (ฟีเจอร์เอกของเว็บนี้) --------------------------------
+   ที่ว่างของตลาด 0/5 ตาม BRIEF — ต้องดูออกทันทีว่ากดได้ ไม่ใช่กล่องข้อความ */
+.picker{display:grid;gap:var(--s2);grid-template-columns:repeat(3,1fr)}
+@media(max-width:900px){.picker{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.picker{grid-template-columns:1fr}}
+.pick{display:block;width:100%;text-align:left;cursor:pointer;
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:1.05rem 2.4rem 1.05rem 1.2rem;font:400 1rem/1.5 var(--sans);color:var(--ink);
+  position:relative;transition:box-shadow .16s ease,transform .16s ease,border-color .16s ease}
+.pick b{display:block;font-weight:600;font-size:1.05rem}
+.pick small{display:block;color:var(--ink-3);font-size:.86rem;line-height:1.55;margin-top:.2rem}
+.pick::after{content:"→";position:absolute;right:1rem;top:50%;transform:translateY(-50%);
+  color:var(--ink-3);transition:transform .18s ease,color .18s ease}
+.pick:hover{border-color:var(--blush-2);box-shadow:0 8px 24px rgba(42,34,35,.07);transform:translateY(-2px)}
+.pick:hover::after{transform:translateY(-50%) translateX(3px);color:var(--rose)}
+.pick[aria-pressed="true"]{background:var(--blush);border-color:var(--rose)}
+.pick[aria-pressed="true"]::after{content:"✓";color:var(--rose)}
+@media(prefers-reduced-motion:reduce){.pick,.pick::after{transition:none}.pick:hover{transform:none}}
+
+.result{margin-top:var(--s4);background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);padding:var(--s4)}
+.result__none{color:var(--ink-3);font-style:italic}
+
+/* ---- การ์ดรายการ --------------------------------------------------------- */
+.rows{display:grid;gap:var(--s3)}
+.row{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:var(--s4)}
+.row h3{margin-bottom:.35rem}
+.row p{margin-bottom:var(--s2)}
+.meta{display:flex;flex-wrap:wrap;gap:var(--s1) var(--s3);font-size:.9rem;color:var(--ink-2)}
+.meta b{color:var(--ink);font-weight:600}
+
+.grid2{display:grid;gap:var(--s3);grid-template-columns:repeat(2,1fr)}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}}
+/* 3 ใบ = 3 คอลัมน์ หรือ 1 คอลัมน์ ไม่มีช่วงที่เป็น 2+1 (ห้ามมีใบกำพร้า) */
+.grid3{display:grid;gap:var(--s3);grid-template-columns:repeat(3,1fr)}
+@media(max-width:860px){.grid3{grid-template-columns:1fr}}
+
+/* ---- การ์ดโปรแกรม: ราคาอยู่บนรูป แบบที่ตลาดทำ แต่ไม่ปั๊มทับจนรก ---------- */
+.cards{display:grid;gap:var(--s4);grid-template-columns:repeat(3,1fr)}
+@media(max-width:980px){.cards{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.cards{grid-template-columns:1fr}}
+.card{display:block;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);overflow:hidden;text-decoration:none;color:inherit;
+  transition:box-shadow .18s ease,transform .18s ease}
+.card:hover{box-shadow:0 14px 34px rgba(42,34,35,.1);transform:translateY(-3px)}
+.card__art{position:relative;aspect-ratio:4/3}
+.card__art img{width:100%;height:100%;object-fit:cover;object-position:50% 40%;display:block;border:0;border-radius:0;filter:none}
+.card__price{position:absolute;right:.85rem;bottom:.85rem;background:rgba(255,255,255,.95);
+  border-radius:999px;padding:.42rem .95rem;font:600 .95rem/1 var(--sans);color:var(--rose)}
+.card__body{padding:1.1rem 1.2rem 1.35rem}
+.card__body b{display:block;font:500 1.08rem/1.35 var(--serif)}
+.card__body span{display:block;font-size:.9rem;color:var(--ink-3);margin-top:.3rem}
+.card:hover .card__body b{text-decoration:underline;text-underline-offset:.2em}
+/* การ์ดเครื่องมือไม่มีรูป จึงให้ข้อมูลทำหน้าที่แทน */
+.card--mach{padding:var(--s4)}
+.card--mach b{display:block;font:500 1.15rem/1.35 var(--serif);margin-bottom:.2rem}
+.card--mach span{display:block;font-size:.9rem;color:var(--ink-3)}
+.tagnew{font-style:normal;font:600 .78rem/1.2 var(--sans);letter-spacing:.06em;
+  color:#fff;background:var(--rose);padding:.28rem .6rem;border-radius:999px;
+  vertical-align:middle;margin-left:.45rem}
+
+/* รูปย่อในตาราง — กวาดตาหาโปรแกรมจากภาพได้ ไม่ต้องอ่านชื่อทุกบรรทัด */
+.thumbcell a{display:flex;align-items:center;gap:.75rem;padding-block:.35rem;margin-block:-.35rem;text-decoration:none}
+.thumbcell a span{text-decoration:underline;text-underline-offset:.2em}
+.thumb{width:68px;height:46px;object-fit:cover;border-radius:8px;flex:0 0 auto;border:0}
+
+/* ---- รีวิว: เก็บที่มาไว้ให้เห็น เพราะแหล่งคือสิ่งที่ทำให้เชื่อ --------------- */
+.rev{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:var(--s3) var(--s4)}
+.rev__src{display:inline-block;font:600 .78rem/1.3 var(--sans);letter-spacing:.08em;
+  color:#fff;background:var(--ink-2);padding:.24rem .6rem;border-radius:999px}
+.rev__who{font-size:.88rem;color:var(--ink-3)}
+.rev p{margin:var(--s2) 0 0;font-size:.98rem}
+
+/* ---- รูป ------------------------------------------------------------------
+   ทุก figure มีสัดส่วนบังคับ ไม่ปล่อยตามไฟล์ — รูปสต็อกมีทั้งแนวนอน 1400x933
+   และแนวตั้ง 1400x2100 ปนกัน ปล่อยตามไฟล์แล้วรูปแนวตั้งจะสูงเกิน 1,700px กลางหน้า
+   เพดาน 30rem กันไม่ให้รูปเดียวกินทั้งจอ */
+figure{margin:0}
+figure img{display:block;width:100%;height:auto;aspect-ratio:3/2;object-fit:cover;
+  object-position:50% 45%;border-radius:var(--r);max-height:30rem}
+figcaption{font-size:.9rem;color:var(--ink-3);margin-top:.6rem}
+.figwide{margin-block:var(--s4)}
+.figwide img{aspect-ratio:16/9;max-height:32rem}
+.field>figure{margin-bottom:var(--s3)}
+.field>figure img{aspect-ratio:3/2;border-radius:var(--r-s)}
+
+/* แถวที่มีรูปอยู่ข้าง — โปรโมชั่นและประวัติแพทย์
+   รูปคนเป็นแนวตั้ง บังคับกรอบ 3:4 และเล็งค่อนบน ไม่งั้น cover ครอปหน้าทิ้ง */
+.row--img{display:grid;gap:var(--s4);grid-template-columns:15rem 1fr;align-items:start}
+.row--img figure img{aspect-ratio:3/4;object-position:50% 22%;max-height:none}
+@media(max-width:760px){
+  .row--img{grid-template-columns:1fr}
+  .row--img figure img{aspect-ratio:3/1.6;object-position:50% 30%}
+}
+
+/* ---- ฮีโร่หน้าแรก: ข้อความซ้าย รูปขวา รูปเป็นพระเอก ---------------------- */
+.hero__grid{display:grid;grid-template-columns:1.05fr .95fr;gap:var(--s5);align-items:center}
+.hero__art{position:relative;border-radius:var(--r);overflow:hidden;aspect-ratio:4/5;background:var(--blush);margin:0}
+.hero__art img{width:100%;height:100%;object-fit:cover;object-position:50% 50%;display:block;
+  border-radius:0;max-height:none;aspect-ratio:auto}
+.hero__badge{position:absolute;left:1.1rem;bottom:1.1rem;background:rgba(255,255,255,.94);
+  border-radius:999px;padding:.55rem 1.1rem;font:500 .88rem/1.3 var(--sans);color:var(--ink);
+  box-shadow:0 6px 20px rgba(42,34,35,.12)}
+.hero__lead{font-size:1.08rem;color:var(--ink-2);max-width:46ch}
+.trust{display:flex;flex-wrap:wrap;gap:.5rem 1.4rem;margin-top:var(--s4);font-size:.92rem;color:var(--ink-2)}
+.trust b{color:var(--ink)}
+@media(max-width:900px){
+  .hero__grid{grid-template-columns:1fr;gap:var(--s4)}
+  .hero__art{aspect-ratio:4/3}
+}
+
+/* ---- คนหล่อสวย ------------------------------------------------------------ */
+.people{display:grid;gap:var(--s3);grid-template-columns:repeat(4,1fr)}
+@media(max-width:1000px){.people{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.people{grid-template-columns:1fr}}
+.person{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:var(--s2);overflow:hidden}
+.person img{width:100%;height:auto;aspect-ratio:3/4;object-fit:cover;object-position:50% 25%;
+  border-radius:var(--r-s);max-height:none}
+.person figcaption{margin-top:.7rem}
+.person b{display:block;font:500 1.05rem/1.3 var(--serif);color:var(--ink)}
+.person span{display:block;font-size:.86rem;color:var(--ink-3);margin-top:.1rem}
+.person q{display:block;margin-top:.5rem;font-size:.92rem;color:var(--ink-2);quotes:"“" "”"}
+
+/* ---- รายการติ๊ก ----------------------------------------------------------- */
+.ticks{list-style:none;padding:0;margin:0;display:grid;gap:.55rem}
+.ticks li{padding-left:1.6rem;position:relative;font-size:.97rem}
+.ticks li::before{content:"✓";position:absolute;left:0;color:var(--rose);font-weight:600}
+
+/* ---- แบบฟอร์มนัดหมาย ------------------------------------------------------ */
+.bookform{display:grid;gap:var(--s3);grid-template-columns:repeat(2,1fr)}
+.bookform label{display:flex;flex-direction:column;gap:.35rem;font:500 .9rem/1.5 var(--sans);color:var(--ink-2)}
+.bookform label.wide,.bookform button,.formnote{grid-column:1/-1}
+.bookform input,.bookform select,.bookform textarea{
+  font:400 1rem/1.6 var(--sans);color:var(--ink);background:var(--bg);
+  border:1px solid var(--line);border-radius:var(--r-s);padding:.65rem .8rem;min-height:46px;width:100%}
+.bookform textarea{min-height:5.5rem;resize:vertical}
+.bookform button{justify-self:start}
+.bookform button[disabled]{opacity:.55;cursor:default}
+.formnote{margin:0;font-size:.96rem}
+.formnote--ok{color:var(--rose)}
+.formnote--err{color:#B3403C}
+@media(max-width:640px){.bookform{grid-template-columns:1fr}}
+
+/* ---- แผนที่ --------------------------------------------------------------- */
+.mapbox{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;aspect-ratio:16/7}
+.mapbox iframe{width:100%;height:100%;border:0;display:block}
+@media(max-width:640px){.mapbox{aspect-ratio:4/3}}
+
+/* ---- ท้ายเว็บ ------------------------------------------------------------- */
+.foot{border-top:1px solid var(--line);margin-top:var(--s6);padding-block:var(--s5);
+  font-size:.94rem;color:var(--ink-2);background:var(--surface)}
+.foot a{color:var(--rose);display:inline-block;padding-block:.6rem;margin-block:-.6rem}
+.social{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.7rem}
+.social a{display:inline-flex;align-items:center;min-height:44px;padding:0 .85rem;
+  border:1px solid var(--line);border-radius:999px;text-decoration:none;
+  font:500 .82rem/1 var(--sans);color:var(--ink-2);padding-block:0;margin-block:0}
+.social a:hover{border-color:var(--rose);color:var(--rose)}
+
+/* ลิงก์ "ไปต่อ" ที่ยืนเดี่ยว — เป็น CTA ต้องมีเขตกด 44px เหมือนปุ่ม */
+.more{display:inline-block;padding-block:.55rem;margin-block:-.55rem;font-weight:500}
+
+/* ---- เผยตอนเลื่อน --------------------------------------------------------- */
+.rv{opacity:0;transform:translateY(12px);transition:opacity .5s ease,transform .5s ease}
+.js .rv.in,.no-js .rv{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}}
+
+/* ---- มือถือ ---------------------------------------------------------------
+   หัวเว็บเคยสูง 241px = 29% ของจอ 844px เพราะเมนู 8 อันตัดสองบรรทัด
+   ให้เมนูเลื่อนแนวนอนแถวเดียวแทน ไม่ซ่อนหลังแฮมเบอร์เกอร์ เพราะชื่อหน้าคือตัวขายของ
+   (โปรโมชั่น · คนหล่อสวย) ซ่อนแล้วคนไม่รู้ว่ามี */
+@media(max-width:860px){
+  .top__in{flex-wrap:wrap;gap:var(--s1) var(--s2);padding-block:var(--s1)}
+  .brand{flex:1 1 auto}
+  .top__in>.btn{order:2}
+  .nav{order:3;margin-left:0;width:100%;gap:0 var(--s3);flex-wrap:nowrap;
+    overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+    overscroll-behavior-x:contain;border-top:1px solid var(--line);padding-top:.1rem}
+  .nav::-webkit-scrollbar{display:none}
+  .nav a{flex:0 0 auto;min-height:44px;white-space:nowrap}
+}
+@media(max-width:640px){
+  .sec{padding-block:var(--s5)}
+}
+
+
+/* หัวเว็บหด: ตั้งพื้นของใบนี้ไว้เหนือก้อนกลาง (แถบมี backdrop-filter ต้องเหลือที่ให้โลโก้สองบรรทัด) */
+.top{--nav-pad-small:6px}
+
+
+/* ── ฮีโร่เต็มจอ (คืนทรงเดิมของโกลว์ คลินิก ตามที่เจ้าของสั่ง 27/8/26) ─────────
+   รูปเป็นชั้นล่าง ตัวหนังสือทับบนม่านไล่สีจากซ้าย ไม่ใช้ filter/backdrop (S2.4)
+   ม่านเป็น gradient นิ่ง ไม่อนิเมต จึงไม่กินเฟรมตอนเลื่อน */
+.hero-full{position:relative;isolation:isolate;min-height:min(82vh,760px);display:flex;align-items:center;
+  overflow:hidden;margin-bottom:var(--s5)}
+.hero-full__photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:60% 45%;z-index:-2}
+.hero-full::after{content:"";position:absolute;inset:0;z-index:-1;
+  background:linear-gradient(100deg,rgba(38,22,20,.86) 0%,rgba(38,22,20,.62) 42%,rgba(38,22,20,.18) 72%,rgba(38,22,20,.05) 100%)}
+.hero-full__copy{padding-block:var(--s5);color:#fff;max-width:var(--w)}
+.hero-full__copy h1{color:#fff;margin:.35rem 0 0}
+.hero-full__rule{display:flex;align-items:center;gap:.7rem;font-size:.82rem;letter-spacing:.16em;
+  text-transform:uppercase;color:rgba(255,255,255,.86);margin:0}
+.hero-full__rule .hr{display:block;width:56px;height:1px;background:rgba(255,255,255,.5)}
+.hero-full__lead{color:rgba(255,255,255,.92);font-size:1.08rem;max-width:52ch;margin-top:1rem}
+.hero-full__cta{margin-top:1.5rem;display:flex;gap:.7rem;flex-wrap:wrap}
+.btn--onphoto{color:#fff;border-color:rgba(255,255,255,.65);background:transparent}
+.btn--onphoto:hover{background:rgba(255,255,255,.14);border-color:#fff}
+.hero-full__chips{display:flex;gap:1.4rem;flex-wrap:wrap;margin-top:1.6rem;
+  font-size:.92rem;color:rgba(255,255,255,.9)}
+.hero-full__chips b{color:#fff}
+@media(max-width:760px){
+  /* มือถือ: ม่านเดิม .55→.9 ทับทั้งใบจนรูปหายทั้งรูป (วัด 27/8/26 — บล็อกแรกสุดที่คนเห็น
+     และทราฟฟิกคลินิก 80-90% มาจากมือถือ) เปลี่ยนเป็นเว้นช่วงบนให้เห็นรูป
+     แล้วค่อยเข้มเฉพาะแถบที่มีตัวหนังสือ · ช่องว่างท้ายฮีโร่ 109px ตัดเหลือครึ่ง */
+  .hero-full{min-height:auto;padding-top:var(--s4);padding-bottom:var(--s3)}
+  .hero-full__photo{object-position:56% 62%}
+  .hero-full::after{background:linear-gradient(180deg,
+    rgba(38,22,20,.10) 0%,rgba(38,22,20,.16) 24%,rgba(38,22,20,.70) 42%,
+    rgba(38,22,20,.86) 58%,rgba(38,22,20,.9) 100%)}
+  .hero-full__copy{padding-top:46vw}
+  /* ป้ายบรรทัดบนวัดได้ 3.7:1 (ต้องการ 4.5:1) เพราะจงใจให้ช่วงนั้นเห็นรูป
+     จึงให้ป้ายมีพื้นของตัวเองแทนการดันม่านให้เข้มจนรูปหายอีก */
+  .hero-full__rule{background:rgba(38,22,20,.62);border-radius:999px;
+    padding:.42rem .8rem;width:max-content;max-width:100%;color:#fff}
+  .hero-full__rule .hr{background:rgba(255,255,255,.6)}
+}
+
+/* แถบเมนูมือถือเลื่อนแนวนอนได้ แต่เดิมไม่มีอะไรบอก — วัดแล้วสี่อันท้าย
+   (คนหล่อสวย · รีวิว · แพทย์ · ที่ตั้ง) อยู่นอกจอโดยไม่มีสัญญาณ ใส่เงาขอบขวาเป็นตัวบอก
+   ใช้ gradient นิ่งทับบนแถบ ไม่ใช่ filter (S2.4) และปิดตัวเองเมื่อเลื่อนสุดแล้วไม่ได้ */
+@media(max-width:900px){
+  .top__in{position:relative}
+  .top__in::after{content:"";position:absolute;right:0;bottom:0;width:34px;height:2.4rem;
+    pointer-events:none;background:linear-gradient(90deg,rgba(253,249,246,0),rgba(253,249,246,.96))}
+}
+
+/* ── แถบ "ดูต่อในหน้าเต็ม" ของบล็อกตัวอย่างบนหน้าแรก ──────────────────────── */
+.mut{color:var(--ink-2);font-size:.9rem}
+.more-line{display:flex;justify-content:flex-end;margin-top:1.2rem}
+.more-line a{font-weight:600}
+.face-row{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s3)}
+.face{margin:0}
+.face img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:var(--r);display:block;background:var(--blush)}
+.face figcaption{margin-top:.55rem;font-size:.9rem;line-height:1.45}
+.face b{display:block}
+.face span{color:var(--ink-2);font-size:.84rem}
+@media(max-width:760px){.face-row{grid-template-columns:repeat(2,1fr)}}
+
+/* >>> nav-shrink · กลไกกลาง "หัวเว็บหดตอนเลื่อน" — แหล่งเดียวของทั้งกอง
+   แก้ที่ playbook/snippets/nav-shrink.css แล้วรัน: node playbook/sync-nav-shrink.mjs
+   ห้ามแก้ก้อนนี้ในไฟล์ปลายทาง — สคริปต์เขียนทับทุกครั้ง
+
+   กติกา (LOG-DEMO §15 · ด่าน playbook/audit-nav.mjs):
+   คลาสสวิตช์ = .small เท่านั้น · หดด้วย "padding ของลูก" เท่านั้น — ห้ามสั่ง height
+   ทำไมห้าม height: แถบหัวสูงเป็น auto เบราว์เซอร์ไล่ auto→เลขคงที่ไม่ได้ มันกระโดด
+   และลูกที่ตั้ง height ตายตัวจะไม่หดตาม แถบเตี้ยกว่าลูก = เกยทันที (summit เกย 20px อยู่เป็นเดือน)
+
+   ใบไหนต้องมีพื้นความสูงขั้นต่ำตอนหด (เช่น The Bed มีเพชรหมุน 45° ที่กินที่เกินผัง)
+   ให้ตั้งค่า --nav-pad-small ของใบนั้นเหนือก้อนนี้ ไม่ใช่เขียนกฎใหม่
+   ไม่ใส่ transition ให้ padding โดยตั้งใจ (24/8/26): padding เป็น layout property
+   ผิด DEMO-SPEC S2.3 และแถบที่หดคือแถบเดียวกับที่มี backdrop-filter = คิดผังใหม่+เบลอใหม่ทุกเฟรม */
+header.small > *, .site-header.small > * {
+  padding-top: var(--nav-pad-small, 0px) !important;
+  padding-bottom: var(--nav-pad-small, 0px) !important;
+  min-height: 0 !important;
+}
+header.small > * > *, .site-header.small > * > * {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  min-height: 0 !important;
+}
+@media (prefers-reduced-motion: reduce) { header, .site-header { transition: none !important; } }
+/* <<< nav-shrink */

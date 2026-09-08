@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mai - Group Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        :root {
+            --bg-main: #1c1f23;
+            --bg-panel: #242830;
+            --bg-hover: #2a2e38;
+            --bg-input: #2c3040;
+            --border: #2d3139;
+            --text-primary: #e8eaed;
+            --text-secondary: #9aa0a6;
+            --bubble-in: #2b2e38;
+            --bubble-out: #4CAF50;
+            --bubble-out-hover: #43a047;
+            --accent: #4CAF50;
+        }
+
+        body {
+            background: var(--bg-main);
+            color: var(--text-primary);
+        }
+
+        /* Narrow icon strip */
+        .icon-strip {
+            width: 3.25rem;
+            background: #16191d;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0.75rem 0;
+            gap: 0.25rem;
+        }
+
+        .icon-strip-btn {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            background: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .icon-strip-btn:hover,
+        .icon-strip-btn.active {
+            background: var(--bg-hover);
+            color: var(--accent);
+        }
+
+        .icon-strip-avatar {
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4fb3d9, #6ec5e1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.75rem;
+            color: #fff;
+            margin-bottom: 0.5rem;
+        }
+
+        .icon-strip-spacer { flex: 1; }
+
+        .sidebar {
+            background: var(--bg-main);
+            border-right: 1px solid var(--border);
+        }
+
+        .chat-container {
+            background: var(--bg-panel);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: var(--bg-main);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 1rem;
+        }
+
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            background: var(--bg-panel);
+        }
+
+        .messages-area::-webkit-scrollbar { width: 6px; }
+        .messages-area::-webkit-scrollbar-track { background: transparent; }
+        .messages-area::-webkit-scrollbar-thumb {
+            background: #3a3f4b;
+            border-radius: 3px;
+        }
+
+        .message {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-end;
+        }
+
+        .message.own {
+            justify-content: flex-end;
+        }
+
+        .message-bubble {
+            max-width: 60%;
+            padding: 0.65rem 0.9rem;
+            border-radius: 1rem;
+            word-wrap: break-word;
+            font-size: 0.875rem;
+            line-height: 1.4;
+        }
+
+        .message-bubble.incoming {
+            background: var(--bubble-in);
+            color: var(--text-primary);
+            border-radius: 0.25rem 1rem 1rem 1rem;
+        }
+
+        .message-bubble.outgoing {
+            background: var(--bubble-out);
+            color: #fff;
+            border-radius: 1rem 1rem 0.25rem 1rem;
+        }
+
+        .message-sender {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.2rem;
+        }
+
+        .message-time {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            margin-top: 0.2rem;
+        }
+
+        .message-wrapper {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message.own .message-wrapper {
+            align-items: flex-end;
+        }
+
+        .avatar {
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .avatar-1 { background: linear-gradient(135deg, #4fb3d9, #6ec5e1); }
+        .avatar-2 { background: linear-gradient(135deg, #ff6b6b, #ff8c8c); }
+        .avatar-3 { background: linear-gradient(135deg, #3ab4e8, #5ec5f0); }
+        .avatar-4 { background: linear-gradient(135deg, #5cb85c, #7ed97e); }
+        .avatar-5 { background: linear-gradient(135deg, #9d5dff, #bb7dff); }
+        .avatar-6 { background: linear-gradient(135deg, #ffc300, #ffe64c); }
+
+        /* Sidebar tabs */
+        .sidebar-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-main);
+        }
+
+        .sidebar-tab {
+            flex: 1;
+            padding: 0.6rem 0;
+            text-align: center;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: color 0.15s, border-color 0.15s;
+        }
+
+        .sidebar-tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .sidebar-search {
+            padding: 0.5rem 0.75rem;
+            background: var(--bg-main);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-search input {
+            width: 100%;
+            background: var(--bg-input);
+            border: none;
+            color: var(--text-primary);
+            padding: 0.4rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.8rem;
+            outline: none;
+        }
+
+        .sidebar-search input::placeholder { color: var(--text-secondary); }
+
+        .sidebar-item {
+            padding: 0.6rem 0.75rem;
+            cursor: pointer;
+            transition: background 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+        }
+
+        .sidebar-item:hover { background: var(--bg-hover); }
+
+        .sidebar-item.active { background: var(--bg-hover); }
+
+        .sidebar-item-avatar {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .sidebar-item-info { flex: 1; min-width: 0; }
+
+        .sidebar-item-name {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-item-status {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-item-time {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+        }
+
+        .unread-badge {
+            background: var(--accent);
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 700;
+            min-width: 1.1rem;
+            height: 1.1rem;
+            border-radius: 0.6rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 0.25rem;
+        }
+
+        .input-bar {
+            background: var(--bg-main);
+            border-top: 1px solid var(--border);
+            padding: 0.75rem 1rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .input-bar input {
+            flex: 1;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 1.5rem;
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .input-bar input:focus { border-color: var(--accent); }
+        .input-bar input::placeholder { color: var(--text-secondary); }
+
+        .send-btn {
+            background: var(--bubble-out);
+            color: white;
+            border: none;
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s;
+        }
+
+        .send-btn:hover { background: var(--bubble-out-hover); }
+
+        .action-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.4rem;
+            transition: color 0.15s;
+            border-radius: 0.4rem;
+        }
+
+        .action-btn:hover { color: var(--accent); }
+
+        .date-divider {
+            text-align: center;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin: 0.5rem 0;
+        }
+    </style>
+</head>
+<body class="h-screen overflow-hidden">
+    <div class="h-screen flex">
+        <!-- NARROW ICON STRIP -->
+        <div class="icon-strip">
+            <div class="icon-strip-avatar">N</div>
+            <button class="icon-strip-btn active" title="Chats">
+                <i data-lucide="message-square" class="w-5 h-5"></i>
+            </button>
+            <button class="icon-strip-btn" title="Friends">
+                <i data-lucide="users" class="w-5 h-5"></i>
+            </button>
+            <button class="icon-strip-btn" title="Timeline">
+                <i data-lucide="layout" class="w-5 h-5"></i>
+            </button>
+            <button class="icon-strip-btn" title="Calls">
+                <i data-lucide="phone" class="w-5 h-5"></i>
+            </button>
+            <div class="icon-strip-spacer"></div>
+            <button class="icon-strip-btn" title="Settings">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- SIDEBAR -->
+        <div class="sidebar w-64 flex flex-col">
+            <!-- Tabs -->
+            <div class="sidebar-tabs">
+                <div class="sidebar-tab active">เพื่อน</div>
+                <div class="sidebar-tab">กลุ่ม</div>
+                <div class="sidebar-tab">ข้อความ</div>
+            </div>
+
+            <!-- Search -->
+            <div class="sidebar-search">
+                <input type="text" placeholder="ค้นหา...">
+            </div>
+
+            <!-- Sidebar Items -->
+            <div class="flex-1 overflow-y-auto">
+                <div class="sidebar-item active" data-chat="1">
+                    <div class="sidebar-item-avatar avatar-1">T</div>
+                    <div class="sidebar-item-info">
+                        <div class="sidebar-item-name">T</div>
+                        <div class="sidebar-item-status">สวัสดี 👋</div>
+                    </div>
+                    <div class="flex flex-col items-end gap-1">
+                        <div class="sidebar-item-time">11:45</div>
+                        <div class="unread-badge">3</div>
+                    </div>
+                </div>
+
+                <div class="sidebar-item" data-chat="2">
+                    <div class="sidebar-item-avatar avatar-2">DP</div>
+                    <div class="sidebar-item-info">
+                        <div class="sidebar-item-name">Dene Phase</div>
+                        <div class="sidebar-item-status">ยังอยู่ไหม</div>
+                    </div>
+                    <div class="sidebar-item-time">11:43</div>
+                </div>
+
+                <div class="sidebar-item" data-chat="3">
+                    <div class="sidebar-item-avatar avatar-3">NF</div>
+                    <div class="sidebar-item-info">
+                        <div class="sidebar-item-name">Namfon 🌸</div>
+                        <div class="sidebar-item-status">ได้เลย</div>
+                    </div>
+                    <div class="sidebar-item-time">11:42</div>
+                </div>
+
+                <div class="sidebar-item" data-chat="4">
+                    <div class="sidebar-item-avatar avatar-4">อน</div>
+                    <div class="sidebar-item-info">
+                        <div class="sidebar-item-name">อรานต์ ดอนเลือง</div>
+                        <div class="sidebar-item-status">Photo</div>
+                    </div>
+                    <div class="sidebar-item-time">เมื่อวาน</div>
+                </div>
+
+                <div class="sidebar-item" data-chat="5">
+                    <div class="sidebar-item-avatar avatar-5">Aoy</div>
+                    <div class="sidebar-item-info">
+                        <div class="sidebar-item-name">Aoy456 🌻 789</div>
+                        <div class="sidebar-item-status">โอเค</div>
+                    </div>
+                    <div class="sidebar-item-time">2 วัน</div>
+                </div>
+
+                <div class="sidebar-item" data-chat="6">
+                    <div class="sidebar-item-avatar avatar-6">AR</div>
+                    <div class="sidebar-item-info">
+                        <div class="sidebar-item-name">ARTID</div>
+                        <div class="sidebar-item-status">ARTID สมาชิกกลุ่ม</div>
+                    </div>
+                    <div class="sidebar-item-time">3 วัน</div>
+                </div>
+
+                <div class="sidebar-item" data-chat="7">
+                    <div class="sidebar-item-avatar avatar-1">Ck</div>
+                    <div class="sidebar-item-info">
+                        <div class="sidebar-item-name">Cake ⭐</div>
+                        <div class="sidebar-item-status">เปลี่ยน : 00:16</div>
+                    </div>
+                    <div class="sidebar-item-time">4 วัน</div>
+                </div>
+
+                <div class="sidebar-item" data-chat="8">
+                    <div class="sidebar-item-avatar avatar-2">Ss</div>
+                    <div class="sidebar-item-info">
+                        <div class="sidebar-item-name">Sunsun</div>
+                        <div class="sidebar-item-status">เดี๋ยวมาตามหาใหม่</div>
+                    </div>
+                    <div class="sidebar-item-time">5 วัน</div>
+                </div>
+
+                <div class="sidebar-item" data-chat="9">
+                    <div class="sidebar-item-avatar avatar-3">VR</div>
+                    <div class="sidebar-item-info">
+                        <div class="sidebar-item-name">verasak 48 25</div>
+                        <div class="sidebar-item-status">โอเคครับ</div>
+                    </div>
+                    <div class="sidebar-item-time">1 สัป</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CHAT AREA -->
+        <div class="chat-container flex-1 flex flex-col">
+            <!-- Chat Header -->
+            <div class="chat-header">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="avatar avatar-5" style="width:2rem;height:2rem;font-size:0.7rem;">A5</div>
+                        <div>
+                            <h3 class="font-semibold text-sm" style="color:var(--text-primary)">Area52ประชุม (11) 📢</h3>
+                            <p class="text-xs" style="color:var(--text-secondary)">สมาชิก 11 คน</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-1">
+                        <button class="action-btn"><i data-lucide="search" class="w-4 h-4"></i></button>
+                        <button class="action-btn"><i data-lucide="phone" class="w-4 h-4"></i></button>
+                        <button class="action-btn"><i data-lucide="video" class="w-4 h-4"></i></button>
+                        <button class="action-btn"><i data-lucide="more-vertical" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages Area -->
+            <div class="messages-area">
+
+                <div class="date-divider">วันนี้</div>
+
+                <!-- Link preview message -->
+                <div class="message">
+                    <div class="avatar avatar-5" style="width:2rem;height:2rem;font-size:0.65rem;">J</div>
+                    <div class="message-wrapper">
+                        <div class="message-bubble incoming" style="background:#252933;padding:0.5rem 0.75rem;border-radius:0.25rem 1rem 1rem 1rem;">
+                            <p style="font-size:0.7rem;color:#4CAF50;">https://maps.app.goo.gl/q/nxA2g2VbpERXwq67g_st=ic</p>
+                        </div>
+                        <div class="message-time">11:45 น.</div>
+                    </div>
+                </div>
+
+                <!-- Messages from T -->
+                <div class="message">
+                    <div class="avatar avatar-1" style="width:2rem;height:2rem;font-size:0.65rem;">T</div>
+                    <div class="message-wrapper">
+                        <div class="message-sender">T</div>
+                        <div class="message-bubble incoming">อยากจัง ที่ไม่ออกนอกเมือง</div>
+                        <div class="message-time">14:00 น.</div>
+                    </div>
+                </div>
+                <div class="message" style="margin-top:-0.5rem">
+                    <div style="width:2rem;flex-shrink:0"></div>
+                    <div class="message-wrapper">
+                        <div class="message-bubble incoming">ไปก็แค่หน่อย</div>
+                        <div class="message-time">14:00 น.</div>
+                    </div>
+                </div>
+
+                <div class="date-divider" style="margin:1rem 0">เฉพาะสมาชิกกลุ่มเท่านั้น</div>
+
+                <!-- Own messages -->
+                <div class="message own">
+                    <div class="message-wrapper">
+                        <div class="message-bubble outgoing">นาหนึ่ง !</div>
+                        <div class="message-time">14:05 น.</div>
+                    </div>
+                </div>
+                <div class="message own" style="margin-top:-0.5rem">
+                    <div class="message-wrapper">
+                        <div class="message-bubble outgoing">แล้วก็ไม่มา</div>
+                        <div class="message-time">14:05 น.</div>
+                    </div>
+                </div>
+
+                <!-- Message from Name -->
+                <div class="message">
+                    <div class="avatar avatar-3" style="width:2rem;height:2rem;font-size:0.65rem;">N</div>
+                    <div class="message-wrapper">
+                        <div class="message-sender">Name</div>
+                        <div class="message-bubble incoming">พูดถึงแต่แล้วก็ตัดผมเพราะตกไป</div>
+                        <div class="message-time">14:06 น.</div>
+                    </div>
+                </div>
+
+                <!-- Message from Sunnee -->
+                <div class="message">
+                    <div class="avatar avatar-4" style="width:2rem;height:2rem;font-size:0.65rem;">S</div>
+                    <div class="message-wrapper">
+                        <div class="message-sender">Sunnee</div>
+                        <div class="message-bubble incoming">ก กรอบตี</div>
+                        <div class="message-time">14:07 น.</div>
+                    </div>
+                </div>
+
+                <!-- Message from Name again -->
+                <div class="message">
+                    <div class="avatar avatar-3" style="width:2rem;height:2rem;font-size:0.65rem;">N</div>
+                    <div class="message-wrapper">
+                        <div class="message-sender">Name</div>
+                        <div class="message-bubble incoming">🙂</div>
+                        <div class="message-time">14:08 น.</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Input Bar -->
+            <div class="input-bar">
+                <button class="action-btn"><i data-lucide="image" class="w-5 h-5"></i></button>
+                <button class="action-btn"><i data-lucide="camera" class="w-5 h-5"></i></button>
+                <button class="action-btn"><i data-lucide="smile" class="w-5 h-5"></i></button>
+                <input type="text" placeholder="พิมพ์ข้อความ...">
+                <button class="send-btn">
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // Sidebar item click handler
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Input focus
+        document.querySelector('.input-bar input').addEventListener('focus', function() {
+            this.style.borderColor = '#25D366';
+        });
+
+        document.querySelector('.input-bar input').addEventListener('blur', function() {
+            this.style.borderColor = '#444';
+        });
+    </script>
+</body>
+</html>

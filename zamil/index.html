@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#10513C" />
+
+    <title>MAYA GREEN — Selected Cannabis Boutique, Ekkamai Bangkok</title>
+    <meta
+      name="description"
+      content="MAYA GREEN@Selected Cannabis Boutique, Soi Pridi Banomyong 40, Ekkamai, Bangkok. Medical-grade flower from a GACP-certified Thai farm — one price, ฿700 per gram. Walk-in only, 20+."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/img/apple-touch-icon.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="MAYA GREEN" />
+    <meta
+      property="og:title"
+      content="MAYA GREEN — Selected Cannabis Boutique, Ekkamai Bangkok"
+    />
+    <meta
+      property="og:description"
+      content="Medical-grade flower from a GACP-certified Thai farm. One price, ฿700 per gram. Soi Pridi Banomyong 40, Ekkamai — walk-in only, 20+."
+    />
+    <!-- Relative on purpose: the shop has no domain yet, so an absolute og:image
+         would have to be guessed. Set both og:url and og:image to the real host
+         before launch — see README. -->
+    <meta property="og:image" content="/img/og.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Structured data. Every field here is confirmed in FACTS.md; the Tuesday
+         closure is real and is stated rather than omitted. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Store",
+        "name": "MAYA GREEN@Selected Cannabis Boutique",
+        "description": "Medical cannabis select shop in Ekkamai, Bangkok. Flower from a GACP-certified Thai farm.",
+        "telephone": "+66825534873",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "984, 49 Soi Pridi Banomyong 40",
+          "addressLocality": "Khwaeng Khlong Tan Nuea, Watthana",
+          "addressRegion": "Bangkok",
+          "postalCode": "10110",
+          "addressCountry": "TH"
+        },
+        "openingHoursSpecification": [
+          {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": ["Monday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+            "opens": "12:00",
+            "closes": "23:00"
+          },
+          {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": "Tuesday",
+            "opens": "00:00",
+            "closes": "00:00"
+          }
+        ],
+        "sameAs": [
+          "https://www.instagram.com/mayagreen.bangkok/",
+          "https://twitter.com/MAYAGREEN420"
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

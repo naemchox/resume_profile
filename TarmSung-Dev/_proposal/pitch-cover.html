@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Pitch Cover — Swiss</title>
+<!--
+  วิธีใช้
+  1. เปิดไฟล์นี้ใน Safari/Chrome แล้วคลิกแก้ข้อความได้ทุกจุด (contenteditable)
+  2. ใส่รูปจริง: วางไฟล์ชื่อ cover.jpg ไว้ข้างไฟล์นี้ — ถ้าไม่มี จะขึ้น silhouette สำรองให้เอง
+  3. ปรับคำใหญ่ที่ .word / ปรับสีที่ :root
+  4. ส่งเป็น PDF: Cmd+P → Save as PDF (แนวนอน, ปิด header/footer, margin = None)
+-->
+<style>
+  :root{
+    --ground:#dcdcda;      /* พื้นหลังหน้าเว็บ */
+    --slide:#8c8c8c;       /* พื้นสไลด์ */
+    --cream:#f1eee6;       /* ตัวอักษรใหญ่ */
+    --ink:#1a1a1a;
+    --meta:#e8e6e0;
+    --sans:"Helvetica Neue",Helvetica,"Inter","Neue Haas Grotesk Display",Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{
+    background:var(--ground);
+    font-family:var(--sans);
+    display:grid;place-items:center;
+    padding:6vmin;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .slide{
+    position:relative;
+    width:min(100%,1200px);
+    aspect-ratio:16/9;
+    background:var(--slide);
+    overflow:hidden;
+    isolation:isolate;
+  }
+
+  /* ---------- รูป duotone ---------- */
+  .art{
+    position:absolute;
+    right:8%; bottom:0; top:0;
+    width:52%;
+    z-index:0;
+    display:flex;align-items:flex-end;justify-content:center;
+  }
+  .art img{
+    height:100%;width:100%;
+    object-fit:cover;object-position:center top;
+    filter:grayscale(1) contrast(1.75) brightness(.38);
+    mix-blend-mode:multiply;
+  }
+  .art img[data-broken]{display:none}
+  .art svg{height:100%;width:auto}
+
+  /* ---------- meta บนซ้าย ---------- */
+  .meta{
+    position:absolute;top:3.2%;left:2.6%;right:2.6%;
+    z-index:2;
+    display:grid;
+    grid-template-columns:1.6fr 1fr 2fr;
+    gap:1rem;
+    font-size:clamp(6px,.78vw,10px);
+    line-height:1.5;
+    letter-spacing:.01em;
+    color:var(--meta);
+  }
+  .meta b{font-weight:600}
+
+  /* ---------- ย่อหน้าอธิบาย ---------- */
+  .lede{
+    position:absolute;top:15%;left:2.6%;
+    z-index:2;
+    width:22%;
+    font-size:clamp(7px,.95vw,13px);
+    line-height:1.32;
+    color:var(--meta);
+    letter-spacing:.005em;
+  }
+
+  /* ---------- คำใหญ่ ---------- */
+  .word{
+    position:absolute;
+    left:1.6%;
+    bottom:-3.2%;              /* ตัดขอบล่างเล็กน้อยแบบต้นฉบับ */
+    z-index:1;
+    margin:0;
+    font-size:clamp(48px,17.5vw,240px);
+    line-height:.82;
+    font-weight:500;
+    letter-spacing:-.035em;
+    color:var(--cream);
+    white-space:nowrap;
+  }
+
+  [contenteditable]:focus{outline:1px dashed rgba(255,255,255,.55);outline-offset:3px}
+
+  @media print{
+    @page{size:landscape;margin:0}
+    body{background:#fff;padding:0;display:block}
+    .slide{width:100%;height:100vh;aspect-ratio:auto}
+  }
+</style>
+</head>
+<body>
+
+<div class="slide">
+  <div class="art">
+    <img src="cover.jpg" alt="" onerror="this.setAttribute('data-broken','');this.nextElementSibling.style.display='block'">
+    <svg viewBox="0 0 400 520" xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+      <g fill="#141414">
+        <path d="M28 520 V486 C28 416 104 366 186 360 L214 360 C300 366 372 416 372 486 V520 Z"/>
+        <path d="M200 372 C176 372 168 356 168 330 V296 H236 V330 C236 356 226 372 200 372 Z"/>
+        <ellipse cx="202" cy="212" rx="76" ry="94"/>
+        <path d="M126 176 C126 116 158 84 204 84 C252 84 282 116 282 168 L282 182 C258 158 154 156 126 190 Z"/>
+      </g>
+      <path d="M186 362 L200 400 L214 362" fill="#2a2a2a"/>
+    </svg>
+  </div>
+
+  <div class="meta">
+    <div contenteditable><b>ตามสั่ง Dev®</b><br>Proposal<br>© 2026</div>
+    <div contenteditable>Scope &amp; Price</div>
+    <div contenteditable>Rayong, Thailand</div>
+  </div>
+
+  <p class="lede" contenteditable>ข้อเสนอทำเว็บไซต์สำหรับ [ชื่อลูกค้า] — โครงหน้า ระยะเวลา และราคา ทั้งหมดในไฟล์เดียว เห็นเดโมจริงก่อนจ่ายเงิน</p>
+
+  <h1 class="word" contenteditable>Proposal</h1>
+</div>
+
+</body>
+</html>

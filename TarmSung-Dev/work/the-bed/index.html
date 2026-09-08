@@ -1,0 +1,1976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- รูปทั้งหมดอยู่ใน img/ = ภาพห้องจริงของอาคารนี้ ซึ่งเป็นที่ของเพื่อน jek และ jek
+       ยืนยันสิทธิ์ใช้เอง (20/8/26) — ไม่ใช่ภาพสต็อก
+       บันทึกไว้ให้ชัดเพราะรอบ audit วันเดียวกันเคยถอดรูปชุดนี้ออกไปใช้ Unsplash แทน
+       ด้วยเหตุผลว่า "เป็นภาพของเว็บจองที่พักเจ้าอื่น" ซึ่งผิด — ต้นทางคือหอพักของเพื่อน
+       ที่บังเอิญมีประกาศอยู่บน hongpak.in.th ห้ามถอดออกอีกโดยไม่ถาม jek ก่อน
+       ที่ยังห้ามคือ "hotlink": เดิมหน้านี้ลิงก์สดไป c2.hongpak.in.th 13 จุด พอเขาย้าย
+       ไฟล์เมื่อไหร่พอร์ตเราพังทันที ตอนนี้ถือไฟล์เองในโฟลเดอร์นี้ อย่ากลับไปลิงก์นอก -->
+<meta charset="UTF-8" />
+<!-- คืนตำแหน่งที่อ่านค้างไว้เอง ไม่รอเบราว์เซอร์ (ที่มา: work/_JANK-REFRESH.md)
+     Safari คืนตำแหน่ง scroll หลังอีเวนต์ load เท่านั้น — วัดแล้ว DCL/load ยังอยู่ที่ y=0
+     ทั้งคู่ คนที่รีเฟรชกลางหน้าจึงเห็น "ฮีโร่แวบ" ตั้งแต่เฟรมแรกจนกว่าไฟล์สุดท้ายจะโหลดจบ
+     (เน็ตช้า = ค้างนานเป็นวินาที) สคริปต์นี้เก็บตำแหน่งไว้เองใน sessionStorage แล้ววาง
+     กลับตั้งแต่เฟรมแรกที่ความสูงหน้าพอ — เร็วกว่ารอ load หลายเท่าและไม่ต้องรอรูป
+     หยุดทันทีถ้าผู้ใช้ขยับเอง (wheel/touch/key/pointer) จะได้ไม่แย่งมือกับคนอ่าน -->
+<script>
+(function () {
+  try {
+    if (!("scrollRestoration" in history)) return;
+    history.scrollRestoration = "manual";
+    var key = "ts:y:" + location.pathname;
+    var want = parseInt(sessionStorage.getItem(key) || "0", 10) || 0;
+    var timer = 0;
+    var save = function () { try { sessionStorage.setItem(key, String(Math.round(window.scrollY))); } catch (e) {} };
+    addEventListener("scroll", function () {
+      if (timer) return;
+      timer = setTimeout(function () { timer = 0; save(); }, 200);
+    }, { passive: true });
+    addEventListener("pagehide", save);
+    /* แถบเมนูต้องไม่ "โผล่" ตอนหน้าเปิดมากลางหน้าอยู่แล้ว (jek 25/8/26 · the-bed)
+       แถบมีสองชั้นที่ไล่เข้าเอง — พื้นทึบบน .nav-shell::before (opacity 300ms) กับเส้นทอง
+       บน border-color (400ms) — พอคืนตำแหน่ง scroll ปุ๊บ สคริปต์แถบเมนูใส่คลาส scrolled
+       ทั้งสองชั้นจึงไล่ให้เห็นทุกครั้งที่รีเฟรช ทั้งที่ผู้ใช้ไม่ได้เลื่อนอะไรเลย
+       ระหว่างช่วงคืนตำแหน่ง จึงปิดทรานซิชันของหัวเว็บไว้ = แถบอยู่ในสถานะสุดท้ายตั้งแต่
+       เฟรมแรก · เปิดคืนทันทีที่ผู้ใช้ขยับเอง (หรืออย่างช้า 900ms) การเลื่อนของจริงจึงยังลื่น */
+    if (want) {
+      var root = document.documentElement;
+      root.className += " nav-instant";
+      var st = document.createElement("style");
+      st.textContent = "html.nav-instant .nav-shell,html.nav-instant .nav-shell::before," +
+        "html.nav-instant .site-header,html.nav-instant header,html.nav-instant header > *," +
+        "html.nav-instant header > * > *{transition:none !important}";
+      (document.head || document.documentElement).appendChild(st);
+      var unlock = function () { root.className = root.className.replace(/\s*nav-instant/, ""); };
+      ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+        addEventListener(ev, unlock, { passive: true, once: true });
+      });
+      setTimeout(unlock, 900);
+    }
+    if (!want || location.hash) return;
+    var stop = false;
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+      addEventListener(ev, function () { stop = true; }, { passive: true, once: true });
+    });
+    var t0 = (performance.now ? performance.now() : 0);
+    var now = function () { return performance.now ? performance.now() : t0; };
+    var done = false;
+    var put = function () {
+      if (stop || done) return true;
+      var el = document.scrollingElement || document.documentElement;
+      if (!el || el.scrollHeight - window.innerHeight < want) return false;   /* หน้ายังสูงไม่พอ ค่อยลองใหม่ */
+      if (Math.round(window.scrollY) !== want) {
+        var prev = el.style.scrollBehavior;      /* html { scroll-behavior: smooth } จะทำให้การวางกลับกลายเป็นการไถ */
+        el.style.scrollBehavior = "auto";
+        window.scrollTo(0, want);
+        el.style.scrollBehavior = prev;
+      }
+      done = Math.round(window.scrollY) === want;
+      /* ใส่สถานะ "เลื่อนแล้ว" ให้หัวเว็บทันทีในจังหวะเดียวกับที่คืนตำแหน่ง — ไม่ต้องรอสคริปต์
+         ของหน้ามันเองซึ่งอยู่ท้าย <body> (วัดแล้วช้ากว่ากันราว 20ms = เห็นแถบเปล่าได้ 1 เฟรม)
+         เกณฑ์คนละค่าเพราะแต่ละที่ตั้งไว้ไม่เท่ากัน: .site-header > 8px · .nav-shell > 40px
+         (ดู js/main.js กับสคริปต์ท้ายหน้าเดโม) สคริปต์ของหน้าจะคำนวณซ้ำเองอยู่แล้ว ค่าจึงตรงกัน */
+      if (done) {
+        var mark = function (sel, cls, min) {
+          if (want <= min) return;
+          var n = document.querySelectorAll(sel);
+          for (var i = 0; i < n.length; i++) n[i].classList.add(cls);
+        };
+        /* หัวเว็บของแต่ละใบใช้คนละคลาสคนละเกณฑ์ (ของเดิมเป็นแบบนั้นมาก่อนแล้ว):
+           .site-header.scrolled >8px (เว็บเรา) · .nav-shell.scrolled >40px (the-bed)
+           .site-header.stuck (the-terrace ใช้ sentinel ไม่ใช่ตัวเลข — 80px คือค่าประมาณ)
+           header.small >120px (homecraft/lumen/glow-clinic ผ่าน js/nav-response.js)
+           เดาพลาดไม่เป็นไร สคริปต์ของหน้าคำนวณทับให้ในเฟรมถัดไป และช่วงนี้ทรานซิชันถูกปิดอยู่
+           การแก้จึงเป็นการสลับทันที ไม่ใช่การไล่สีให้เห็น */
+        mark(".site-header", "scrolled", 8);
+        mark(".nav-shell", "scrolled", 40);
+        mark(".site-header, header[data-header]", "stuck", 80);
+        mark("header, .site-header", "small", 120);
+      }
+      return done;
+    };
+    /* ลองทุกทางที่มาถึงก่อน: setTimeout(0) มักได้ก่อนเฟรมแรกด้วยซ้ำ · rAF ทำงานก่อนวาด
+       · readystatechange/DOMContentLoaded คือจุดที่ body ครบแล้วแน่ๆ
+       เหตุที่ไม่พอถ้าใช้ rAF อย่างเดียว: วัดแล้วบางหน้า (หน้าแรกของเว็บเรา) เฟรมแรก
+       มาก่อนที่ความสูงจะพอ ทำให้เลื่อนไม่ได้ แล้วต้องรอ rAF รอบถัดไป = เห็นหัวเว็บ 1 เฟรม */
+    /* สองสายแยกกัน สายละหนึ่งนัด — ถ้าให้สายเดียวนัดทั้ง setTimeout และ rAF
+       จำนวนนัดจะเพิ่มเป็นสองเท่าทุกรอบ (2^n) ภายในไม่กี่ร้อยมิลลิวินาที */
+    var tick = function () { if (put() || stop) return; if (now() - t0 < 3000) setTimeout(tick, 0); };
+    var frame = function () { if (put() || stop) return; if (now() - t0 < 3000) requestAnimationFrame(frame); };
+    tick();
+    frame();
+    document.addEventListener("readystatechange", put);
+    addEventListener("DOMContentLoaded", put);
+    addEventListener("load", put);
+  } catch (e) {}
+})();
+</script>
+  <!-- เดโมสาธิต ไม่ใช่ธุรกิจจริง: ห้ามให้เสิร์ชเอนจินเก็บเข้าดัชนี ไม่งั้นจะมีหน้า
+       ที่ดูเหมือนร้านจริง (มีชื่อ ราคา เบอร์โทร) ลอยอยู่บน Google ในชื่อโดเมนของเรา -->
+  <meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Bed Phatthanakan xx — A Residence of Quiet Luxury</title>
+  <link rel="canonical" href="https://tarmsung.pages.dev/work/the-bed/">
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "LodgingBusiness",
+  "name": "The Bed Phatthanakan xx",
+  "description": "The Bed Phatthanakan xx. A boutique residence on Soi Phatthanakan xx, Bangkok. Refined living, attentive service, and a culture of warmth.",
+  "url": "https://tarmsung.pages.dev/work/the-bed/",
+  "inLanguage": "th",
+  "image": "https://tarmsung.pages.dev/assets/work/the-bed.webp"
+}
+  </script>
+  <!-- การ์ดพรีวิวตอนวางลิงก์ในแชท (22/8/26): ส่งลิงก์เฉยๆ แล้ว LINE/เฟซบุ๊กจะขึ้นรูป
+       ให้เอง ไม่ต้องแนบภาพหรือคลิปเพิ่ม รูปที่ใช้คือปกเดียวกับที่โชว์ในพอร์ต -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="The Bed Phatthanakan xx — A Residence of Quiet Luxury">
+  <meta property="og:description" content="The Bed Phatthanakan xx. A boutique residence on Soi Phatthanakan xx, Bangkok. Refined living, attentive service, and a culture of warmth.">
+  <meta property="og:image" content="https://tarmsung.pages.dev/assets/work/the-bed.webp">
+  <meta name="twitter:card" content="summary_large_image">
+<meta name="description" content="The Bed Phatthanakan xx. A boutique residence on Soi Phatthanakan xx, Bangkok. Refined living, attentive service, and a culture of warmth." />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="fonts/8vIJ7ww63mVu7gt79mT7PkRXMw.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="fonts/co3ZmX5slCNuHLi8bLeY9MK7whWMhyjYrEtImSqn7B6D.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="fonts/Qw3aZQNVED7rKGKxtqIqX5EUDXx4Vn8sig.woff2" />
+<link rel="stylesheet" href="css/fonts.css" />
+<script>
+  /* Every animation start state below is gated behind html.js, so if this script
+     never runs (or Tailwind's CDN is blocked) the page still reads as plain,
+     fully visible content instead of a blank white screen. */
+  document.documentElement.classList.add('js');
+</script>
+<!-- CSS นิ่งที่แช่มาจาก Tailwind CDN ด้วย playbook/freeze-tailwind.mjs
+     เดิมบรรทัดนี้คือ <script src="https://cdn.tailwindcss.com"> ซึ่งเป็น "ตัวคอมไพล์"
+     ที่วิ่งในเบราว์เซอร์ของคนดู หน้าจึงถูกจัดใหม่ทั้งหน้าหลังเรนเดอร์ไปแล้วหนึ่งรอบ
+     (วัดได้ CLS 0.077 · บล็อกสคริปต์นี้แล้วเหลือ 0.012 · เดโมใบอื่น ~0)
+     แก้ยูทิลิตี้ในหน้า = ต้องรัน freeze-tailwind.mjs ใหม่ ไม่ใช่แก้ไฟล์ css มือ -->
+<link rel="stylesheet" href="css/tailwind.css?v=4" />
+<script type="application/json" id="tailwind-config-เก็บไว้อ้างอิง">
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink:        '#0A0908',
+          coal:       '#1C1917',
+          stone:      '#44403C',
+          /* #78716C เดิมวัดได้ 4.26:1 บนพื้นครีม — ต่ำกว่าเกณฑ์ตัวหนังสือปกติ 4.5:1
+             ตอนนี้ยังไม่มีที่ไหนในหน้าใช้สีนี้ จึงไม่ใช่บั๊กที่คนเห็นอยู่ แต่ปล่อยไว้
+             เท่ากับวางกับดักให้คนหยิบไปใช้วันหลัง — เปลี่ยนเป็น #6F6862 (4.87:1) */
+          ash:        '#6F6862',
+          paper:      '#FAFAF9',
+          cream:      '#F5F1EA',
+          gold:       '#C9A961',
+          goldlight:  '#E6CC8F',
+          /* Measured, not guessed. The old #CA8A04 sat at 2.61:1 on cream
+             (#F5F1EA) — under the 3:1 floor for large text and nowhere near the
+             4.5:1 small text needs, which is why every gold accent on the light
+             sections read as a smudge rather than a colour.
+             gilded  #A87103 = 3.71:1 -> display sizes only (>=24px).
+             burnish #8F6000 = 4.86:1 -> the 11-12px eyebrows and labels. */
+          gilded:     '#A87103',
+          burnish:    '#8F6000',
+        },
+        fontFamily: {
+          display: ['Cinzel', 'serif'],
+          sans:    ['Josefin Sans', 'sans-serif'],
+          editorial: ['"Cormorant Garamond"', 'serif'],
+        },
+      },
+    },
+  };
+</script>
+<style>
+  html { scroll-behavior: smooth; }
+  /* 25/8/26 แถบเมนูเลิกหดแล้ว ความสูงจริง = 92px ไม่ใช่ 84px (วัดด้วย
+     getBoundingClientRect บนหน้า live) ค่าเดิม 96 = 84+12 จึงเกินความสูงแถบไป 4px
+     ผลคือหลังกดเมนู section ก่อนหน้าโผล่เป็นแถบบางๆ 4px คาอยู่ใต้แถบเมนู
+     (วัดแล้ว: y 93-95 = #amenities สีครีม rgb(245,241,234) · y 96 ถึงเป็น #gallery
+     สีขาว rgb(250,250,249) — เจ้าของเห็นเป็น "เส้นจางๆ ใต้เมนู" 25/8/26)
+     ไม่ต้องเผื่อ +12 อีกแล้ว เพราะทุก section มี py-28 (112px) เป็นที่ว่างของตัวเองอยู่แล้ว
+     ค่าที่ถูก = ความสูงแถบเป๊ะๆ ถ้าแถบเปลี่ยนความสูงเมื่อไหร่ ต้องแก้ค่านี้ตาม */
+  html { scroll-padding-top: 92px; }
+  body {
+    background: #FAFAF9;
+    color: #0A0908;
+    font-family: 'Josefin Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection { background: #C9A961; color: #0A0908; }
+
+  .display { font-family: 'Cinzel', serif; letter-spacing: -0.01em; }
+  .editorial { font-family: 'Cormorant Garamond', serif; }
+
+  /* 24/8/26 หัวเรื่องต้องคิดถึง "ความสูงจอ" ด้วย ไม่ใช่ความกว้างอย่างเดียว
+     เดิม 11vw ล้วน: จอ 1728x810 ได้ตัวอักษร 176px → หัวเรื่องสูง 486px และทั้งฮีโร่
+     สูง 1,057px บนจอสูง 810px (วัดแล้ว) = ล้นจอ 247px ผู้ใช้ต้องเลื่อนถึงจะเห็นปุ่ม
+     พอเลื่อน หัวเรื่องก็มุดเข้าไปใต้แถบเมนูที่ fixed อยู่ — อาการ "ตัวหนังสือถูกดันขึ้นไป"
+     min() กับ 14vh คือเพดานตามความสูงจอ จอสูงปกติ (1080) ยังได้ 151px เท่าเดิมโดยรวม
+     ที่เปลี่ยนจริงคือจอกว้างแต่เตี้ย ซึ่งเป็นจอที่พังอยู่ */
+  .mega {
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    font-size: clamp(3.25rem, min(11vw, 13.5vh), 11rem);
+    line-height: 0.92;
+    letter-spacing: -0.035em;
+  }
+
+  .hairline {
+    font-family: 'Josefin Sans', sans-serif;
+    font-weight: 300;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+  }
+  /* 0.42em tracking pushes these lines past a phone's edge */
+  @media (max-width: 767px) {
+    .hairline { letter-spacing: 0.26em; font-size: 0.66rem; }
+  }
+
+  .gold-rule {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #C9A961, transparent);
+  }
+
+  /* Gold underline link */
+  .nav-link {
+    position: relative;
+    transition: color 200ms ease;
+  }
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: -6px;
+    height: 1px;
+    background: #C9A961;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 350ms cubic-bezier(.2,.7,.2,1);
+  }
+  .nav-link:hover::after,
+  .nav-link:focus-visible::after { transform: scaleX(1); transform-origin: left; }
+
+  /* Hero — GPU-driven parallax (background-attachment:fixed stutters on macOS/touchpads) */
+  .hero { position: relative; isolation: isolate; overflow: hidden; }
+  .hero-layer {
+    position: absolute;
+    /* 24/8/26 เลิกผูกความสูงแผ่นภาพกับ "ความสูงของเนื้อหา" (DEMO-SPEC S2.8 ภาพห้ามแวบ)
+       เดิม inset: -12% 0 ทำให้กล่องภาพ = ความสูงฮีโร่ + 24% และฮีโร่สูงตามเนื้อหา
+       (วัดได้ 962/927/959px เทียบจอ 844/900/900 = เนื้อในสูงกว่าจอทุกขนาด)
+       ผลคือ **อะไรที่มาถึงช้าแล้วดันความสูงตัวอักษร ภาพ cover จะถูกย่อ/ขยายใหม่ทั้งใบ**
+       ซึ่งคือ "refresh แล้วรูปฮีโร่เปลี่ยนขนาดเห็นจะๆ" ที่เจ้าของเจอบน Safari
+       ตอนนี้กล่องภาพอิงจอเป็นหลัก (130svh) จึงไม่ขยับตามตัวอักษร · max() กับ 100% เป็น
+       ตาข่ายไว้เผื่อวันหนึ่งเนื้อหายาวกว่า 130svh จริง ภาพจะยังคลุมเต็มไม่โหว่ */
+    inset: -12% 0 auto 0;
+    height: max(130svh, 100%);
+    /* 25/8/26 รูปย้ายไปเป็น <img> ใน HTML แล้ว (ดูคอมเมนต์ที่ตัวมันเอง) กล่องนี้เหลือ
+       หน้าที่แค่ "วางตำแหน่ง + รับ parallax" · background-color ยังอยู่เป็นพื้นรองกันจอขาว
+       เฟรมแรก
+
+       ประวัติที่ห้ามทำซ้ำ: เคยลอง <link rel=preload as=image> กับรูปนี้ตอนที่มันยังเป็น
+       background แล้ว **ถอดออก** เพราะวัดบนเน็ตจำลอง 1.6Mbps ได้ 3489ms เทียบ 3546ms
+       = เท่ากันในระดับ noise (คอขวดคือแบนด์วิดท์ ไม่ใช่การค้นเจอ) แต่ฟอนต์เสร็จช้าลงจริง
+       850ms → 1302ms เพราะคำขอรูปไปแทรกคิวหน้าฟอนต์
+       ตอนนี้ใช้ fetchpriority=high บนตัว <img> แทน ซึ่งเป็นการ "จัดลำดับ" ไม่ใช่
+       "เพิ่มคำขอใหม่" — ถ้าจะกลับไปใส่ preload ต้องวัดสองค่านั้นใหม่ก่อน */
+    background-color: #2a231d;
+    /* S2.1 ตัวขับเดียวต่อหนึ่งอีลิเมนต์ (DEMO-SPEC) — เดิม CSS อนิเมต heroSettle บนแผ่นนี้
+       พร้อมกับที่ JS เขียน transform ทับทุกเฟรมตอนเลื่อน สองตัวขับบนแผ่นภาพเต็มจอ
+       = ภาพทั้งฮีโร่ (หัวข้อรวมอยู่ด้วย) สั่นตลอด 2.8 วินาทีแรก ซึ่งคือ "หัวข้อกระตุก" ที่เห็น
+       ตอนนี้ JS ไม่แตะแผ่นนี้แล้ว มันเขียน --py ไว้ที่ .hero (พ่อ) แทน
+       แล้ว scale (จาก animation) กับ translate (จากตัวแปร) เป็นคนละ property ไม่ทับกัน */
+    will-change: transform;
+    backface-visibility: hidden;
+    /* 25/8/26 ถอด parallax ออกตามที่เจ้าของสั่ง — แผ่นภาพนิ่งไปกับหน้า
+       ไม่มีอะไรเคลื่อนไหวใต้หัวข้ออีก เจ้าของอ่านการที่ภาพเลื่อนคนละจังหวะกับหน้า
+       ว่าเป็น "หัวข้อกระตุก" ซึ่งถูก — ต่อให้ทำให้ลื่นแล้วมันก็ยังเป็นของที่ขยับอยู่ดี
+       keyframes heroPara ยังอยู่ในไฟล์ เผื่ออยากเปิดคืน แต่ไม่มีใครเรียกใช้แล้ว */
+    z-index: -2;
+  }
+  /* รูปเต็มกรอบเหมือนที่ background-size:cover เคยทำ แต่เป็นอีลิเมนต์จริงที่โหลดได้เร็ว */
+  .hero-layer img {
+    display: block; width: 100%; height: 100%;
+    object-fit: cover; object-position: center;
+  }
+  .hero-veil {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(10,9,8,0.30) 0%, rgba(10,9,8,0.55) 60%, rgba(10,9,8,0.88) 100%);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  /* 24/8/26 ฮีโร่ต้องจบในจอเดียว (เดสก์ท็อป)
+     วัดที่ 1728x810: เนื้อใน 833px + ระยะขอบบนล่าง 224px = 1,057px บนจอ 810px
+     ระยะขอบเดิมเป็นค่าคงที่ (pt-28/pb-28 = 112px ทั้งคู่) จอเตี้ยจึงโดนบีบสองต่อ
+     ทั้งจากตัวอักษรที่ใหญ่ตามความกว้าง และจากขอบที่ไม่ยอมเล็กลงตามความสูง
+     ทำเป็น clamp ตามความสูงจอแทน: จอสูง (1080+) ได้ค่าเดิม 112px จอเตี้ยหดลงเอง
+     ผลที่ต้องได้คือ ฮีโร่ = ความสูงจอพอดี เนื้อหาจึงกลับไปนั่งชิดล่างเหมือนที่ออกแบบไว้
+     (items-end) และไม่มีอะไรต้องเลื่อนให้มุดใต้แถบเมนู */
+  @media (min-width: 1024px) {
+    .hero {
+      padding-top: clamp(6rem, 12vh, 7rem);
+      padding-bottom: clamp(3.5rem, 9vh, 7rem);
+    }
+    .hero-foot { margin-top: clamp(2rem, 7vh, 6rem); }
+  }
+  /* 1024-1279px: เมนูเดสก์ท็อปโผล่มาแล้วแต่ที่ยังไม่พอ แถบหัวจึงตกเป็นสองบรรทัด
+     (วัดได้สูง 117px เทียบกับ 84px ที่จอกว้างกว่านี้) ของเดิมเว้นหัวไว้ 112px
+     = หัวเรื่องโดนแถบเมนูทับอยู่ 5px มาก่อนแล้ว ไม่ใช่ของใหม่จากรอบนี้
+     ช่วงนี้จึงตรึงระยะหัวไว้ 120px ยอมให้ฮีโร่เลื่อนนิดเดียวดีกว่าปล่อยให้ทับ */
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    .hero { padding-top: 7.5rem; }
+  }
+
+  /* Marquee — seamless loop, compositor-only animation */
+  .marquee {
+    display: flex;
+    width: max-content;             /* total width = sum of children, so -50% lands exactly on the duplicate */
+    animation: marquee 38s linear infinite;
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+  .marquee-group {
+    display: flex;
+    align-items: center;
+    gap: 4rem;
+    padding-right: 4rem;            /* identical trailing space in both copies = no seam jump */
+    flex-shrink: 0;
+  }
+  @keyframes marquee {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-50%, 0, 0); }
+  }
+  .marquee:hover { animation-play-state: paused; }
+
+  /* Reveal on scroll — compositor path.
+     Gated behind html.js: the old rule hid every section unconditionally, so a
+     visitor with JS off (or a crawler that does not run it) got a page of empty
+     white. will-change is dropped once the element has arrived — a permanent
+     will-change keeps a compositor layer alive for every section on the page. */
+  html.js .reveal {
+    opacity: 0;
+    /* 26/8/26 ใส่การเลื่อนกลับตามที่เจ้าของสั่งไว้ว่า "จนกว่าจะแก้ไม่ให้กระตุก ค่อยใส่ Animation
+       เท่าเดิม" — ต้นเหตุการกระตุกแก้หมดแล้ว (ฟอนต์อยู่ในเว็บเราเอง · แถบเมนูไม่หด · ไม่มี parallax)
+       ของที่เคยทำให้อ่านเป็น "กระโดดลงแล้วเด้งกลับ" คือมันขยับ **ขณะที่หน้ายังจัดตัวใหม่อยู่**
+       ตอนนี้หน้านิ่งตั้งแต่เฟรมแรก การเลื่อนขึ้นจึงอ่านเป็นการเข้าฉากตามที่ออกแบบไว้ */
+    transform: translate3d(0, 28px, 0);
+    transition: opacity 1100ms var(--ease-quiet), transform 1100ms var(--ease-quiet);
+    transition-delay: calc(var(--i, 0) * 60ms);   /* siblings set --i to arrive in sequence */
+    will-change: opacity, transform;
+  }
+  html.js .reveal.in { opacity: 1; transform: translate3d(0, 0, 0); will-change: auto; }
+
+  /* Card image zoom */
+  .zoom-img {
+    transition: transform 900ms var(--ease-quiet);
+    /* 26/8/26 รอบสอง — เจ้าของ: "make it zoom with smoothness"
+       (.4,0,.25,1) ยังชะลอแรงช่วงท้าย = รู้สึกเป็น "วิ่งแล้วเบรก" ไม่ใช่ลื่นไหล
+       (.45,.05,.35,1) นุ่มทั้งหัวและท้าย ความชันตอนเริ่ม ~0.11 (ค่อยๆ ออกตัว)
+       26/8/26 พอกฎ .curtain ยอมให้ transform มี transition แล้ว เจ้าของบอกว่า 1800ms ช้าไป
+       จึงคืนกลับเป็น 900ms var(--ease-quiet) = ค่าที่ออกแบบไว้แต่แรก และเป็นจังหวะเดียว
+       กับม่านเปิดรูป (.curtain 900ms) กับปุ่มทอง — ของทั้งหน้าใช้เส้นความเร่งชุดเดียวกัน
+       ระยะซูมยังเท่าเดิม 1.06 — แตะเฉพาะจังหวะ ไม่แตะหน้าตาปลายทาง */
+    /* 26/8/26 เจ้าของ: "ชี้แล้วซูมเร็วเกินไป" — ต้นเหตุไม่ใช่ตัวเลข 900ms
+       แต่เป็นเส้นความเร่ง cubic-bezier(.2,.7,...) ซึ่งจุดคุมอยู่ที่ (x=.2, y=.7)
+       แปลว่า **วิ่งไป 70% ของระยะภายในเวลาแค่ 20% แรก** (=180ms) แล้วคืบช้าๆ
+       อีก 720ms ที่ตาแทบไม่เห็น คนจึงรู้สึกว่า "กระตุกแล้วจบ" ไม่ใช่ "ค่อยๆ ซูม"
+       รอบแรก-สองไล่ยืดเวลาไป 1400/1800ms ทั้งที่ transition ไม่เคยทำงาน (ดูกฎ .curtain)
+       ระยะซูมเท่าเดิม (1.06) เปลี่ยนแค่จังหวะ ไม่ได้เปลี่ยนหน้าตาปลายทาง */
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+  .group:hover .zoom-img { transform: scale3d(1.06, 1.06, 1); }
+
+  /* ---- Gallery: เอฟเฟกต์ตอนชี้ (25/8/26) --------------------------------
+     เดิมมีแค่ซูม 1.06 ซึ่งบนภาพถ่ายห้องพักที่โทนใกล้กันหมด แทบมองไม่ออกว่าชี้อยู่ใบไหน
+     เพิ่ม 2 ชั้นที่เข้ากับโทนเว็บ (หมึก+ทอง) แทนการเพิ่มความแรงของซูม:
+       ① ม่านมืดไล่จากล่าง = ใบที่ชี้ "จม" ลงนิด ใบอื่นเด่นขึ้นโดยเปรียบเทียบ
+       ② กรอบเส้นทองบาง วิ่งเข้ามาจากขอบ = ภาษาเดียวกับ .btn-gold และกรอบแผนที่
+     ครอบด้วย @media (hover:hover) เพราะบนมือถือ :hover ค้างหลังแตะ = กรอบไม่ยอมหาย
+     ใช้ ::before/::after ของ figure ไม่แตะ transform ของ .zoom-img (มันถือ scale3d อยู่) */
+  @media (hover: hover) and (pointer: fine) {
+    .bento figure { position: relative; }
+    .bento figure::before,
+    .bento figure::after {
+      content: ''; position: absolute; pointer-events: none; z-index: 1;
+    }
+    .bento figure::before {
+      inset: 0;
+      background: linear-gradient(to top,
+        rgba(10, 9, 8, 0.55) 0%, rgba(10, 9, 8, 0.14) 40%, rgba(10, 9, 8, 0) 68%);
+      opacity: 0;
+      transition: opacity 700ms var(--ease-quiet);
+    }
+    .bento figure::after {
+      inset: 14px;
+      border: 1px solid rgba(201, 169, 97, 0.8);
+      opacity: 0;
+      transform: scale(1.04);
+      transition: opacity 700ms var(--ease-quiet),
+                  transform 700ms var(--ease-quiet);
+    }
+    .bento figure:hover::before { opacity: 1; }
+    .bento figure:hover::after  { opacity: 1; transform: scale(1); }
+    @media (max-width: 768px) { .bento figure::after { inset: 8px; } }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bento figure::before, .bento figure::after { transition-duration: 1ms; }
+  }
+
+  /* Button */
+  .btn-gold {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 1rem 1.75rem;
+    background: #0A0908;
+    color: #F5F1EA;
+    border: 1px solid #C9A961;
+    text-transform: uppercase;
+    letter-spacing: 0.28em;
+    font-size: 0.72rem;
+    font-weight: 500;
+    transition: all 300ms ease;
+    cursor: pointer;
+  }
+  .btn-gold::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: #C9A961;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 400ms cubic-bezier(.2,.7,.2,1);
+    z-index: 0;
+  }
+  .btn-gold:hover::before { transform: scaleX(1); transform-origin: left; }
+  .btn-gold:hover { color: #0A0908; }
+  .btn-gold > * { position: relative; z-index: 1; }
+
+  .btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 1rem 1.75rem;
+    border: 1px solid rgba(245, 241, 234, 0.4);
+    color: #F5F1EA;
+    text-transform: uppercase;
+    letter-spacing: 0.28em;
+    font-size: 0.72rem;
+    font-weight: 500;
+    transition: all 300ms ease;
+    cursor: pointer;
+  }
+  .btn-outline:hover { border-color: #C9A961; color: #C9A961; }
+
+  /* Number ticker style */
+  .num {
+    font-family: 'Cinzel', serif;
+    font-weight: 500;
+    font-size: clamp(3rem, 6vw, 4.5rem);
+    line-height: 1;
+    color: #C9A961;
+  }
+
+  /* Section eyebrow ornament */
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.85rem;
+  }
+  .eyebrow::before, .eyebrow::after {
+    content: '';
+    width: 28px;
+    height: 1px;
+    background: #C9A961;
+  }
+  .eyebrow.left::before  { display: none; }
+  .eyebrow.right::after { display: none; }
+
+  /* Suite card — the card and the section behind it are both #0A0908, so at
+     0.18 alpha the border did not separate them: three cards read as one dark
+     slab. 0.34 draws the edge; hover goes to 0.75 and lifts 3px, because on a
+     "quiet luxury" page the hover should feel like a page turning, not a bounce. */
+  .suite-card {
+    background: #0A0908;
+    color: #F5F1EA;
+    border: 1px solid rgba(201, 169, 97, 0.34);
+    transition: border-color 400ms ease, transform 400ms ease, box-shadow 400ms ease;
+  }
+  .suite-card:hover {
+    border-color: rgba(201, 169, 97, 0.75);
+    transform: translateY(-3px);
+    box-shadow: 0 18px 40px -28px rgba(201, 169, 97, 0.55);
+  }
+
+  /* Gallery bento */
+  .bento {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-auto-rows: 160px;
+    gap: 12px;
+  }
+  @media (max-width: 768px) {
+    .bento { grid-auto-rows: 120px; gap: 8px; }
+  }
+
+  /* Floating navbar */
+  .nav-shell {
+    /* S2.4 ห้าม transition backdrop-filter — การไล่รัศมีเบลอ = สั่งเบลอใหม่ทั้งแถบทุกเฟรม
+       และมันยิงตอน scrollY > 40 ซึ่งทับกับช่วงที่หัวข้อยังวิ่งอยู่พอดี · ให้เบลอสลับทันที */
+    transition: background-color 400ms ease, border-color 400ms ease;
+  }
+  .nav-shell.scrolled {
+    background-color: transparent;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-color: rgba(201, 169, 97, 0.25);
+  }
+  /* 25/8/26 พื้นของแถบเมนูถูกวาดที่ชั้น ::before ไม่ใช่ที่ตัวอีลิเมนต์เอง
+     (ตัวอีลิเมนต์ถูกตั้งเป็น transparent ไว้ใน css/tailwind.css)
+     รอบแรกผมไปแก้ background ของตัวอีลิเมนต์แล้วไม่มีผลอะไรเลย เจ้าของเปิดดูแล้วยังเหมือนเดิม
+     — บทเรียน: ตรวจว่ากฎที่แก้ไป "ถูกใช้จริงไหม" ไม่ใช่แค่ว่าเขียนถูกไหม
+
+     เจ้าของส่งภาพมาว่าหัวข้อของ section ที่เลื่อนผ่านใต้แถบ "ทะลุขึ้นมาให้เห็น" ทับกับโลโก้
+     ที่ 0.78 ตัวหนังสือสว่างและใหญ่ยังลอยผ่านขึ้นมาชัด แม้มี blur — blur ทำให้เบลอ ไม่ได้ทำให้จาง */
+  .nav-shell.scrolled::before { background-color: rgba(10, 9, 8, 0.97) !important; }
+  /* ชื่อแบรนด์อยู่ "ใต้" ชั้นพื้น ::before ส่วนเมนูอยู่เหนือ — ตอนพื้นโปร่ง 0.78 จึงพอเห็น
+     เป็นเงาจางๆ พอทำให้ทึบขึ้นเลยหายไปเลย (เจ้าของส่งภาพมาว่าโลโก้หาย)
+     ยกเนื้อหาทั้งแถบขึ้นเหนือชั้นพื้นทีเดียว แทนที่จะไล่ยกทีละชิ้น */
+  .nav-shell > nav { position: relative; z-index: 1; }
+
+  /* ---- แถบเมนูไม่หดแล้ว (25/8/26) ------------------------------------------
+     เจ้าของ: "ทั้ง headline ตอนมันจะเปลี่ยนเป็นเวอร์ชัน 2 มันกระโดดลงแล้วก็กลับที่เดิม
+     มันเลื่อนแค่ text" — วัดแล้วตรงเป๊ะ ตัวที่เลื่อนไม่ใช่หัวข้อในหน้า แต่เป็นตัวหนังสือ
+     ในแถบเมนู: THE BED และ PHATTHANAKAN·20 เลื่อน 10px ที่ scroll 540
+     เมนูทั้ง 6 อันเลื่อน 10px ที่ scroll 600
+
+     กลไก: ตอนติดคลาส .scrolled แถบย้าย padding จากข้างใน (nav 20/20) ไปไว้ข้างนอก
+     (navShell 10/10) แถบจึงหดจาก 84px เหลือ 64px และตัวหนังสือข้างในกระโดดขึ้น 10px
+     รอบก่อนมีคนถอด transition ของ padding ออกไปแล้ว (แถบเลิกไล่ทีละเฟรม) แต่ค่ามัน
+     ยังเปลี่ยนอยู่ดี แค่เปลี่ยนแบบทันที = ยังกระโดดให้เห็นเหมือนเดิม
+
+     ตัวที่ทำจริงไม่ใช่ CSS ของหน้านี้ แต่เป็นกฎกลางที่ทุกเดโมใช้ร่วมกัน:
+       header.small > *      { padding: 10px !important }
+       header.small > * > *  { padding: 0px  !important }
+     คือกลไก "หัวเว็บหดตอนเลื่อน" ที่ js/nav-response.js ใส่คลาส .small ให้เมื่อเลื่อนเกิน 120px
+     มันใช้ !important กฎที่เขียนทับแบบธรรมดาจึงแพ้ทุกรอบ (ผมลองไปสองรอบกว่าจะเจอ)
+     ต้องสู้ด้วย id + !important ถึงจะชนะ
+
+     ตอนนี้ตรึงรูปทรงของแถบไว้ทั้งสองสถานะ แถบไม่หด ตัวหนังสือจึงไม่มีอะไรให้กระโดด
+     สิ่งที่ยังเปลี่ยนตอนเลื่อนคือ "พื้นทึบขึ้น" กับ "เส้นขอบล่างโผล่" ซึ่งไม่ขยับอะไรเลย */
+  #navShell { padding-top: 0 !important; padding-bottom: 0 !important; }
+  #navShell > nav { padding-top: 1.25rem !important; padding-bottom: 1.25rem !important; }
+
+  /* Soft fade-in for hero */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-up    { animation: fadeUp 1200ms cubic-bezier(.2,.7,.2,1) both; }
+
+  /* ---- ฮีโร่: จางเข้าอย่างเดียว ห้ามเลื่อนขึ้น (25/8/26) ----------------------
+     เจ้าของ: "พอรีเฟรชเสร็จปุ๊บ มันโชว์ตำแหน่งหนึ่ง แล้วรอเสี้ยววิมันก็ move ขึ้นไป"
+     ต้นเหตุ: ตัวอักษรสี่บรรทัดบนฮีโร่เริ่มต่ำกว่าที่จริงแล้ววิ่งขึ้น
+       บรรทัดบนสุด (A BOUTIQUE RESIDENCE) ใช้ .fade-up = เริ่มต่ำ 20px
+       หัวข้อสามบรรทัด ใช้ .reveal      = เริ่มต่ำ 28px
+     ตอนความทึบยังไม่ถึง 1 ตาเห็นตัวอักษรจางๆ อยู่ตำแหน่งล่างแล้ว พอมันวิ่งขึ้นจึงอ่านเป็น
+     "ข้อความกระโดด" ไม่ใช่ "ค่อยๆ ปรากฏ" — ยิ่งรีเฟรชแคชอุ่นยิ่งเห็นชัด เพราะทุกอย่าง
+     มาพร้อมกันหมด เหลือแต่การเลื่อนให้ตาจับ
+
+     แก้เฉพาะในฮีโร่: เอา transform ออก เหลือ opacity อย่างเดียว
+     ที่อื่นในหน้ายังเลื่อนขึ้นเหมือนเดิม เพราะตอนเลื่อนไปเจอ ตาไล่ตามอยู่แล้วจึงอ่านเป็น
+     การเข้าฉาก ไม่ใช่การกระโดด — ต่างกันที่ฮีโร่คือของที่อยู่ตรงหน้าตั้งแต่วินาทีแรก */
+  /* 25/8/26 แอนิเมชันฮีโร่กลับมาเท่าเดิม หลังแก้ต้นเหตุจริงแล้ว
+     ต้นเหตุที่เจ้าของฟ้องว่า "รีเฟรชแล้วตัวอักษรขยับ" ไม่ใช่แอนิเมชัน — เป็นฟอนต์ที่โหลด
+     จาก fonts.gstatic.com มาถึงหลังหน้าวาดไปแล้ว ตัวอักษรจึงเปลี่ยนขนาดและตำแหน่งกลางคัน
+     พิสูจน์ด้วยการปิดแอนิเมชันทั้งหมดแล้วยังเป็นเหมือนเดิม (ดู css/fonts.css)
+     ตอนนี้ฟอนต์อยู่ในเว็บเราเองแล้ว อัดวิดีโอหน้าจอตอนรีเฟรชได้ 0.00% ตั้งแต่เฟรมแรก
+     จึงคืนแอนิเมชันเดิมได้โดยไม่ต้องกลัวว่ามันจะไปทับกับการจัดหน้าใหม่อีก
+     บทเรียน: อย่าถอดของที่ดูน่าสงสัยออกก่อนหาต้นเหตุ — เกือบทิ้งดีไซน์ไปเพราะเข้าใจผิด */
+  .delay-100  { animation-delay: 120ms; }
+  .delay-200  { animation-delay: 260ms; }
+  .delay-300  { animation-delay: 420ms; }
+  .delay-400  { animation-delay: 580ms; }
+  .delay-500  { animation-delay: 740ms; }
+
+  /* Honor reduced motion.
+     Killing animation and transition is only half the job: anything whose resting
+     state is "hidden until a class arrives" stays hidden forever once the
+     transition that would have revealed it is gone. Every start state declared
+     above is therefore cleared here, not just shortened. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+    html.js .reveal          { opacity: 1; transform: none; }
+    html.js .split .wi       { transform: none; }
+    html.js .curtain > *     { clip-path: none; }
+    html.js .rule line       { stroke-dashoffset: 0; }
+    html.js .eyebrow::before,
+    html.js .eyebrow::after  { transform: scaleX(1); }
+    html.js .rate > i        { width: var(--fill); }
+    html.js .bar > span      { transform: scaleX(1); }
+    html.js .foot-mark > span { transform: none; }
+    html.js .hero-layer      { scale: 1; animation: none !important; }
+    .hero-light              { display: none; }
+  }
+
+  /* Focus states */
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid #C9A961;
+    outline-offset: 3px;
+  }
+
+  /* Vertical divider with ornament */
+  .ornament {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px; height: 36px;
+    border: 1px solid #C9A961;
+    transform: rotate(45deg);
+  }
+  .ornament > span {
+    width: 6px; height: 6px;
+    background: #C9A961;
+  }
+  /* .ornament's own `display: inline-flex` above has the same specificity as
+     Tailwind's `.hidden{display:none}` and loads after it, so it silently wins
+     the cascade — the "hidden md:block" ornament in the hero was never actually
+     hidden below 768px. That's what pushed 390px 7px past the viewport edge
+     (`-top-6 -right-6` positioning it right at the boundary). Restore the hide
+     with a selector one specificity level up. */
+  @media (max-width: 767.98px) {
+    .hidden.ornament { display: none; }
+  }
+
+  /* Star rating */
+  .stars { color: #C9A961; letter-spacing: 0.15em; }
+
+  /* ==========================================================================
+     MOTION SYSTEM
+     One easing, one duration, five moves. Every move is drawn from what this
+     building actually does — light arriving, a curtain drawn, a line ruled on
+     paper, a number settling — rather than a generic fade, and every start state
+     is gated behind html.js and cleared under prefers-reduced-motion.
+     Animated properties are limited to transform / opacity / clip-path /
+     stroke-dashoffset / width so nothing triggers layout.
+     ========================================================================== */
+  :root {
+    --ease-quiet: cubic-bezier(.2,.7,.2,1);
+    /* ใช้ที่เดียวเท่านั้น = จังหวะคำในหัวข้อ (.split .wi) — 1100ms ทำให้คำท้ายของ
+       หัวข้อ 9 คำจบที่ 1,540ms ซึ่งช้ากว่าตาที่เลื่อนผ่านไปแล้ว เห็นเป็นคำเด้งทีละคำ */
+    --dur-quiet: 750ms;
+  }
+
+  /* 1. Words rise from a mask, one after another.
+     The wrapper is what clips; the inner span is what moves. Whitespace stays as
+     real text nodes between the wrappers, so selecting the heading still copies
+     a normal sentence. */
+  .w  { display: inline-block; overflow: hidden; vertical-align: bottom; }
+  .wi { display: inline-block; }
+  html.js .hero .split .wi { will-change: transform; }
+  html.js .hero .split .wi.wi-done { will-change: auto; }
+  html.js .split .wi {
+    /* S2.6 คำในหัวข้อเป็นของที่เล่นจริงแต่กลับไม่เคยมี will-change เลย ทั้งที่ .reveal
+       .marquee .zoom-img .hero-layer มีครบ — เฟรมแรกของแต่ละคำจึงถูกวาดบนเธรดหลัก
+       และ letter-spacing -0.035em บนเซริฟตัวใหญ่ทำให้เห็นเป็นตัวอักษรสั่น
+       ให้เฉพาะหัวข้อในฮีโร่ ซึ่งเป็นอันเดียวที่เล่นทันทีตอนโหลดพร้อมกับที่ภาพฮีโร่ยังขยับ
+       — รอบแรกใส่ให้ .split ทุกอันในหน้า แล้ววัดได้ว่า will-change ค้างพุ่งจาก 31 เป็น 77 จุด
+       (หัวข้อที่ยังไม่ถึงคิวเล่นก็ถือเลเยอร์ไว้เปล่าๆ) = ละเมิดครึ่งหลังของกฎข้อเดียวกัน
+       ปลดทิ้งด้วย .wi-done หลังเล่นจบ */
+    transform: translate3d(0, 108%, 0);
+    transition: transform var(--dur-quiet) var(--ease-quiet);
+    transition-delay: calc(var(--wi, 0) * 30ms);
+  }
+  html.js .split.in .wi { transform: translate3d(0, 0, 0); }
+
+  /* ---- หัวข้อในหน้าเลิกแตกทีละคำ ใช้จังหวะเดียวกับหัวข้อฮีโร่ (25/8/26) -------
+     เจ้าของ: "หน้าฮีโร่ Headline หน้าตาแบบนึง พอเลื่อนลงเปลี่ยนเป็นอีกแบบ แล้วกระตุก"
+     ถูกต้อง — หัวข้อฮีโร่จางเข้าทั้งก้อน แต่หัวข้ออีก 7 อันในหน้าแตกเป็นคำ แต่ละคำวิ่งขึ้น
+     จากกล่อง overflow:hidden ทีละ 30ms บนตัวเซริฟใหญ่ที่มี letter-spacing ติดลบ
+     เฟรมแรกของแต่ละคำจึงอ่านเป็นตัวอักษรสั่น และเพราะมี 9 คำ มันสั่นต่อกันเป็นชุด
+     (คอมเมนต์เดิมในไฟล์นี้เคยพยายามแก้ด้วยการย่นเวลาและใส่ will-change มาแล้วสองรอบ
+     ซึ่งลดอาการได้แต่ไม่หาย เพราะต้นเหตุคือ "จำนวนของที่เคลื่อนไหวพร้อมกัน" ไม่ใช่ความเร็ว)
+
+     ตอนนี้ให้ทุกหัวข้อในหน้าใช้กลไกเดียวกับฮีโร่: จางเข้าทั้งก้อน เลื่อนขึ้นเล็กน้อยครั้งเดียว
+     = ของชนิดเดียวกันใช้กลไกเดียวกัน และเหลือของที่เคลื่อนไหวชิ้นเดียวต่อหัวข้อ
+     โครง .w/.wi ยังอยู่ ไม่ได้รื้อ เผื่อวันหนึ่งอยากได้ท่าทีละคำกลับมา */
+  html.js .split .wi { transform: none; transition: none; }
+  /* 25/8/26 เอาการเลื่อนแนวตั้งออก เหลือแค่จางเข้าอยู่กับที่
+     เจ้าของ: "มันดันมี animation ขยับ design หนึ่งลงมาด้านล่างแป๊บนึง แล้วกลับไปที่เดิม"
+     ตัวนั้นคือการเข้าฉากที่เริ่มจากตำแหน่งต่ำกว่าจริง 20px แล้ววิ่งขึ้น
+     ตอนความทึบยังไม่เต็ม ตาเห็นตัวหนังสือจางๆ อยู่ตำแหน่งล่างไปแล้ว พอมันวิ่งขึ้นจึงอ่านเป็น
+     "ของกระโดดลงแล้วเด้งกลับ" ไม่ใช่ "ของค่อยๆ ปรากฏ"
+     ตัดเฉพาะการเลื่อน ไม่ได้ตัดแอนิเมชันทิ้ง — หัวข้อยังจางเข้าเหมือนเดิม แค่ไม่ขยับ
+     ทำเหมือนกันทั้งหัวข้อฮีโร่ (.reveal) และหัวข้อทุก section (.split) */
+  html.js .split {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0);
+    transition: opacity 700ms var(--ease-quiet), transform 700ms var(--ease-quiet);
+  }
+  html.js .split.in { opacity: 1; transform: translate3d(0, 0, 0); }
+  /* Descenders and the italic Cormorant would be shaved off by the mask at a
+     flush 0 — the wrapper is given room below and pulled back up. */
+  .split .w { padding-bottom: 0.14em; margin-bottom: -0.14em; }
+
+  /* 2. A curtain drawn on an image: revealed top to bottom, never faded.
+     Large surfaces are the one place fade is banned — recompositing a full-width
+     photograph under the grain layer every frame is what stutter is made of.
+     The clip is applied to the CHILD, never to the observed element itself:
+     IntersectionObserver measures the clipped rect, so an element that starts at
+     inset(0 0 100% 0) has an intersection ratio of exactly 0 forever and its own
+     reveal never fires. Measured: every curtain stayed hidden until this moved
+     down one level. */
+  html.js .curtain > * {
+    clip-path: inset(0 0 100% 0);
+    /* 26/8/26 ต้นเหตุจริงของ "ชี้แล้วรูปขยายทันทีไม่มีอนิเมชัน" -----------------
+       รูปในแกลเลอรีเป็นลูกตรงของ figure.curtain กฎนี้จึงจับมันด้วย และ
+       ค่าความเฉพาะเจาะจง (0,2,1) ชนะ .zoom-img (0,1,0)
+       transition เป็น shorthand = เขียนทับ "ทั้งรายการ" ไม่ใช่เติมเข้าไป
+       ผลคือ transform ของ .zoom-img ไม่มี transition เหลืออยู่เลย → ซูมกระโดดทันที
+       ที่ผ่านมาไล่ยืดเวลา 900→1400→1800ms จึงไม่มีผลอะไรสักครั้ง เพราะค่าที่แก้
+       ไม่เคยถูกใช้ · ใส่ transform เข้ามาในรายการเดียวกันแทนการไปสู้ specificity
+       ที่อื่น = ของทุกชิ้นใต้ .curtain ใช้กลไกเดียวกันหมด ไม่มีข้อยกเว้นลอยๆ
+       transition-delay สองค่า = clip-path หน่วงตาม --i (ม่านเปิดไล่กัน)
+       ส่วน transform ต้อง 0ms ไม่งั้นชี้แล้วรูปจะนิ่งไปครึ่งวินาทีก่อนค่อยขยับ */
+    transition: clip-path 900ms var(--ease-quiet),
+                transform 900ms var(--ease-quiet);
+    transition-delay: calc(var(--i, 0) * 45ms), 0ms;
+  }
+  html.js .curtain.in > * { clip-path: inset(0 0 0 0); }
+
+  /* 3. A rule is drawn, not switched on. SVG stroke-dashoffset, because a
+     border-bottom cannot be drawn — it can only appear. */
+  .rule { display: block; width: 100%; height: 2px; overflow: visible; }
+  .rule line { stroke: url(#goldFade); stroke-width: 2; }
+  html.js .rule line {
+    stroke-dasharray: 200;
+    stroke-dashoffset: 200;
+    transition: stroke-dashoffset 1500ms var(--ease-quiet) 120ms;
+  }
+  html.js .rule.in line { stroke-dashoffset: 0; }
+
+  /* 4. Eyebrow ticks grow out of the text they mark. */
+  html.js .eyebrow::before, html.js .eyebrow::after {
+    transform: scaleX(0);
+    transition: transform 900ms var(--ease-quiet) 260ms;
+  }
+  html.js .eyebrow::before { transform-origin: right; }
+  html.js .eyebrow::after  { transform-origin: left; }
+  html.js .in .eyebrow::before, html.js .in .eyebrow::after,
+  html.js .eyebrow.in::before, html.js .eyebrow.in::after { transform: scaleX(1); }
+
+  /* 5. Numbers arrive. tabular-nums or the count would change the column width
+     on every frame and drag the label under it sideways. */
+  .num, [data-count] { font-variant-numeric: tabular-nums; }
+
+  /* Aggregate rating — 4.7 was drawn as five full stars, which overstates it.
+     The gold row is clipped to the real fraction (4.7/5 = 94%) over a dim row. */
+  .rate {
+    --fill: 100%;
+    position: relative;
+    display: inline-block;
+    color: rgba(201, 169, 97, 0.28);
+    letter-spacing: 0.15em;
+    white-space: nowrap;
+  }
+  .rate > i {
+    position: absolute;
+    left: 0; top: 0;
+    overflow: hidden;
+    width: var(--fill);
+    color: #C9A961;
+    font-style: normal;
+    letter-spacing: 0.15em;
+    white-space: nowrap;
+  }
+  html.js .rate > i { width: 0; transition: width 1400ms var(--ease-quiet) 200ms; }
+  html.js .rate.in > i { width: var(--fill); }
+
+  /* Review histogram bars fill from the left rather than sitting pre-filled. */
+  html.js .bar > span {
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 1300ms var(--ease-quiet);
+    transition-delay: calc(var(--i, 0) * 90ms);
+  }
+  html.js .bar.in > span { transform: scaleX(1); }
+
+  /* ---- Hero: light arriving in a room ----
+     A warm band drifts once across the façade on load, and the photograph settles
+     out of a 6% overscale. The settle animates `scale`, not `transform`, because
+     the parallax script owns this element's transform — two writers on one
+     property is a fight the script always wins mid-animation. */
+  .hero-light {
+    position: absolute;
+    inset: -25% -35%;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(100deg,
+      transparent 34%,
+      rgba(230, 204, 143, 0.18) 47%,
+      rgba(230, 204, 143, 0.06) 57%,
+      transparent 68%);
+animation: heroLight 4600ms var(--ease-quiet) 350ms both;
+  }
+  /* The band has to leave. Held at its end position (animation-fill-mode: both)
+     it parks a permanent bright wash over the façade and drops the gold eyebrow
+     under it to near-nothing — light passing through a room, not a spotlight. */
+  @keyframes heroPara {
+    from { translate: 0 0; }
+    to   { translate: 0 30vh; }   /* เท่ากับ 30% ของการเลื่อน เท่าค่าเดิมที่ JS เคยทำ */
+  }
+  @keyframes heroLight {
+    from { transform: translate3d(-52%, 0, 0); }
+    to   { transform: translate3d(58%, 0, 0); }
+  }
+  /* 24/8/26 ถอด heroSettle ออก — เจ้าของทักว่า "refresh แล้วรูปฮีโร่เปลี่ยนขนาดเอง"
+     วัดแล้วเป็นอันนี้จริง: scale ไล่จาก 1.06 → 1 กินเวลา 3,100ms (บันทึกทุก 150ms เห็นค่า
+     ขยับ 19 ครั้ง) และช่วงนั้นมีเฟรมยาว 33/51/33ms อยู่สามเฟรม
+     ของที่ผู้ใช้อ่านว่า "หน้าเว็บย่อขนาดตัวเอง" ไม่ใช่รายละเอียดที่ดูแพงขึ้น มันอ่านว่าเว็บพัง
+     แผ่นภาพยังมี inset -12% เผื่อ parallax ไว้อยู่ จึงไม่ต้องพึ่ง scale เพื่อกันขอบโหว่ */
+
+  /* ---- The mark, used large ----
+     The address is the identity: Soi Phatthanakan xx. It is set as an outline
+     numeral behind the hero, at the scale of architecture rather than of an icon,
+     and clipped by the hero itself. */
+  .hero-numeral {
+    position: absolute;
+    right: -2vw;
+    bottom: -6vw;
+    z-index: -1;
+    pointer-events: none;
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    font-size: 44vw;
+    line-height: 0.72;
+    letter-spacing: -0.04em;
+    color: transparent;
+    -webkit-text-stroke: 1.5px rgba(201, 169, 97, 0.30);
+    text-stroke: 1.5px rgba(201, 169, 97, 0.30);
+  }
+  /* Browsers without text-stroke would render nothing at all; give them a very
+     faint fill instead so the numeral is still part of the composition. */
+  @supports not ((-webkit-text-stroke: 1px red) or (text-stroke: 1px red)) {
+    .hero-numeral { color: rgba(201, 169, 97, 0.14); }
+  }
+
+  /* Footer wordmark — the one English word at full width, lifted out of its own
+     frame. Transform only: a fade on a surface this wide is the exact case the
+     grain layer makes stutter. */
+  .foot-mark { overflow: hidden; line-height: 0.78; padding: 0 0 0.06em; }
+  .foot-mark > span {
+    display: block;
+    font-family: 'Cinzel', serif;
+    font-weight: 400;
+    font-size: 15.3vw;      /* measured: "THE BED" at Cinzel 400 lands at ~95% of
+                               the container at every width from 360px up */
+    letter-spacing: 0.012em;
+    white-space: nowrap;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(201, 169, 97, 0.45);
+    text-stroke: 1px rgba(201, 169, 97, 0.45);
+  }
+  @supports not ((-webkit-text-stroke: 1px red) or (text-stroke: 1px red)) {
+    .foot-mark > span { color: rgba(201, 169, 97, 0.22); }
+  }
+  html.js .foot-mark > span {
+    transform: translate3d(0, 110%, 0);
+    transition: transform 1400ms var(--ease-quiet);
+  }
+  html.js .foot-mark.in > span { transform: translate3d(0, 0, 0); }
+</style>
+<style id="ts-grain">
+  /* Paper grain, matched to the ตามสั่ง site so the whole portfolio shares one
+     surface. Same value as the studio site, which this page's stock matches.
+     This sat at z-index -1 and was invisible on every one of these pages: they each
+     paint an opaque body and then opaque sections on top of it, so "behind
+     everything" meant behind the page as well as behind the content. Measured on
+     flow: 11,378px of opaque surface over it. These are standalone demos with their
+     own stylesheets, so reaching into each one's backgrounds is not on — the layer
+     goes on top instead, the way film grain does, at the strength the studio site
+     ends up showing. pointer-events: none, so it never intercepts a click. */
+  body::after {
+    content: ""; position: fixed; inset: 0; z-index: 99999; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.22'/%3E%3C/svg%3E");
+    background-size: 160px 160px;
+    opacity: 0.5;
+  }
+</style>
+<style>/* ---- Safari: ภาพในการ์ดสั่น/เบลอเฉพาะตอนเลื่อนหน้า -------------------------
+   กลไกเดียวกับที่แก้ใน work/velvet-leaf/ (21/8/26): ภาพใหญ่ที่ครอปแบบ cover อยู่ใน
+   กรอบมุมมนที่ตัดขอบ ทำให้ Safari ต้องวาดกรอบใหม่ทุกเฟรมตอนสกรอลล์ หน้านี้มีภาพ
+   ชนิดเดียวกัน 12 ใบ จึงแก้ไปพร้อมกัน ไม่รอให้มีคนรายงานทีละหน้า
+   ใช้ backface-visibility + contain แทนการเขียน transform ทับ เพราะ .zoom-img
+   ที่นี่ถือ transform ของตัวเองอยู่แล้ว (.group:hover .zoom-img = scale3d) การใส่
+   translateZ(0) ทับจะไปแย่งพร็อพเพอร์ตี้เดียวกันกับเอฟเฟกต์ซูมตอนชี้ */
+img.object-cover{-webkit-backface-visibility:hidden;backface-visibility:hidden;will-change:transform}
+.overflow-hidden:has(>img.object-cover){contain:paint}
+</style></head>
+<body class="overflow-x-hidden">
+
+<!-- ไอคอนชุดเดียวของหน้านี้ (สร้างด้วย playbook/make-icons.mjs) -->
+<svg class="sr-only" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0"><defs>
+  <symbol id="i-icon1" viewBox="0 0 200 2"><line x1="0" y1="1" x2="200" y2="1" /></symbol>
+  <symbol id="i-icon2" viewBox="0 0 24 24"><path d="M9 7H5a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2v2a2 2 0 0 1-2 2H4v2h1a4 4 0 0 0 4-4V7zm10 0h-4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2v2a2 2 0 0 1-2 2h-1v2h1a4 4 0 0 0 4-4V7z"/></symbol>
+  <symbol id="i-icon3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></symbol>
+  <symbol id="i-icon4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></symbol>
+</defs></svg>
+<!-- Shared paint for every drawn rule. One gradient, referenced by each <line>,
+     so the ruled lines keep the soft ends the old .gold-rule div had. -->
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <defs>
+    <linearGradient id="goldFade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0"    stop-color="#C9A961" stop-opacity="0" />
+      <stop offset="0.18" stop-color="#C9A961" stop-opacity="1" />
+      <stop offset="0.82" stop-color="#C9A961" stop-opacity="1" />
+      <stop offset="1"    stop-color="#C9A961" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+</svg>
+
+<!-- ============== NAV ============== -->
+<header class="fixed top-0 left-0 right-0 z-50">
+  <div id="navShell" class="nav-shell border-b border-transparent">
+    <nav class="max-w-[1500px] mx-auto px-6 lg:px-12 py-5 flex items-center justify-between text-cream">
+      <a href="#top" class="flex items-center gap-3 cursor-pointer" aria-label="The Bed Phatthanakan xx home">
+        <span class="ornament"><span></span></span>
+        <div class="leading-tight">
+          <div class="display text-base tracking-[0.2em]">THE&nbsp;BED</div>
+          <div class="text-[10px] tracking-[0.35em] text-gold/90">PHATTHANAKAN&nbsp;·&nbsp;20</div>
+        </div>
+      </a>
+
+      <ul class="hidden lg:flex items-center gap-10 text-[12px] tracking-[0.32em] uppercase font-light">
+        <li><a href="#residence" class="nav-link">Residence</a></li>
+        <li><a href="#suites" class="nav-link">Suites</a></li>
+        <li><a href="#amenities" class="nav-link">Amenities</a></li>
+        <li><a href="#gallery" class="nav-link">Gallery</a></li>
+        <li><a href="#location" class="nav-link">Location</a></li>
+        <li><a href="#voices" class="nav-link">Voices</a></li>
+      </ul>
+
+      <a href="#contact" class="hidden md:inline-flex items-center gap-3 text-[11px] tracking-[0.32em] uppercase border border-gold/60 text-gold px-5 py-3 hover:bg-gold hover:text-ink transition-colors duration-300 cursor-pointer">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><use href="#i-icon3"/></svg>
+          Reserve a Viewing
+      </a>
+
+      <button id="navToggle" class="lg:hidden text-cream cursor-pointer" aria-label="Open menu">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" /></svg>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Mobile menu -->
+  <div id="mobileMenu" class="lg:hidden hidden bg-ink/95 backdrop-blur-md border-b border-gold/20">
+    <ul class="px-6 py-6 flex flex-col gap-5 text-cream text-[12px] tracking-[0.32em] uppercase">
+      <li><a href="#residence">Residence</a></li>
+      <li><a href="#suites">Suites</a></li>
+      <li><a href="#amenities">Amenities</a></li>
+      <li><a href="#gallery">Gallery</a></li>
+      <li><a href="#location">Location</a></li>
+      <li><a href="#voices">Voices</a></li>
+      <li><a href="#contact" class="text-gold">Reserve a Viewing →</a></li>
+    </ul>
+  </div>
+</header>
+<!-- <main> = จุดข้ามไปเนื้อหาของเครื่องอ่านหน้าจอ และเป็นขอบเขตที่ด่านตรวจ §11 ใช้วัด
+     เดโมใบอื่นมีกันหมด ใบนี้ไม่มี ผลคือกฎที่เขียนว่า "main *" วัดของ 0 ชิ้นมาตลอด
+     ครอบเฉพาะเนื้อหาระหว่างหัวเว็บกับฟุตเตอร์ ไม่ครอบ header/footer ตามความหมายของแท็ก (22/8/26) -->
+<main>
+
+
+<!-- ============== HERO ============== -->
+<!-- lg:pt-28 ไม่ใช่ lg:pt-0 (21/8/26): แถบเมนูเป็น fixed สูง 84px ส่วนฮีโร่จัด
+     เนื้อหาชิดล่าง (items-end) พอจอสูง 800-900px เนื้อหาสูงกว่าจอ มันจึงล้นขึ้นไป
+     นอนใต้แถบเมนู — ชื่อ "The Bed." ทับตัวหนังสือของเมนูพอดี (วัดแล้ว: h1 เริ่มที่
+     y=41 ขณะแถบกินถึง y=84) บนจอสูง 1000px ขึ้นไปไม่เห็นอาการ จึงหลุดมานาน -->
+<section id="top" class="hero relative min-h-screen flex items-end pt-28 pb-20 lg:pt-28 lg:pb-28 text-cream">
+  <div class="hero-layer" id="heroLayer" aria-hidden="true">
+    <!-- 25/8/26 เดิมรูปนี้เป็น background-image ใน CSS ซึ่งตัวสแกนล่วงหน้าของเบราว์เซอร์
+         มองไม่เห็น (มันอ่านแค่ HTML) ต้องรอโหลด+แปล CSS จบก่อนถึงจะรู้ว่ามีรูป รูปจึงมาช้า
+         จนต้องเอารูปเบลอ 32px มาคั่นไว้ก่อน = คนเห็น "เบลอ → ชัด" ทุกครั้งที่รีเฟรช
+         ซึ่งคือ "พื้นหลังกระตุก" ที่เจ้าของเจอ (CLS วัดไม่เจอ เพราะไม่มีอะไรเลื่อนตำแหน่ง
+         เปลี่ยนแค่ความคมชัด — จุดบอดของด่านตรวจ ไม่ใช่ของที่ไม่มี)
+         <img> ธรรมดาอยู่ใน HTML ตัวสแกนเห็นตั้งแต่บรรทัดแรก + fetchpriority=high
+         สั่งให้แซงคิว = รูปจริงมาทันเฟรมแรก ไม่ต้องมีรูปเบลอมาคั่นอีก
+         (กลไกเดียวกับ the-terrace ซึ่งเป็นใบที่ไม่เคยถูกฟ้องเรื่องนี้เลย) -->
+    <img src="img/exterior.jpg" alt="" width="1200" height="800"
+         fetchpriority="high" decoding="sync">
+  </div>
+  <div class="hero-veil" aria-hidden="true"></div>
+  <div class="hero-light" aria-hidden="true"></div>
+  <div class="hero-numeral" aria-hidden="true">20</div>
+  <!-- Side rails -->
+  <div class="hidden lg:flex absolute left-8 top-0 h-full items-center pointer-events-none" aria-hidden="true">
+    <div class="rotate-180 [writing-mode:vertical-rl] tracking-[0.45em] text-[10px] text-cream/70">EST. BANGKOK · A RESIDENCE</div>
+  </div>
+  <div class="hidden lg:flex absolute right-8 top-0 h-full items-center pointer-events-none" aria-hidden="true">
+    <div class="[writing-mode:vertical-rl] tracking-[0.45em] text-[10px] text-cream/70">SCROLL TO DISCOVER ↓</div>
+  </div>
+
+  <div class="relative w-full max-w-[1500px] mx-auto px-6 lg:px-12">
+    <div class="fade-up delay-100 mb-6 flex items-center gap-4">
+      <span class="w-10 h-px bg-gold"></span>
+      <span class="hairline text-gold">A Boutique Residence · Phatthanakan</span>
+    </div>
+
+    <h1 class="mega reveal">
+      The&nbsp;Bed.<br/>
+      <span class="italic editorial font-light text-gold/95">Where stillness</span><br/>
+      <span class="text-cream/95">finds a home.</span>
+    </h1>
+
+    <div class="mt-10 grid lg:grid-cols-3 gap-10 items-end fade-up delay-400">
+      <p class="lg:col-span-2 max-w-2xl text-cream/85 text-lg leading-relaxed font-light editorial">
+        Tucked along the leafy quiet of Soi Phatthanakan xx, The Bed is a sanctuary for those who measure home not in square metres, but in the depth of its silence and the warmth of its keepers.
+      </p>
+      <div class="flex flex-col sm:flex-row lg:justify-end gap-4">
+        <a href="#suites" class="btn-gold"><span>Discover Suites</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><use href="#i-icon4"/></svg>
+        </a>
+        <a href="#contact" class="btn-outline"><span>Contact Concierge</span></a>
+      </div>
+    </div>
+
+    <!-- Bottom bar -->
+    <div class="hero-foot mt-16 lg:mt-24 pt-8 border-t border-cream/15 fade-up delay-500 grid grid-cols-2 lg:grid-cols-4 gap-8 text-[11px] tracking-[0.28em] uppercase">
+      <div>
+        <div class="text-cream/60 mb-2">Rating</div>
+        <div class="display text-gold text-base flex items-center gap-2">
+          <span data-count="4.7" data-decimals="1">4.7</span>
+          <span class="rate text-sm" style="--fill:94%" role="img" aria-label="4.7 out of 5">★★★★★<i aria-hidden="true">★★★★★</i></span>
+        </div>
+      </div>
+      <div>
+        <div class="text-cream/60 mb-2">Verified Voices</div>
+        <div class="display text-cream text-base"><span data-count="18">18</span>&nbsp;Reviews</div>
+      </div>
+      <div>
+        <div class="text-cream/60 mb-2">Concierge</div>
+        <div class="display text-cream text-base">098 · 654 · 8848</div>
+      </div>
+      <div>
+        <div class="text-cream/60 mb-2">Daily Hours</div>
+        <div class="display text-cream text-base">From 10:00</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== MARQUEE STRIP ============== -->
+<section class="bg-ink text-cream/80 py-7 border-y border-gold/20 overflow-hidden">
+  <div class="marquee display text-2xl lg:text-3xl tracking-[0.28em]">
+    <div class="marquee-group">
+      <span>BOUTIQUE LIVING</span><span class="text-gold">✦</span>
+      <span>ATTENTIVE STAFF</span><span class="text-gold">✦</span>
+      <span>24·HOUR SECURITY</span><span class="text-gold">✦</span>
+      <span>SHELTERED PARKING</span><span class="text-gold">✦</span>
+      <span>IN-HOUSE CAFÉ</span><span class="text-gold">✦</span>
+      <span>NAIL ATELIER</span><span class="text-gold">✦</span>
+    </div>
+    <div class="marquee-group" aria-hidden="true">
+      <span>BOUTIQUE LIVING</span><span class="text-gold">✦</span>
+      <span>ATTENTIVE STAFF</span><span class="text-gold">✦</span>
+      <span>24·HOUR SECURITY</span><span class="text-gold">✦</span>
+      <span>SHELTERED PARKING</span><span class="text-gold">✦</span>
+      <span>IN-HOUSE CAFÉ</span><span class="text-gold">✦</span>
+      <span>NAIL ATELIER</span><span class="text-gold">✦</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============== RESIDENCE / INTRO ============== -->
+<section id="residence" class="bg-paper py-28 lg:py-40">
+  <div class="max-w-[1500px] mx-auto px-6 lg:px-12 grid lg:grid-cols-12 gap-12 lg:gap-20">
+    <div class="lg:col-span-5 reveal">
+      <span class="hairline text-burnish eyebrow left">Chapter One · The Residence</span>
+
+      <h2 class="split display text-5xl lg:text-7xl leading-[0.95] mt-8 mb-10 text-ink">
+        A residence written<br/>
+        <span class="italic editorial font-light text-gilded">in the language</span><br/>
+        of considered detail.
+      </h2>
+
+      <svg class="rule w-32 mb-10" viewBox="0 0 200 2" preserveAspectRatio="none" aria-hidden="true"><use href="#i-icon1"/></svg>
+
+      <p class="text-stone text-lg leading-relaxed font-light editorial mb-6 max-w-xl">
+        The Bed is not a building one passes by. It is a place one returns to. Beyond a discreet entrance on Phatthanakan, a small world has been arranged — composed of polished concrete and warm timber, of staff who know your name, and of mornings that begin with coffee from beneath your own home.
+      </p>
+      <p class="text-stone text-base leading-relaxed font-light max-w-xl">
+        Owned and managed with rare diligence, every corner has been kept with care. The lobby is swept, the corridors are quiet, and the courtyard fills, on certain evenings, with the soft hum of neighbours sharing a slice of pizza.
+      </p>
+
+      <!-- flex-wrap, or the three stats and their two dividers add up to more
+           than a phone is wide and the whole column is dragged past the screen
+           edge. The gap only tightens below sm, so the desktop row is unchanged.
+           24/8/26 …แต่ปล่อยให้ห่อได้ทุกขนาดคือของที่เจ้าของทักว่า "ย่อจอแล้วกระตุก":
+           คอลัมน์นี้กว้างแค่ 5/12 ของหน้า พอหน้าต่างแคบลงต่ำกว่า ~1420px ตัวเลขก้อน
+           สุดท้ายตกบรรทัด แถวสูงจาก 113 เป็น 258px ทั้งหน้าเลื่อนลง 145px กลางการลาก
+           (วัดด้วย playbook/audit-resize.mjs) ตั้งแต่ sm ขึ้นไปจึงห้ามห่อ — สามก้อน
+           กับสองเส้นคั่นกว้างรวม ~400px ยังพอดีคอลัมน์ที่แคบสุด ส่วนต่ำกว่า sm ห่อเหมือนเดิม
+           ซึ่งเป็นการกระโดดตรงเบรกพอยต์ = เปลี่ยนเลย์เอาต์ที่ตั้งใจ ไม่ใช่ของที่โผล่กลางทาง
+           กฎห้ามห่ออยู่ใน css/after-tailwind.css (.stat-row) ไม่ใช่คลาส sm:flex-nowrap
+           เพราะ tailwind ของหน้านี้ถูกแช่เป็นไฟล์นิ่งแล้ว คลาสที่ไม่เคยถูกใช้ตอนแช่จะไม่มีอยู่จริง -->
+      <div class="stat-row mt-12 flex flex-wrap items-center gap-y-8 gap-x-6 sm:gap-x-8">
+        <div>
+          <div class="num" data-count="4" data-pad="2">04</div>
+          <div class="mt-2 text-[11px] tracking-[0.3em] uppercase text-stone">Storeys of<br/>quiet life</div>
+        </div>
+        <div class="w-px h-20 bg-gold/40"></div>
+        <div>
+          <div class="num" data-count="12" data-suffix="+">12+</div>
+          <div class="mt-2 text-[11px] tracking-[0.3em] uppercase text-stone">Years of<br/>continuous care</div>
+        </div>
+        <div class="w-px h-20 bg-gold/40"></div>
+        <div>
+          <div class="num">∞</div>
+          <div class="mt-2 text-[11px] tracking-[0.3em] uppercase text-stone">Mornings<br/>made better</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lg:col-span-7">
+      <div class="relative">
+        <div class="overflow-hidden curtain">
+          <img src="img/suite-warm.jpg"
+               alt="Interior of a softly lit suite at The Bed Phatthanakan xx"
+               class="w-full h-[560px] lg:h-[680px] object-cover zoom-img" loading="lazy" width="1200" height="800" />
+        </div>
+        <!-- floating frame -->
+        <div class="hidden md:block absolute -bottom-10 -left-10 w-56 h-72 overflow-hidden border-8 border-paper shadow-2xl curtain" style="--i:3">
+          <img src="img/bedroom.jpg"
+               alt="Bedroom detail in a residence suite"
+               class="w-full h-full object-cover zoom-img" loading="lazy" width="1200" height="800" />
+        </div>
+        <!-- gold ornament -->
+        <div class="hidden md:block absolute -top-6 -right-6 ornament bg-paper"><span></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== SUITES ============== -->
+<section id="suites" class="bg-ink text-cream py-12 lg:py-16 relative overflow-hidden">
+  <!-- These two gold glows were declared at opacity 0.04 over #0A0908: gold at 4%
+       on near-black is a ~1% luminance lift, i.e. nothing on a real screen. The
+       decoration was already here — it just was not switched on. 0.13 is where
+       the wash becomes visible without lifting the ground off black. -->
+  <div class="absolute inset-0 opacity-[0.13] pointer-events-none" aria-hidden="true"
+       style="background-image: radial-gradient(circle at 18% 25%, #C9A961 0%, transparent 45%), radial-gradient(circle at 82% 75%, #C9A961 0%, transparent 50%);"></div>
+
+  <div class="relative max-w-[1500px] mx-auto px-6 lg:px-12">
+    <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 lg:gap-8 mb-8 lg:mb-10 reveal">
+      <div class="max-w-2xl">
+        <span class="hairline text-gold eyebrow left">Chapter Two · The Suites</span>
+        <h2 class="split display text-3xl lg:text-5xl leading-[1.0] mt-3">
+          Three rooms.
+          <span class="italic editorial font-light text-gold">One philosophy.</span>
+        </h2>
+      </div>
+      <p class="lg:max-w-md text-cream/70 editorial text-base leading-relaxed font-light">
+        Each suite shaped around a singular idea — good living begins with what we choose to leave out. Linen, light, and silence.
+      </p>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-6">
+      <!-- Suite 1 -->
+      <article class="suite-card group flex flex-col reveal" style="--i:0">
+        <div class="overflow-hidden">
+          <img src="img/studio.jpg"
+               alt="Studio suite with bed, desk, and natural light"
+               class="w-full h-44 lg:h-48 object-cover zoom-img" loading="lazy" width="1200" height="800" />
+        </div>
+        <div class="p-5 lg:p-6 flex flex-col flex-1">
+          <div class="flex items-center justify-between mb-2">
+            <span class="hairline text-gold">Suite · I</span>
+            <span class="text-[10px] tracking-[0.25em] text-cream/50">28 SQM</span>
+          </div>
+          <h3 class="display text-xl lg:text-2xl mb-2">The Atelier</h3>
+          <p class="editorial text-cream/70 text-sm mb-4 leading-relaxed flex-1">
+            A studio for the solitary writer — few possessions, held dear.
+          </p>
+          <div class="flex items-center justify-between pt-3 border-t border-gold/30">
+            <span class="display text-gold text-base">From ฿ 12,500<span class="text-[10px] text-cream/50">/mo</span></span>
+            <a href="#contact" class="text-[10px] tracking-[0.32em] uppercase text-gold hover:text-cream cursor-pointer">Enquire&nbsp;→</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- Suite 2 (featured) -->
+      <article class="suite-card group flex flex-col relative reveal" style="--i:1">
+        <div class="absolute top-3 left-3 z-10 bg-gold text-ink text-[9px] tracking-[0.3em] uppercase px-2.5 py-1">Most Loved</div>
+        <div class="overflow-hidden">
+          <img src="img/suite-classic.jpg"
+               alt="One-bedroom suite with separate living area"
+               class="w-full h-44 lg:h-48 object-cover zoom-img" loading="lazy" width="1200" height="800" />
+        </div>
+        <div class="p-5 lg:p-6 flex flex-col flex-1">
+          <div class="flex items-center justify-between mb-2">
+            <span class="hairline text-gold">Suite · II</span>
+            <span class="text-[10px] tracking-[0.25em] text-cream/50">42 SQM</span>
+          </div>
+          <h3 class="display text-xl lg:text-2xl mb-2">The Reader</h3>
+          <p class="editorial text-cream/70 text-sm mb-4 leading-relaxed flex-1">
+            A one-bedroom with a window deep enough to sit in — mornings of light, evenings of books.
+          </p>
+          <div class="flex items-center justify-between pt-3 border-t border-gold/30">
+            <span class="display text-gold text-base">From ฿ 17,800<span class="text-[10px] text-cream/50">/mo</span></span>
+            <a href="#contact" class="text-[10px] tracking-[0.32em] uppercase text-gold hover:text-cream cursor-pointer">Enquire&nbsp;→</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- Suite 3 -->
+      <article class="suite-card group flex flex-col reveal" style="--i:2">
+        <div class="overflow-hidden">
+          <img src="img/lounge.jpg"
+               alt="Spacious one-bedroom suite with extended living area"
+               class="w-full h-44 lg:h-48 object-cover zoom-img" loading="lazy" width="1200" height="800" />
+        </div>
+        <div class="p-5 lg:p-6 flex flex-col flex-1">
+          <div class="flex items-center justify-between mb-2">
+            <span class="hairline text-gold">Suite · III</span>
+            <span class="text-[10px] tracking-[0.25em] text-cream/50">58 SQM</span>
+          </div>
+          <h3 class="display text-xl lg:text-2xl mb-2">The Salon</h3>
+          <p class="editorial text-cream/70 text-sm mb-4 leading-relaxed flex-1">
+            A larger residence for those who entertain quietly — a long table, an evening of pasta and conversation.
+          </p>
+          <div class="flex items-center justify-between pt-3 border-t border-gold/30">
+            <span class="display text-gold text-base">From ฿ 24,500<span class="text-[10px] text-cream/50">/mo</span></span>
+            <a href="#contact" class="text-[10px] tracking-[0.32em] uppercase text-gold hover:text-cream cursor-pointer">Enquire&nbsp;→</a>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <p class="mt-6 lg:mt-8 text-center text-cream/55 text-[10px] tracking-[0.32em] uppercase reveal">
+      All suites include furnishing, weekly housekeeping, high-speed wifi, and full concierge service
+    </p>
+  </div>
+</section>
+
+<!-- ============== AMENITIES ============== -->
+<section id="amenities" class="bg-cream py-28 lg:py-40">
+  <div class="max-w-[1500px] mx-auto px-6 lg:px-12">
+    <div class="text-center mb-20 reveal">
+      <span class="hairline text-burnish eyebrow">Chapter Three · The Provisions</span>
+      <h2 class="split display text-5xl lg:text-7xl leading-[0.95] mt-8 text-ink">
+        Everything you need.<br/>
+        <span class="italic editorial font-light text-gilded">Nothing you don't.</span>
+      </h2>
+      <svg class="rule w-40 mx-auto mt-10" viewBox="0 0 200 2" preserveAspectRatio="none" aria-hidden="true"><use href="#i-icon1"/></svg>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-stone/15 border border-stone/15 reveal">
+      <!-- Amenity 1 -->
+      <div class="bg-cream p-10 lg:p-12 hover:bg-paper transition-colors duration-500 group cursor-default">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-9 h-9 text-gilded mb-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.25" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+        </svg>
+        <div class="display text-xs tracking-[0.32em] text-burnish mb-3">I</div>
+        <h3 class="display text-2xl text-ink mb-3">The Café Beneath</h3>
+        <p class="editorial text-stone leading-relaxed text-lg">
+          TB TheBed Café opens its doors each morning at the foot of your stairs. A four-point-four rating from those who know coffee well.
+        </p>
+      </div>
+      <!-- Amenity 2 -->
+      <div class="bg-cream p-10 lg:p-12 hover:bg-paper transition-colors duration-500 cursor-default">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-9 h-9 text-gilded mb-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.25" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
+        </svg>
+        <div class="display text-xs tracking-[0.32em] text-burnish mb-3">II</div>
+        <h3 class="display text-2xl text-ink mb-3">The Nail Atelier</h3>
+        <p class="editorial text-stone leading-relaxed text-lg">
+          Classy Gel — a five-star, by-appointment studio kept by an artisan who treats each hand as a small canvas.
+        </p>
+      </div>
+      <!-- Amenity 3 -->
+      <div class="bg-cream p-10 lg:p-12 hover:bg-paper transition-colors duration-500 cursor-default">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-9 h-9 text-gilded mb-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.25" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
+        </svg>
+        <div class="display text-xs tracking-[0.32em] text-burnish mb-3">III</div>
+        <h3 class="display text-2xl text-ink mb-3">Twenty-Four Hour Watch</h3>
+        <p class="editorial text-stone leading-relaxed text-lg">
+          A dedicated security team holds the building through every hour. Residents have written, simply: <em>"safe."</em>
+        </p>
+      </div>
+      <!-- Amenity 4 -->
+      <div class="bg-cream p-10 lg:p-12 hover:bg-paper transition-colors duration-500 cursor-default">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-9 h-9 text-gilded mb-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.25" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.105a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.105v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+        </svg>
+        <div class="display text-xs tracking-[0.32em] text-burnish mb-3">IV</div>
+        <h3 class="display text-2xl text-ink mb-3">Sheltered Parking</h3>
+        <p class="editorial text-stone leading-relaxed text-lg">
+          Covered, ventilated parking on the lower level — a small mercy in the Bangkok sun, and a great kindness in the rains.
+        </p>
+      </div>
+      <!-- Amenity 5 -->
+      <div class="bg-cream p-10 lg:p-12 hover:bg-paper transition-colors duration-500 cursor-default">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-9 h-9 text-gilded mb-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.25" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+        </svg>
+        <div class="display text-xs tracking-[0.32em] text-burnish mb-3">V</div>
+        <h3 class="display text-2xl text-ink mb-3">A Staff Who Notices</h3>
+        <p class="editorial text-stone leading-relaxed text-lg">
+          From the housekeeper to the manager, the people of The Bed are spoken of — in every review — with warmth: <em>kind, polite, attentive.</em>
+        </p>
+      </div>
+      <!-- Amenity 6 -->
+      <div class="bg-cream p-10 lg:p-12 hover:bg-paper transition-colors duration-500 cursor-default">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-9 h-9 text-gilded mb-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.25" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+        </svg>
+        <div class="display text-xs tracking-[0.32em] text-burnish mb-3">VI</div>
+        <h3 class="display text-2xl text-ink mb-3">Evenings of Pizza</h3>
+        <p class="editorial text-stone leading-relaxed text-lg">
+          On certain nights, the management hosts the residents — a long table, hot pizza, easy laughter. The Bed remembers it is a community.
+        </p>
+      </div>
+    </div>
+
+    <!-- Sub-amenities row -->
+    <div class="mt-12 grid grid-cols-2 md:grid-cols-4 gap-px bg-stone/15 border border-stone/15 reveal">
+      <div class="bg-cream p-6 text-center">
+        <div class="display text-gilded text-2xl mb-1">7-Eleven</div>
+        <div class="text-[11px] tracking-[0.28em] uppercase text-stone">Across the street</div>
+      </div>
+      <div class="bg-cream p-6 text-center">
+        <div class="display text-gilded text-2xl mb-1">Moto Rank</div>
+        <div class="text-[11px] tracking-[0.28em] uppercase text-stone">At the front gate</div>
+      </div>
+      <div class="bg-cream p-6 text-center">
+        <div class="display text-gilded text-2xl mb-1">High-Speed</div>
+        <div class="text-[11px] tracking-[0.28em] uppercase text-stone">Fibre throughout</div>
+      </div>
+      <div class="bg-cream p-6 text-center">
+        <div class="display text-gilded text-2xl mb-1">Housekeeping</div>
+        <div class="text-[11px] tracking-[0.28em] uppercase text-stone">Weekly · included</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== GALLERY ============== -->
+<section id="gallery" class="bg-paper py-28 lg:py-40">
+  <div class="max-w-[1500px] mx-auto px-6 lg:px-12">
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between mb-16 gap-8 reveal">
+      <div>
+        <span class="hairline text-burnish eyebrow left">Chapter Four · The Gallery</span>
+        <h2 class="split display text-5xl lg:text-7xl leading-[0.95] mt-8 text-ink">
+          Quiet rooms.<br/>
+          <span class="italic editorial font-light text-gilded">Long afternoons.</span>
+        </h2>
+      </div>
+      <p class="max-w-md editorial text-stone text-lg leading-relaxed">
+        A residence is best seen in the unhurried details — a doorway, a corner, a pour of light at four o'clock. Linger.
+      </p>
+    </div>
+
+    <div class="bento">
+      <figure class="col-span-12 md:col-span-7 row-span-3 overflow-hidden group curtain" style="--i:0">
+        <img src="img/exterior.jpg"
+             alt="The Bed Phatthanakan xx building exterior"
+             class="w-full h-full object-cover zoom-img" loading="lazy" width="1200" height="800" />
+      </figure>
+      <figure class="col-span-6 md:col-span-5 row-span-2 overflow-hidden group curtain" style="--i:1">
+        <img src="img/living.jpg"
+             alt="Living area with sofa and warm finishes"
+             class="w-full h-full object-cover zoom-img" loading="lazy" width="1200" height="800" />
+      </figure>
+      <figure class="col-span-6 md:col-span-3 overflow-hidden group curtain" style="--i:2">
+        <img src="img/suite-warm.jpg"
+             alt="Studio interior detail"
+             class="w-full h-full object-cover zoom-img" loading="lazy" width="1200" height="800" />
+      </figure>
+      <figure class="col-span-6 md:col-span-2 overflow-hidden group curtain" style="--i:3">
+        <img src="img/bedroom.jpg"
+             alt="Bedroom finishes detail"
+             class="w-full h-full object-cover zoom-img" loading="lazy" width="1200" height="800" />
+      </figure>
+      <figure class="col-span-12 md:col-span-4 row-span-2 overflow-hidden group curtain" style="--i:4">
+        <img src="img/lounge.jpg"
+             alt="Deluxe suite living area"
+             class="w-full h-full object-cover zoom-img" loading="lazy" width="1200" height="800" />
+      </figure>
+      <figure class="col-span-6 md:col-span-4 md:row-span-2 overflow-hidden group curtain" style="--i:5">
+        <img src="img/studio.jpg"
+             alt="Studio suite with bed and desk"
+             class="w-full h-full object-cover zoom-img" loading="lazy" width="1200" height="800" />
+      </figure>
+      <figure class="col-span-6 md:col-span-4 md:row-span-2 overflow-hidden group curtain" style="--i:6">
+        <img src="img/suite-classic.jpg"
+             alt="One-bedroom suite interior"
+             class="w-full h-full object-cover zoom-img" loading="lazy" width="1200" height="800" />
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============== LOCATION ============== -->
+<section id="location" class="bg-ink text-cream py-28 lg:py-40">
+  <div class="max-w-[1500px] mx-auto px-6 lg:px-12 grid lg:grid-cols-12 gap-12 lg:gap-20">
+    <div class="lg:col-span-5 reveal">
+      <span class="hairline text-gold eyebrow left">Chapter Five · The Address</span>
+      <h2 class="split display text-5xl lg:text-7xl leading-[0.95] mt-8 mb-10">
+        290 Soi<br/>
+        <span class="italic editorial font-light text-gold">Phatthanakan</span><br/>
+        Twenty.
+      </h2>
+
+      <svg class="rule w-32 mb-10" viewBox="0 0 200 2" preserveAspectRatio="none" aria-hidden="true"><use href="#i-icon1"/></svg>
+
+      <p class="editorial text-cream/75 text-lg leading-relaxed mb-10">
+        Suan Luang's quieter side — a residential lane sheltered from the noise of the city, but minutes from its centre. To the left, a row of shophouses. Across the street, a 7-Eleven. At the gate, a motorbike rank, ready before the sun.
+      </p>
+
+      <dl class="space-y-6 text-sm">
+        <div class="flex gap-6 pb-6 border-b border-cream/10">
+          <dt class="hairline text-gold w-24 pt-1">Address</dt>
+          <dd class="flex-1 editorial text-lg text-cream/90 leading-relaxed">
+            xx Soi Phatthanakan xx, Khwaeng Suan Luang,<br/>Khet Suan Luang, Bangkok 10250
+          </dd>
+        </div>
+        <div class="flex gap-6 pb-6 border-b border-cream/10">
+          <dt class="hairline text-gold w-24 pt-1">Plus Code</dt>
+          <dd class="flex-1 display text-lg text-cream/90">PJH5+8M Bangkok</dd>
+        </div>
+        <div class="flex gap-6 pb-6 border-b border-cream/10">
+          <dt class="hairline text-gold w-24 pt-1">Hours</dt>
+          <dd class="flex-1 editorial text-lg text-cream/90">Reception opens daily at 10:00</dd>
+        </div>
+        <div class="flex gap-6">
+          <dt class="hairline text-gold w-24 pt-1">Telephone</dt>
+          <dd class="flex-1 display text-lg text-gold">098 654 8848</dd>
+        </div>
+      </dl>
+
+      <a href="https://www.google.com/maps/search/Bangkok"
+         target="_blank" rel="noopener noreferrer"
+         class="btn-gold mt-10">
+        <span>Open in Maps</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
+      </a>
+    </div>
+
+    <div class="lg:col-span-7 reveal">
+      <div class="relative border border-gold/30 p-3 curtain">
+        <iframe
+          title="The Bed Phatthanakan xx location map"
+          src="https://www.google.com/maps?q=Bangkok&output=embed"
+          width="100%" height="540" style="border:0; filter: grayscale(0.55) contrast(1.05);"
+          loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+          allowfullscreen></iframe>
+      </div>
+
+      <!-- Nearby grid -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-px mt-3 bg-gold/10 border border-gold/15">
+        <div class="bg-ink p-5">
+          <div class="num text-2xl" data-count="2" data-pad="2">02</div>
+          <div class="text-[10px] tracking-[0.3em] uppercase text-cream/55 mt-1">min · 7-Eleven</div>
+        </div>
+        <div class="bg-ink p-5">
+          <div class="num text-2xl" data-count="5" data-pad="2">05</div>
+          <div class="text-[10px] tracking-[0.3em] uppercase text-cream/55 mt-1">min · ARL Hua Mak</div>
+        </div>
+        <div class="bg-ink p-5">
+          <div class="num text-2xl" data-count="12" data-pad="2">12</div>
+          <div class="text-[10px] tracking-[0.3em] uppercase text-cream/55 mt-1">min · Suvarnabhumi</div>
+        </div>
+        <div class="bg-ink p-5">
+          <div class="num text-2xl" data-count="20" data-pad="2">20</div>
+          <div class="text-[10px] tracking-[0.3em] uppercase text-cream/55 mt-1">min · Sukhumvit</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== VOICES (REVIEWS) ============== -->
+<section id="voices" class="bg-cream py-28 lg:py-40">
+  <div class="max-w-[1500px] mx-auto px-6 lg:px-12">
+    <div class="text-center mb-16 reveal">
+      <span class="hairline text-burnish eyebrow">Chapter Six · The Voices</span>
+      <h2 class="split display text-5xl lg:text-7xl leading-[0.95] mt-8 text-ink">
+        Eighteen residents.<br/>
+        <span class="italic editorial font-light text-gilded">One quiet chorus.</span>
+      </h2>
+      <div class="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+        <div class="rate text-2xl" style="--fill:94%" role="img" aria-label="4.7 out of 5">★★★★★<i aria-hidden="true">★★★★★</i></div>
+        <div class="display text-2xl text-ink"><span data-count="4.7" data-decimals="1">4.7</span> / 5</div>
+        <div class="hairline text-stone">Google Verified</div>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6">
+      <!-- Review 1 -->
+      <figure class="bg-paper border border-stone/15 p-10 flex flex-col reveal" style="--i:0">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-gilded/40 mb-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon2"/></svg>
+        <blockquote class="editorial text-xl text-ink leading-snug flex-1">
+          The rooms are clean, the management is fast, the security is excellent. Truly a safe place to live — and a kind motorcycle rank waits at the front each morning.
+        </blockquote>
+        <figcaption class="mt-8 pt-6 border-t border-stone/15">
+          <div class="display text-base text-ink">Memufie</div>
+          <div class="hairline text-stone mt-2">Three months ago · 3 reviews</div>
+          <div class="stars mt-3 text-sm">★★★★★</div>
+        </figcaption>
+      </figure>
+
+      <!-- Review 2 -->
+      <figure class="bg-paper border border-stone/15 p-10 flex flex-col reveal" style="--i:1">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-gilded/40 mb-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon2"/></svg>
+        <blockquote class="editorial text-xl text-ink leading-snug flex-1">
+          Rooms kept clean and constantly improved. The staff — from the housekeepers to the management — are polite and genuinely caring. And there is a café right beneath the building. Five stars.
+        </blockquote>
+        <figcaption class="mt-8 pt-6 border-t border-stone/15">
+          <div class="display text-base text-ink">Wichayaporn Srichan</div>
+          <div class="hairline text-stone mt-2">A year ago · 5 reviews · 17 photos</div>
+          <div class="stars mt-3 text-sm">★★★★★</div>
+        </figcaption>
+      </figure>
+
+      <!-- Review 3 -->
+      <figure class="bg-paper border border-stone/15 p-10 flex flex-col reveal" style="--i:2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-gilded/40 mb-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon2"/></svg>
+        <blockquote class="editorial text-xl text-ink leading-snug flex-1">
+          Clean rooms; management, security, housekeeping and maintenance are kind and unfailingly polite. Sheltered parking is wonderful. On occasion they host gatherings — sweets for the children, pizza for the residents — and the whole building feels warm.
+        </blockquote>
+        <figcaption class="mt-8 pt-6 border-t border-stone/15">
+          <div class="display text-base text-ink">Thomas Caldwell</div>
+          <div class="hairline text-stone mt-2">A year ago · 3 reviews</div>
+          <div class="stars mt-3 text-sm">★★★★★</div>
+        </figcaption>
+      </figure>
+    </div>
+
+    <!-- Rating breakdown -->
+    <div class="mt-20 grid md:grid-cols-5 gap-12 items-center reveal">
+      <div class="md:col-span-2">
+        <div class="display text-7xl text-ink leading-none" data-count="4.7" data-decimals="1">4.7</div>
+        <div class="rate text-xl mt-3" style="--fill:94%" role="img" aria-label="4.7 out of 5">★★★★★<i aria-hidden="true">★★★★★</i></div>
+        <div class="hairline text-stone mt-3">Based on <span data-count="18">18</span> reviews</div>
+      </div>
+      <div class="md:col-span-3 space-y-3">
+        <!-- bar -->
+        <div class="flex items-center gap-4 text-sm">
+          <span class="display w-6 text-stone">5</span>
+          <div class="flex-1 h-2 bg-stone/15 bar" style="--i:0"><span class="block h-full bg-gilded" style="width:83%"></span></div>
+          <span class="hairline text-stone w-10 text-right">83%</span>
+        </div>
+        <div class="flex items-center gap-4 text-sm">
+          <span class="display w-6 text-stone">4</span>
+          <div class="flex-1 h-2 bg-stone/15 bar" style="--i:1"><span class="block h-full bg-gilded" style="width:11%"></span></div>
+          <span class="hairline text-stone w-10 text-right">11%</span>
+        </div>
+        <div class="flex items-center gap-4 text-sm">
+          <span class="display w-6 text-stone">3</span>
+          <div class="flex-1 h-2 bg-stone/15 bar" style="--i:2"><span class="block h-full bg-gilded" style="width:6%"></span></div>
+          <span class="hairline text-stone w-10 text-right">6%</span>
+        </div>
+        <div class="flex items-center gap-4 text-sm">
+          <span class="display w-6 text-stone">2</span>
+          <div class="flex-1 h-2 bg-stone/15 bar" style="--i:3"><span class="block h-full bg-gilded" style="width:0%"></span></div>
+          <span class="hairline text-stone w-10 text-right">0%</span>
+        </div>
+        <div class="flex items-center gap-4 text-sm">
+          <span class="display w-6 text-stone">1</span>
+          <div class="flex-1 h-2 bg-stone/15 bar" style="--i:4"><span class="block h-full bg-gilded" style="width:0%"></span></div>
+          <span class="hairline text-stone w-10 text-right">0%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== CONTACT / RESERVE ============== -->
+<section id="contact" class="bg-ink text-cream py-28 lg:py-40 relative overflow-hidden">
+  <!-- subtle gold ornament -->
+  <!-- The house diamond, tiled. A 0.5px stroke at 10% opacity is below one
+       display pixel of contrast on this ground — the pattern existed in the source
+       and not on the screen. Stroke 1.1 at 22% reads as a faint gold lattice;
+       80px tile kept so the rhythm matches the .ornament mark in the nav. -->
+  <div class="absolute inset-0 pointer-events-none opacity-[0.22]" aria-hidden="true"
+       style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22 viewBox=%220 0 80 80%22><path fill=%22none%22 stroke=%22%23C9A961%22 stroke-width=%221.1%22 d=%22M40 0 L80 40 L40 80 L0 40 Z%22/></svg>'); background-size: 80px;"></div>
+
+  <div class="relative max-w-[1500px] mx-auto px-6 lg:px-12 grid lg:grid-cols-12 gap-12 lg:gap-20">
+    <div class="lg:col-span-6 reveal">
+      <span class="hairline text-gold eyebrow left">Chapter Seven · The Invitation</span>
+      <h2 class="split display text-5xl lg:text-7xl leading-[0.95] mt-8 mb-8">
+        Reserve a viewing.<br/>
+        <span class="italic editorial font-light text-gold">Stay for a coffee.</span>
+      </h2>
+      <p class="editorial text-cream/75 text-lg leading-relaxed mb-12 max-w-md">
+        Our concierge will arrange a quiet visit at the hour of your preference. You may, if you wish, conclude it at the café beneath the lobby.
+      </p>
+
+      <div class="space-y-6 text-sm">
+        <a href="tel:0986548848" class="flex items-center gap-5 group cursor-pointer">
+          <span class="w-12 h-12 border border-gold/40 flex items-center justify-center group-hover:bg-gold/10 group-hover:border-gold transition-colors duration-300">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><use href="#i-icon3"/></svg>
+          </span>
+          <div>
+            <div class="hairline text-cream/55">Telephone</div>
+            <div class="display text-2xl text-gold">098 654 8848</div>
+          </div>
+        </a>
+        <a href="mailto:concierge@thebed-phatthanakan.example" class="flex items-center gap-5 group cursor-pointer">
+          <span class="w-12 h-12 border border-gold/40 flex items-center justify-center group-hover:bg-gold/10 group-hover:border-gold transition-colors duration-300">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+          </span>
+          <div>
+            <div class="hairline text-cream/55">Concierge Mail</div>
+            <div class="display text-xl text-cream/90">concierge@thebed-phatthanakan.demo</div>
+          </div>
+        </a>
+        <div class="flex items-center gap-5">
+          <span class="w-12 h-12 border border-gold/40 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg>
+          </span>
+          <div>
+            <div class="hairline text-cream/55">Address</div>
+            <div class="editorial text-lg text-cream/90 leading-snug">xx Soi Phatthanakan xx<br/>Suan Luang, Bangkok 10250</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <form class="lg:col-span-6 reveal bg-coal border border-gold/20 p-8 lg:p-12 space-y-7" onsubmit="event.preventDefault(); this.querySelector('button[type=submit]').innerHTML='Thank you — we will write back shortly.'; this.querySelector('button[type=submit]').disabled = true;">
+      <div class="flex items-center justify-between border-b border-gold/15 pb-5">
+        <h3 class="display text-xl">Request a Viewing</h3>
+        <span class="hairline text-gold">Form · 01</span>
+      </div>
+
+      <div class="grid sm:grid-cols-2 gap-6">
+        <div>
+          <label for="fname" class="hairline text-cream/55 block mb-3">First Name</label>
+          <input id="fname" name="fname" type="text" required
+                 class="w-full bg-transparent border-b border-cream/20 focus:border-gold py-3 outline-none text-cream editorial text-lg transition-colors" />
+        </div>
+        <div>
+          <label for="lname" class="hairline text-cream/55 block mb-3">Last Name</label>
+          <input id="lname" name="lname" type="text" required
+                 class="w-full bg-transparent border-b border-cream/20 focus:border-gold py-3 outline-none text-cream editorial text-lg transition-colors" />
+        </div>
+      </div>
+
+      <div>
+        <label for="email" class="hairline text-cream/55 block mb-3">Email Address</label>
+        <input id="email" name="email" type="email" required
+               class="w-full bg-transparent border-b border-cream/20 focus:border-gold py-3 outline-none text-cream editorial text-lg transition-colors" />
+      </div>
+
+      <div class="grid sm:grid-cols-2 gap-6">
+        <div>
+          <label for="phone" class="hairline text-cream/55 block mb-3">Phone</label>
+          <input id="phone" name="phone" type="tel"
+                 class="w-full bg-transparent border-b border-cream/20 focus:border-gold py-3 outline-none text-cream editorial text-lg transition-colors" />
+        </div>
+        <div>
+          <label for="suite" class="hairline text-cream/55 block mb-3">Suite of Interest</label>
+          <select id="suite" name="suite"
+                  class="w-full bg-transparent border-b border-cream/20 focus:border-gold py-3 outline-none text-cream editorial text-lg transition-colors">
+            <option class="bg-ink" value="atelier">The Atelier · Studio</option>
+            <option class="bg-ink" value="reader">The Reader · 1 Bedroom</option>
+            <option class="bg-ink" value="salon">The Salon · 1 Bedroom +</option>
+            <option class="bg-ink" value="any">No preference yet</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label for="message" class="hairline text-cream/55 block mb-3">A Note (optional)</label>
+        <textarea id="message" name="message" rows="3"
+                  class="w-full bg-transparent border-b border-cream/20 focus:border-gold py-3 outline-none text-cream editorial text-lg transition-colors resize-none"></textarea>
+      </div>
+
+      <button type="submit" class="btn-gold w-full justify-center">
+        <span>Send Request</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><use href="#i-icon4"/></svg>
+      </button>
+
+      <p class="text-[10px] tracking-[0.28em] uppercase text-cream/45 text-center">
+        Your details are held in confidence by The Bed
+      </p>
+    </form>
+  </div>
+</section>
+
+<!-- ============== FOOTER ============== -->
+</main>
+<footer class="bg-ink text-cream border-t border-gold/20">
+  <div class="max-w-[1500px] mx-auto px-6 lg:px-12 py-16 grid md:grid-cols-12 gap-10">
+    <div class="md:col-span-5">
+      <div class="flex items-center gap-3 mb-6">
+        <span class="ornament"><span></span></span>
+        <div class="leading-tight">
+          <div class="display text-base tracking-[0.2em]">THE&nbsp;BED</div>
+          <div class="text-[10px] tracking-[0.35em] text-gold/90">PHATTHANAKAN&nbsp;·&nbsp;20</div>
+        </div>
+      </div>
+      <p class="editorial text-cream/65 leading-relaxed max-w-sm">
+        A small residence kept with care, on a quiet lane in Suan Luang. We hope to keep your name in our ledger soon.
+      </p>
+    </div>
+
+    <div class="md:col-span-3">
+      <div class="hairline text-gold mb-5">Visit</div>
+      <ul class="space-y-3 editorial text-cream/75">
+        <li>xx Soi Phatthanakan xx</li>
+        <li>Suan Luang, Bangkok 10250</li>
+        <li>PJH5+8M Bangkok</li>
+        <li class="pt-2 display text-gold">From 10:00 daily</li>
+      </ul>
+    </div>
+
+    <div class="md:col-span-2">
+      <div class="hairline text-gold mb-5">Sections</div>
+      <ul class="space-y-3 text-sm">
+        <li><a href="#residence" class="hover:text-gold transition-colors">Residence</a></li>
+        <li><a href="#suites" class="hover:text-gold transition-colors">Suites</a></li>
+        <li><a href="#amenities" class="hover:text-gold transition-colors">Amenities</a></li>
+        <li><a href="#gallery" class="hover:text-gold transition-colors">Gallery</a></li>
+        <li><a href="#location" class="hover:text-gold transition-colors">Location</a></li>
+      </ul>
+    </div>
+
+    <div class="md:col-span-2">
+      <div class="hairline text-gold mb-5">Reach</div>
+      <ul class="space-y-3 text-sm">
+        <li><a href="tel:0986548848" class="display text-gold hover:underline">098 654 8848</a></li>
+        <li><a href="#" class="hover:text-gold transition-colors">LINE Official</a></li>
+        <li><a href="#" class="hover:text-gold transition-colors">Instagram</a></li>
+        <li><a href="#" class="hover:text-gold transition-colors">Facebook</a></li>
+      </ul>
+    </div>
+  </div>
+  <!-- The mark at architectural scale, once, at the end. Outlined rather than
+       filled so it closes the page without competing with the gold type above it. -->
+  <div class="max-w-[1500px] mx-auto px-6 lg:px-12 pb-10">
+    <div class="foot-mark" aria-hidden="true"><span>THE BED</span></div>
+  </div>
+
+  <div class="border-t border-cream/10">
+    <div class="max-w-[1500px] mx-auto px-6 lg:px-12 py-6 flex flex-col md:flex-row justify-between gap-3 text-[10px] tracking-[0.3em] uppercase text-cream/45">
+      <span>© The Bed Phatthanakan xx — All Quiet Reserved</span>
+      <span>An independent residence · Bangkok, Thailand</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Navbar background + hero parallax (rAF-throttled, transform-only = compositor path)
+  const nav = document.getElementById('navShell');
+  const heroLayer = document.getElementById('heroLayer');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let chromeTicking = false;
+  const onScroll = () => {
+    if (chromeTicking) return;
+    chromeTicking = true;
+    requestAnimationFrame(() => {
+      const y = window.scrollY;
+      if (y > 40) nav.classList.add('scrolled');
+      else nav.classList.remove('scrolled');
+      /* ไม่มี parallax แล้ว — เจ้าของสั่งถอดออก 25/8/26 แผ่นภาพนิ่งไปกับหน้า
+         ห้ามเอา JS กลับมาเขียนตำแหน่งแผ่นนี้ ทั้งเรื่องตัวขับซ้อนและเรื่องที่เขาไม่เอา */
+      chromeTicking = false;
+    });
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // Mobile menu
+  const toggle = document.getElementById('navToggle');
+  const menu = document.getElementById('mobileMenu');
+  toggle?.addEventListener('click', () => menu.classList.toggle('hidden'));
+  menu?.querySelectorAll('a').forEach(a => a.addEventListener('click', () => menu.classList.add('hidden')));
+
+  // ---- Words rise out of a mask -------------------------------------------
+  // Only text nodes are wrapped, and the whitespace between words is left as
+  // real text, so <br>, the italic spans, and copy-paste all survive intact.
+  const splitWords = (root) => {
+    let n = 0;
+    const walk = (node) => {
+      [...node.childNodes].forEach(child => {
+        if (child.nodeType === 3) {
+          const parts = child.textContent.split(/(\s+)/);
+          if (parts.length === 1 && !parts[0].trim()) return;
+          const frag = document.createDocumentFragment();
+          parts.forEach(part => {
+            if (!part) return;
+            if (!part.trim()) { frag.appendChild(document.createTextNode(part)); return; }
+            const outer = document.createElement('span');
+            outer.className = 'w';
+            const inner = document.createElement('span');
+            inner.className = 'wi';
+            /* หยุดสะสมคิวที่คำที่ 7: หัวข้อ 9 คำเคยลากคิวไปถึง 8 ช่วง ทำให้ทั้งบรรทัด
+               จบช้ากว่าที่ตาเลื่อนผ่าน — cap ไว้ให้หัวข้อทุกความยาวจบในเวลาเท่ากัน */
+            inner.style.setProperty('--wi', Math.min(n++, 6));
+            inner.textContent = part;
+            outer.appendChild(inner);
+            frag.appendChild(outer);
+          });
+          child.replaceWith(frag);
+        } else if (child.nodeType === 1 && !child.classList.contains('w')) {
+          walk(child);
+        }
+      });
+    };
+    walk(root);
+  };
+  document.querySelectorAll('.split').forEach(splitWords);
+
+  // ---- Numbers arrive ------------------------------------------------------
+  /* ความกว้างของตัวเลขนับถูกล็อกโดยกลไกกลางใน js/nav-response.js แล้ว (ท้ายไฟล์นั้น)
+     ห้ามเติมท่าเฉพาะกิจตรงนี้อีก — เคยมีทั้ง min-width:ch, tabular-nums และ U+2007
+     กองอยู่สามท่าในสองใบ ซึ่งพังคนละแบบเพราะพึ่งฟีเจอร์ของฟอนต์ที่แต่ละใบมีไม่เหมือนกัน */
+
+  const countUp = (el) => {
+    const target   = parseFloat(el.dataset.count);
+    const decimals = parseInt(el.dataset.decimals || '0', 10);
+    const pad      = parseInt(el.dataset.pad || '0', 10);
+    const suffix   = el.dataset.suffix || '';
+    const render = (v) => {
+      let out = v.toFixed(decimals);
+      if (pad) out = out.padStart(pad, '0');
+      el.textContent = out + suffix;
+    };
+    // Reduced motion still needs the final value written, since the tween that
+    // would have produced it never runs.
+    if (reduceMotion || !Number.isFinite(target)) { render(target); return; }
+    const DUR = 1400, t0 = performance.now();
+    const step = (now) => {
+      const p = Math.min(1, (now - t0) / DUR);
+      render(target * (1 - Math.pow(1 - p, 3)));   // ease-out, so it settles rather than stops
+      if (p < 1) requestAnimationFrame(step);
+    };
+    render(0);
+    requestAnimationFrame(step);
+  };
+
+  // ---- One observer for everything that arrives ----------------------------
+  // rootMargin is POSITIVE at the bottom: an element starts moving while it is
+  // still a quarter-viewport below the fold, so the motion has finished by the
+  // time the eye reaches it. A negative margin is what reads as "not smooth".
+  const arrive = (el) => {
+    el.classList.add('in');
+    /* S2.6 ปลด will-change ทิ้งหลังคำวิ่งจบ (750ms + คิวสูงสุด 6×30ms + เผื่อ) */
+    if (el.classList.contains('split')) {
+      setTimeout(() => el.querySelectorAll('.wi').forEach(w => w.classList.add('wi-done')), 1200);
+    }
+    if (el.dataset.count !== undefined) countUp(el);   // every counter is observed in its own right
+  };
+  const animated = document.querySelectorAll('.reveal, .curtain, .rule, .split, .rate, .bar, .foot-mark, [data-count]');
+
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        arrive(e.target);
+        io.unobserve(e.target);      // one direction only; nothing re-hides on the way back up
+      });
+    }, {
+      // threshold 0 ไม่ใช่ 0.12: ของที่สูงกว่าจอ (หรือถูก clip ไว้) ต้องรอให้ "12% ของตัวเอง"
+      // โผล่ก่อน ซึ่งสำหรับรูปแกลเลอรีสูง 332px แปลว่ามันเข้ามาในจอไปแล้วหลายร้อย px
+      // ถึงค่อยเริ่มเผย ผู้ใช้เห็นเป็นภาพพรวดขึ้นมากลางจอ (วัดแล้ว: ช้าสุด 628px)
+      // 0 = ยิงตั้งแต่พิกเซลแรก แล้วปล่อยให้ rootMargin ด้านล่างเป็นตัวเริ่มก่อนเข้าจอ
+      threshold: 0, rootMargin: '0px 0px 0px 0px' });
+
+    const onScreen = [];
+    animated.forEach(el => {
+      // Anything already on screen at load is measured, not waited for:
+      // IntersectionObserver does not fire in a prerendered or background tab,
+      // which is exactly how a shared link is usually opened.
+      const r = el.getBoundingClientRect();
+      if (r.top < window.innerHeight && r.bottom > 0) onScreen.push(el);
+      else io.observe(el);
+    });
+    // Two frames, not zero: the words above were only just created, so the browser
+    // has not resolved their start style yet. Flipping the class in the same tick
+    // would make the hero snap into place with no transition at all.
+    /* 25/8/26 เลิกรอ document.fonts.ready ก่อนเล่น · เหตุผลเดิมคือหัวข้อฮีโร่หั่นเป็นคำ
+       ในกล่อง overflow:hidden ที่ขนาดเปลี่ยนตามฟอนต์ จึงต้องให้ฟอนต์นิ่งก่อน
+       ตอนนี้หัวข้อเป็น .reveal ก้อนเดียว (จาง+เลื่อน) ฟอนต์สลับกลางทางไม่มีอะไรให้ชน
+       การรอมีแต่ผลเสีย: บนเครื่องที่ฟอนต์มาช้า ฮีโร่ค้างว่างได้ถึง 900ms แล้วโผล่พรวด
+       = อีกหน้าตาหนึ่งของ "กระตุกตอนรีเฟรช" · the-terrace ไม่เคยรอ และไม่เคยถูกฟ้อง */
+    const fire = () => requestAnimationFrame(() => requestAnimationFrame(() => onScreen.forEach(arrive)));
+    fire();
+
+    /* ตาข่ายกันของหาย: ถ้าเลื่อนเร็วกว่าที่ observer ยิงทัน (หรือ observer ไม่ยิงเลย
+       เพราะ tab ถูกซ่อนตอนโหลด) จะมีของที่ "อยู่ในจอแล้วแต่ยังมองไม่เห็น" ค้างอยู่
+       ผู้ใช้เห็นเป็นภาพพรวดขึ้นมากลางจอ — วัดแล้วก่อนแก้มีมากสุด 5 ชิ้นพร้อมกัน
+       กติกาที่ยึด: ของที่ยังไม่มีคิวจะเผย ต้องโชว์ไปเลย ห้ามค้างว่าง
+       เช็คตอนเลื่อนเท่านั้นและตัดตัวเองทิ้งเมื่อไม่เหลือใคร จึงไม่กินแรงหลังจากนั้น */
+    let pending = [...animated];
+    const sweep = () => {
+      if (!pending.length) { removeEventListener('scroll', onScroll); return; }
+      const h = innerHeight;
+      pending = pending.filter((el) => {
+        if (el.classList.contains('in')) return false;
+        const r = el.getBoundingClientRect();
+        if (r.top < h * 0.85 && r.bottom > 0) { arrive(el); io.unobserve(el); return false; }
+        return true;
+      });
+    };
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => { ticking = false; sweep(); });
+    };
+    addEventListener('scroll', onScroll, { passive: true });
+    sweep();
+  } else {
+    animated.forEach(arrive);
+  }
+
+</script>
+
+<!-- ปิดการเคลื่อนไหวได้จริง (เพิ่ม 21/8/26 หลัง audit) ---------------------------
+     วัดด้วยเบราว์เซอร์จริง ไม่ใช่อ่านโค้ด: หน้านี้ยังมี animation วิ่งอยู่แม้ผู้ใช้ตั้ง
+     prefers-reduced-motion: reduce ไว้ในระบบ (velvet-leaf 18 ตัว · homecraft 24 ตัว)
+     และ ?reduce=1 ซึ่งเป็นสวิตช์ที่สคริปต์ถ่ายภาพของ playbook ใช้ ก็ไม่มีผลกับหน้าเก่า
+     สี่หน้านี้ กฎกวาดข้างล่างจึงคุมทั้งสองทางในที่เดียว วางไว้ท้าย <body> เพื่อให้
+     ชนะกฎที่ประกาศไว้ก่อนหน้าโดยไม่ต้องไปไล่แก้ทีละอนิเมชันในไฟล์ที่เป็นบันเดิล -->
+<style>
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 1ms !important; animation-delay: 0ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important; transition-delay: 0ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+  html.still *, html.still *::before, html.still *::after {
+    animation-duration: 1ms !important; animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important; transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* พื้นที่กดของปุ่มเมนู — วัดได้ 24x24 บนมือถือ (audit 21/8/26) ซึ่งต่ำกว่าเกณฑ์
+     นิ้วโป้งของทั้ง Apple (44) และ Google (48) ปุ่มเปิดเมนูคือทางเดียวที่คนบนมือถือ
+     ไปหน้าอื่นได้ กดพลาดคือจบตรงนั้น
+     ขยายด้วย ::after ไม่ใช่ padding: ไอคอนต้องคงขนาดเดิมเป๊ะและหัวเว็บต้องไม่ขยับ
+     — สิ่งที่ใหญ่ขึ้นคือพื้นที่ที่นิ้วแตะโดน ไม่ใช่สิ่งที่ตาเห็น */
+  #navToggle { position: relative; }
+  #navToggle::after {
+    content: ""; position: absolute; top: 50%; left: 50%;
+    width: 44px; height: 44px; transform: translate(-50%, -50%);
+  }
+</style>
+<script>if (new URLSearchParams(location.search).get("reduce") === "1") document.documentElement.classList.add("still");</script>
+<script src="js/nav-response.js" defer></script>
+<script src="/work/_demo-badge.js" defer></script>
+</body>
+</html>

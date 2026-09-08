@@ -1,0 +1,70 @@
+# Files that live in the repo but must not be on the web.
+#
+# This exists because of what linking the repo to Netlify would change. Today the
+# site is uploaded by hand, and whoever does it drags the shipping files — so the
+# notes, the archive and the Apps Script source have never been reachable
+# (checked: every path below answered 404 on the live site). A git-linked deploy
+# publishes the repo instead of a hand-picked folder, and every one of them would
+# go up with it. Netlify has no ignore-list for the publish directory; a redirect
+# to a 404 is the way you take a path off a site.
+#
+# changes.md and PORTFOLIO.md are the notes we keep for ourselves, Code.gs is the
+# server half of the contact form, and the backups are older copies of pages that
+# are still live — a stale index.html sitting at a guessable URL is the worst of
+# the set. First match wins, so keep these above anything general.
+#
+# The trailing ! is not decoration and this file does nothing without it. A plain
+# redirect rule is only consulted when the path matches NO file on the site, so a
+# rule aimed at a file that exists is skipped every time — measured on a draft
+# deploy: all six .md files answered 200 with the bare 404 rules. The bang forces
+# the rule to win over the file.
+#
+# Serving a nonexistent target with a 404 status is deliberate: Netlify's own
+# not-found page answers, and the path is indistinguishable from one that was
+# never there.
+
+# The ช้อปดี demo was renamed ถึงไว on 20/8/26 and its folder moved with it. Anyone
+# holding the old link — it went out in PORTFOLIO.md — lands on the new one instead
+# of a 404. Above the catch-all rules on purpose: first match wins.
+# NOTE: no "!" on this line. The bang is Netlify's force flag; Cloudflare Pages —
+# which is what actually serves this site — treats a rule it cannot parse as no
+# rule at all, and the redirect silently did nothing (measured: 404 on the old
+# URL after deploying with 301!). The rest of this file is Netlify-shaped and
+# does nothing on Pages either; those paths are simply not in the dist.
+# ร้านเดโมถูกเปลี่ยนชื่อสองรอบ: ช้อปดี → ถึงไว → PARCELA ทุกชื่อเก่าต้องพาไปที่
+# ชื่อปัจจุบัน ไม่ใช่ชี้ต่อกันเป็นทอดๆ — วัดแล้ว: /work/shopdee/ เคย 301 ไปที่
+# /work/tuengwai/ ซึ่งเป็นหน้าที่ไม่มีอยู่ในบิลด์นี้แล้ว คนกดลิงก์เก่าจึงไปจบที่ 404
+# (และช่วงหนึ่งไปจบที่หน้าแบรนด์เก่าที่ค้างอยู่บนโปรดักชัน ซึ่งแย่กว่า 404)
+/work/shopdee                   /work/parcela/          301
+/work/shopdee/                  /work/parcela/          301
+/work/shopdee/*                 /work/parcela/:splat    301
+/work/tuengwai                  /work/parcela/          301
+/work/tuengwai/                 /work/parcela/          301
+/work/tuengwai/*                /work/parcela/:splat    301
+
+/changes.md                     /404.html   404!
+/PORTFOLIO.md                   /404.html   404!
+/DESIGN-KITCHEN.md              /404.html   404!
+/PROMPT-REBUILD.md              /404.html   404!
+/website_building.md            /404.html   404!
+/HERO-REEL-UPDATE-2026-08-18.md /404.html   404!
+
+/index.backup-anim.html         /404.html   404!
+/css/styles.backup-svc.css      /404.html   404!
+
+/_archive/*                     /404.html   404!
+/design/*                       /404.html   404!
+/playbook/*                     /404.html   404!
+/google-apps-script/*           /404.html   404!
+
+# PARCELA ถูกถอดออกจากหน้าผลงาน 21/8/26 (jek สั่งเอาเดอะ เทอเรสขึ้นแทน)
+# 301 ไม่ใช่ 404! เหมือนบรรทัดอื่นข้างบน — บรรทัดอื่นคือไฟล์ภายในที่ไม่ควรโผล่มา
+# ตั้งแต่แรก แต่หน้านี้เคยขึ้นเว็บจริงและอาจถูกส่งลิงก์ให้ลูกค้าไปแล้ว คนที่กด
+# ลิงก์เก่าควรไปโผล่ที่หน้าผลงาน ไม่ใช่เจอหน้าตาย
+# ซอร์สยังอยู่ที่ work/parcela/ ถ้าจะเอากลับขึ้นเว็บให้ลบสองบรรทัดนี้ทิ้ง
+/work/parcela                   /#work      301
+/work/parcela/*                 /#work      301
+
+# ตำแหน่งมาตรฐานของ security.txt คือใต้ /.well-known/ แต่โฟลเดอร์ที่ขึ้นต้นด้วยจุด
+# ไม่ถูกก๊อปขึ้นดิสต์ จึงวางไฟล์ไว้ที่รากแล้วชี้ทางมาตรฐานมาที่เดียวกัน
+/.well-known/security.txt   /security.txt   301

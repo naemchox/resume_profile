@@ -1,0 +1,82 @@
+<style>
+/* =============================================================================
+   รอบ "แก้จืด" ครั้งที่ 2 — 22/8/26 (playbook/PROMPT-JUED.md)
+   ===========================================================================
+   AUDIT ก่อนแก้: ไล่ css/styles.css + tokens.css ซ้ำอีกรอบ (grep rgba alpha ต่ำ,
+   blur, opacity ต่ำ) เจอแค่ .hero-grain (opacity .10, blur 6px บน .slots) ซึ่ง
+   ทั้งคู่จงใจให้จางตามคอมเมนต์เดิมในไฟล์ ไม่ใช่บั๊ก — ไม่แตะ ตรงกับที่ jek วัดมา
+   ว่าความจืดของหน้านี้คือ "นิ่ง" (@keyframes 1 อัน) ไม่ใช่ "ของจาง"
+
+   งานรอบนี้จึงเป็นชั้น 3 ล้วนๆ — หยิบภาษาของเวนิวจัดงานที่ยังไม่ได้ใช้: ไฟอุ่น
+   เหนือรูปฮีโร่ (ของชนิดเดียวกับไฟที่ #story ใช้ keyframe tt-warm เดิม ไม่เขียน
+   กลไกที่สอง), ผ้าม่านเปิดบนรูปห้อง, และการจัดโต๊ะ (เมนูทยอยวางทีละจาน) —
+   ไม่มี fade ทั่วไปเพิ่มสักตัว
+   -------------------------------------------------------------------------- */
+
+/* ---- 1) ไฟอุ่นเหนือรูปฮีโร่ --------------------------------------------------
+   จุดสนใจของภาพฮีโร่คือโคมไฟกับหน้าต่างริมน้ำที่ถูกจัดให้อยู่ขวาของหัวเรื่อง
+   (ดูคอมเมนต์ .hero-media img ด้านบน) ไฟดวงนี้หายใจช้าตรงตำแหน่งนั้น ใช้
+   keyframe เดียวกับไฟที่แถบมืด #story (tt-warm) เพราะเป็นของชนิดเดียวกัน:
+   ไฟอุ่นของเวนิวตอนค่ำ ไม่ใช่ไฟดิสโก้ที่กะพริบเร็ว */
+.hero-glow {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(55% 60% at 72% 38%,
+    color-mix(in oklch, var(--brass-400) 30%, transparent) 0%, transparent 68%);
+}
+.js .hero-glow { animation: tt-warm 11s ease-in-out infinite; }
+
+/* ---- 2) ผ้าม่านเปิดบนรูปห้อง -------------------------------------------------
+   #rooms เดิมรูปสามห้องโผล่มาพร้อมการ์ด (fade+เลื่อนขึ้นเฉยๆ) ตอนนี้มีแผ่นผ้า
+   สีเข้มปิดรูปอยู่ก่อน แล้วเลื่อนเปิดออกทางขวาเหมือนม่านเปิดพื้นที่จัดงาน —
+   ภาษาของเวนิวจัดงานที่ใช้ผ้าม่านจริงในพิธีและซุ้ม ไม่ใช่ fade ทั่วไป */
+.room-media { position: relative; display: block; overflow: hidden; }
+.room-curtain {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(100deg, var(--forest-950) 46%,
+    color-mix(in oklch, var(--forest-950) 55%, transparent) 100%);
+  transform-origin: right; transform: scaleX(1);
+}
+.js .room-curtain { transition: transform 900ms var(--ease); }
+.js .room.in .room-curtain { transform: scaleX(0); }
+.js .room:nth-child(1).in .room-curtain { transition-delay: 650ms; }
+.js .room:nth-child(2).in .room-curtain { transition-delay: 800ms; }
+.js .room:nth-child(3).in .room-curtain { transition-delay: 950ms; }
+
+/* ---- 3) เมนูทยอยวางทีละจาน --------------------------------------------------
+   รายการอาหารในแต่ละชุด (.set li) เดิมโผล่มาพร้อมกันทั้งลิสต์ตอนการ์ดเข้าจอ
+   ตอนนี้ทยอยขึ้นทีละบรรทัดเหมือนพนักงานจัดโต๊ะวางจานทีละจาน — ใช้ตัวเลข
+   ลำดับจานเดิม (counter(dish)) เป็นตัวบอกจังหวะอยู่แล้ว จึงให้ทยอยตามลำดับนั้น */
+.js .set li { opacity: 0; transform: translateY(10px); transition: opacity 420ms var(--ease), transform 420ms var(--ease); }
+.js .set.in li { opacity: 1; transform: none; }
+.js .set.in li:nth-child(1)  { transition-delay: 80ms; }
+.js .set.in li:nth-child(2)  { transition-delay: 130ms; }
+.js .set.in li:nth-child(3)  { transition-delay: 180ms; }
+.js .set.in li:nth-child(4)  { transition-delay: 230ms; }
+.js .set.in li:nth-child(5)  { transition-delay: 280ms; }
+.js .set.in li:nth-child(6)  { transition-delay: 330ms; }
+.js .set.in li:nth-child(7)  { transition-delay: 380ms; }
+.js .set.in li:nth-child(8)  { transition-delay: 430ms; }
+.js .set.in li:nth-child(9)  { transition-delay: 480ms; }
+.js .set.in li:nth-child(10) { transition-delay: 530ms; }
+.js .set.in li:nth-child(11) { transition-delay: 580ms; }
+.js .set.in li:nth-child(12) { transition-delay: 630ms; }
+
+/* ---- 4) ป้าย "จองมากที่สุด" คลี่ออกเหมือนริบบิ้น ----------------------------
+   ป้ายบนการ์ดแพ็กเกจที่ขายดีที่สุดเดิมโผล่มาพร้อมการ์ด ตอนนี้คลี่ออกจากกึ่งกลาง
+   หลังการ์ดตั้งตัวแล้ว เหมือนริบบิ้น/แถบผูกโบว์ในงานเลี้ยง ไม่ใช่ป้ายกระพริบ */
+.js .card .tag { transform: scaleX(0); transition: transform 380ms var(--ease) 520ms; }
+.js .card.in .tag { transform: scaleX(1); }
+
+/* ---- ปิดได้จริงสองทาง: media query ของระบบ และ .still ที่ main.js ติดให้เมื่อ
+   เปิดด้วย ?reduce=1 (ทางที่สคริปต์ถ่ายภาพใช้) ------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .js .hero-glow { animation: none !important; opacity: .8; }
+  .js .room-curtain { transition: none !important; transform: scaleX(0) !important; }
+  .js .set li { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .js .card .tag { transform: scaleX(1) !important; transition: none !important; }
+}
+.still .hero-glow { animation: none !important; opacity: .8; }
+.still .room-curtain { transition: none !important; transform: scaleX(0) !important; }
+.still .set li { opacity: 1 !important; transform: none !important; }
+.still .card .tag { transform: scaleX(1) !important; }
+</style>

@@ -1,0 +1,72 @@
+/* =============================================================================
+   booking-form.css — ฟอร์มจอง (แหล่งเดียวของทุกเดโม)
+   แก้ที่ไฟล์นี้เท่านั้น แล้วสั่ง `node playbook/sync-booking-form.mjs` เพื่อกระจาย
+   ห้ามแก้ที่ไฟล์ปลายทาง (บทเรียนเดียวกับ nav-shrink: ก๊อปมือแล้วมันเพี้ยนแน่)
+
+   ทำไมมีไฟล์นี้: 27/8/26 วัดตลาดในกลุ่ม FB แล้วเจอว่างานที่คนโพสต์หามากสุดคือ
+   "ระบบจอง" (โพสต์เดียว 113 คอมเมนต์) ส่วนเดโมของเราจองได้แค่ผ่านปุ่มโทร/ไลน์
+   ฟอร์มนี้คือชั้น 2: ส่งเข้าชีต+อีเมลร้าน ไม่ใช่ระบบคิวจริง (ชั้น 3 คนละโปรเจกต์)
+
+   สีทุกตัวอ่านจากโทเคนของเดโมนั้น ไม่มีสีดิบในไฟล์นี้ = แปะใบไหนก็กลืนกับใบนั้น
+   ========================================================================== */
+
+/* >>> booking-form */
+.book-form { margin-top: var(--space-7, 2.5rem); }
+
+/* ไม่มี JS = ไม่โชว์ฟอร์ม (กฎเดียวกับใบออเดอร์) เหลือช่องทางโทร/ไลน์ที่ใช้ได้แน่ */
+.book-form { display: none; }
+html.js .book-form { display: block; }
+
+.book-slip {
+  max-width: 640px; margin-inline: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md, 12px);
+  padding: var(--space-6, 2rem);
+  box-shadow: 0 1px 2px rgb(0 0 0 / .04);
+}
+.book-slip h3 { margin: 0 0 var(--space-2, .5rem); }
+.book-slip .book-lead { margin: 0 0 var(--space-5, 1.5rem); color: var(--color-text-muted); }
+
+.book-grid { display: grid; gap: var(--space-4, 1rem); grid-template-columns: 1fr 1fr; }
+.book-grid > .book-field--wide { grid-column: 1 / -1; }
+@media (max-width: 560px) { .book-grid { grid-template-columns: 1fr; } }
+
+.book-field { display: flex; flex-direction: column; gap: .375rem; }
+.book-field > label { font-weight: var(--weight-bold, 600); font-size: .9rem; }
+.book-field > .book-hint { font-size: .8rem; color: var(--color-text-muted); }
+
+.book-field input,
+.book-field select,
+.book-field textarea {
+  font: inherit; color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm, 8px);
+  min-height: 48px; padding: 0 .75rem;
+  width: 100%;
+}
+.book-field textarea { min-height: 88px; padding: .625rem .75rem; resize: vertical; }
+.book-field input:focus-visible,
+.book-field select:focus-visible,
+.book-field textarea:focus-visible {
+  outline: 2px solid var(--color-brand); outline-offset: 2px;
+}
+/* ช่องที่กรอกผิดจะขึ้นเส้นแดงหลัง "พยายามส่ง" แล้วเท่านั้น ไม่ใช่ระหว่างพิมพ์ */
+.book-form.is-tried .book-field :invalid { border-color: #B3261E; }
+
+.book-actions { display: flex; align-items: center; gap: var(--space-4, 1rem); flex-wrap: wrap; margin-top: var(--space-5, 1.5rem); }
+.book-actions .book-alt { font-size: .9rem; color: var(--color-text-muted); }
+
+.book-status { margin-top: var(--space-4, 1rem); font-size: .95rem; min-height: 1.5em; }
+.book-status[data-tone="ok"]   { color: var(--color-brand-text, var(--color-brand)); font-weight: var(--weight-bold, 600); }
+.book-status[data-tone="err"]  { color: #B3261E; }
+.book-status[data-tone="wait"] { color: var(--color-text-muted); }
+
+/* ส่งสำเร็จ = สลับใบจองเป็นใบยืนยัน ไม่ใช่แค่ข้อความเล็กๆ ใต้ปุ่ม */
+.book-done { display: none; }
+.book-form.is-done .book-done { display: block; }
+.book-form.is-done .book-body { display: none; }
+.book-done .book-recap { margin: var(--space-4, 1rem) 0 0; padding-left: 1.1em; }
+.book-done .book-recap li { margin: .2em 0; }
+/* <<< booking-form */

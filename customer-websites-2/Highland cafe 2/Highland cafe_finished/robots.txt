@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Working files, not part of the site.
+Disallow: /source-photos/
+Disallow: /tools/
+
+Sitemap: https://highlandcafe.co.th/sitemap.xml

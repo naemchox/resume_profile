@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';" />
+    <link rel="stylesheet" href="../shared/pos-badge.css" />
+    <link rel="stylesheet" href="snip.css" />
+  </head>
+  <body>
+    <!-- Windows freeze-frame: a screenshot of the screen shown behind the box so dragging happens over
+         a STILL image, not live video — the live-video overlay fight froze/lagged the video. -->
+    <img id="freeze" hidden />
+    <div id="overlay"></div>
+    <!-- Armed cue: a ring on the cursor the moment the trigger registers, so you know the gesture took
+         and you can start dragging. Hidden again as soon as a box exists — the box IS the feedback
+         then, and on the mac ⌘⇧S path the overlay is not excluded from the capture. -->
+    <div id="ring" hidden></div>
+    <div id="selection">
+      <div class="h hnw" data-h="nw"></div><div class="h hne" data-h="ne"></div>
+      <div class="h hsw" data-h="sw"></div><div class="h hse" data-h="se"></div>
+      <div class="h eh ehn" data-h="n"></div><div class="h eh ehs" data-h="s"></div>
+      <div class="h eh ehw" data-h="w"></div><div class="h eh ehe" data-h="e"></div>
+      <div id="editLabel"><span class="cc-mark">CC</span>Live subtitle area — text appearing here is auto-translated</div>
+    </div>
+    <!-- ONE bar, not three floating pills. Three separately-bordered, separately-shadowed capsules of
+         three different widths read as three unrelated widgets sitting near each other; the app's own
+         surfaces (the pill, the panel, #hint below) are single dark translucent slabs with a hairline
+         edge, and this is the one place that broke that language. So: one container carries the
+         border, the blur and the shadow, and the buttons inside it carry none — the primary is the
+         only filled thing, which is what makes it read as the primary at a glance.
+         The ✓ and ↺ glyphs are gone with them: they are text characters in a UI whose every other
+         icon is an SVG, so they arrived at their own weight and their own baseline. Two plain words
+         and one real icon say the same thing without the mismatch. -->
+    <div id="editBar" hidden>
+      <button id="goBtn">Start</button>
+      <button id="defBtn" title="Snap back to the standard subtitle spot (bottom-centre)">Default</button>
+      <span class="eb-div" aria-hidden="true"></span>
+      <button id="cancelBtn" class="eb-icon" title="Close without starting (same as Esc)" aria-label="Cancel"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button>
+    </div>
+    <div id="hint">Drag a box around the game text · Esc to cancel</div>
+    <div id="preview" hidden>
+      <div id="pvTh"></div>
+      <div id="pvEn"></div>
+    </div>
+    <script src="../shared/pos-badge.js"></script>
+    <script src="snip.js"></script>
+  </body>
+</html>

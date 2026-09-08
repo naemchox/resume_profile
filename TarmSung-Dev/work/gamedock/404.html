@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<!-- คืนตำแหน่งที่อ่านค้างไว้เอง ไม่รอเบราว์เซอร์ (ที่มา: work/_JANK-REFRESH.md)
+     Safari คืนตำแหน่ง scroll หลังอีเวนต์ load เท่านั้น — วัดแล้ว DCL/load ยังอยู่ที่ y=0
+     ทั้งคู่ คนที่รีเฟรชกลางหน้าจึงเห็น "ฮีโร่แวบ" ตั้งแต่เฟรมแรกจนกว่าไฟล์สุดท้ายจะโหลดจบ
+     (เน็ตช้า = ค้างนานเป็นวินาที) สคริปต์นี้เก็บตำแหน่งไว้เองใน sessionStorage แล้ววาง
+     กลับตั้งแต่เฟรมแรกที่ความสูงหน้าพอ — เร็วกว่ารอ load หลายเท่าและไม่ต้องรอรูป
+     หยุดทันทีถ้าผู้ใช้ขยับเอง (wheel/touch/key/pointer) จะได้ไม่แย่งมือกับคนอ่าน -->
+<script>
+(function () {
+  try {
+    if (!("scrollRestoration" in history)) return;
+    history.scrollRestoration = "manual";
+    var key = "ts:y:" + location.pathname;
+    var want = parseInt(sessionStorage.getItem(key) || "0", 10) || 0;
+    var timer = 0;
+    var save = function () { try { sessionStorage.setItem(key, String(Math.round(window.scrollY))); } catch (e) {} };
+    addEventListener("scroll", function () {
+      if (timer) return;
+      timer = setTimeout(function () { timer = 0; save(); }, 200);
+    }, { passive: true });
+    addEventListener("pagehide", save);
+    /* แถบเมนูต้องไม่ "โผล่" ตอนหน้าเปิดมากลางหน้าอยู่แล้ว (jek 25/8/26 · the-bed)
+       แถบมีสองชั้นที่ไล่เข้าเอง — พื้นทึบบน .nav-shell::before (opacity 300ms) กับเส้นทอง
+       บน border-color (400ms) — พอคืนตำแหน่ง scroll ปุ๊บ สคริปต์แถบเมนูใส่คลาส scrolled
+       ทั้งสองชั้นจึงไล่ให้เห็นทุกครั้งที่รีเฟรช ทั้งที่ผู้ใช้ไม่ได้เลื่อนอะไรเลย
+       ระหว่างช่วงคืนตำแหน่ง จึงปิดทรานซิชันของหัวเว็บไว้ = แถบอยู่ในสถานะสุดท้ายตั้งแต่
+       เฟรมแรก · เปิดคืนทันทีที่ผู้ใช้ขยับเอง (หรืออย่างช้า 900ms) การเลื่อนของจริงจึงยังลื่น */
+    if (want) {
+      var root = document.documentElement;
+      root.className += " nav-instant";
+      var st = document.createElement("style");
+      st.textContent = "html.nav-instant .nav-shell,html.nav-instant .nav-shell::before," +
+        "html.nav-instant .site-header,html.nav-instant header,html.nav-instant header > *," +
+        "html.nav-instant header > * > *{transition:none !important}";
+      (document.head || document.documentElement).appendChild(st);
+      var unlock = function () { root.className = root.className.replace(/\s*nav-instant/, ""); };
+      ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+        addEventListener(ev, unlock, { passive: true, once: true });
+      });
+      setTimeout(unlock, 900);
+    }
+    if (!want || location.hash) return;
+    var stop = false;
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+      addEventListener(ev, function () { stop = true; }, { passive: true, once: true });
+    });
+    var t0 = (performance.now ? performance.now() : 0);
+    var now = function () { return performance.now ? performance.now() : t0; };
+    var done = false;
+    var put = function () {
+      if (stop || done) return true;
+      var el = document.scrollingElement || document.documentElement;
+      if (!el || el.scrollHeight - window.innerHeight < want) return false;   /* หน้ายังสูงไม่พอ ค่อยลองใหม่ */
+      if (Math.round(window.scrollY) !== want) {
+        var prev = el.style.scrollBehavior;      /* html { scroll-behavior: smooth } จะทำให้การวางกลับกลายเป็นการไถ */
+        el.style.scrollBehavior = "auto";
+        window.scrollTo(0, want);
+        el.style.scrollBehavior = prev;
+      }
+      done = Math.round(window.scrollY) === want;
+      /* ใส่สถานะ "เลื่อนแล้ว" ให้หัวเว็บทันทีในจังหวะเดียวกับที่คืนตำแหน่ง — ไม่ต้องรอสคริปต์
+         ของหน้ามันเองซึ่งอยู่ท้าย <body> (วัดแล้วช้ากว่ากันราว 20ms = เห็นแถบเปล่าได้ 1 เฟรม)
+         เกณฑ์คนละค่าเพราะแต่ละที่ตั้งไว้ไม่เท่ากัน: .site-header > 8px · .nav-shell > 40px
+         (ดู js/main.js กับสคริปต์ท้ายหน้าเดโม) สคริปต์ของหน้าจะคำนวณซ้ำเองอยู่แล้ว ค่าจึงตรงกัน */
+      if (done) {
+        var mark = function (sel, cls, min) {
+          if (want <= min) return;
+          var n = document.querySelectorAll(sel);
+          for (var i = 0; i < n.length; i++) n[i].classList.add(cls);
+        };
+        /* หัวเว็บของแต่ละใบใช้คนละคลาสคนละเกณฑ์ (ของเดิมเป็นแบบนั้นมาก่อนแล้ว):
+           .site-header.scrolled >8px (เว็บเรา) · .nav-shell.scrolled >40px (the-bed)
+           .site-header.stuck (the-terrace ใช้ sentinel ไม่ใช่ตัวเลข — 80px คือค่าประมาณ)
+           header.small >120px (homecraft/lumen/glow-clinic ผ่าน js/nav-response.js)
+           เดาพลาดไม่เป็นไร สคริปต์ของหน้าคำนวณทับให้ในเฟรมถัดไป และช่วงนี้ทรานซิชันถูกปิดอยู่
+           การแก้จึงเป็นการสลับทันที ไม่ใช่การไล่สีให้เห็น */
+        mark(".site-header", "scrolled", 8);
+        mark(".nav-shell", "scrolled", 40);
+        mark(".site-header, header[data-header]", "stuck", 80);
+        mark("header, .site-header", "small", 120);
+      }
+      return done;
+    };
+    /* ลองทุกทางที่มาถึงก่อน: setTimeout(0) มักได้ก่อนเฟรมแรกด้วยซ้ำ · rAF ทำงานก่อนวาด
+       · readystatechange/DOMContentLoaded คือจุดที่ body ครบแล้วแน่ๆ
+       เหตุที่ไม่พอถ้าใช้ rAF อย่างเดียว: วัดแล้วบางหน้า (หน้าแรกของเว็บเรา) เฟรมแรก
+       มาก่อนที่ความสูงจะพอ ทำให้เลื่อนไม่ได้ แล้วต้องรอ rAF รอบถัดไป = เห็นหัวเว็บ 1 เฟรม */
+    /* สองสายแยกกัน สายละหนึ่งนัด — ถ้าให้สายเดียวนัดทั้ง setTimeout และ rAF
+       จำนวนนัดจะเพิ่มเป็นสองเท่าทุกรอบ (2^n) ภายในไม่กี่ร้อยมิลลิวินาที */
+    var tick = function () { if (put() || stop) return; if (now() - t0 < 3000) setTimeout(tick, 0); };
+    var frame = function () { if (put() || stop) return; if (now() - t0 < 3000) requestAnimationFrame(frame); };
+    tick();
+    frame();
+    document.addEventListener("readystatechange", put);
+    addEventListener("DOMContentLoaded", put);
+    addEventListener("load", put);
+  } catch (e) {}
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ไม่พบหน้านี้ | GAMEDOCK</title>
+<meta name="description" content="ไม่พบหน้าที่ต้องการ">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0d1018">
+<link rel="canonical" href="https://tarmsung.pages.dev/work/gamedock/404.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600&family=Noto+Color+Emoji&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<a class="skip" href="#main">ข้ามไปเนื้อหา</a>
+
+<svg class="sr-only" aria-hidden="true" focusable="false"><defs>
+  <symbol id="brand-mark" viewBox="0 0 48 48">
+    <rect x="7" y="7" width="34" height="34" rx="11" fill="none" stroke="currentColor" stroke-width="3.4"/>
+    <path d="M4.5 24h6.5M37 24h6.5" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>
+    <path d="M19.5 15 34 24 19.5 33Z" fill="currentColor"/>
+  </symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-cart" viewBox="0 0 24 24"><path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.5L21 8H6"/><circle cx="10" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-9.4A4.1 4.1 0 0 1 12 8a4.1 4.1 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20Z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.6 5.6 6 .8-4.4 4.2 1.1 6.1L12 16.9 6.7 19.7l1.1-6.1L3.4 9.4l6-.8Z"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12Z"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v5.5c0 4.3 2.9 7.7 7 9.5 4.1-1.8 7-5.2 7-9.5V6Z"/><path d="m9.2 12.2 2 2 3.6-4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="m8.4 12.3 2.4 2.4 4.8-5.2"/></symbol>
+  <symbol id="i-truck" viewBox="0 0 24 24"><path d="M2 6.5h11v10H2Zm11 3.5h4.4L21 13.4v3.1h-8Z"/><circle cx="6.5" cy="18.5" r="1.6"/><circle cx="17" cy="18.5" r="1.6"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24"><rect x="2.5" y="5.5" width="19" height="13" rx="2.2"/><path d="M2.5 10h19"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.2"/><path d="m3 7 9 6 9-6"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v8.2a.8.8 0 0 1-.8.8H4.8a.8.8 0 0 1-.8-.8Z"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6.4" height="6.4" rx="1.4"/><rect x="13.6" y="4" width="6.4" height="6.4" rx="1.4"/><rect x="4" y="13.6" width="6.4" height="6.4" rx="1.4"/><rect x="13.6" y="13.6" width="6.4" height="6.4" rx="1.4"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+  <symbol id="i-pad" viewBox="0 0 24 24"><path d="M8.2 7h7.6a5 5 0 0 1 4.9 4l.9 5.2A2.4 2.4 0 0 1 19.2 19c-1 0-1.6-.5-2.2-1.2L15.6 16H8.4l-1.4 1.8C6.4 18.5 5.8 19 4.8 19a2.4 2.4 0 0 1-2.4-2.8L3.3 11a5 5 0 0 1 4.9-4Z"/><path d="M7.4 11v2.4M6.2 12.2h2.4M15.4 11.4h.01M17.2 13h.01"/></symbol>
+  <symbol id="i-console" viewBox="0 0 24 24"><rect x="5.5" y="3" width="13" height="18" rx="2.4"/><path d="M9 3v18M15 3v18"/></symbol>
+  <symbol id="i-handheld" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2.4"/><rect x="7.5" y="6" width="9" height="12"/><path d="M5.2 10.4v3.2M3.6 12h3.2M18.8 11h.01M17.4 13.4h.01"/></symbol>
+  <symbol id="i-vr" viewBox="0 0 24 24"><path d="M3.5 8.5h17a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-4.2l-1.6 1.8h-5.4L7.7 15.5H3.5a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1Z"/></symbol>
+  <symbol id="i-line" viewBox="0 0 24 24"><path d="M21 10.4c0-4-4-7.2-9-7.2s-9 3.2-9 7.2c0 3.6 3.2 6.6 7.5 7.1.3.1.7.2.8.5.1.3 0 .7 0 1l-.1.8c0 .3-.2 1 .9.6 1.1-.5 6-3.5 8.1-6 1.5-1.6 1.8-3.2 1.8-4Z"/></symbol>
+  <symbol id="i-fb" viewBox="0 0 24 24"><path d="M13.5 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.25-1.5 1.55-1.5h1.65V3.6A22 22 0 0 0 14.3 3.5c-2.4 0-4 1.45-4 4.1v2.3H7.6V13h2.7v8Z"/></symbol>
+  <symbol id="i-tiktok" viewBox="0 0 24 24"><path d="M14 3v11.2a3.1 3.1 0 1 1-2.6-3.05"/><path d="M14 3c.5 2.6 2.1 4 4.6 4.2"/></symbol>
+  <symbol id="i-yt" viewBox="0 0 24 24"><rect x="2.6" y="5.5" width="18.8" height="13" rx="4"/><path d="m10.4 9.6 4.6 2.4-4.6 2.4Z"/></symbol>
+
+  <!-- ===== ปกเกม (วาดเอง ไม่ใช่ปกจริง) ===== -->
+  <symbol id="art-nova" viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice">
+    <circle cx="206" cy="122" r="84" fill="#fff" opacity=".13"/>
+    <circle cx="206" cy="122" r="84" fill="none" stroke="#fff" stroke-opacity=".34" stroke-width="2"/>
+    <ellipse cx="206" cy="122" rx="132" ry="27" fill="none" stroke="#fff" stroke-opacity=".42" stroke-width="3" transform="rotate(-19 206 122)"/>
+    <g stroke="#fff" stroke-opacity=".5" stroke-width="3" stroke-linecap="round">
+      <path d="M14 236h64M4 258h38M40 282h74M18 306h30"/>
+    </g>
+    <path d="M-10 322 130 268l180 46v96H-10Z" fill="#05060c" opacity=".5"/>
+    <path d="M62 352 96 268l26 46 22-28 34 66Z" fill="#fff" opacity=".22"/>
+  </symbol>
+
+  <symbol id="art-drift" viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice">
+    <circle cx="150" cy="150" r="72" fill="#fff" opacity=".2"/>
+    <g fill="#05060c" opacity=".55">
+      <rect x="70" y="168" width="160" height="7"/><rect x="70" y="184" width="160" height="9"/><rect x="70" y="202" width="160" height="12"/>
+    </g>
+    <path d="M0 232h300" stroke="#fff" stroke-opacity=".7" stroke-width="2"/>
+    <g stroke="#fff" stroke-opacity=".34" stroke-width="1.6">
+      <path d="M150 232-40 400M150 232 40 400M150 232 108 400M150 232 150 400M150 232 192 400M150 232 260 400M150 232 340 400"/>
+      <path d="M0 252h300M0 278h300M0 312h300M0 356h300"/>
+    </g>
+  </symbol>
+
+  <symbol id="art-siege" viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice">
+    <circle cx="228" cy="96" r="54" fill="#fff" opacity=".16"/>
+    <g fill="#05060c" opacity=".62">
+      <path d="M18 400V196h10v-18h12v18h10v-18h12v18h10v204Z"/>
+      <path d="M96 400V150h14v-22h16v22h14v-22h16v22h14v250Z"/>
+      <path d="M184 400V222h12v-20h14v20h12v-20h14v20h12v178Z"/>
+    </g>
+    <g fill="#fff" opacity=".55">
+      <rect x="112" y="188" width="14" height="20" rx="7"/><rect x="146" y="188" width="14" height="20" rx="7"/>
+      <rect x="34" y="238" width="12" height="18" rx="6"/><rect x="206" y="262" width="12" height="18" rx="6"/>
+    </g>
+    <path d="M150 128v-46l40 12-40 12" fill="#fff" opacity=".8"/>
+  </symbol>
+
+  <symbol id="art-verd" viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice">
+    <circle cx="96" cy="90" r="46" fill="#fff" opacity=".22"/>
+    <circle cx="116" cy="76" r="46" fill="#05060c" opacity=".45"/>
+    <path d="M-10 268 40 196l36 44 42-72 48 66 40-50 54 68 50-38v226H-10Z" fill="#05060c" opacity=".38"/>
+    <path d="M-10 330 30 268l40 44 46-58 44 52 46-44 54 56 50-30v114H-10Z" fill="#05060c" opacity=".6"/>
+    <g fill="#fff" opacity=".5">
+      <circle cx="212" cy="120" r="3"/><circle cx="248" cy="72" r="2.4"/><circle cx="60" cy="150" r="2.4"/>
+    </g>
+  </symbol>
+
+  <symbol id="art-noir" viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice">
+    <g fill="#05060c" opacity=".62">
+      <rect x="8" y="150" width="66" height="250"/><rect x="86" y="96" width="58" height="304"/>
+      <rect x="156" y="182" width="52" height="218"/><rect x="220" y="128" width="72" height="272"/>
+    </g>
+    <g fill="#fff" opacity=".55">
+      <rect x="20" y="168" width="10" height="14"/><rect x="42" y="196" width="10" height="14"/><rect x="20" y="230" width="10" height="14"/>
+      <rect x="100" y="118" width="10" height="14"/><rect x="122" y="150" width="10" height="14"/><rect x="100" y="196" width="10" height="14"/><rect x="122" y="244" width="10" height="14"/>
+      <rect x="168" y="204" width="10" height="14"/><rect x="188" y="248" width="10" height="14"/>
+      <rect x="236" y="150" width="10" height="14"/><rect x="262" y="188" width="10" height="14"/><rect x="236" y="240" width="10" height="14"/>
+    </g>
+    <g stroke="#fff" stroke-opacity=".34" stroke-width="1.6" stroke-linecap="round">
+      <path d="M20 40 4 92M70 20 52 74M124 44 106 98M180 16 162 70M236 48 218 102M286 24 268 78M154 120 138 172M46 300 30 352M262 310 246 362"/>
+    </g>
+  </symbol>
+
+  <symbol id="art-rally" viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice">
+    <circle cx="196" cy="118" r="62" fill="#fff" opacity=".2"/>
+    <path d="M-10 214 56 168l64 30 68-46 70 40 62-28v70H-10Z" fill="#05060c" opacity=".42"/>
+    <path d="M-10 232h320v168H-10Z" fill="#05060c" opacity=".55"/>
+    <path d="M120 232 60 400h190l-72-168Z" fill="#fff" opacity=".16"/>
+    <g fill="#fff" opacity=".8">
+      <rect x="142" y="248" width="9" height="20" rx="3"/><rect x="140" y="288" width="12" height="26" rx="4"/>
+      <rect x="136" y="340" width="17" height="34" rx="5"/>
+    </g>
+  </symbol>
+
+  <symbol id="art-abyss" viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice">
+    <g fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="2">
+      <circle cx="150" cy="250" r="42"/><circle cx="150" cy="250" r="76"/><circle cx="150" cy="250" r="112"/><circle cx="150" cy="250" r="150"/>
+    </g>
+    <path d="M150 0 42 400h216L150 0Z" fill="#fff" opacity=".12"/>
+    <circle cx="150" cy="250" r="26" fill="#fff" opacity=".65"/>
+    <g fill="#fff" opacity=".4">
+      <circle cx="72" cy="128" r="3.6"/><circle cx="228" cy="96" r="2.8"/><circle cx="250" cy="330" r="3.2"/><circle cx="54" cy="342" r="2.6"/>
+    </g>
+  </symbol>
+
+  <symbol id="art-kite" viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice">
+    <g fill="#fff" opacity=".2">
+      <ellipse cx="70" cy="120" rx="54" ry="24"/><ellipse cx="110" cy="106" rx="38" ry="20"/>
+      <ellipse cx="232" cy="212" rx="48" ry="21"/><ellipse cx="198" cy="200" rx="32" ry="17"/>
+    </g>
+    <path d="M150 96 196 174 150 262 104 174Z" fill="#fff" opacity=".72"/>
+    <path d="M150 96v166M104 174h92" stroke="#05060c" stroke-opacity=".45" stroke-width="3"/>
+    <path d="M150 262c-22 26 20 38-4 64s16 34 16 34" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="3" stroke-linecap="round"/>
+    <g fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2.4" stroke-linecap="round">
+      <path d="M40 296c8-9 16-9 24 0M64 296c8-9 16-9 24 0M212 320c7-8 14-8 21 0M233 320c7-8 14-8 21 0"/>
+    </g>
+  </symbol>
+</defs></svg>
+
+<div class="topbar">
+  <div class="wrap">
+    <ul class="topbar__list">
+      <li><a href="index.html#track">ติดตามพัสดุ</a></li>
+      <li><a href="index.html#warranty">เคลมประกัน</a></li>
+      <li><a href="index.html#return">เปลี่ยน/คืนสินค้า 7 วัน</a></li>
+      <li><a href="index.html#help">ศูนย์ช่วยเหลือ</a></li>
+    </ul>
+    <span class="topbar__ship">ส่งฟรีเมื่อสั่งครบ ฿1,000 · เก็บเงินปลายทางได้</span>
+  </div>
+</div>
+
+<header class="site-header">
+  <div class="wrap masthead">
+    <a class="brand" href="index.html#top" aria-label="GAMEDOCK หน้าแรก">
+      <span class="brand__mark" aria-hidden="true"><svg viewBox="0 0 48 48"><use href="#brand-mark"/></svg></span>
+      <span class="brand__word">GAME<b>DOCK</b><small>GAME &amp; CONSOLE</small></span>
+    </a>
+
+    <div class="masthead__search">
+      <form class="search" role="search" action="#results">
+        <label class="sr-only" for="q-cat">หมวดที่ต้องการค้นหา</label>
+        <select class="search__cat" id="q-cat" name="cat">
+          <option>ทุกหมวด</option><option>เกม PS5</option><option>เกม Switch</option>
+          <option>เกม Xbox</option><option>เกม PC</option><option>เครื่องเกม</option>
+          <option>อุปกรณ์เสริม</option><option>บัตรเติมเงิน</option>
+        </select>
+        <label class="sr-only" for="q">ค้นหาสินค้า</label>
+        <input class="search__input" id="q" name="q" type="search" placeholder="ค้นหาเกม เครื่องเกม จอย หรือบัตรเติมเงิน…" autocomplete="off">
+        <button class="search__btn" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-only">ค้นหา</span></button>
+      </form>
+      <div class="search__tags">
+        <span>ยอดฮิต:</span>
+        <a href="index.html#results">PS5 Slim</a><a href="index.html#results">Switch 2</a>
+        <a href="index.html#results">จอย DualSense</a><a href="index.html#results">เกมมือสอง</a>
+      </div>
+    </div>
+
+    <div class="masthead__acct">
+      <a class="iconbtn" href="account.html" aria-label="รายการโปรด"><svg class="icon" aria-hidden="true"><use href="#i-heart"/></svg></a>
+      <a class="iconbtn" href="account.html" aria-label="บัญชีของฉัน"><svg class="icon" aria-hidden="true"><use href="#i-user"/></svg></a>
+      <a class="iconbtn" href="cart.html" aria-label="ตะกร้าสินค้า 3 ชิ้น">
+        <svg class="icon" aria-hidden="true"><use href="#i-cart"/></svg>
+        <span class="iconbtn__count" data-cart-count>3</span>
+      </a>
+    </div>
+  </div>
+
+  <nav class="catbar" aria-label="หมวดสินค้า">
+    <div class="wrap">
+      <a href="index.html#results">PlayStation 5</a>
+      <a href="index.html#results">Nintendo Switch</a>
+      <a href="index.html#results">Xbox Series</a>
+      <a href="index.html#results">เกม PC / Steam</a>
+      <a href="index.html#results">อุปกรณ์เสริม</a>
+      <a href="index.html#codes">บัตรเติมเงิน</a>
+      <a href="index.html#results">เกมมือสอง</a>
+      <a class="is-hot" href="index.html#flash">ลดราคาวันนี้</a>
+    </div>
+  </nav>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <div class="empty" style="padding:var(--s8) var(--s4)">
+      <svg class="icon" aria-hidden="true" style="width:64px;height:64px"><use href="#i-search"/></svg>
+      <h1 style="font-size:var(--t-2xl);color:var(--text);margin-bottom:.5rem">ไม่พบหน้านี้</h1>
+      <p>ลิงก์อาจพิมพ์ผิด หรือสินค้าชิ้นนี้ถูกถอดออกจากร้านไปแล้ว</p>
+      <div style="display:flex;gap:var(--s3);justify-content:center;flex-wrap:wrap;margin-top:var(--s5)">
+        <a class="btn btn--primary" href="index.html">กลับหน้าแรก</a>
+        <a class="btn btn--ghost" href="shop.html">ดูสินค้าทั้งหมด</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap foot-main">
+    <div class="foot-about">
+      <a class="brand" href="index.html#top">
+        <span class="brand__mark" aria-hidden="true"><svg viewBox="0 0 48 48"><use href="#brand-mark"/></svg></span>
+        <span class="brand__word">GAME<b>DOCK</b><small>GAME &amp; CONSOLE</small></span>
+      </a>
+      <p>ร้านเกมและเครื่องเกมออนไลน์ นำเข้าถูกกฎหมาย มีหน้าร้านจริงที่กรุงเทพฯ เปิดทุกวัน 10:00–20:00 น.</p>
+      <div class="foot-social">
+        <a href="#" aria-label="LINE"><svg class="icon icon--fill" aria-hidden="true"><use href="#i-line"/></svg></a>
+        <a href="#" aria-label="Facebook"><svg class="icon icon--fill" aria-hidden="true"><use href="#i-fb"/></svg></a>
+        <a href="#" aria-label="TikTok"><svg class="icon" aria-hidden="true"><use href="#i-tiktok"/></svg></a>
+        <a href="#" aria-label="YouTube"><svg class="icon" aria-hidden="true"><use href="#i-yt"/></svg></a>
+      </div>
+      <div class="pay">
+        <b>ชำระเงิน:</b><span>PromptPay</span><span>บัตรเครดิต</span><span>ผ่อน 0%</span><span>เก็บปลายทาง</span>
+      </div>
+    </div>
+
+    <nav aria-labelledby="f-shop">
+      <h4 id="f-shop">ซื้อสินค้า</h4>
+      <ul>
+        <li><a href="index.html#results">เกม PlayStation 5</a></li>
+        <li><a href="index.html#results">เกม Nintendo Switch</a></li>
+        <li><a href="index.html#results">เกม Xbox Series</a></li>
+        <li><a href="index.html#results">เกม PC / Steam</a></li>
+        <li><a href="index.html#consoles">เครื่องเกม</a></li>
+        <li><a href="index.html#codes">บัตรเติมเงิน</a></li>
+      </ul>
+    </nav>
+
+    <nav aria-labelledby="f-help">
+      <h4 id="f-help">หลังการขาย</h4>
+      <ul>
+        <li><a href="index.html#track">ติดตามพัสดุ</a></li>
+        <li><a href="index.html#return">เปลี่ยน/คืนสินค้า 7 วัน</a></li>
+        <li><a href="index.html#warranty">เงื่อนไขการรับประกัน</a></li>
+        <li><a href="index.html#help">วิธีสั่งซื้อและชำระเงิน</a></li>
+        <li><a href="index.html#help">ค่าจัดส่งและระยะเวลา</a></li>
+        <li><a href="index.html#help">คำถามที่พบบ่อย</a></li>
+      </ul>
+    </nav>
+
+    <nav aria-labelledby="f-about">
+      <h4 id="f-about">เกี่ยวกับร้าน</h4>
+      <ul>
+        <li><a href="#">เรื่องราวของ GAMEDOCK</a></li>
+        <li><a href="#">หน้าร้านและแผนที่</a></li>
+        <li><a href="#">รับซื้อเกมมือสอง</a></li>
+        <li><a href="#">ขายส่ง / ร้านค้าตัวแทน</a></li>
+        <li><a href="#">ร่วมงานกับเรา</a></li>
+        <li><a href="#">ติดต่อเรา</a></li>
+      </ul>
+    </nav>
+  </div>
+
+  <div class="wrap foot-legal">
+    <span>© 2026 GAMEDOCK · ทะเบียนพาณิชย์อิเล็กทรอนิกส์เลขที่ 0000000000000</span>
+    <ul>
+      <li><a href="#">นโยบายความเป็นส่วนตัว</a></li>
+      <li><a href="#">เงื่อนไขการใช้งาน</a></li>
+      <li><a href="#">นโยบายคุกกี้</a></li>
+    </ul>
+  </div>
+</footer>
+
+<nav class="tabbar" aria-label="เมนูลัด">
+  <a href="index.html#top"><svg class="icon" aria-hidden="true"><use href="#i-home"/></svg>หน้าแรก</a>
+  <a href="index.html#results"><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg>หมวดสินค้า</a>
+  <a href="cart.html"><svg class="icon" aria-hidden="true"><use href="#i-cart"/></svg><span class="iconbtn__count" data-cart-count>3</span>ตะกร้า</a>
+  <a href="account.html"><svg class="icon" aria-hidden="true"><use href="#i-user"/></svg>บัญชี</a>
+</nav>
+
+<script src="js/data.js" defer></script>
+<script src="js/store.js" defer></script>
+<script src="js/main.js" defer></script>
+<script src="/work/_demo-badge.js" defer></script>
+</body>
+</html>

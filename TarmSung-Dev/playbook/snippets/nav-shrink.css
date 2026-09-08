@@ -1,0 +1,25 @@
+/* >>> nav-shrink · กลไกกลาง "หัวเว็บหดตอนเลื่อน" — แหล่งเดียวของทั้งกอง
+   แก้ที่ playbook/snippets/nav-shrink.css แล้วรัน: node playbook/sync-nav-shrink.mjs
+   ห้ามแก้ก้อนนี้ในไฟล์ปลายทาง — สคริปต์เขียนทับทุกครั้ง
+
+   กติกา (LOG-DEMO §15 · ด่าน playbook/audit-nav.mjs):
+   คลาสสวิตช์ = .small เท่านั้น · หดด้วย "padding ของลูก" เท่านั้น — ห้ามสั่ง height
+   ทำไมห้าม height: แถบหัวสูงเป็น auto เบราว์เซอร์ไล่ auto→เลขคงที่ไม่ได้ มันกระโดด
+   และลูกที่ตั้ง height ตายตัวจะไม่หดตาม แถบเตี้ยกว่าลูก = เกยทันที (summit เกย 20px อยู่เป็นเดือน)
+
+   ใบไหนต้องมีพื้นความสูงขั้นต่ำตอนหด (เช่น The Bed มีเพชรหมุน 45° ที่กินที่เกินผัง)
+   ให้ตั้งค่า --nav-pad-small ของใบนั้นเหนือก้อนนี้ ไม่ใช่เขียนกฎใหม่
+   ไม่ใส่ transition ให้ padding โดยตั้งใจ (24/8/26): padding เป็น layout property
+   ผิด DEMO-SPEC S2.3 และแถบที่หดคือแถบเดียวกับที่มี backdrop-filter = คิดผังใหม่+เบลอใหม่ทุกเฟรม */
+header.small > *, .site-header.small > * {
+  padding-top: var(--nav-pad-small, 0px) !important;
+  padding-bottom: var(--nav-pad-small, 0px) !important;
+  min-height: 0 !important;
+}
+header.small > * > *, .site-header.small > * > * {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  min-height: 0 !important;
+}
+@media (prefers-reduced-motion: reduce) { header, .site-header { transition: none !important; } }
+/* <<< nav-shrink */

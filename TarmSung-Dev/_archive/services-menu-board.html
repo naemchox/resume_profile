@@ -1,0 +1,122 @@
+<!-- ตามสั่ง — #services, VERSION 1: the five-tab menu board (replaced 20/8/26).
+     Five radio inputs, five tabs, five views, each carrying a heading, a
+     paragraph, four chips, a button and a source link — and four of the five
+     hidden behind a tab at any moment. Replaced on jek's call: too much to read
+     before you know what we sell. Nothing was deleted from the stylesheet, so
+     pasting this block back over .svc-board in index.html restores it exactly:
+     .menu-board, .mb-pick, .mb-tabs, .mb-tab, .mb-num, .mb-views, .mb-view,
+     .mb-copy, .mb-foot and .mb-src are all still live in css/styles.css.
+     The .stage / .dv-* device cluster is shared by both versions — leave it. -->
+        <!-- Five tiles, all readable at once: two that carry the money across the
+             top, three in a band beneath. The store used to be a tile of its own,
+             but a shop is a website to everyone buying one — it is a line in the
+             first card now, which is where people were going to look for it. No
+             prices here; the price section is three scrolls down and is allowed to
+             be the only place that quotes. -->
+        <!-- The menu board. Five services, one at a time, each shown as the same
+             project rendered on four screens — desktop, laptop, tablet, phone.
+             The switch is five radio inputs and their labels, so it works with
+             JavaScript off and arrow-keys move between tabs for free; nothing
+             here waits on main.js. Every screen is a REAL capture at that real
+             viewport width (1600 / 900 / 390), not one desktop shot pasted into
+             four frames, which is the tell in every stock device mockup. -->
+        <div class="menu-board reveal d2">
+        <input class="sr-only mb-pick" type="radio" name="menu-pick" id="mp-1" checked>
+        <input class="sr-only mb-pick" type="radio" name="menu-pick" id="mp-2">
+        <input class="sr-only mb-pick" type="radio" name="menu-pick" id="mp-3">
+        <input class="sr-only mb-pick" type="radio" name="menu-pick" id="mp-4">
+        <input class="sr-only mb-pick" type="radio" name="menu-pick" id="mp-5">
+          <div class="mb-tabs" aria-label="เลือกเมนูบริการ">
+          <label class="mb-tab" for="mp-1"><span class="mb-num">01</span>เว็บไซต์ &amp; ร้านค้า</label>
+          <label class="mb-tab" for="mp-2"><span class="mb-num">02</span>เว็บแอปพลิเคชัน</label>
+          <label class="mb-tab" for="mp-3"><span class="mb-num">03</span>โมบายแอป</label>
+          <label class="mb-tab" for="mp-4"><span class="mb-num">04</span>ออกแบบ UX/UI</label>
+          <label class="mb-tab" for="mp-5"><span class="mb-num">05</span>ดูแล &amp; ปรับปรุง</label>
+          </div>
+          <div class="mb-views">
+        <article class="mb-view">
+          <div class="mb-copy">
+            <h3>เว็บไซต์ &amp; <span class="nb">ร้านค้าออนไลน์</span> <span class="svc-tag">แนะนำ</span></h3>
+            <p>เว็บองค์กร แลนดิ้งเพจ และร้านค้าออนไลน์ครบวงจร ที่สวย โหลดไว และติดอันดับ Google</p>
+            <ul class="svc-chips"><li>แลนดิ้งเพจ</li><li>เว็บองค์กร</li><li>ร้านค้าออนไลน์</li><li>ตะกร้า + ชำระเงิน</li></ul>
+            <div class="mb-foot">
+              <a class="btn btn--primary" href="#pricing" data-need="เว็บไซต์ &amp; ร้านค้าออนไลน์">สั่งเมนูนี้ →</a>
+              <a class="mb-src" href="work/velvet-leaf/index.html" target="_blank" rel="noopener">ของจริงบนจอ: <strong>VELVET LEAF</strong> · ร้านบูทีคหน้าเดียว ↗</a>
+            </div>
+          </div>
+          <div class="stage" aria-label="งาน VELVET LEAF บนจอคอมพิวเตอร์ โน้ตบุ๊ก แท็บเล็ต และมือถือ">
+            <span class="dv dv-tablet"><span class="dv-screen"><img src="assets/work/devices/velvet-tab.webp" alt="VELVET LEAF บนแท็บเล็ต" width="560" height="747" loading="eager" decoding="async"></span></span>
+            <span class="dv dv-monitor"><span class="dv-screen"><img src="assets/work/devices/velvet-desk.webp" alt="VELVET LEAF บนจอคอมพิวเตอร์" width="1200" height="750" loading="eager" decoding="async"></span><span class="dv-stand" aria-hidden="true"></span></span>
+            <span class="dv dv-laptop"><span class="dv-screen"><img src="assets/work/devices/velvet-desk2.webp" alt="" width="1000" height="625" loading="eager" decoding="async"></span></span>
+            <span class="dv dv-phone"><span class="dv-screen"><img src="assets/work/devices/velvet-phone.webp" alt="VELVET LEAF บนมือถือ" width="360" height="779" loading="eager" decoding="async"></span></span>
+          </div>
+        </article>
+        <article class="mb-view">
+          <div class="mb-copy">
+            <h3>เว็บ<span class="nb">แอปพลิเคชัน</span></h3>
+            <p>ระบบหลังบ้าน แดชบอร์ด ระบบจอง ระบบสมาชิก และ SaaS ที่ปรับแต่งได้ตามธุรกิจของคุณ</p>
+            <ul class="svc-chips"><li>ระบบหลังบ้าน</li><li>แดชบอร์ด</li><li>ระบบจอง</li><li>ระบบสมาชิก</li></ul>
+            <div class="mb-foot">
+              <a class="btn btn--primary" href="#pricing" data-need="เว็บแอปพลิเคชัน / ระบบหลังบ้าน">สั่งเมนูนี้ →</a>
+              <a class="mb-src" href="https://withered-block-4669.monmon7735.workers.dev" target="_blank" rel="noopener">ของจริงบนจอ: <strong>Ijek</strong> · เว็บแอปฝึกวินัย ใช้งานอยู่จริง ↗</a>
+            </div>
+          </div>
+          <div class="stage" aria-label="งาน Ijek บนจอคอมพิวเตอร์ โน้ตบุ๊ก แท็บเล็ต และมือถือ">
+            <span class="dv dv-tablet"><span class="dv-screen"><img src="assets/work/devices/ijek-tab.webp" alt="Ijek บนแท็บเล็ต" width="560" height="747" loading="lazy" decoding="async"></span></span>
+            <span class="dv dv-monitor"><span class="dv-screen"><img src="assets/work/devices/ijek-desk.webp" alt="Ijek บนจอคอมพิวเตอร์" width="1200" height="750" loading="lazy" decoding="async"></span><span class="dv-stand" aria-hidden="true"></span></span>
+            <span class="dv dv-laptop"><span class="dv-screen"><img src="assets/work/devices/ijek-desk2.webp" alt="" width="1000" height="625" loading="lazy" decoding="async"></span></span>
+            <span class="dv dv-phone"><span class="dv-screen"><img src="assets/work/devices/ijek-phone.webp" alt="Ijek บนมือถือ" width="360" height="779" loading="lazy" decoding="async"></span></span>
+          </div>
+        </article>
+        <article class="mb-view">
+          <div class="mb-copy">
+            <h3><span class="nb">โมบายแอป</span></h3>
+            <p>แอป iOS &amp; Android เขียนครั้งเดียว ใช้ได้สองระบบ ติดตั้งลงเครื่องแล้วเปิดได้เหมือนแอปทั่วไป</p>
+            <ul class="svc-chips"><li>iOS + Android</li><li>แจ้งเตือน Push</li><li>ขึ้นสโตร์ให้</li></ul>
+            <div class="mb-foot">
+              <a class="btn btn--primary" href="#pricing" data-need="โมบายแอป (iOS / Android)">สั่งเมนูนี้ →</a>
+              <a class="mb-src" href="https://quit-day.pages.dev" target="_blank" rel="noopener">ของจริงบนจอ: <strong>ลาออก (Quit Day)</strong> · <strong>Ijek</strong> — ติดตั้งลงมือถือแล้วใช้จริง ↗</a>
+            </div>
+          </div>
+          <div class="stage stage--mobile" aria-label="แอปที่เราทำ แสดงบนมือถือและแท็บเล็ตจริง">
+            <span class="dv dv-tablet"><span class="dv-screen"><img src="assets/work/devices/ijek-tab.webp" alt="Ijek บนแท็บเล็ต" width="560" height="747" loading="lazy" decoding="async"></span></span>
+            <span class="dv dv-phone dv-phone--a"><span class="dv-screen"><img src="assets/work/devices/quitday-phone.webp" alt="ลาออก (Quit Day) บนมือถือ" width="360" height="779" loading="lazy" decoding="async"></span></span>
+            <span class="dv dv-phone dv-phone--b"><span class="dv-screen"><img src="assets/work/devices/ijek-phone.webp" alt="Ijek บนมือถือ" width="360" height="779" loading="lazy" decoding="async"></span></span>
+          </div>
+        </article>
+        <article class="mb-view">
+          <div class="mb-copy">
+            <h3>ออกแบบ <span class="nb">UX/UI</span></h3>
+            <p>ออกแบบประสบการณ์ผู้ใช้และหน้าตาแอป ทำต้นแบบให้กดได้จริงก่อนพัฒนา</p>
+            <ul class="svc-chips"><li>ต้นแบบกดได้จริง</li><li>ดีไซน์ซิสเต็ม</li><li>ปรับตามแบรนด์</li></ul>
+            <div class="mb-foot">
+              <a class="btn btn--primary" href="#pricing" data-need="ออกแบบ UX/UI">สั่งเมนูนี้ →</a>
+              <a class="mb-src" href="work/lumen/index.html" target="_blank" rel="noopener">ของจริงบนจอ: <strong>Lumen</strong> · เว็บ SaaS เอฟเฟกต์ WebGL ↗</a>
+            </div>
+          </div>
+          <div class="stage" aria-label="งาน Lumen บนจอคอมพิวเตอร์ โน้ตบุ๊ก แท็บเล็ต และมือถือ">
+            <span class="dv dv-tablet"><span class="dv-screen"><img src="assets/work/devices/lumen-tab.webp" alt="Lumen บนแท็บเล็ต" width="560" height="747" loading="lazy" decoding="async"></span></span>
+            <span class="dv dv-monitor"><span class="dv-screen"><img src="assets/work/devices/lumen-desk.webp" alt="Lumen บนจอคอมพิวเตอร์" width="1200" height="750" loading="lazy" decoding="async"></span><span class="dv-stand" aria-hidden="true"></span></span>
+            <span class="dv dv-laptop"><span class="dv-screen"><img src="assets/work/devices/lumen-desk2.webp" alt="" width="1000" height="625" loading="lazy" decoding="async"></span></span>
+            <span class="dv dv-phone"><span class="dv-screen"><img src="assets/work/devices/lumen-phone.webp" alt="Lumen บนมือถือ" width="360" height="779" loading="lazy" decoding="async"></span></span>
+          </div>
+        </article>
+        <article class="mb-view">
+          <div class="mb-copy">
+            <h3>ดูแล &amp; <span class="nb">ปรับปรุง</span></h3>
+            <p>ดูแลระบบหลังส่งมอบ เพิ่มฟีเจอร์ใหม่ แก้บั๊ก และอัปเดตความปลอดภัยต่อเนื่อง</p>
+            <ul class="svc-chips"><li>แก้บั๊ก + อัปเดต</li><li>เพิ่มฟีเจอร์</li><li>สำรองข้อมูล</li></ul>
+            <div class="mb-foot">
+              <a class="btn btn--primary" href="#pricing" data-need="ดูแล / ปรับปรุงระบบเดิม">สั่งเมนูนี้ →</a>
+              <a class="mb-src" href="work/homecraft/index.html" target="_blank" rel="noopener">ของจริงบนจอ: <strong>Homecraft</strong> · เว็บรับเหมาก่อสร้าง/รีโนเวท ↗</a>
+            </div>
+          </div>
+          <div class="stage" aria-label="งาน Homecraft บนจอคอมพิวเตอร์ โน้ตบุ๊ก แท็บเล็ต และมือถือ">
+            <span class="dv dv-tablet"><span class="dv-screen"><img src="assets/work/devices/home-tab.webp" alt="Homecraft บนแท็บเล็ต" width="560" height="747" loading="lazy" decoding="async"></span></span>
+            <span class="dv dv-monitor"><span class="dv-screen"><img src="assets/work/devices/home-desk.webp" alt="Homecraft บนจอคอมพิวเตอร์" width="1200" height="750" loading="lazy" decoding="async"></span><span class="dv-stand" aria-hidden="true"></span></span>
+            <span class="dv dv-laptop"><span class="dv-screen"><img src="assets/work/devices/home-desk2.webp" alt="" width="1000" height="625" loading="lazy" decoding="async"></span></span>
+            <span class="dv dv-phone"><span class="dv-screen"><img src="assets/work/devices/home-phone.webp" alt="Homecraft บนมือถือ" width="360" height="779" loading="lazy" decoding="async"></span></span>
+          </div>
+        </article>
+          </div>
+        </div>

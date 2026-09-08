@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>โกลว์ คลินิก — คลินิกผิวพรรณและความงาม ทองหล่อ</title>
+<meta name="description" content="โกลว์ คลินิก ทองหล่อ — เลเซอร์ ฟิลเลอร์ ดูแลผิวโดยแพทย์เฉพาะทาง แจ้งราคาครบก่อนเริ่ม ประเมินผิวครั้งแรกไม่มีค่าใช้จ่าย">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
+<style>
+/* ══════════════════════════════════════════════════════════════
+   GLOW CLINIC — แบบร่างสไตล์ awwwards
+   reference: LBC Clinic (แถบบน · พรีเซนเตอร์ · ปุ่มจองคิว)
+              SLC Hospital (คำอังกฤษตัวใหญ่หลังคน · แถบไอคอนลอยขวา)
+   เปลี่ยนแกนสีจากฟ้า/เทอร์ควอยซ์ของทั้งสองใบ → ชมพู
+   ══════════════════════════════════════════════════════════════ */
+:root{
+  --rose:#E11D6B;          /* สีสัญญาณ ปุ่ม/ตัวเลข */
+  --rose-2:#FF7EB3;        /* ปลายไล่สี */
+  --plum:#4A0B24;          /* พื้นเข้ม */
+  --ink:#1A1014;
+  --ink-2:#6B5560;
+  --ink-3:#9C8B93;
+  --blush:#FFF4F7;         /* พื้นกระดาษชมพู */
+  --paper:#FFFFFF;
+  --line:#F1DDE4;
+  --line-2:#E4C9D4;
+  --f-d:"Noto Serif Thai",Georgia,serif;
+  --f-s:"IBM Plex Sans Thai",system-ui,sans-serif;
+  --w:1240px;
+  --ease:cubic-bezier(.19,1,.22,1);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;scroll-padding-top:110px}
+body{margin:0;background:var(--blush);color:var(--ink);font-family:var(--f-s);font-size:16px;line-height:1.7;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+h1,h2,h3{font-family:var(--f-d);font-weight:600;line-height:1.18;margin:0;letter-spacing:-.015em}
+.wrap{width:min(100% - 2.5rem,var(--w));margin-inline:auto}
+.kicker{display:inline-flex;align-items:center;gap:.5rem;font-size:.74rem;letter-spacing:.18em;
+  text-transform:uppercase;font-weight:700;color:var(--rose)}
+.kicker::before{content:"";width:22px;height:1px;background:currentColor}
+.num{font-variant-numeric:tabular-nums}
+
+/* ── หัวข้อแบบเปิดหน้ากาก (สูตรจากงาน TypeUI) ─────────────── */
+.w{display:inline-block;overflow:hidden;vertical-align:bottom}
+.w>span{display:inline-block;transform:translateY(110%);will-change:transform}
+.ready .rv-w>span{transform:none;transition:transform 1000ms var(--ease)}
+.ready .rv-w:nth-child(2)>span{transition-delay:60ms}
+.ready .rv-w:nth-child(3)>span{transition-delay:120ms}
+.ready .rv-w:nth-child(4)>span{transition-delay:180ms}
+.ready .rv-w:nth-child(5)>span{transition-delay:240ms}
+
+/* ── แถบบนสุด (LBC มี · เป็นของที่คลินิกไทยต้องมี) ───────── */
+.util{background:var(--plum);color:#F6E3EA;font-size:.8rem}
+.util .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem 1.6rem;min-height:38px}
+.util a{display:inline-flex;align-items:center;gap:.4rem;white-space:nowrap}
+.util a:hover{color:#fff}
+.util .sp{margin-left:auto;color:#C79FB0}
+.util b{color:#fff;font-weight:600}
+
+/* ── แถบเมนู ───────────────────────────────────────────────── */
+.nav{position:sticky;top:0;z-index:60;background:rgba(255,255,255,.82);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);transition:box-shadow .3s var(--ease)}
+.nav.stuck{box-shadow:0 10px 30px -24px rgba(74,11,36,.6)}
+.nav .wrap{display:flex;align-items:center;gap:1.5rem;min-height:66px}
+.brand{display:flex;align-items:center;gap:.6rem;font-family:var(--f-d);font-weight:700;font-size:1.2rem}
+.brand i{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:none;
+  background:linear-gradient(140deg,var(--rose-2),var(--rose));color:#fff;font-style:normal;font-size:1rem}
+.brand small{display:block;font-family:var(--f-s);font-weight:600;font-size:.56rem;letter-spacing:.26em;color:var(--ink-3)}
+.menu{display:none;gap:1.5rem;margin-left:auto;font-size:.93rem;font-weight:500}
+.menu a{position:relative;padding:.4rem 0;color:var(--ink-2)}
+.menu a::after{content:"";position:absolute;left:0;right:100%;bottom:0;height:2px;background:var(--rose);
+  transition:right .35s var(--ease)}
+.menu a:hover{color:var(--ink)}.menu a:hover::after{right:0}
+@media(min-width:1000px){.menu{display:flex}}
+/* มือถือ: แถบบนเหลือแค่เบอร์กับไลน์ (ที่อยู่+เวลายาวจนกินสามบรรทัด = แถบเข้ม 145px
+   ก่อนเห็นอะไรเลย) ส่วนเมนูย้ายลงมาเป็นแถวเลื่อนแนวนอน ไม่งั้นมือถือไม่มีเมนูเลย */
+@media(max-width:999.98px){
+  .util .sp{display:none}
+  .nav .wrap{flex-wrap:wrap;padding-bottom:.35rem}
+  .menu{display:flex;order:3;width:100%;margin-left:0;gap:1.25rem;overflow-x:auto;
+    scrollbar-width:none;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 26px),transparent);
+            mask-image:linear-gradient(to right,#000 calc(100% - 26px),transparent)}
+  .menu::-webkit-scrollbar{display:none}
+  .menu a{flex:none;min-height:44px;display:inline-flex;align-items:center;white-space:nowrap}
+  html{scroll-padding-top:132px}
+}
+.book{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;min-height:44px;
+  padding:0 1.35rem;border-radius:999px;font-weight:700;font-size:.92rem;color:#fff;
+  background:linear-gradient(120deg,var(--rose-2),var(--rose));box-shadow:0 10px 24px -14px var(--rose);
+  transition:transform .25s var(--ease),box-shadow .25s var(--ease)}
+@media(min-width:1000px){.book{margin-left:0}}
+.book:hover{transform:translateY(-2px);box-shadow:0 16px 30px -14px var(--rose)}
+
+/* ── ฮีโร่ ─────────────────────────────────────────────────── */
+/* คำอังกฤษตัวใหญ่ทะลุหลังคน — ท่าเดียวกับ SLC IDENTITY */
+
+/* ปุ่มร่วมทั้งเว็บ — เผลอลบไปตอนเก็บ CSS ฮีโร่รุ่นเก่า */
+.acts{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:2rem}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;min-height:52px;padding:0 1.7rem;
+  border-radius:999px;font-weight:700;font-size:1rem;border:1px solid transparent;
+  transition:transform .25s var(--ease),background .25s var(--ease),color .25s var(--ease),border-color .25s var(--ease)}
+.btn--go{color:#fff;background:linear-gradient(120deg,var(--rose-2),var(--rose));
+  box-shadow:0 14px 30px -16px var(--rose)}
+.btn--go:hover{transform:translateY(-2px)}
+.btn--gh{border-color:var(--line-2);color:var(--ink)}
+.btn--gh:hover{border-color:var(--rose);color:var(--rose)}
+
+/* ── ฮีโร่: รูปเต็มขอบจอเป็นพื้นหลัง ข้อความทับบนรูป ─────────
+   เลิกท่าตัดพื้นหลังปลอมทั้งหมด — ไม่มีการผสมเลเยอร์ ไม่มีหน้ากากซ้อน ไม่มี
+   ชดเชย brightness รายใบ อีกแล้ว เพราะรูปแสดงเต็ม พื้นของรูปเป็นพื้นการ์ดเอง
+   ฝ้าขาวรอบตัวคนที่ไล่แก้มา 6 รอบจึงหายไปโดยไม่ต้องแก้อะไรเพิ่ม */
+.camp{position:relative;background:var(--blush)}
+.stage{position:relative;overflow:hidden;height:min(86svh,820px);min-height:460px;background:#F3DDE5}
+@media(max-width:760px){.stage{height:min(78svh,620px);min-height:420px}}
+.slide{position:absolute;inset:0;opacity:0;pointer-events:none}
+.slide.on{opacity:1;pointer-events:auto}
+.ready .slide{transition:opacity 700ms var(--ease)}
+.slide img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:60% 32%}
+.slide::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(100deg,rgba(48,6,24,.90) 0%,rgba(48,6,24,.78) 34%,rgba(48,6,24,.34) 60%,rgba(48,6,24,.06) 78%,transparent 90%)}
+@media(max-width:760px){.slide::after{
+  background:linear-gradient(180deg,rgba(48,6,24,.2) 0%,rgba(48,6,24,.55) 38%,rgba(48,6,24,.88) 72%,rgba(48,6,24,.94) 100%)}}
+
+.shot{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;justify-content:center;
+  width:min(100% - 2.5rem,var(--w));margin-inline:auto;color:#fff}
+.shot>*{max-width:min(100%,600px)}
+/* ปุ่มนำทางลอยอยู่ล่างกลางบนมือถือ ต้องเว้นที่ให้ ไม่งั้นทับบรรทัดท้าย */
+@media(max-width:760px){.shot{justify-content:flex-end;padding-bottom:5.2rem}}
+.shot .no{text-shadow:0 2px 18px rgba(30,4,16,.5);font-family:var(--f-d);font-weight:400;font-size:clamp(2.2rem,4.5vw,3.6rem);
+  line-height:1;color:rgba(255,255,255,.55);letter-spacing:.04em}
+.shot h2{margin:.2rem 0 0;color:#fff;text-shadow:0 2px 18px rgba(30,4,16,.55);font-family:var(--f-s);font-weight:600;letter-spacing:.02em;
+  font-size:clamp(1.5rem,1rem + 2.1vw,2.8rem);line-height:1.08;text-transform:uppercase}
+.shot .th{display:block;margin-top:.35rem;font-family:var(--f-d);font-weight:600;
+  font-size:clamp(.98rem,.85rem + .5vw,1.25rem);text-transform:none;letter-spacing:0}
+.shot p{text-shadow:0 1px 12px rgba(30,4,16,.5);margin:.75rem 0 0;font-size:clamp(.88rem,.82rem + .2vw,1rem);color:rgba(255,255,255,.9);max-width:44ch}
+.tags{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:1.1rem;padding:0;list-style:none}
+.tags li{border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:.32rem .8rem;
+  font-size:.82rem;font-weight:500;white-space:nowrap}
+.shot .row{display:flex;flex-wrap:wrap;align-items:center;gap:.7rem 1rem;margin-top:1.3rem}
+.shot .btn--go{background:#fff;color:var(--plum);box-shadow:none}
+.shot .btn--go:hover{background:var(--rose);color:#fff}
+.shot .hint{font-size:.82rem;color:rgba(255,255,255,.72)}
+.shot .price{display:flex;align-items:baseline;gap:.55rem;margin-top:1rem}
+.shot .price b{font-family:var(--f-d);font-size:clamp(1.7rem,1.2rem + 1.5vw,2.5rem);color:#fff;line-height:1}
+.shot .price s{text-decoration:line-through;color:rgba(255,255,255,.6);font-size:.95rem}
+.shot .price em{font-style:normal;font-size:.9rem;color:rgba(255,255,255,.85)}
+
+.camp-nav{position:absolute;right:clamp(1rem,3vw,3rem);bottom:clamp(1rem,3vw,2.4rem);z-index:3;
+  display:flex;align-items:center;gap:.8rem}
+@media(max-width:760px){.camp-nav{left:50%;right:auto;translate:-50% 0}}
+.camp-arw{width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.5);
+  background:rgba(255,255,255,.16);backdrop-filter:blur(8px);color:#fff;display:grid;place-items:center;cursor:pointer;
+  transition:background .25s var(--ease),transform .25s var(--ease)}
+.camp-arw:hover{background:var(--rose);color:#fff;border-color:var(--rose);transform:scale(1.06)}
+.camp-arw svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.camp-dots{display:flex;align-items:center;gap:.45rem}
+.camp-dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.4);cursor:pointer;
+  transition:background .25s var(--ease),width .25s var(--ease)}
+.camp-dots i.on{background:#fff;width:22px;border-radius:99px}
+.camp-dots i:hover{background:rgba(255,255,255,.7)}
+
+/* ── ใต้แคมเปญ ─────────────────────────────────────────────── */
+.pitch{position:relative;overflow:hidden;isolation:isolate;padding-block:clamp(2.5rem,6vw,4.5rem)}
+.pitch-grid{display:grid;gap:clamp(1.4rem,3vw,3rem);align-items:start}
+@media(min-width:900px){.pitch-grid{grid-template-columns:1.05fr .95fr}}
+.pitch .h1{font-size:clamp(1.9rem,1.1rem + 2.9vw,3.2rem);margin:.8rem 0 0}
+.pitch .lede{margin:0;max-width:44ch}
+
+/* ── แถบไอคอนลอยขวา (ทั้ง LBC และ SLC มี) ─────────────────── */
+.rail{position:fixed;right:14px;top:50%;transform:translateY(-50%);z-index:55;display:none;
+  flex-direction:column;gap:.5rem}
+@media(min-width:820px){.rail{display:flex}}
+.rail a{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:var(--paper);
+  border:1px solid var(--line);color:var(--rose);box-shadow:0 10px 24px -18px rgba(74,11,36,.9);
+  transition:transform .3s var(--ease),background .3s var(--ease),color .3s var(--ease)}
+.rail a:hover{transform:translateX(-4px) scale(1.06);background:var(--rose);color:#fff;border-color:var(--rose)}
+.rail svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── แถบวิ่ง ───────────────────────────────────────────────── */
+.mq{background:var(--plum);color:#FFE7EF;padding-block:.85rem;overflow:hidden;white-space:nowrap}
+.mq-track{display:inline-flex;gap:3rem;animation:mq 28s linear infinite;will-change:transform}
+.mq span{display:inline-flex;align-items:center;gap:.7rem;font-size:.92rem;letter-spacing:.04em}
+.mq i{width:6px;height:6px;border-radius:50%;background:var(--rose-2);flex:none}
+@keyframes mq{to{transform:translateX(-50%)}}
+
+/* ── โครงส่วน ──────────────────────────────────────────────── */
+.sec{padding-block:clamp(3.5rem,8vw,7rem)}
+.sec--tint{background:var(--paper)}
+.head{max-width:52ch;margin-bottom:clamp(2rem,4vw,3rem)}
+.head h2{font-size:clamp(1.75rem,1.1rem + 2.4vw,3rem);margin-top:.7rem}
+.head p{margin:.9rem 0 0;color:var(--ink-2)}
+.rv{opacity:0;transform:translateY(26px)}
+.ready .rv.in{opacity:1;transform:none;transition:opacity 900ms var(--ease),transform 900ms var(--ease)}
+
+/* ── บริการ ────────────────────────────────────────────────── */
+.svc{display:grid;gap:1.1rem}
+@media(min-width:640px){.svc{grid-template-columns:1fr 1fr}}
+@media(min-width:1020px){.svc{grid-template-columns:repeat(3,1fr)}
+  .svc>*:first-child{grid-column:span 2;grid-row:span 2}}
+.card{position:relative;overflow:hidden;border-radius:22px;background:var(--plum);color:#fff;
+  min-height:230px;display:flex;flex-direction:column;justify-content:flex-end;padding:1.4rem;isolation:isolate}
+.svc>*:first-child{min-height:420px;padding:2rem}
+.card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;
+  transition:transform 1000ms var(--ease);will-change:transform}
+.card:hover img{transform:scale(1.07)}
+.card::after{content:"";position:absolute;inset:0;z-index:-1;
+  background:linear-gradient(180deg,rgba(30,6,16,0) 0%,rgba(30,6,16,.08) 38%,rgba(46,8,26,.72) 78%,rgba(46,8,26,.92) 100%)}
+.card b{font-family:var(--f-d);font-size:1.2rem;font-weight:600}
+.svc>*:first-child b{font-size:clamp(1.4rem,1rem + 1.4vw,2rem)}
+.card p{margin:.35rem 0 0;font-size:.9rem;color:#F2DCE4;max-width:34ch}
+.card .price{margin-top:.9rem;display:inline-flex;align-items:baseline;gap:.4rem;font-weight:700}
+.card .price u{text-decoration:none;font-size:1.35rem;font-family:var(--f-d)}
+.card .price s{text-decoration:none;font-size:.8rem;font-weight:500;color:#DDBECA}
+.card .go{position:absolute;right:1.2rem;top:1.2rem;width:40px;height:40px;border-radius:50%;
+  display:grid;place-items:center;background:rgba(255,255,255,.16);backdrop-filter:blur(6px);
+  transition:background .3s var(--ease),transform .3s var(--ease)}
+.card:hover .go{background:var(--rose);transform:rotate(-45deg)}
+
+/* ── ตัวเลข ────────────────────────────────────────────────── */
+.stats{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:20px;overflow:hidden}
+@media(min-width:560px){.stats{grid-template-columns:1fr 1fr}}
+@media(min-width:900px){.stats{grid-template-columns:repeat(4,1fr)}}
+.stat{background:var(--paper);padding:1.6rem 1.4rem;text-align:center}
+.stat b{display:block;font-family:var(--f-d);font-size:clamp(2rem,1.4rem + 1.8vw,2.9rem);
+  font-weight:700;color:var(--rose);line-height:1}
+.stat span{display:block;margin-top:.4rem;font-size:.88rem;color:var(--ink-2)}
+
+/* ── แพทย์ ─────────────────────────────────────────────────── */
+.docs{display:grid;gap:1.5rem}
+@media(min-width:760px){.docs{grid-template-columns:1fr 1fr}}
+.doc{grid-template-columns:minmax(150px,34%) 1fr}
+.doc{background:var(--paper);border:1px solid var(--line);border-radius:22px;overflow:hidden;
+  display:grid;grid-template-columns:130px 1fr;transition:border-color .35s var(--ease),transform .35s var(--ease)}
+.doc:hover{border-color:var(--line-2);transform:translateY(-3px)}
+.doc img{width:100%;height:100%;object-fit:cover;object-position:50% 26%;min-height:210px}
+.doc-b{padding:1.3rem}
+.doc-b b{display:block;font-family:var(--f-d);font-size:1.1rem}
+.doc-b .role{display:block;font-size:.82rem;color:var(--rose);font-weight:600;margin-top:.15rem}
+.doc-b ul{margin:.8rem 0 0;padding:0;list-style:none}
+.doc-b li{position:relative;padding-left:1.1rem;font-size:.88rem;color:var(--ink-2);margin-top:.3rem}
+.doc-b li::before{content:"";position:absolute;left:0;top:.62em;width:6px;height:6px;border-radius:50%;background:var(--rose-2)}
+
+/* ── รีวิว ─────────────────────────────────────────────────── */
+.revs{display:flex;gap:1.1rem;overflow-x:auto;padding-bottom:.6rem;scroll-snap-type:x mandatory;
+  -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 46px),transparent);
+          mask-image:linear-gradient(to right,#000 calc(100% - 46px),transparent)}
+.revs::-webkit-scrollbar{height:0}
+.rev{flex:0 0 min(340px,82vw);scroll-snap-align:start;background:var(--paper);border:1px solid var(--line);
+  border-radius:20px;padding:1.4rem}
+.rev .st{color:var(--rose);letter-spacing:.15em;font-size:.85rem}
+.rev p{margin:.6rem 0 1rem;font-size:.95rem}
+.rev .who{display:flex;align-items:center;gap:.7rem;font-size:.85rem;color:var(--ink-2)}
+.rev .who img{width:38px;height:38px;border-radius:50%;object-fit:cover}
+.rev .who b{color:var(--ink);font-weight:600;display:block}
+
+/* ── ปิดท้าย ───────────────────────────────────────────────── */
+.close{position:relative;overflow:hidden;background:var(--plum);color:#fff;
+  padding-block:clamp(3.5rem,8vw,6.5rem);text-align:center;isolation:isolate}
+.close img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;opacity:.28}
+.close::after{content:"";position:absolute;inset:0;z-index:-1;
+  background:radial-gradient(70% 100% at 50% 0,rgba(225,29,107,.42),transparent 70%)}
+.close h2{font-size:clamp(1.8rem,1.1rem + 2.6vw,3.2rem);max-width:20ch;margin-inline:auto;text-wrap:balance}
+.close p{color:#EFD6DF;max-width:44ch;margin:1.1rem auto 0}
+footer{background:var(--ink);color:#B7A3AC;padding-block:2.5rem;font-size:.87rem}
+footer .wrap{display:grid;gap:1.4rem}
+@media(min-width:760px){footer .wrap{grid-template-columns:1.4fr 1fr 1fr}}
+footer b{color:#fff;display:block;margin-bottom:.5rem;font-family:var(--f-d)}
+footer a:hover{color:#fff}
+.demo{margin-top:1.6rem;padding-top:1.2rem;border-top:1px solid #33222A;font-size:.8rem;color:#7D6B74}
+
+/* ── เคอร์เซอร์ ────────────────────────────────────────────── */
+.cur{position:fixed;top:0;left:0;width:26px;height:26px;border-radius:50%;border:1.5px solid var(--rose);
+  pointer-events:none;z-index:99;opacity:0;transition:width .3s var(--ease),height .3s var(--ease),opacity .3s,background .3s}
+.cur.on{opacity:1}
+.cur.hot{width:52px;height:52px;background:rgba(225,29,107,.12)}
+@media(hover:none){.cur{display:none}}
+
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .w>span,.ready .rv-w>span{transform:none!important;transition:none!important}
+  .rv,.ready .rv.in{opacity:1!important;transform:none!important;transition:none!important}
+  .shot,.ready .shot{clip-path:none!important;transition:none!important}
+  .shot img,.ready .shot img{transform:none!important;transition:none!important}
+  .mq-track{animation:none}
+  .cur{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="cur" id="cur" aria-hidden="true"></div>
+
+<!-- ── แถบบนสุด ─────────────────────────────────────────── -->
+<div class="util">
+  <div class="wrap">
+    <a href="tel:021234567"><b>02-123-4567</b></a>
+    <a href="#book">LINE @glowclinic</a>
+    <span class="sp">ทองหล่อ ซอย 13 · จันทร์–เสาร์ 11:00–20:00 · อาทิตย์ 12:00–19:00</span>
+  </div>
+</div>
+
+<!-- ── เมนู ─────────────────────────────────────────────── -->
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><i>G</i><span>โกลว์ คลินิก<small>GLOW CLINIC</small></span></a>
+    <nav class="menu" aria-label="เมนูหลัก">
+      <a href="#svc">บริการของเรา</a>
+      <a href="#promo">โปรโมชั่น</a>
+      <a href="#doctors">ทีมแพทย์</a>
+      <a href="#reviews">รีวิว</a>
+      <a href="#book">ติดต่อเรา</a>
+    </nav>
+    <a class="book" href="#book">จองคิวเลย</a>
+  </div>
+</header>
+
+<!-- ── แถบไอคอนลอยขวา ──────────────────────────────────── -->
+<div class="rail" aria-label="ช่องทางติดต่อ">
+  <a href="tel:021234567" aria-label="โทรหาคลินิก"><svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg></a>
+  <a href="#book" aria-label="แชทกับคลินิก"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4c-.8 0-1.6-.1-2.3-.3L4 21.5l1.4-4A8.2 8.2 0 0 1 3 11.5C3 6.8 7 3 12 3s9 3.8 9 8.5z"/></svg></a>
+  <a href="#book" aria-label="นัดหมาย"><svg viewBox="0 0 24 24"><path d="M4.5 4.5h15v15h-15z"/><path d="M4.5 9h15M8.5 3v3M15.5 3v3"/></svg></a>
+</div>
+
+<main id="top">
+
+  <!-- ── ฮีโร่แคมเปญ ────────────────────────────────────────
+       ท่าเดียวกับ SLC: พื้นไล่สี → คำยักษ์อยู่หลังคน → คนยืนเรียงกัน
+       → ป้ายชื่อรายคน → คำโปรยตัวห่างพาดล่าง → จุดสไลด์
+       ต่างที่ SLC ใช้ภาพตัดพื้นหลังจริง เรามีแต่ภาพสตูดิโอพื้นเรียบ
+       จึงเบลนขอบล่างด้วย mask ให้ละลายเข้าพื้น แทนการแกล้งตัดขอบ -->
+  <section class="camp" aria-label="แคมเปญและโปรโมชั่น">
+    <div class="stage" id="stage" aria-live="polite"></div>
+    <div class="camp-nav">
+        <button class="camp-arw prev" type="button" aria-label="สไลด์ก่อนหน้า"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <div class="camp-dots" id="dots" role="tablist" aria-label="เลือกสไลด์"></div>
+        <button class="camp-arw next" type="button" aria-label="สไลด์ถัดไป"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+    </div>
+  </section>
+
+
+  <!-- ── ใต้แคมเปญ: ของที่ต้องขาย ────────────────────────── -->
+  <section class="pitch" aria-labelledby="h-pitch">
+    <span class="blob a" id="blobA" aria-hidden="true"></span>
+    <span class="blob b" id="blobB" aria-hidden="true"></span>
+    <div class="wrap pitch-grid">
+      <div>
+        <span class="kicker">คลินิกผิวพรรณ · ทองหล่อ ซอย 13</span>
+        <h2 class="h1" id="h-pitch">ผิวที่ดูแลด้วยความจริง <em>ไม่ใช่คำโฆษณา</em></h2>
+      </div>
+      <div>
+        <p class="lede">แพทย์เฉพาะทางประเมินผิวก่อนทุกเคส บอกจำนวนครั้ง วันพักฟื้น และราคารวมให้ครบ ก่อนที่คุณจะตัดสินใจ</p>
+        <div class="acts">
+          <a class="btn btn--go" href="#book" data-hot>จองคิวประเมินผิวฟรี</a>
+          <a class="btn btn--gh" href="#svc" data-hot>ดูบริการทั้งหมด</a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── แถบวิ่ง ──────────────────────────────────────── -->
+  <div class="mq" aria-hidden="true">
+    <div class="mq-track" id="mqt"></div>
+  </div>
+
+  <!-- ── บริการ ───────────────────────────────────────── -->
+  <section class="sec" id="svc" aria-labelledby="h-svc">
+    <div class="wrap">
+      <div class="head rv">
+        <span class="kicker">บริการของเรา</span>
+        <h2 id="h-svc">เลือกจากปัญหาผิว ไม่ใช่จากชื่อเครื่อง</h2>
+        <p>ทุกโปรแกรมเขียนไว้ว่าทำกี่ครั้ง พักฟื้นกี่วัน และราคารวมเท่าไหร่ — ไม่ต้องทักไลน์มาถามก่อนถึงจะรู้</p>
+      </div>
+      <div class="svc" id="svcGrid"></div>
+    </div>
+  </section>
+
+  <!-- ── ตัวเลข ───────────────────────────────────────── -->
+  <section class="sec sec--tint" aria-label="ตัวเลขของคลินิก">
+    <div class="wrap">
+      <div class="stats rv">
+        <div class="stat"><b class="num" data-to="12">0</b><span>ปีที่เปิดทำการ</span></div>
+        <div class="stat"><b class="num" data-to="18000">0</b><span>เคสที่ดูแลแล้ว</span></div>
+        <div class="stat"><b class="num" data-to="6">0</b><span>แพทย์เฉพาะทาง</span></div>
+        <div class="stat"><b class="num" data-to="4.9" data-dec="1">0</b><span>คะแนนรีวิวเฉลี่ย</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── โปรโมชั่น ────────────────────────────────────── -->
+  <section class="sec" id="promo" aria-labelledby="h-promo">
+    <div class="wrap">
+      <div class="head rv">
+        <span class="kicker">โปรโมชั่นเดือนนี้</span>
+        <h2 id="h-promo">ราคาช่วงนี้ หมดอายุตามวันที่เขียนไว้</h2>
+        <p>ไม่มีคำว่า “ราคาพิเศษวันนี้เท่านั้น” ที่ยืดไปเรื่อยๆ วันหมดเขียนไว้ทุกใบ</p>
+      </div>
+      <div class="svc" id="promoGrid"></div>
+    </div>
+  </section>
+
+  <!-- ── แพทย์ ────────────────────────────────────────── -->
+  <section class="sec sec--tint" id="doctors" aria-labelledby="h-doc">
+    <div class="wrap">
+      <div class="head rv">
+        <span class="kicker">ทีมแพทย์</span>
+        <h2 id="h-doc">คนที่คุยกับคุณคือแพทย์ ไม่ใช่ที่ปรึกษาการขาย</h2>
+      </div>
+      <div class="docs" id="docGrid"></div>
+    </div>
+  </section>
+
+  <!-- ── รีวิว ────────────────────────────────────────── -->
+  <section class="sec" id="reviews" aria-labelledby="h-rev">
+    <div class="wrap">
+      <div class="head rv">
+        <span class="kicker">เสียงจากคนไข้</span>
+        <h2 id="h-rev">คนที่ทำจบคอร์สแล้วพูดว่าอะไร</h2>
+      </div>
+      <div class="revs rv" id="revGrid"></div>
+    </div>
+  </section>
+
+  <!-- ── ปิดท้าย ──────────────────────────────────────── -->
+  <section class="close" id="book">
+    <img src="img/aesthetic-1.jpg" alt="" aria-hidden="true" loading="lazy">
+    <div class="wrap">
+      <h2 class="rv">ยังไม่ต้องตัดสินใจวันนี้</h2>
+      <p class="rv">ประเมินผิวครั้งแรกไม่มีค่าใช้จ่าย ไม่มีการขายคอร์สหน้างาน ถ้าผิวคุณยังไม่ควรทำอะไร แพทย์จะบอกตรงๆ ว่ายัง</p>
+      <div class="acts rv" style="justify-content:center">
+        <a class="btn btn--go" href="tel:021234567" data-hot>โทรจองคิว · 02-123-4567</a>
+        <a class="btn btn--gh" href="#svc" data-hot style="border-color:rgba(255,255,255,.4);color:#fff">ดูบริการก่อน</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <b>โกลว์ คลินิก · GLOW CLINIC</b>
+      25/xx ซอยทองหล่อ 13 คลองตันเหนือ วัฒนา กรุงเทพฯ 10110<br>
+      ใบอนุญาตสถานพยาบาลเลขที่ 10101002566
+    </div>
+    <div><b>เวลาทำการ</b>จันทร์–เสาร์ 11:00–20:00<br>อาทิตย์ 12:00–19:00</div>
+    <div><b>ติดต่อ</b><a href="tel:021234567">02-123-4567</a><br>LINE @glowclinic</div>
+    <div class="demo" style="grid-column:1/-1">งานสาธิต · แบรนด์สมมติ · รูปภาพจาก Pexels · ทำเว็บโดย ตามสั่ง</div>
+  </div>
+</footer>
+
+<script>
+/* ══ ข้อมูล ══════════════════════════════════════════════════ */
+const SVC = [
+  {img:'face-2', t:'เลเซอร์ผิวใส', d:'ฝ้า กระ จุดด่างดำ — พลังงานสั้นระดับพิโควินาที ผิวรอบข้างรับความร้อนน้อย', p:3900, n:'ต่อครั้ง · 5 ครั้งจบคอร์ส'},
+  {img:'face-1', t:'ยกกระชับ HIFU', d:'กรอบหน้าเบลอ แก้มตก', p:26000, n:'ทำปีละครั้ง'},
+  {img:'aesthetic-8', t:'ดูแลผิวหน้า', d:'ผิวมัน รูขุมขนกว้าง', p:1290, n:'ต่อครั้ง'},
+  {img:'skin-1', t:'ฟื้นฟูหลุมสิว', d:'RF microneedling ดันคอลลาเจนใต้รอยบุ๋ม', p:8000, n:'ต่อครั้ง · 4 ครั้ง'},
+  {img:'face-6', t:'ฟิลเลอร์ร่องแก้ม', d:'ของแท้มี อย. เปิดกล่องต่อหน้า', p:9900, n:'ต่อซีซี'},
+];
+const PROMO = [
+  {img:'face-2', t:'เลเซอร์ผิวใส 5 ครั้ง', d:'จองภายใน 30 ก.ย. 2569', p:16900, was:19500, n:'จากปกติ ฿19,500'},
+  {img:'aesthetic-8', t:'ดูแลผิวหน้า 3 ครั้ง', d:'จองภายใน 30 ก.ย. 2569', p:3290, was:3870, n:'จากปกติ ฿3,870'},
+  {img:'aesthetic-1', t:'ตรวจผิวด้วยกล้อง + วางแผน', d:'ลูกค้าใหม่เท่านั้น', p:0, n:'ไม่มีค่าใช้จ่าย'},
+];
+const DOCS = [
+  {img:'asiandoc-3', n:'พญ. ชนิกานต์ วรพัฒน์', r:'แพทย์ผิวหนัง · ผู้ก่อตั้ง',
+   c:['วุฒิบัตรตจวิทยา','ประสบการณ์ด้านเลเซอร์ 12 ปี','ตรวจเองทุกเคสในวันที่ลงตาราง']},
+  {img:'doctor-4', n:'พญ. ณิชาภัทร สุขวัฒน์', r:'แพทย์ผิวหนัง',
+   c:['วุฒิบัตรตจวิทยา','ดูแลงานแผลเป็นและคีลอยด์','ออกตรวจ อังคาร · พฤหัส · เสาร์']},
+];
+const REVS = [
+  {img:'c-plain-3', n:'พิม', p:'เลเซอร์ผิวใส × 5', s:'เริ่มจากฝ้าบางๆ หมอบอกตั้งแต่แรกว่าต้องกี่ครั้ง ไม่มีการเชียร์ให้ซื้อเพิ่มระหว่างทาง'},
+  {img:'face-2', n:'แนน', p:'ฟื้นฟูหลุมสิว', s:'หมอบอกว่าต้องทำสองอย่างผสมกัน ไม่ได้เชียร์อันแพงสุด และราคาตรงกับที่คุยไว้วันแรก'},
+  {img:'c-fash-1', n:'ปาย', p:'มาปรึกษา 2 รอบ', s:'มาปรึกษาก่อนสองรอบโดยไม่ได้ทำอะไรเลย ไม่มีใครโทรตาม กลับมาทำเองตอนพร้อม'},
+  {img:'c-studio-2', n:'ต้น', p:'ลบรอยสัก × 7', s:'ใช้มากกว่าที่ประเมินไว้สองครั้ง แต่ไม่โดนคิดเพิ่มตามที่ตกลงกันไว้ตอนแรก'},
+];
+const MQ = ['แพทย์เฉพาะทางตรวจทุกเคส','แจ้งราคารวมก่อนเริ่ม','ยาและฟิลเลอร์มี อย. ทุกตัว','เข็มและหัวเลเซอร์ใช้ครั้งเดียว','ประเมินครั้งแรกไม่มีค่าใช้จ่าย','ปรึกษาหลังทำฟรีตลอดคอร์ส'];
+
+/* ══ เขียนหน้า ═══════════════════════════════════════════════ */
+const $ = (s,r)=>(r||document).querySelector(s);
+const $$ = (s,r)=>[...(r||document).querySelectorAll(s)];
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const baht = n => '฿' + n.toLocaleString('th-TH');
+const arrow = '<span class="go" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg></span>';
+
+$('#svcGrid').innerHTML = SVC.map(s => `
+  <a class="card rv" href="#book" data-hot>
+    <img src="img/${s.img}.jpg" alt="${s.t}" loading="lazy" decoding="async" width="1600" height="1067">
+    ${arrow}
+    <b>${s.t}</b><p>${s.d}</p>
+    <span class="price"><u>${baht(s.p)}</u><s>${s.n}</s></span>
+  </a>`).join('');
+
+$('#promoGrid').innerHTML = PROMO.map(s => `
+  <a class="card rv" href="#book" data-hot>
+    <img src="img/${s.img}.jpg" alt="${s.t}" loading="lazy" decoding="async" width="1600" height="1067">
+    ${arrow}
+    <b>${s.t}</b><p>${s.d}</p>
+    <span class="price"><u>${s.p ? baht(s.p) : 'ฟรี'}</u><s>${s.n}</s></span>
+  </a>`).join('');
+
+$('#docGrid').innerHTML = DOCS.map(d => `
+  <article class="doc rv">
+    <img src="img/${d.img}.jpg" alt="${d.n}" loading="lazy" decoding="async" width="1600" height="1067">
+    <div class="doc-b"><b>${d.n}</b><span class="role">${d.r}</span>
+      <ul>${d.c.map(x=>`<li>${x}</li>`).join('')}</ul></div>
+  </article>`).join('');
+
+$('#revGrid').innerHTML = REVS.map(r => `
+  <article class="rev">
+    <div class="st">★★★★★</div>
+    <p>“${r.s}”</p>
+    <div class="who"><img src="img/${r.img}.jpg" alt="" loading="lazy" decoding="async">
+      <span><b>${r.n}</b>${r.p}</span></div>
+  </article>`).join('');
+
+$('#mqt').innerHTML = (MQ.concat(MQ)).map(t=>`<span><i></i>${t}</span>`).join('');
+
+/* ══ สไลด์แคมเปญ ═══════════════════════════════════════════
+   4 สไลด์ตามที่วัดมาจาก slc.hospital · กดจุด/ลูกศร/ปุ่มลูกศรคีย์บอร์ด/ปัดได้จริง
+   เลื่อนเองทุก 5.5 วิ หยุดเมื่อชี้เมาส์ ออกนอกจอ หรือผู้ใช้ตั้งค่าลดการเคลื่อนไหว */
+const MUSE = [
+  {img:'face-2', no:'01', en:'Skin &amp; Laser', th:'เลเซอร์และดูแลผิว',
+   d:'ฝ้า กระ จุดด่างดำ รูขุมขนกว้าง — แพทย์ส่องผิวก่อนแล้วบอกว่าต้องทำกี่ครั้ง พักฟื้นกี่วัน และรวมเท่าไหร่',
+   tags:['เลเซอร์ผิวใส','ฝ้า · กระ','รูขุมขนกว้าง','ฟื้นฟูหลุมสิว'],
+   cta:['ปรึกษาหมวดนี้','#book'], hint:'ประเมินผิวครั้งแรก ไม่มีค่าใช้จ่าย'},
+
+  {img:'face-1', no:'02', en:'Promotion', th:'โปรโมชั่นเดือนนี้',
+   d:'เลเซอร์ผิวใส 5 ครั้ง ราคาช่วงนี้ หมดอายุตามวันที่เขียนไว้ ไม่มีคำว่า “วันนี้เท่านั้น” ที่ยืดไปเรื่อยๆ',
+   price:16900, was:19500, per:3380,
+   tags:['จองภายใน 30 ก.ย. 2569'],
+   cta:['จองโปรนี้','#book'], hint:'ราคารวมทั้งคอร์ส แจ้งครบก่อนเริ่ม'},
+
+  {img:'aesthetic-1', no:'03', en:'Consultation', th:'ตรวจผิวด้วยกล้อง แล้ววางแผน',
+   d:'ส่องผิวด้วยกล้องขยาย แพทย์อ่านผลให้ฟังแล้วบอกว่าควรทำอะไรก่อน-หลัง จะทำหรือไม่ทำก็ได้ ไม่มีการขายคอร์สหน้างาน',
+   tags:['ลูกค้าใหม่','ไม่มีค่าใช้จ่าย','ไม่มีมัดจำ'],
+   cta:['นัดตรวจผิว','#book'], hint:'แพทย์ผิวหนังตรวจเองทุกเคส'},
+];
+(function(){
+  const stage=$('#stage'), dots=$('#dots');
+  stage.innerHTML = MUSE.map((m,i)=>
+    '<article class="slide'+(i?'':' on')+'">'+
+      '<img src="img/'+m.img+'.jpg" alt="'+m.th+'" width="1600" height="1067" '+
+        (i?'loading="lazy"':'fetchpriority="high"')+' decoding="async">'+
+      '<div class="shot">'+
+        '<span class="no">'+m.no+'</span>'+
+        '<h2>'+m.en+'<span class="th">'+m.th+'</span></h2>'+
+        '<p>'+m.d+'</p>'+
+        (m.price?'<div class="price"><b>'+baht(m.price)+'</b><s>'+baht(m.was)+'</s>'+
+          '<em>เฉลี่ยครั้งละ '+baht(m.per)+'</em></div>':'')+
+        '<ul class="tags">'+m.tags.map(t=>'<li>'+t+'</li>').join('')+'</ul>'+
+        '<div class="row"><a class="btn btn--go" href="'+m.cta[1]+'" data-hot>'+m.cta[0]+' <span aria-hidden="true">→</span></a>'+
+        '<span class="hint">'+m.hint+'</span></div>'+
+      '</div>'+
+    '</article>').join('');
+
+  dots.innerHTML = MUSE.map((m,i)=>'<i role="tab" tabindex="0" class="'+(i?'':'on')+'" aria-label="สไลด์ '+(i+1)+': '+m.th+'" aria-selected="'+(!i)+'"></i>').join('');
+  const sl=$$('.slide',stage), dd=$$('i',dots);
+  let cur=0, timer=0;
+  function show(i){
+    cur=(i+MUSE.length)%MUSE.length;
+    sl.forEach((f,k)=>f.classList.toggle('on',k===cur));
+    dd.forEach((d,k)=>{d.classList.toggle('on',k===cur);d.setAttribute('aria-selected',String(k===cur))});
+  }
+  const next=()=>show(cur+1), prev=()=>show(cur-1);
+  function play(){ if(RM) return; stop(); timer=setInterval(next,6000); }
+  function stop(){ clearInterval(timer); }
+  dd.forEach((d,i)=>{ d.addEventListener('click',()=>{show(i);play()});
+    d.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();show(i);play()}}); });
+  $('.camp-arw.next').addEventListener('click',()=>{next();play()});
+  $('.camp-arw.prev').addEventListener('click',()=>{prev();play()});
+  const camp=$('.camp');
+  camp.addEventListener('pointerenter',stop); camp.addEventListener('pointerleave',play);
+  camp.addEventListener('keydown',e=>{ if(e.key==='ArrowRight'){next();play()} if(e.key==='ArrowLeft'){prev();play()} });
+  let sx=null;
+  camp.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;stop()},{passive:true});
+  camp.addEventListener('touchend',e=>{ if(sx===null)return; const d=e.changedTouches[0].clientX-sx;
+    if(Math.abs(d)>40){ d<0?next():prev(); } sx=null; play(); },{passive:true});
+  new IntersectionObserver(es=>{ es[0].isIntersecting?play():stop(); },{threshold:.15}).observe(camp);
+  show(0);
+})();
+
+/* ══ การเคลื่อนไหว ═══════════════════════════════════════════ */
+/* เข้าจอ */
+const io = new IntersectionObserver((es,o)=>{
+  es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); o.unobserve(e.target); } });
+}, {rootMargin:'0px 0px -10% 0px'});
+$$('.rv').forEach(el=>io.observe(el));
+
+/* ตัวเลขนับขึ้น — เริ่มเมื่อเข้าจอ ไม่ใช่ตอนโหลด */
+const nio = new IntersectionObserver((es,o)=>{
+  es.forEach(e=>{
+    if(!e.isIntersecting) return;
+    o.unobserve(e.target);
+    const el=e.target, to=parseFloat(el.dataset.to), dec=+(el.dataset.dec||0);
+    if(RM){ el.textContent = to.toLocaleString('th-TH',{minimumFractionDigits:dec,maximumFractionDigits:dec}); return; }
+    const t0=performance.now(), dur=1100;
+    const step=now=>{
+      const k=Math.min(1,(now-t0)/dur), v=to*(1-Math.pow(1-k,3));
+      el.textContent = v.toLocaleString('th-TH',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+      if(k<1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+},{rootMargin:'0px'});  /* ห้ามหดขอบล่าง: ตัวเลขในฮีโร่อยู่ y≈780 บนจอ 900 ถ้าหด 15% จะถือว่ายังไม่เข้าจอ คนเปิดมาเห็นเลข 0 */
+$$('.num[data-to]').forEach(el=>nio.observe(el));
+
+/* หัวเว็บมีเงาเมื่อเลื่อน */
+const nav=$('#nav');
+addEventListener('scroll',()=>{ nav.classList.toggle('stuck', scrollY>8); },{passive:true});
+
+/* ก้อนไล่สีขยับตามเมาส์ + เคอร์เซอร์วง */
+if(!RM && matchMedia('(hover:hover)').matches){
+  const cur=$('#cur'), A=$('#blobA'), B=$('#blobB');
+  let mx=innerWidth/2, my=innerHeight/2, cx=mx, cy=my, ax=0, ay=0, seen=false;
+  /* วงเคอร์เซอร์เคยโผล่ค้างที่มุมซ้ายบนก่อนเมาส์ขยับ — รอให้ขยับจริงก่อนค่อยโชว์
+     และวางตำแหน่งให้ตรงทันทีในเฟรมแรก ไม่งั้นมันจะวิ่งจากมุมมา */
+  addEventListener('pointermove', e=>{ mx=e.clientX; my=e.clientY;
+    if(!seen){ seen=true; cx=mx; cy=my; cur.classList.add('on'); } }, {passive:true});
+  addEventListener('pointerleave', ()=>cur.classList.remove('on'));
+  $$('[data-hot],a,button').forEach(el=>{
+    el.addEventListener('pointerenter',()=>cur.classList.add('hot'));
+    el.addEventListener('pointerleave',()=>cur.classList.remove('hot'));
+  });
+  (function loop(){
+    cx += (mx-cx)*0.18; cy += (my-cy)*0.18;
+    cur.style.transform = `translate(${cx-13}px, ${cy-13}px)`;
+    const nx=(mx/innerWidth-0.5), ny=(my/innerHeight-0.5);
+    ax += (nx*38-ax)*0.05; ay += (ny*30-ay)*0.05;
+    if(A) A.style.transform = `translate(${ax}px, ${ay}px)`;
+    if(B) B.style.transform = `translate(${-ax}px, ${-ay}px)`;
+    requestAnimationFrame(loop);
+  })();
+}
+
+/* หัวข้อเริ่มวิ่งหลังฟอนต์มาถึง — ไม่งั้นเล่นจบบนฟอนต์สำรองแล้ว reflow ทีหลัง
+   (กับดักที่วัดเจอในงาน TypeUI: คำกระโดด +10.9 ถึง +123.9px) */
+const go = ()=>document.body.classList.add('ready');
+if(document.fonts && document.fonts.ready){
+  Promise.race([document.fonts.ready, new Promise(r=>setTimeout(r,1200))]).then(go);
+} else go();
+</script>
+</body>
+</html>

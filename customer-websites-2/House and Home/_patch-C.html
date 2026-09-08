@@ -1,0 +1,368 @@
+<!-- ===================== VARIANT C =====================
+     Prompt: "[reference: Quad — AI-DRIVEN INSPIRATIONAL SPACES] อยากได้สไตล์นี้เลย"
+
+     ถอดจากรูป reference ว่ามันคืออะไรจริงๆ (ไม่ใช่ "ทำให้ดูโมเดิร์น"):
+       1. ขาว-ดำล้วน ไม่มีสี accent สักจุด คอนทราสต์เต็มพิกัด
+       2. หัวเรื่อง grotesk หนา ตัวใหญ่ ชิดซ้าย ระยะห่างตัวอักษรแน่น 3 บรรทัด
+       3. nav เป็น pill chips เรียงกัน ตัวที่อยู่ = pill ดำทึบ
+       4. **ลายเซ็นของงานนี้: รอยต่อ section เป็นพิกเซลแตก (dither)**
+          ไม่ใช่เส้นตรง ไม่ใช่ fade — เป็นบล็อกสี่เหลี่ยมไล่ความหนาแน่น
+       5. รูปใหญ่เต็มความกว้าง มุมเกือบเหลี่ยม รูปเป็นพระเอกไม่ใช่ตัวประกอบ
+       6. การ์ดสถิติ = การ์ดขาวบนพื้นดำ ไอคอนชิปเล็กมุมบน เลขใหญ่ คำอธิบายจิ๋ว
+       7. ปุ่ม = pill เส้นบาง ตัวเล็ก ไม่ใช่ปุ่มทึบใหญ่
+       8. bento: รูป + การ์ดดำสลับกันในกริดเดียว
+       9. ขั้นตอนเป็น Step 01/02/03 พร้อมชิปกลมเล็ก
+      10. footer มี wordmark ยักษ์เต็มความกว้าง
+
+     สิ่งที่ต้องยอมแลก (ตัดสินใจแล้ว บอกไว้ให้ชัด):
+       reference ไม่มีสี accent เลย = ทองแบรนด์หายทั้งหน้า
+       ทองตัวนั้นมาจากป้ายหน้าร้านจริงกับโปสเตอร์ของลูกค้า (IMAGE-CREDITS §5)
+       ถ้าจะเอาสไตล์นี้จริงต้องยอมทิ้งมัน — ใส่กลับได้ทีหลังด้วยการแก้ token
+       --ink-accent ตัวเดียว
+     ==================================================== -->
+<style>
+:root{
+  --q-black:  #0B0B0B;
+  --q-ink:    #101010;
+  --q-paper:  #F5F4F1;
+  --q-paper2: #ECEAE5;
+  --q-line:   #12121200;
+  --q-grey:   #6E6E6E;
+}
+
+/* ---------- C1 · PALETTE: ล้างทอง/navy/ครีม เหลือขาว-ดำ ----------
+   override ที่ :root ชั้นเดียว ตัวแปรที่เหลือทั้งไฟล์วิ่งตามเอง
+   (ไฟล์นี้ผูกทุกสีไว้กับ token อยู่แล้ว จึงไม่ต้องไล่แก้ทีละ rule) */
+:root{
+  --c-page:      var(--q-paper);
+  --c-surface:   #FFFFFF;
+  --c-sunken:    var(--q-paper2);
+  --c-border:    #DCD9D3;
+  --c-line:      #A9A59E;
+  --c-muted:     var(--q-grey);
+  --c-action:    var(--q-ink);
+  --c-action-hi: #000000;
+  --c-ink:       var(--q-ink);
+  --c-on-action: #FFFFFF;
+
+  --c-deep:      var(--q-black);
+  --c-deep-lo:   #000000;
+  --c-deep-hi:   #171717;
+  --c-deep-line: #3A3A3A;
+  --c-gold:      #FFFFFF;      /* "ทอง" กลายเป็นขาว — คุมด้วย token ตัวเดียว */
+  --c-gold-dim:  #C9C9C9;
+  --c-deep-ink:  #F7F6F4;
+  --c-deep-muted:#A8A8A8;
+  --c-glow:      #FFFFFF;
+
+  --font-display: var(--font-body);   /* serif -> grotesk ตาม reference */
+  --radius-sm: 2px; --radius-md: 4px; --radius-lg: 6px;
+  --shadow-sm: none; --shadow-md: 0 12px 30px rgb(0 0 0 / .10);
+}
+[data-theme="dark"]{
+  --c-page: var(--q-black); --c-surface:#121212; --c-sunken:#0A0A0A;
+  --c-border:#2C2C2C; --c-line:#4A4A4A; --c-muted:#A8A8A8;
+  --c-ink:#F7F6F4; --c-action:#FFFFFF; --c-action-hi:#E5E5E5; --c-on-action:#000000;
+}
+
+/* ---------- C2 · TYPE: หัวเรื่องหนา แน่น ใหญ่ ---------- */
+h1,h2,h3,.sec-title,.stat-num,.h1-cat,.h1-hero{
+  font-family:var(--font-body);font-weight:700;letter-spacing:-.02em;line-height:1.12}
+.h1-hero{font-size:clamp(2.6rem,7.4vw,5.1rem);line-height:1.02;letter-spacing:-.035em}
+.h1-cat{font-size:var(--fs-lg);font-weight:600;letter-spacing:.02em;color:var(--c-muted)}
+.sec-title{font-size:clamp(1.9rem,4.4vw,2.9rem);letter-spacing:-.028em;max-width:22ch}
+/* ทองถูกฮาร์ดโค้ดเป็น gradient ไว้ 4 จุดในไฟล์ (ไม่ได้ผูก token) — ต้องล้างตรงๆ
+   ทุกจุด ไม่งั้น :root ที่เปลี่ยนแล้วก็ไม่มีผล: :1324 (.deep accent/stat/tier)
+   :1481 (.deep + .site-header .btn-primary) :1770 (.callbar a.primary)
+   :1830 (.hero accent ที่ variant B ใส่ไว้) */
+.hero .h1-hero .accent,.deep .h1-hero .accent,.hero h1 .accent,
+.deep .proof-quote .accent,.proof-quote .accent{
+  background:none!important;color:currentColor!important;
+  -webkit-background-clip:border-box!important;background-clip:border-box!important;
+  -webkit-text-fill-color:currentColor!important}
+.deep .stat-num,.hero .stat-num,.deep .tier-price{
+  background:none!important;-webkit-text-fill-color:currentColor!important}
+.site-header .btn-primary,.deep .btn-primary{
+  background:#FFFFFF!important;color:#000000!important;border-color:#fff!important}
+.btn-primary{background:var(--q-ink)!important;color:#fff!important}
+.site-header .btn-primary::after,.btn-primary::after{display:none!important}
+.progress{background:#FFFFFF!important}
+.eyebrow,.audience{letter-spacing:.10em;text-transform:uppercase;font-size:var(--fs-xs)}
+
+/* ---------- C3 · NAV: pill chips ---------- */
+.nav-links{gap:6px}
+.nav-links a{border:1px solid var(--c-deep-line);border-radius:999px;
+  padding:7px 15px;font-size:var(--fs-xs);font-weight:500}
+.nav-links a[aria-current="true"]{background:#fff;color:#000;border-color:#fff}
+.nav-glider{display:none}
+.site-header{background:var(--q-black);border-bottom:0}
+.nav-cta{border-radius:999px;background:#fff;color:#000;font-weight:600;
+  padding:9px 18px;box-shadow:none}
+
+/* ---------- C4 · ปุ่ม: pill เส้นบาง ---------- */
+.btn{border-radius:999px;font-size:var(--fs-sm);font-weight:600;padding:11px 22px}
+.btn-primary{background:var(--q-ink);color:#fff;border:1px solid var(--q-ink);box-shadow:none}
+.btn-primary:hover{background:#000;box-shadow:none}
+.btn-secondary{background:transparent;border:1px solid var(--c-line);color:var(--c-ink)}
+.deep .btn-primary{background:#fff;color:#000;border-color:#fff}
+.deep .btn-secondary{border-color:#4A4A4A;color:#fff}
+.card-more{font-weight:600;border:1px solid var(--c-border);border-radius:999px;
+  padding:7px 14px;align-self:flex-start;text-decoration:none}
+.card-more:hover{background:var(--q-ink);color:#fff;border-color:var(--q-ink);text-decoration:none}
+.free-pill{border-radius:999px;border-color:var(--c-line);color:var(--c-ink);font-weight:600}
+
+/* ---------- C5 · รอยต่อ section เป็นพิกเซลแตก — ลายเซ็นของ reference ----------
+   4 แถวบล็อก 12px ไล่ความหนาแน่น 25% -> 33% -> 50% -> ทึบ
+   ทำด้วย repeating-linear-gradient ล้วน ไม่มีรูป ไม่มี SVG = 0 byte เพิ่ม */
+.dither{--blk:10px;--row:11px;
+  height:calc(var(--row) * 5);width:100%;display:block;pointer-events:none;
+  background-color:var(--from,#F5F4F1);
+  background-image:
+    repeating-linear-gradient(90deg,var(--to,#0B0B0B) 0 var(--blk),transparent var(--blk) 50px),
+    repeating-linear-gradient(90deg,var(--to,#0B0B0B) 0 var(--blk),transparent var(--blk) 30px),
+    repeating-linear-gradient(90deg,var(--to,#0B0B0B) 0 var(--blk),transparent var(--blk) 20px),
+    repeating-linear-gradient(90deg,var(--to,#0B0B0B) 0 var(--blk),transparent var(--blk) 15px),
+    linear-gradient(var(--to,#0B0B0B),var(--to,#0B0B0B));
+  background-size:100% var(--row),100% var(--row),100% var(--row),100% var(--row),100% var(--row);
+  background-position:
+    17px 0,
+    31px var(--row),
+    7px calc(var(--row) * 2),
+    23px calc(var(--row) * 3),
+    0 calc(var(--row) * 4);
+  background-repeat:repeat-x}
+@media (max-width:620px){.dither{--blk:7px;--row:8px}}
+
+/* ---------- C6 · SECTION ดำ: ดำล้วน ไม่เอารูปพื้นหลัง ----------
+   reference ใช้ดำสนิท รูปที่เคยจมอยู่หลังตัวหนังสือเลยไม่ต้องใช้แล้ว
+   (ลด payload ที่ blocking ไปด้วย 2 รูป ~27KB — ยังฝังอยู่ในไฟล์ แค่ไม่ถูกวาด) */
+.deep,.deep[style*="--bg"]{background:var(--q-black)!important}
+.deep::before,.deep::after{display:none!important}
+.deep .card,.deep .step,.deep .tier,.deep .faq details{background:#171717;border-color:#2C2C2C}
+section{padding-block:var(--s9)}
+.hero{padding-block:var(--s8) var(--s7);background:var(--c-page)}
+
+/* ---------- C7 · HERO: ตัวหนังสือยักษ์ซ้าย รูปเต็มความกว้างใต้ลงมา ----------
+   index.html ตอนนี้มี variant B รวมอยู่แล้ว ซึ่ง override token ไว้ที่ .hero
+   (ฟ้าพลบค่ำ) — specificity สูงกว่า :root ของ C จึงต้องล้างคืนตรงนี้
+   ส่วนที่ B ทำแล้วดีและ C เก็บไว้: ตัดเลข section, ลำดับความสำคัญการ์ดบริการ */
+.hero{
+  --c-page:var(--q-paper); --c-surface:#FFFFFF; --c-sunken:var(--q-paper2);
+  --c-border:#DCD9D3; --c-line:#A9A59E; --c-muted:var(--q-grey);
+  --c-ink:var(--q-ink); --c-action:var(--q-ink); --c-action-hi:#000000;
+  --c-on-action:#FFFFFF;
+  border-bottom:0}
+/* reference วางเป็น "บล็อกตัวหนังสือ แล้วรูปเต็มความกว้างใต้ลงมา" ไม่ใช่ 2 คอลัมน์
+   → ทับ .hero-grid ให้เป็นคอลัมน์เดียวทุกความกว้าง รูปจึงได้เต็มแถว */
+.hero-grid{grid-template-columns:1fr!important;gap:var(--s6)}
+/* รูปเต็มความกว้างแบบ reference ทำตรงๆ ไม่ได้: ไฟล์รูปที่ใหญ่สุดในหน้านี้กว้าง
+   450px (IMAGE-CREDITS §1) ยืดเป็น 1112px = 2.5x เบลอเห็นชัด
+   → ใช้ 4 render เรียงเป็นสตริปแทน กว้างรวม 1800px ของต้นฉบับบนพื้นที่ 1112px
+     = ยังต่ำกว่า 1:1 ทุกใบ ได้ความกว้างเต็มแถวแบบ reference โดยไม่เบลอ */
+.hero .blueprint{width:100%;max-width:none;margin:0;aspect-ratio:auto;
+  border-radius:0;overflow:visible;border:0;box-shadow:none}
+.hero .blueprint svg{display:none}
+.bp-real{position:relative;inset:auto;margin:0;display:grid;gap:8px;
+  grid-template-columns:repeat(2,1fr)}
+@media (min-width:760px){.bp-real{grid-template-columns:repeat(4,1fr)}}
+.bp-real img{width:100%;height:100%;aspect-ratio:3/2;object-fit:cover;
+  border-radius:var(--radius-md);display:block}
+/* variant B ตั้ง figcaption ไว้เป็น absolute ทับมุมล่างของรูป — ต้องล้างคืน
+   ไม่งั้นมันไปเกาะรูปใบแรกแทนที่จะเป็นบรรทัดใต้สตริป */
+.bp-real figcaption{position:static;background:none;inset:auto;
+  grid-column:1/-1;order:2;
+  font-size:var(--fs-xs);letter-spacing:.08em;text-transform:uppercase;
+  color:var(--q-grey);padding-top:4px}
+.hero-sub{max-width:46ch;color:var(--c-muted)}
+
+/* ---------- C8 · STAT: การ์ดขาวบนพื้นดำ ---------- */
+.stats{background:var(--q-black);padding:var(--s7) var(--s5);gap:var(--s4);
+  border-radius:var(--radius-lg);grid-template-columns:repeat(2,1fr)}
+@media (min-width:820px){.stats{grid-template-columns:repeat(4,1fr)}}
+.stat{background:#fff;border:0;border-radius:var(--radius-md);text-align:left;
+  padding:var(--s5);min-height:150px;display:flex;flex-direction:column;justify-content:flex-end}
+/* variant B ตั้ง .hero .stat-num เป็น color:transparent!important คู่กับ gradient
+   พอ C ล้าง gradient ทิ้ง ตัวเลขเลยกลายเป็นล่องหน (เห็นตอนสกรีนช็อต: การ์ดขาว
+   มีแต่คำอธิบาย ไม่มีเลข) → ต้องคืน color เป็นดำแบบ !important ด้วย ไม่ใช่แค่ fill */
+.stat-num,.hero .stat-num,.deep .stat-num{
+  color:#000!important;font-size:clamp(1.8rem,3.4vw,2.6rem);letter-spacing:-.03em;
+  background:none!important;-webkit-text-fill-color:#000!important}
+.stat-label{color:var(--q-grey);font-size:var(--fs-xs);line-height:1.45}
+
+/* ---------- C9 · การ์ด: มุมเกือบเหลี่ยม เส้นบาง ไม่มีเงา ---------- */
+.card{border-radius:var(--radius-md);box-shadow:none;border-color:var(--c-border)}
+.card:hover{transform:none;border-color:var(--q-ink);box-shadow:none}
+.ico-tile{border-radius:var(--radius-sm);width:38px;height:38px;background:var(--q-paper2)}
+.ico-tile svg{width:20px;height:20px}
+.ico-tile .m{fill:var(--q-ink)}
+.deep .ico-tile{background:#242424}
+.deep .ico-tile .m{fill:#fff}
+
+/* ---------- C10 · รูปในหน้า: เหลี่ยมขึ้น เต็มกรอบขึ้น ---------- */
+.shot,.type-shot,.shot-frame{border-radius:var(--radius-md)}
+.shot figcaption,.type-card p{color:var(--c-muted)}
+
+/* ---------- C11 · .dim: reference ไม่มี label ประดับแบบนี้ ตัดทิ้ง ---------- */
+.dim{display:none}
+
+/* ---------- C15 · ปิดรูรั่วสีที่ audit จับได้ 2 จุด ----------
+   ทั้งคู่ไม่ได้ผูก token เลย เปลี่ยน :root แล้วไม่มีผล ต้องล้างตรงๆ
+
+   A) body มีวอชสีทอง 2 ชั้น + ฟ้า 1 ชั้น ทาทับทั้งเว็บ (index.html:1351-1358)
+      ไม่ใช่เฉพาะฮีโร่ = ทุก section พื้นสว่างยังมีสีอุ่นจางๆ อยู่
+   B) .card::after เป็นสปอตไลต์ทองตามเมาส์ (index.html:1913-1918 มาจาก variant B)
+      สกรีนช็อตนิ่งไม่เจอ ต้องเอาเมาส์ไปวางถึงจะเห็นทองวิ่ง */
+body{background:var(--c-page)!important;background-attachment:initial!important}
+.card::after{background:radial-gradient(230px circle at var(--mx,50%) var(--my,50%),
+  rgb(0 0 0 / .05),transparent 62%)!important}
+.deep .card::after{background:radial-gradient(230px circle at var(--mx,50%) var(--my,50%),
+  rgb(255 255 255 / .07),transparent 62%)!important}
+
+/* ---------- C16 · STEP: เลขยักษ์ outline -> ชิปกลมเล็ก (ข้อ 9 ของ reference) ----------
+   markup มีเลขครบอยู่แล้ว (data-n="01".."06") ไม่ต้องแตะ HTML
+   ของเดิมเป็นตัวเลข 6.6rem โปร่ง มี text-stroke ลอยมุมขวาบน + มี ::before/::after
+   ซ้อนอีกสองชั้นสำหรับอนิเมชัน "หั่นครึ่ง" ตอน hover — ปิดสองชั้นนั้นก่อน
+   ไม่งั้นเลขจะซ้อนกันสามตัวในชิปเดียว */
+.step{padding-top:var(--s7)}
+.step-n{
+  position:absolute;top:var(--s4);left:var(--s5);right:auto;
+  width:30px;height:30px;border-radius:999px;
+  display:grid;place-items:center;
+  font-family:var(--font-body);font-size:.78rem;font-weight:700;line-height:1;
+  letter-spacing:.01em;
+  color:var(--c-on-action);background:var(--c-action);
+  -webkit-text-stroke:0;opacity:1}
+.deep .step-n{background:#FFFFFF;color:#000000}
+.sliced-n::before,.sliced-n::after{display:none!important}
+.step:hover .step-n{opacity:1}
+.step h3{padding-right:0}
+
+/* ---------- C17 · BENTO: แทรกการ์ดตัวหนังสือลงในกริดรูป (ข้อ 8 ของ reference) ----------
+   #shots เป็น section พื้นดำและมีแต่ figure รูปล้วน 4 ใบเรียงเท่ากัน
+   reference สลับ "รูป / การ์ดตัวหนังสือคนละพื้น" อยู่ในกริดเดียว
+   → แทรกการ์ด "ขาว" 1 ใบเป็นช่องที่ 3 (พื้นดำอยู่แล้ว การ์ดจึงต้องขาวไม่ใช่ดำ)
+   ที่ 1000px กริดเป็น 4 คอลัมน์ → 4 รูป + 1 การ์ด = 5 ช่อง เลยบังคับ 3 คอลัมน์
+   ให้ลงตัวเป็น 3+3 พอดี ไม่มีช่องโหว่ท้ายแถว */
+@media (min-width:1000px){.shots{grid-template-columns:repeat(3,1fr)}}
+.shot{max-width:none}
+.bento-card{background:#fff;color:#000;border-radius:var(--radius-md);
+  padding:var(--s5);display:flex;flex-direction:column;justify-content:space-between;
+  gap:var(--s4);min-height:180px}
+.bento-card b{display:block;font-size:var(--fs-lg);font-weight:700;letter-spacing:-.02em;
+  line-height:1.25}
+.bento-card span{color:var(--q-grey);font-size:var(--fs-sm)}
+.bento-card a{align-self:flex-start;border:1px solid #000;border-radius:999px;
+  padding:8px 16px;font-size:var(--fs-xs);font-weight:600;color:#000;text-decoration:none}
+.bento-card a:hover{background:#000;color:#fff}
+
+/* ---------- C12 · FOOTER: wordmark ยักษ์เต็มความกว้าง ---------- */
+.site-footer{background:#000;padding-bottom:0}
+/* ทำเป็น SVG text + textLength แทนการเดา font-size:
+   รอบแรกใช้ clamp() แล้ว "HOUSE & HOME" โดนตัดกลางคำเป็น "HOUSE & HO"
+   เพราะความกว้างจริงขึ้นกับ font metric ไม่ใช่ vw — textLength บังคับให้
+   พอดีขอบทุกความกว้างโดยไม่ต้องมีเลขวิเศษ */
+.q-wordmark{display:block;width:100%;height:auto;margin-top:var(--s8)}
+.q-wordmark text{fill:#fff;font-family:var(--font-body);font-weight:700}
+@media (max-width:899.98px){
+  .site-footer{padding-bottom:calc(var(--s6) + 57px + env(safe-area-inset-bottom))}
+}
+
+/* ---------- C13 · CALLBAR ---------- */
+.callbar{background:#000;border-top:1px solid #2C2C2C}
+.callbar a{background:#000;color:#fff}
+.callbar a.primary{background:#fff;color:#000}
+
+/* ---------- C14 · reduced motion ---------- */
+@media (prefers-reduced-motion: reduce){
+  .bp-real{animation:none;opacity:1}
+}
+</style>
+<script>
+(function(){
+  /* C5 — แทรกแถบพิกเซลทุกจุดที่พื้นเปลี่ยนขาว<->ดำ
+     ไม่ hardcode ลำดับ section: อ่านจาก .deep แล้วเทียบคู่ที่ติดกัน */
+  var PAPER = '#F5F4F1', BLACK = '#0B0B0B';
+  var secs = [].slice.call(document.querySelectorAll('main > section'));
+  var isDark = function (s) { return s.classList.contains('deep'); };
+  for (var i = 0; i < secs.length - 1; i++) {
+    var a = isDark(secs[i]), b = isDark(secs[i + 1]);
+    if (a === b) continue;
+    var d = document.createElement('div');
+    d.className = 'dither';
+    d.setAttribute('aria-hidden', 'true');
+    d.style.setProperty('--from', a ? BLACK : PAPER);
+    d.style.setProperty('--to',   a ? PAPER : BLACK);
+    secs[i].parentNode.insertBefore(d, secs[i + 1]);
+  }
+  /* section สุดท้าย -> footer (footer ดำเสมอ) */
+  var last = secs[secs.length - 1], foot = document.querySelector('.site-footer');
+  if (last && foot && !isDark(last)) {
+    var d2 = document.createElement('div');
+    d2.className = 'dither'; d2.setAttribute('aria-hidden', 'true');
+    d2.style.setProperty('--from', PAPER); d2.style.setProperty('--to', BLACK);
+    foot.parentNode.insertBefore(d2, foot);
+  }
+
+  /* C7 — ยก render ของลูกค้าขึ้นฮีโร่ (เหมือน B — ของจริงชิ้นเดียวที่หน้านี้มี) */
+  var srcs = [].slice.call(document.querySelectorAll('#shots .shot img'));
+  var bp   = document.querySelector('.hero .blueprint');
+  if (srcs.length && bp) {
+    var old = bp.querySelector('.bp-real');
+    if (old) old.remove();                      /* ล้างของที่ variant B ใส่ไว้ */
+    var fig = document.createElement('figure');
+    fig.className = 'bp-real';
+    srcs.forEach(function (s) {
+      var img = s.cloneNode(true);
+      img.removeAttribute('loading');
+      fig.appendChild(img);
+    });
+    var cap = document.createElement('figcaption');
+    cap.textContent = 'ภาพ 3D presentation จากงานออกแบบของเรา — ไม่ใช่ภาพถ่ายอาคาร';
+    fig.appendChild(cap);
+    bp.appendChild(fig);
+  }
+
+  /* C17 — แทรกการ์ดขาวเป็นช่องที่ 3 ของกริดรูป
+     ข้อความไม่ได้แต่งใหม่ ยกมาจากย่อหน้านำของ section เดียวกัน + ลิงก์เฟซบุ๊ก
+     ที่มีอยู่แล้วใต้กริด (ไม่เคลมอะไรที่หน้าเว็บไม่ได้พูดไว้ก่อน) */
+  var shots = document.querySelector('.shots');
+  if (shots && !shots.querySelector('.bento-card')) {
+    var fb = document.querySelector('#shots a[href*="facebook"]');
+    var card = document.createElement('div');
+    card.className = 'bento-card';
+    var b = document.createElement('b');
+    b.textContent = 'แก้กันในจอให้จบก่อน แล้วค่อยลงมือ';
+    var s = document.createElement('span');
+    s.textContent = 'ทุกงานออกแบบได้ภาพ 3D คู่กับแบบก่อสร้าง ไม่ใช่มาเห็นของจริงตอนสร้างเสร็จ';
+    card.appendChild(b); card.appendChild(s);
+    if (fb) {
+      var a = document.createElement('a');
+      a.href = fb.href; a.target = '_blank'; a.rel = 'noopener';
+      a.textContent = 'ดูงานจริงบนเฟซบุ๊ก';
+      card.appendChild(a);
+    }
+    var third = shots.children[2];
+    if (third) shots.insertBefore(card, third); else shots.appendChild(card);
+  }
+
+  /* C12 — wordmark ยักษ์ท้ายหน้า */
+  var f = document.querySelector('.site-footer .wrap') || document.querySelector('.site-footer');
+  if (f && !f.querySelector('.q-wordmark')) {
+    var NS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('class', 'q-wordmark');
+    svg.setAttribute('viewBox', '0 0 1000 132');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    var t = document.createElementNS(NS, 'text');
+    t.setAttribute('x', '0');
+    t.setAttribute('y', '108');
+    t.setAttribute('font-size', '128');
+    t.setAttribute('textLength', '1000');
+    t.setAttribute('lengthAdjust', 'spacingAndGlyphs');
+    t.textContent = 'HOUSE & HOME';
+    svg.appendChild(t);
+    f.appendChild(svg);
+  }
+})();
+</script>

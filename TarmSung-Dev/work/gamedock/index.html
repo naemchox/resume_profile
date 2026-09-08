@@ -1,0 +1,949 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<!-- คืนตำแหน่งที่อ่านค้างไว้เอง ไม่รอเบราว์เซอร์ (ที่มา: work/_JANK-REFRESH.md)
+     Safari คืนตำแหน่ง scroll หลังอีเวนต์ load เท่านั้น — วัดแล้ว DCL/load ยังอยู่ที่ y=0
+     ทั้งคู่ คนที่รีเฟรชกลางหน้าจึงเห็น "ฮีโร่แวบ" ตั้งแต่เฟรมแรกจนกว่าไฟล์สุดท้ายจะโหลดจบ
+     (เน็ตช้า = ค้างนานเป็นวินาที) สคริปต์นี้เก็บตำแหน่งไว้เองใน sessionStorage แล้ววาง
+     กลับตั้งแต่เฟรมแรกที่ความสูงหน้าพอ — เร็วกว่ารอ load หลายเท่าและไม่ต้องรอรูป
+     หยุดทันทีถ้าผู้ใช้ขยับเอง (wheel/touch/key/pointer) จะได้ไม่แย่งมือกับคนอ่าน -->
+<script>
+(function () {
+  try {
+    if (!("scrollRestoration" in history)) return;
+    history.scrollRestoration = "manual";
+    var key = "ts:y:" + location.pathname;
+    var want = parseInt(sessionStorage.getItem(key) || "0", 10) || 0;
+    var timer = 0;
+    var save = function () { try { sessionStorage.setItem(key, String(Math.round(window.scrollY))); } catch (e) {} };
+    addEventListener("scroll", function () {
+      if (timer) return;
+      timer = setTimeout(function () { timer = 0; save(); }, 200);
+    }, { passive: true });
+    addEventListener("pagehide", save);
+    /* แถบเมนูต้องไม่ "โผล่" ตอนหน้าเปิดมากลางหน้าอยู่แล้ว (jek 25/8/26 · the-bed)
+       แถบมีสองชั้นที่ไล่เข้าเอง — พื้นทึบบน .nav-shell::before (opacity 300ms) กับเส้นทอง
+       บน border-color (400ms) — พอคืนตำแหน่ง scroll ปุ๊บ สคริปต์แถบเมนูใส่คลาส scrolled
+       ทั้งสองชั้นจึงไล่ให้เห็นทุกครั้งที่รีเฟรช ทั้งที่ผู้ใช้ไม่ได้เลื่อนอะไรเลย
+       ระหว่างช่วงคืนตำแหน่ง จึงปิดทรานซิชันของหัวเว็บไว้ = แถบอยู่ในสถานะสุดท้ายตั้งแต่
+       เฟรมแรก · เปิดคืนทันทีที่ผู้ใช้ขยับเอง (หรืออย่างช้า 900ms) การเลื่อนของจริงจึงยังลื่น */
+    if (want) {
+      var root = document.documentElement;
+      root.className += " nav-instant";
+      var st = document.createElement("style");
+      st.textContent = "html.nav-instant .nav-shell,html.nav-instant .nav-shell::before," +
+        "html.nav-instant .site-header,html.nav-instant header,html.nav-instant header > *," +
+        "html.nav-instant header > * > *{transition:none !important}";
+      (document.head || document.documentElement).appendChild(st);
+      var unlock = function () { root.className = root.className.replace(/\s*nav-instant/, ""); };
+      ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+        addEventListener(ev, unlock, { passive: true, once: true });
+      });
+      setTimeout(unlock, 900);
+    }
+    if (!want || location.hash) return;
+    var stop = false;
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+      addEventListener(ev, function () { stop = true; }, { passive: true, once: true });
+    });
+    var t0 = (performance.now ? performance.now() : 0);
+    var now = function () { return performance.now ? performance.now() : t0; };
+    var done = false;
+    var put = function () {
+      if (stop || done) return true;
+      var el = document.scrollingElement || document.documentElement;
+      if (!el || el.scrollHeight - window.innerHeight < want) return false;   /* หน้ายังสูงไม่พอ ค่อยลองใหม่ */
+      if (Math.round(window.scrollY) !== want) {
+        var prev = el.style.scrollBehavior;      /* html { scroll-behavior: smooth } จะทำให้การวางกลับกลายเป็นการไถ */
+        el.style.scrollBehavior = "auto";
+        window.scrollTo(0, want);
+        el.style.scrollBehavior = prev;
+      }
+      done = Math.round(window.scrollY) === want;
+      /* ใส่สถานะ "เลื่อนแล้ว" ให้หัวเว็บทันทีในจังหวะเดียวกับที่คืนตำแหน่ง — ไม่ต้องรอสคริปต์
+         ของหน้ามันเองซึ่งอยู่ท้าย <body> (วัดแล้วช้ากว่ากันราว 20ms = เห็นแถบเปล่าได้ 1 เฟรม)
+         เกณฑ์คนละค่าเพราะแต่ละที่ตั้งไว้ไม่เท่ากัน: .site-header > 8px · .nav-shell > 40px
+         (ดู js/main.js กับสคริปต์ท้ายหน้าเดโม) สคริปต์ของหน้าจะคำนวณซ้ำเองอยู่แล้ว ค่าจึงตรงกัน */
+      if (done) {
+        var mark = function (sel, cls, min) {
+          if (want <= min) return;
+          var n = document.querySelectorAll(sel);
+          for (var i = 0; i < n.length; i++) n[i].classList.add(cls);
+        };
+        /* หัวเว็บของแต่ละใบใช้คนละคลาสคนละเกณฑ์ (ของเดิมเป็นแบบนั้นมาก่อนแล้ว):
+           .site-header.scrolled >8px (เว็บเรา) · .nav-shell.scrolled >40px (the-bed)
+           .site-header.stuck (the-terrace ใช้ sentinel ไม่ใช่ตัวเลข — 80px คือค่าประมาณ)
+           header.small >120px (homecraft/lumen/glow-clinic ผ่าน js/nav-response.js)
+           เดาพลาดไม่เป็นไร สคริปต์ของหน้าคำนวณทับให้ในเฟรมถัดไป และช่วงนี้ทรานซิชันถูกปิดอยู่
+           การแก้จึงเป็นการสลับทันที ไม่ใช่การไล่สีให้เห็น */
+        mark(".site-header", "scrolled", 8);
+        mark(".nav-shell", "scrolled", 40);
+        mark(".site-header, header[data-header]", "stuck", 80);
+        mark("header, .site-header", "small", 120);
+      }
+      return done;
+    };
+    /* ลองทุกทางที่มาถึงก่อน: setTimeout(0) มักได้ก่อนเฟรมแรกด้วยซ้ำ · rAF ทำงานก่อนวาด
+       · readystatechange/DOMContentLoaded คือจุดที่ body ครบแล้วแน่ๆ
+       เหตุที่ไม่พอถ้าใช้ rAF อย่างเดียว: วัดแล้วบางหน้า (หน้าแรกของเว็บเรา) เฟรมแรก
+       มาก่อนที่ความสูงจะพอ ทำให้เลื่อนไม่ได้ แล้วต้องรอ rAF รอบถัดไป = เห็นหัวเว็บ 1 เฟรม */
+    /* สองสายแยกกัน สายละหนึ่งนัด — ถ้าให้สายเดียวนัดทั้ง setTimeout และ rAF
+       จำนวนนัดจะเพิ่มเป็นสองเท่าทุกรอบ (2^n) ภายในไม่กี่ร้อยมิลลิวินาที */
+    var tick = function () { if (put() || stop) return; if (now() - t0 < 3000) setTimeout(tick, 0); };
+    var frame = function () { if (put() || stop) return; if (now() - t0 < 3000) requestAnimationFrame(frame); };
+    tick();
+    frame();
+    document.addEventListener("readystatechange", put);
+    addEventListener("DOMContentLoaded", put);
+    addEventListener("load", put);
+  } catch (e) {}
+})();
+</script>
+  <!-- เดโมสาธิต ไม่ใช่ธุรกิจจริง: ห้ามให้เสิร์ชเอนจินเก็บเข้าดัชนี ไม่งั้นจะมีหน้า
+       ที่ดูเหมือนร้านจริง (มีชื่อ ราคา เบอร์โทร) ลอยอยู่บน Google ในชื่อโดเมนของเรา -->
+  <meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GAMEDOCK — ร้านเกมและเครื่องเกม ของแท้ ประกันศูนย์ไทย ส่งไว 1-2 วัน</title>
+  <!-- การ์ดพรีวิวตอนวางลิงก์ในแชท (22/8/26): ส่งลิงก์เฉยๆ แล้ว LINE/เฟซบุ๊กจะขึ้นรูป
+       ให้เอง ไม่ต้องแนบภาพหรือคลิปเพิ่ม รูปที่ใช้คือปกเดียวกับที่โชว์ในพอร์ต -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="GAMEDOCK — ร้านเกมและเครื่องเกม ของแท้ ประกันศูนย์ไทย ส่งไว 1-2 วัน">
+  <meta property="og:description" content="ร้านขายเกมและเครื่องเกมออนไลน์ PS5 · Nintendo Switch · Xbox · PC ของแท้ 100% ประกันศูนย์ไทย ผ่อน 0% 10 เดือน ส่งฟรีเมื่อสั่งครบ ฿1,000 บัตรเติมเงินส่งโค้ดทางอีเมลทันที">
+  <meta property="og:image" content="https://tarmsung.pages.dev/assets/work/gamedock.webp">
+  <meta name="twitter:card" content="summary_large_image">
+<meta name="description" content="ร้านขายเกมและเครื่องเกมออนไลน์ PS5 · Nintendo Switch · Xbox · PC ของแท้ 100% ประกันศูนย์ไทย ผ่อน 0% 10 เดือน ส่งฟรีเมื่อสั่งครบ ฿1,000 บัตรเติมเงินส่งโค้ดทางอีเมลทันที">
+<meta name="theme-color" content="#0d1018">
+<meta property="og:type" content="website">
+<meta property="og:title" content="GAMEDOCK — ร้านเกมและเครื่องเกม ของแท้ ประกันศูนย์ไทย">
+<meta property="og:description" content="PS5 · Switch · Xbox · PC ของแท้ 100% ผ่อน 0% ส่งไว 1-2 วัน">
+<link rel="canonical" href="https://tarmsung.pages.dev/work/gamedock/">
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Store",
+  "name": "GAMEDOCK",
+  "description": "ร้านขายเกมและเครื่องเกมออนไลน์ PS5 · Nintendo Switch · Xbox · PC ของแท้ 100% ประกันศูนย์ไทย ผ่อน 0% 10 เดือน ส่งฟรีเมื่อสั่งครบ ฿1,000 บัตรเติมเงินส่งโค้ดทางอีเมลทันที",
+  "url": "https://tarmsung.pages.dev/work/gamedock/",
+  "inLanguage": "th",
+  "image": "https://tarmsung.pages.dev/assets/work/gamedock.webp"
+}
+  </script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- preload ฟอนต์หัวเรื่อง (Kanit) — คู่กับ display=optional ข้างล่าง
+     optional เฉยๆ แปลว่าคนที่เข้าครั้งแรกได้ฟอนต์สำรองทั้งหน้า preload ทำให้ไฟล์
+     มาทันช่วงต้นเกือบทุกครั้ง · มีสองไฟล์เพราะ Google เสิร์ฟ Chrome กับ Safari คนละตัว
+     (เติมอัตโนมัติด้วย playbook/fix-font-flash.mjs) -->
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/kanit/v17/nKKU-Go6G5tXcr5mOBWzVaF5NQ.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/kanit/v17/nKKU-Go6G5tXcr5mOBWnVaE.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/kanit/v17/nKKU-Go6G5tXcr5KPxWzVaF5NQ.woff2" />
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600&family=Noto+Color+Emoji&display=optional" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<a class="skip" href="#main">ข้ามไปเนื้อหา</a>
+
+<!-- ไอคอนทั้งเว็บเก็บเป็น sprite ชุดเดียว เรียกใช้ด้วย <use> — ไม่ต้องแปะ path
+     ซ้ำร้อยรอบในไฟล์ และเปลี่ยนไอคอนที่เดียวมีผลทั้งเว็บ -->
+<svg class="sr-only" aria-hidden="true" focusable="false"><defs>
+  <symbol id="brand-mark" viewBox="0 0 48 48">
+    <rect x="7" y="7" width="34" height="34" rx="11" fill="none" stroke="currentColor" stroke-width="3.4"/>
+    <path d="M4.5 24h6.5M37 24h6.5" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>
+    <path d="M19.5 15 34 24 19.5 33Z" fill="currentColor"/>
+  </symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-cart" viewBox="0 0 24 24"><path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.5L21 8H6"/><circle cx="10" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-9.4A4.1 4.1 0 0 1 12 8a4.1 4.1 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20Z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.6 5.6 6 .8-4.4 4.2 1.1 6.1L12 16.9 6.7 19.7l1.1-6.1L3.4 9.4l6-.8Z"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12Z"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v5.5c0 4.3 2.9 7.7 7 9.5 4.1-1.8 7-5.2 7-9.5V6Z"/><path d="m9.2 12.2 2 2 3.6-4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="m8.4 12.3 2.4 2.4 4.8-5.2"/></symbol>
+  <symbol id="i-truck" viewBox="0 0 24 24"><path d="M2 6.5h11v10H2Zm11 3.5h4.4L21 13.4v3.1h-8Z"/><circle cx="6.5" cy="18.5" r="1.6"/><circle cx="17" cy="18.5" r="1.6"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24"><rect x="2.5" y="5.5" width="19" height="13" rx="2.2"/><path d="M2.5 10h19"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.2"/><path d="m3 7 9 6 9-6"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v8.2a.8.8 0 0 1-.8.8H4.8a.8.8 0 0 1-.8-.8Z"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6.4" height="6.4" rx="1.4"/><rect x="13.6" y="4" width="6.4" height="6.4" rx="1.4"/><rect x="4" y="13.6" width="6.4" height="6.4" rx="1.4"/><rect x="13.6" y="13.6" width="6.4" height="6.4" rx="1.4"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+  <symbol id="i-pad" viewBox="0 0 24 24"><path d="M8.2 7h7.6a5 5 0 0 1 4.9 4l.9 5.2A2.4 2.4 0 0 1 19.2 19c-1 0-1.6-.5-2.2-1.2L15.6 16H8.4l-1.4 1.8C6.4 18.5 5.8 19 4.8 19a2.4 2.4 0 0 1-2.4-2.8L3.3 11a5 5 0 0 1 4.9-4Z"/><path d="M7.4 11v2.4M6.2 12.2h2.4M15.4 11.4h.01M17.2 13h.01"/></symbol>
+  <symbol id="i-console" viewBox="0 0 24 24"><rect x="5.5" y="3" width="13" height="18" rx="2.4"/><path d="M9 3v18M15 3v18"/></symbol>
+  <symbol id="i-handheld" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2.4"/><rect x="7.5" y="6" width="9" height="12"/><path d="M5.2 10.4v3.2M3.6 12h3.2M18.8 11h.01M17.4 13.4h.01"/></symbol>
+  <symbol id="i-vr" viewBox="0 0 24 24"><path d="M3.5 8.5h17a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-4.2l-1.6 1.8h-5.4L7.7 15.5H3.5a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1Z"/></symbol>
+  <symbol id="i-line" viewBox="0 0 24 24"><path d="M21 10.4c0-4-4-7.2-9-7.2s-9 3.2-9 7.2c0 3.6 3.2 6.6 7.5 7.1.3.1.7.2.8.5.1.3 0 .7 0 1l-.1.8c0 .3-.2 1 .9.6 1.1-.5 6-3.5 8.1-6 1.5-1.6 1.8-3.2 1.8-4Z"/></symbol>
+  <symbol id="i-fb" viewBox="0 0 24 24"><path d="M13.5 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.25-1.5 1.55-1.5h1.65V3.6A22 22 0 0 0 14.3 3.5c-2.4 0-4 1.45-4 4.1v2.3H7.6V13h2.7v8Z"/></symbol>
+  <symbol id="i-tiktok" viewBox="0 0 24 24"><path d="M14 3v11.2a3.1 3.1 0 1 1-2.6-3.05"/><path d="M14 3c.5 2.6 2.1 4 4.6 4.2"/></symbol>
+  <symbol id="i-yt" viewBox="0 0 24 24"><rect x="2.6" y="5.5" width="18.8" height="13" rx="4"/><path d="m10.4 9.6 4.6 2.4-4.6 2.4Z"/></symbol>
+
+
+  <!-- ===== รูปเครื่องเกม (วาดเอง แยกกันทุกเครื่อง) ===== -->
+  <symbol id="hw-ps5" viewBox="0 0 96 96">
+    <!-- ทรงเด่นของ PS5 คือแผ่นข้างสีขาวสองแผ่นโค้งออก คร่อมแกนดำตรงกลาง -->
+    <path d="M32 12c-6 11-9 25-9 36s3 25 9 36h-9c-6 0-9-4-9-9 0-10-4-18-4-27s4-17 4-27c0-5 3-9 9-9Z" fill="#f2f4fa"/>
+    <path d="M64 12c6 11 9 25 9 36s-3 25-9 36h9c6 0 9-4 9-9 0-10 4-18 4-27s-4-17-4-27c0-5-3-9-9-9Z" fill="#f2f4fa"/>
+    <path d="M32 12h32M32 84h32" stroke="#d7dcea" stroke-width="4" stroke-linecap="round"/>
+    <rect x="31" y="12" width="34" height="72" rx="3" fill="#0d1018"/>
+    <rect x="35" y="16" width="26" height="64" rx="2" fill="#1a2030"/>
+    <rect x="37" y="44" width="22" height="3" rx="1.5" fill="#7b5cff"/>
+    <circle cx="48" cy="70" r="2.4" fill="#4a5570"/>
+    <path d="M40 26h16" stroke="#39425c" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="hw-xbox" viewBox="0 0 96 96">
+    <!-- Xbox Series X = แท่งสี่เหลี่ยมทึบ จุดจำคือช่องระบายอากาศกลมเขียวด้านบน -->
+    <rect x="26" y="12" width="44" height="72" rx="6" fill="#15181f"/>
+    <rect x="26" y="12" width="44" height="72" rx="6" fill="none" stroke="#39425c" stroke-width="2"/>
+    <circle cx="48" cy="24" r="9" fill="#0a0c11" stroke="#00e0a4" stroke-width="1.6"/>
+    <g fill="#00e0a4" opacity=".75">
+      <circle cx="45" cy="21" r="1"/><circle cx="49" cy="21" r="1"/><circle cx="51" cy="24" r="1"/>
+      <circle cx="47" cy="24" r="1"/><circle cx="43" cy="24" r="1"/><circle cx="45" cy="27" r="1"/><circle cx="49" cy="27" r="1"/>
+    </g>
+    <rect x="33" y="44" width="26" height="2.4" rx="1.2" fill="#39425c"/>
+    <circle cx="48" cy="74" r="2.6" fill="#39425c"/>
+    <path d="M64 40v26" stroke="#39425c" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="hw-switch" viewBox="0 0 96 96">
+    <!-- Switch = จอกลางประกบจอยสองข้าง จุดจำคืออนาล็อกกลมกับปุ่มสี่ทิศ -->
+    <rect x="16" y="26" width="18" height="44" rx="8" fill="#e8443f"/>
+    <rect x="62" y="26" width="18" height="44" rx="8" fill="#2f7ff0"/>
+    <rect x="32" y="26" width="32" height="44" rx="3" fill="#0d1018"/>
+    <rect x="35" y="29" width="26" height="38" rx="2" fill="#1c2740"/>
+    <circle cx="25" cy="38" r="4.6" fill="#f2f4fa" opacity=".92"/>
+    <circle cx="25" cy="38" r="2" fill="#8b2b28"/>
+    <g fill="#f2f4fa" opacity=".9">
+      <rect x="23.6" y="52" width="2.8" height="9" rx="1.4"/><rect x="20.6" y="55" width="9" height="2.8" rx="1.4"/>
+    </g>
+    <g fill="#f2f4fa" opacity=".9">
+      <circle cx="71" cy="35" r="2"/><circle cx="75" cy="40" r="2"/><circle cx="67" cy="40" r="2"/><circle cx="71" cy="45" r="2"/>
+    </g>
+    <circle cx="71" cy="58" r="4.6" fill="#f2f4fa" opacity=".92"/>
+    <circle cx="71" cy="58" r="2" fill="#1c4a8c"/>
+  </symbol>
+
+  <symbol id="hw-vr" viewBox="0 0 96 96">
+    <!-- แว่น VR = ตัวเรือนคาดหน้า มีเลนส์สองวงกับสายรัดอ้อมหลัง -->
+    <path d="M20 34h56a8 8 0 0 1 8 8v10a8 8 0 0 1-8 8H62l-5 7H39l-5-7H20a8 8 0 0 1-8-8V42a8 8 0 0 1 8-8Z" fill="#f2f4fa"/>
+    <path d="M24 40h48a4 4 0 0 1 4 4v6a4 4 0 0 1-4 4H24a4 4 0 0 1-4-4v-6a4 4 0 0 1 4-4Z" fill="#0d1018"/>
+    <circle cx="34" cy="47" r="5" fill="#7b5cff" opacity=".9"/>
+    <circle cx="62" cy="47" r="5" fill="#7b5cff" opacity=".9"/>
+    <path d="M14 44c-6 2-8 8-8 14M82 44c6 2 8 8 8 14" stroke="#f2f4fa" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <rect x="40" y="26" width="16" height="3" rx="1.5" fill="#00e0a4"/>
+  </symbol>
+
+
+
+
+
+
+
+
+</defs></svg>
+
+<!-- ================= แถบบริการบนสุด ================= -->
+<div class="topbar">
+  <div class="wrap">
+    <ul class="topbar__list">
+      <li><a href="#track">ติดตามพัสดุ</a></li>
+      <li><a href="#warranty">เคลมประกัน</a></li>
+      <li><a href="#return">เปลี่ยน/คืนสินค้า 7 วัน</a></li>
+      <li><a href="#help">ศูนย์ช่วยเหลือ</a></li>
+    </ul>
+    <span class="topbar__ship">ส่งฟรีเมื่อสั่งครบ ฿1,000 · เก็บเงินปลายทางได้</span>
+  </div>
+</div>
+
+<!-- ================= หัวเว็บ ================= -->
+<header class="site-header">
+  <div class="wrap masthead">
+    <a class="brand" href="#top" aria-label="GAMEDOCK หน้าแรก">
+      <span class="brand__mark" aria-hidden="true"><svg viewBox="0 0 48 48"><use href="#brand-mark"/></svg></span>
+      <span class="brand__word">GAME<b>DOCK</b><small>GAME &amp; CONSOLE</small></span>
+    </a>
+
+    <div class="masthead__search">
+      <form class="search" role="search" action="shop.html" method="get">
+        <label class="sr-only" for="q-cat">หมวดที่ต้องการค้นหา</label>
+        <select class="search__cat" id="q-cat" name="cat">
+          <option value="">ทุกหมวด</option><option value="PS5">เกม PS5</option><option value="SWITCH">เกม Switch</option>
+          <option value="XBOX">เกม Xbox</option><option value="PC">เกม PC</option><option value="console">เครื่องเกม</option>
+          <option value="">อุปกรณ์เสริม</option><option value="code">บัตรเติมเงิน</option>
+        </select>
+        <label class="sr-only" for="q">ค้นหาสินค้า</label>
+        <input class="search__input" id="q" name="q" type="search" placeholder="ค้นหาเกม เครื่องเกม จอย หรือบัตรเติมเงิน…" autocomplete="off">
+        <button class="search__btn" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-only">ค้นหา</span></button>
+      </form>
+      <div class="search__tags">
+        <span>ยอดฮิต:</span>
+        <a href="shop.html?q=PS5 Slim">PS5 Slim</a><a href="shop.html?q=Switch 2">Switch 2</a>
+        <a href="shop.html?q=จอย DualSense">จอย DualSense</a><a href="shop.html?cat=used">เกมมือสอง</a>
+      </div>
+    </div>
+
+    <div class="masthead__acct">
+      <a class="iconbtn" href="account.html" aria-label="รายการโปรด"><svg class="icon" aria-hidden="true"><use href="#i-heart"/></svg></a>
+      <a class="iconbtn" href="account.html" aria-label="บัญชีของฉัน"><svg class="icon" aria-hidden="true"><use href="#i-user"/></svg></a>
+      <a class="iconbtn" href="cart.html" aria-label="ตะกร้าสินค้า 3 ชิ้น">
+        <svg class="icon" aria-hidden="true"><use href="#i-cart"/></svg>
+        <span class="iconbtn__count" data-cart-count>3</span>
+      </a>
+    </div>
+  </div>
+
+  <nav class="catbar" aria-label="หมวดสินค้า">
+    <div class="wrap">
+      <a href="shop.html?cat=PS5">PlayStation 5</a>
+      <a href="shop.html?cat=SWITCH">Nintendo Switch</a>
+      <a href="shop.html?cat=XBOX">Xbox Series</a>
+      <a href="shop.html?cat=PC">เกม PC / Steam</a>
+      <a href="shop.html">อุปกรณ์เสริม</a>
+      <a href="shop.html?cat=code">บัตรเติมเงิน</a>
+      <a href="shop.html?cat=used">เกมมือสอง</a>
+      <a class="is-hot" href="shop.html?cat=sale">ลดราคาวันนี้</a>
+    </div>
+  </nav>
+
+  <nav class="pagenav" aria-label="หัวข้อในหน้านี้">
+    <div class="wrap">
+      <span class="pagenav__tag">ในหน้านี้</span>
+      <a href="#flash">ลดราคาวันนี้</a>
+      <a href="#results">เกมทั้งหมด</a>
+      <a href="#consoles">เครื่องเกม</a>
+      <a href="#codes">บัตรเติมเงิน</a>
+      <a href="#reviews">รีวิวและคู่มือซื้อ</a>
+    </div>
+  </nav>
+</header>
+
+<main id="main">
+  <!-- ================= ฮีโร่ ================= -->
+  <section class="hero" id="top" aria-label="สินค้าแนะนำ">
+    <div class="wrap hero__grid">
+      <article class="feature">
+        <div class="art art--nova" aria-hidden="true"><img class="art__photo" src="img/g-nova.webp" alt="" loading="lazy" decoding="async"></div>
+        <div class="feature__body">
+          <span class="feature__kicker"><svg class="icon icon--sm" aria-hidden="true"><use href="#i-bolt"/></svg> วางจำหน่ายวันนี้ · แผ่นแท้โซน 3</span>
+          <h1>NOVA DRIFTER</h1>
+          <p>เกมแข่งยานอวกาศแบบเปิดกว้าง เล่นออนไลน์ได้ 24 คน มีเสียงพากย์ไทยเต็มเกม เฉพาะ 200 ชุดแรกแถมโค้ดสกินพิเศษ</p>
+          <div class="feature__buy">
+            <div class="feature__price">
+              <b>฿1,790</b><s>฿2,290</s><span class="feature__was">-22%</span>
+            </div>
+            <a class="btn btn--primary btn--lg" href="game.html">ดูรายละเอียด</a>
+            <button class="btn btn--ghost btn--lg" type="button" data-add="NVD-PS5-DLX">ใส่ตะกร้า</button>
+          </div>
+        </div>
+      </article>
+
+      <div class="hero__side">
+        <a class="promo" href="#consoles">
+          <div class="art art--drift" aria-hidden="true"><img class="art__photo" src="img/g-drift.webp" alt="" loading="lazy" decoding="async"></div>
+          <div class="promo__body">
+            <h3>เครื่องเกม ผ่อน 0% นาน 10 เดือน</h3>
+            <p>บัตรเครดิตทุกธนาคาร เริ่ม ฿1,690/เดือน</p>
+            <span class="promo__go">ดูเครื่องทั้งหมด <svg class="icon icon--sm" aria-hidden="true"><use href="#i-right"/></svg></span>
+          </div>
+        </a>
+        <a class="promo" href="#codes">
+          <div class="art art--verd" aria-hidden="true"><img class="art__photo" src="img/g-verd.webp" alt="" loading="lazy" decoding="async"></div>
+          <div class="promo__body">
+            <h3>บัตรเติมเงิน ส่งโค้ดทันที</h3>
+            <p>จ่ายเสร็จรับโค้ดทางอีเมลใน 1 นาที ตลอด 24 ชม.</p>
+            <span class="promo__go">เลือกบัตร <svg class="icon icon--sm" aria-hidden="true"><use href="#i-right"/></svg></span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= แถบความน่าเชื่อถือ ================= -->
+  <section class="trust" aria-label="สิ่งที่ร้านรับประกัน">
+    <ul class="wrap" data-fx="rise">
+      <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><div><b>ของแท้ 100%</b><span>นำเข้าถูกกฎหมาย มีใบเสร็จทุกชิ้น</span></div></li>
+      <li><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg><div><b>ประกันศูนย์ไทย</b><span>เครื่อง 1 ปี · อุปกรณ์เสริม 6 เดือน</span></div></li>
+      <li><svg class="icon" aria-hidden="true"><use href="#i-card"/></svg><div><b>ผ่อน 0% 10 เดือน</b><span>บัตรเครดิต · PromptPay · ปลายทาง</span></div></li>
+      <li><svg class="icon" aria-hidden="true"><use href="#i-truck"/></svg><div><b>ส่งไว 1-2 วัน</b><span>ในกรุงเทพฯ สั่งก่อนเที่ยงได้วันถัดไป</span></div></li>
+    </ul>
+  </section>
+
+  <!-- ================= แฟลชเซล ================= -->
+  <section class="section section--tight" id="flash" aria-labelledby="flash-title">
+    <div class="wrap">
+      <div class="flash">
+        <div class="sechead">
+          <div>
+            <h2 class="flash__title" id="flash-title"><svg class="icon" aria-hidden="true"><use href="#i-bolt"/></svg> ลดราคาวันนี้</h2>
+            <p>ราคานี้เฉพาะจำนวนจำกัด หมดแล้วกลับราคาปกติ</p>
+          </div>
+          <div class="clock" data-countdown aria-label="เวลาที่เหลือของโปรโมชัน">
+            <span data-h>05</span><i>:</i><span data-m>42</span><i>:</i><span data-s>18</span>
+          </div>
+        </div>
+        <div class="rail" data-fx="slide">
+          <article class="card" data-sku="NVD-PS5-DLX">
+            <a class="card__link" href="game.html?sku=NVD-PS5-DLX"><span>ดูรายละเอียด Nova Drifter — Deluxe Edition (แผ่นแท้ โซน 3)</span></a>
+            <div class="card__media">
+              <div class="art art--nova card__art" aria-hidden="true"><img class="art__photo" src="img/g-nova.webp" alt="" loading="lazy" decoding="async"></div>
+              <div class="badges"><b class="badge badge--off">-22%</b></div>
+              <div class="card__title-art" aria-hidden="true">NOVA<br>DRIFTER</div>
+              <div class="card__plat" aria-hidden="true"><b>PS5</b></div>
+            </div>
+            <div class="card__body">
+              <h3 class="card__name">Nova Drifter — Deluxe Edition (แผ่นแท้ โซน 3)</h3>
+              <div class="rating"><svg class="icon" aria-hidden="true"><use href="#i-star"/></svg>4.8 <span>(214)</span></div>
+              <div class="price price--hot"><b>฿1,790</b><s>฿2,290</s></div>
+              <div class="sold"><div class="sold__bar"><i class="sold__fill" style="width:79%"></i></div><span class="sold__txt">ขายแล้ว 182 ชิ้น · เหลือ 48</span></div>
+            </div>
+          </article>
+          <article class="card" data-sku="IRS-PS5-STD">
+            <a class="card__link" href="game.html?sku=IRS-PS5-STD"><span>ดูรายละเอียด Iron Siege: Last Bastion (พากย์ไทย)</span></a>
+            <div class="card__media">
+              <div class="art art--siege card__art" aria-hidden="true"><img class="art__photo" src="img/g-siege.webp" alt="" loading="lazy" decoding="async"></div>
+              <div class="badges"><b class="badge badge--off">-35%</b></div>
+              <div class="card__title-art" aria-hidden="true">IRON<br>SIEGE</div>
+              <div class="card__plat" aria-hidden="true"><b>PS5</b><b>PC</b></div>
+            </div>
+            <div class="card__body">
+              <h3 class="card__name">Iron Siege: Last Bastion (พากย์ไทย)</h3>
+              <div class="rating"><svg class="icon" aria-hidden="true"><use href="#i-star"/></svg>4.6 <span>(97)</span></div>
+              <div class="price price--hot"><b>฿1,290</b><s>฿1,990</s></div>
+              <div class="sold"><div class="sold__bar"><i class="sold__fill" style="width:88%"></i></div><span class="sold__txt">ขายแล้ว 140 ชิ้น · เหลือ 20</span></div>
+            </div>
+          </article>
+          <article class="card" data-sku="SLV-NSW-STD">
+            <a class="card__link" href="game.html?sku=SLV-NSW-STD"><span>ดูรายละเอียด Silent Verdant — Standard Edition</span></a>
+            <div class="card__media">
+              <div class="art art--verd card__art" aria-hidden="true"><img class="art__photo" src="img/g-verd.webp" alt="" loading="lazy" decoding="async"></div>
+              <div class="badges"><b class="badge badge--off">-38%</b></div>
+              <div class="card__title-art" aria-hidden="true">SILENT<br>VERDANT</div>
+              <div class="card__plat" aria-hidden="true"><b>SWITCH</b></div>
+            </div>
+            <div class="card__body">
+              <h3 class="card__name">Silent Verdant — Standard Edition</h3>
+              <div class="rating"><svg class="icon" aria-hidden="true"><use href="#i-star"/></svg>4.9 <span>(332)</span></div>
+              <div class="price price--hot"><b>฿990</b><s>฿1,590</s></div>
+              <div class="sold"><div class="sold__bar"><i class="sold__fill" style="width:97%"></i></div><span class="sold__txt">ขายแล้ว 290 ชิ้น · เหลือ 10</span></div>
+            </div>
+          </article>
+          <article class="card" data-sku="RKX-NSW-STD">
+            <a class="card__link" href="game.html?sku=RKX-NSW-STD"><span>ดูรายละเอียด Rally King X (รองรับเล่น 4 คนจอเดียว)</span></a>
+            <div class="card__media">
+              <div class="art art--rally card__art" aria-hidden="true"><img class="art__photo" src="img/g-rally.webp" alt="" loading="lazy" decoding="async"></div>
+              <div class="badges"><b class="badge badge--off">-31%</b></div>
+              <div class="card__title-art" aria-hidden="true">RALLY<br>KING X</div>
+              <div class="card__plat" aria-hidden="true"><b>SWITCH</b></div>
+            </div>
+            <div class="card__body">
+              <h3 class="card__name">Rally King X (รองรับเล่น 4 คนจอเดียว)</h3>
+              <div class="rating"><svg class="icon" aria-hidden="true"><use href="#i-star"/></svg>4.5 <span>(128)</span></div>
+              <div class="price price--hot"><b>฿890</b><s>฿1,290</s></div>
+              <div class="sold"><div class="sold__bar"><i class="sold__fill" style="width:64%"></i></div><span class="sold__txt">ขายแล้ว 96 ชิ้น · เหลือ 54</span></div>
+            </div>
+          </article>
+          <article class="card" data-sku="NN7-XBX-COL">
+            <a class="card__link" href="game.html?sku=NN7-XBX-COL"><span>ดูรายละเอียด Night Noir 1977 — Collector Edition</span></a>
+            <div class="card__media">
+              <div class="art art--noir card__art" aria-hidden="true"><img class="art__photo" src="img/g-noir.webp" alt="" loading="lazy" decoding="async"></div>
+              <div class="badges"><b class="badge badge--off">-40%</b></div>
+              <div class="card__title-art" aria-hidden="true">NIGHT<br>NOIR 77</div>
+              <div class="card__plat" aria-hidden="true"><b>XBOX</b></div>
+            </div>
+            <div class="card__body">
+              <h3 class="card__name">Night Noir 1977 — Collector Edition</h3>
+              <div class="rating"><svg class="icon" aria-hidden="true"><use href="#i-star"/></svg>4.7 <span>(76)</span></div>
+              <div class="price price--hot"><b>฿1,490</b><s>฿2,490</s></div>
+              <div class="sold"><div class="sold__bar"><i class="sold__fill" style="width:87%"></i></div><span class="sold__txt">ขายแล้ว 61 ชิ้น · เหลือ 9</span></div>
+            </div>
+          </article>
+          <article class="card" data-sku="ABP-PC-KEY">
+            <a class="card__link" href="game.html?sku=ABP-PC-KEY"><span>ดูรายละเอียด Abyss Protocol (โค้ดดิจิทัล ส่งอีเมลทันที)</span></a>
+            <div class="card__media">
+              <div class="art art--abyss card__art" aria-hidden="true"><img class="art__photo" src="img/g-abyss.webp" alt="" loading="lazy" decoding="async"></div>
+              <div class="badges"><b class="badge badge--off">-42%</b></div>
+              <div class="card__title-art" aria-hidden="true">ABYSS<br>PROTOCOL</div>
+              <div class="card__plat" aria-hidden="true"><b>PC</b></div>
+            </div>
+            <div class="card__body">
+              <h3 class="card__name">Abyss Protocol (โค้ดดิจิทัล ส่งอีเมลทันที)</h3>
+              <div class="rating"><svg class="icon" aria-hidden="true"><use href="#i-star"/></svg>4.4 <span>(203)</span></div>
+              <div class="price price--hot"><b>฿690</b><s>฿1,190</s></div>
+              <div class="sold"><div class="sold__bar"><i class="sold__fill" style="width:82%"></i></div><span class="sold__txt">ขายแล้ว 410 ชิ้น · เหลือ 90</span></div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= กริดสินค้าหลัก ================= -->
+  <section class="section" id="results" aria-labelledby="res-title">
+    <div class="wrap">
+      <div class="sechead">
+        <div>
+          <h2 id="res-title">เกมทั้งหมด</h2>
+          <p>พบ 148 รายการ · แสดง 12 รายการแรก</p>
+        </div>
+        <a class="sechead__more" href="shop.html">ดูทั้งหมด <svg class="icon icon--sm" aria-hidden="true"><use href="#i-right"/></svg></a>
+      </div>
+
+      <!-- ปุ่มกรองเครื่อง: เดโมนี้ยังเป็นปุ่มโชว์สถานะ ตอนต่อฐานข้อมูลจริง
+           ปุ่มเดียวกันนี้จะยิงคิวรีไปหลังบ้าน ไม่ต้องรื้อ markup -->
+      <nav class="filters" aria-label="กรองตามเครื่อง">
+        <a class="chip" href="shop.html">ทั้งหมด</a>
+        <a class="chip" href="shop.html?cat=PS5">PlayStation 5</a>
+        <a class="chip" href="shop.html?cat=SWITCH">Nintendo Switch</a>
+        <a class="chip" href="shop.html?cat=XBOX">Xbox Series</a>
+        <a class="chip" href="shop.html?cat=PC">PC / Steam</a>
+        <a class="chip" href="shop.html?cat=used">มือสอง</a>
+        <a class="chip" href="shop.html?cat=pre">พรีออเดอร์</a>
+        <div class="filters__sort">
+          <label for="sort">เรียงตาม</label>
+          <select id="sort" name="sort" data-sort-go>
+            <option value="pop">ยอดนิยม</option><option value="low">ราคาต่ำ→สูง</option>
+            <option value="high">ราคาสูง→ต่ำ</option><option value="new">มาใหม่</option><option value="off">ลดราคามากสุด</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid-products">
+          <article class="card" data-sku="DFZ-PS5-ULT">
+            <a class="card__link" href="game.html?sku=DFZ-PS5-ULT"><span>ดูรายละเอียด Drift Zero — Ultimate Edition</span></a>
+            <div class="card__media">
+              <div class="art art--drift card__art" aria-hidden="true"><img class="art__photo" src="img/g-drift.webp" alt="" loading="lazy" decoding="async"></div>
+              <div class="badges"><b class="badge badge--new">ใหม่</b></div>
+              <div class="card__title-art" aria-hidden="true">DRIFT<br>ZERO</div>
+              <div class="card__plat" aria-hidden="true"><b>PS5</b></div>
+            </div>
+            <div class="card__body">
+              <h3 class="card__name">Drift Zero — Ultimate Edition</h3>
+              <div class="rating"><svg class="icon" aria-hidden="true"><use href="#i-star"/></svg>4.7 <span>(58)</span></div>
+              <div class="price"><b>฿1,990</b></div>
+              <span class="card__ship">ส่งฟรี</span>
+            </div>
+          </article>
+          <article class="card" data-sku="KES-NSW-STD">
+            <a class="card__link" href="game.html?sku=KES-NSW-STD"><span>ดูรายละเอียด Kite of the Elder Sky (มีซับไทย)</span></a>
+            <div class="card__media">
+              <div class="art art--kite card__art" aria-hidden="true"><img class="art__photo" src="img/g-kite.webp" alt="" loading="lazy" decoding="async"></div>
+              <div class="badges"><b class="badge badge--pre">พรีออเดอร์</b></div>
+              <div class="card__title-art" aria-hidden="true">KITE OF<br>ELDER SKY</div>
+              <div class="card__plat" aria-hidden="true"><b>SWITCH</b></div>
+            </div>
+            <div class="card__body">
+              <h3 class="card__name">Kite of the Elder Sky (มีซับไทย)</h3>
+              
+              <div class="price"><b>฿1,690</b></div>
+              <span class="card__ship">วางจำหน่าย 12 ก.ย.</span>
+            </div>
+          </article>
+          <article class="card" data-sku="ABP-PC-DLX">
+            <a class="card__link" href="game.html?sku=ABP-PC-DLX"><span>ดูรายละเอียด Abyss Protocol — Deluxe + Season Pass</span></a>
+            <div class="card__media">
+              <div class="art art--abyss card__art" aria-hidden="true"><img class="art__photo" src="img/g-abyss.webp" alt="" loading="lazy" decoding="async"></div>
+              <div class="badges"><b class="badge badge--off">-22%</b></div>
+              <div class="card__title-art" aria-hidden="true">ABYSS<br>PROTOCOL</div>
+              <div class="card__plat" aria-hidden="true"><b>PC</b></div>
+            </div>
+            <div class="card__body">
+              <h3 class="card__name">Abyss Protocol — Deluxe + Season Pass</h3>
+              <div class="rating"><svg class="icon" aria-hidden="true"><use href="#i-star"/></svg>4.4 <span>(203)</span></div>
+              <div class="price price--hot"><b>฿1,390</b><s>฿1,790</s></div>
+              <span class="card__ship">ส่งฟรี</span>
+            </div>
+          </article>
+          <article class="card" data-sku="NVD-PS5-STD">
+            <a class="card__link" href="game.html?sku=NVD-PS5-STD"><span>ดูรายละเอียด Nova Drifter — Standard Edition</span></a>
+            <div class="card__media">
+              <div class="art art--nova card__art" aria-hidden="true"><img class="art__photo" src="img/g-nova.webp" alt="" loading="lazy" decoding="async"></div>
+              
+              <div class="card__title-art" aria-hidden="true">NOVA<br>DRIFTER</div>
+              <div class="card__plat" aria-hidden="true"><b>PS5</b></div>
+            </div>
+            <div class="card__body">
+              <h3 class="card__name">Nova Drifter — Standard Edition</h3>
+              <div class="rating"><svg class="icon" aria-hidden="true"><use href="#i-star"/></svg>4.8 <span>(214)</span></div>
+              <div class="price"><b>฿1,490</b></div>
+              <span class="card__ship">ส่งฟรี</span>
+            </div>
+          </article>
+          <article class="card" data-sku="NN7-XBX-USED">
+            <a class="card__link" href="game.html?sku=NN7-XBX-USED"><span>ดูรายละเอียด Night Noir 1977 (มือสอง สภาพดีมาก)</span></a>
+            <div class="card__media">
+              <div class="art art--noir card__art" aria-hidden="true"><img class="art__photo" src="img/g-noir.webp" alt="" loading="lazy" decoding="async"></div>
+              <div class="badges"><b class="badge badge--used">มือสอง</b></div>
+              <div class="card__title-art" aria-hidden="true">NIGHT<br>NOIR 77</div>
+              <div class="card__plat" aria-hidden="true"><b>XBOX</b></div>
+            </div>
+            <div class="card__body">
+              <h3 class="card__name">Night Noir 1977 (มือสอง สภาพดีมาก)</h3>
+              <div class="rating"><svg class="icon" aria-hidden="true"><use href="#i-star"/></svg>4.7 <span>(76)</span></div>
+              <div class="price"><b>฿790</b></div>
+              <span class="card__ship">ตรวจสภาพแล้ว ประกันร้าน 30 วัน</span>
+            </div>
+          </article>
+          <article class="card" data-sku="SLV-NSW-ART">
+            <a class="card__link" href="game.html?sku=SLV-NSW-ART"><span>ดูรายละเอียด Silent Verdant + อาร์ตบุ๊กปกแข็ง</span></a>
+            <div class="card__media">
+              <div class="art art--verd card__art" aria-hidden="true"><img class="art__photo" src="img/g-verd.webp" alt="" loading="lazy" decoding="async"></div>
+              
+              <div class="card__title-art" aria-hidden="true">SILENT<br>VERDANT</div>
+              <div class="card__plat" aria-hidden="true"><b>SWITCH</b></div>
+            </div>
+            <div class="card__body">
+              <h3 class="card__name">Silent Verdant + อาร์ตบุ๊กปกแข็ง</h3>
+              <div class="rating"><svg class="icon" aria-hidden="true"><use href="#i-star"/></svg>4.9 <span>(332)</span></div>
+              <div class="price"><b>฿1,890</b></div>
+              <span class="card__ship">ส่งฟรี</span>
+            </div>
+          </article>
+          <article class="card" data-sku="IRS-PS5-USED">
+            <a class="card__link" href="game.html?sku=IRS-PS5-USED"><span>ดูรายละเอียด Iron Siege: Last Bastion (มือสอง)</span></a>
+            <div class="card__media">
+              <div class="art art--siege card__art" aria-hidden="true"><img class="art__photo" src="img/g-siege.webp" alt="" loading="lazy" decoding="async"></div>
+              <div class="badges"><b class="badge badge--used">มือสอง</b></div>
+              <div class="card__title-art" aria-hidden="true">IRON<br>SIEGE</div>
+              <div class="card__plat" aria-hidden="true"><b>PS5</b></div>
+            </div>
+            <div class="card__body">
+              <h3 class="card__name">Iron Siege: Last Bastion (มือสอง)</h3>
+              <div class="rating"><svg class="icon" aria-hidden="true"><use href="#i-star"/></svg>4.6 <span>(97)</span></div>
+              <div class="price"><b>฿690</b></div>
+              <span class="card__ship">ตรวจสภาพแล้ว ประกันร้าน 30 วัน</span>
+            </div>
+          </article>
+          <article class="card" data-sku="RKX-MUL-GLD">
+            <a class="card__link" href="game.html?sku=RKX-MUL-GLD"><span>ดูรายละเอียด Rally King X — Gold Edition</span></a>
+            <div class="card__media">
+              <div class="art art--rally card__art" aria-hidden="true"><img class="art__photo" src="img/g-rally.webp" alt="" loading="lazy" decoding="async"></div>
+              <div class="badges"><b class="badge badge--off">-19%</b></div>
+              <div class="card__title-art" aria-hidden="true">RALLY<br>KING X</div>
+              <div class="card__plat" aria-hidden="true"><b>SWITCH</b><b>PC</b></div>
+            </div>
+            <div class="card__body">
+              <h3 class="card__name">Rally King X — Gold Edition</h3>
+              <div class="rating"><svg class="icon" aria-hidden="true"><use href="#i-star"/></svg>4.5 <span>(128)</span></div>
+              <div class="price price--hot"><b>฿1,290</b><s>฿1,590</s></div>
+              <span class="card__ship">ส่งฟรี</span>
+            </div>
+          </article>
+          <article class="card" data-sku="DFZ-PC-KEY">
+            <a class="card__link" href="game.html?sku=DFZ-PC-KEY"><span>ดูรายละเอียด Drift Zero (โค้ดดิจิทัล Steam)</span></a>
+            <div class="card__media">
+              <div class="art art--drift card__art" aria-hidden="true"><img class="art__photo" src="img/g-drift.webp" alt="" loading="lazy" decoding="async"></div>
+              
+              <div class="card__title-art" aria-hidden="true">DRIFT<br>ZERO</div>
+              <div class="card__plat" aria-hidden="true"><b>PC</b></div>
+            </div>
+            <div class="card__body">
+              <h3 class="card__name">Drift Zero (โค้ดดิจิทัล Steam)</h3>
+              <div class="rating"><svg class="icon" aria-hidden="true"><use href="#i-star"/></svg>4.7 <span>(58)</span></div>
+              <div class="price"><b>฿1,190</b></div>
+              <span class="card__ship">ส่งโค้ดทางอีเมลทันที</span>
+            </div>
+          </article>
+          <article class="card" data-sku="KES-NSW-COL">
+            <a class="card__link" href="game.html?sku=KES-NSW-COL"><span>ดูรายละเอียด Kite of the Elder Sky — Collector Box</span></a>
+            <div class="card__media">
+              <div class="art art--kite card__art" aria-hidden="true"><img class="art__photo" src="img/g-kite.webp" alt="" loading="lazy" decoding="async"></div>
+              <div class="badges"><b class="badge badge--pre">พรีออเดอร์</b></div>
+              <div class="card__title-art" aria-hidden="true">KITE OF<br>ELDER SKY</div>
+              <div class="card__plat" aria-hidden="true"><b>SWITCH</b></div>
+            </div>
+            <div class="card__body">
+              <h3 class="card__name">Kite of the Elder Sky — Collector Box</h3>
+              
+              <div class="price"><b>฿3,290</b></div>
+              <span class="card__ship">วางจำหน่าย 12 ก.ย.</span>
+            </div>
+          </article>
+          <article class="card" data-sku="NVD-PS5-SP">
+            <a class="card__link" href="game.html?sku=NVD-PS5-SP"><span>ดูรายละเอียด Nova Drifter — Season Pass (โค้ดเสริม)</span></a>
+            <div class="card__media">
+              <div class="art art--nova card__art" aria-hidden="true"><img class="art__photo" src="img/g-nova.webp" alt="" loading="lazy" decoding="async"></div>
+              
+              <div class="card__title-art" aria-hidden="true">NOVA<br>DRIFTER</div>
+              <div class="card__plat" aria-hidden="true"><b>PS5</b></div>
+            </div>
+            <div class="card__body">
+              <h3 class="card__name">Nova Drifter — Season Pass (โค้ดเสริม)</h3>
+              <div class="rating"><svg class="icon" aria-hidden="true"><use href="#i-star"/></svg>4.3 <span>(41)</span></div>
+              <div class="price"><b>฿590</b></div>
+              <span class="card__ship">ส่งโค้ดทางอีเมลทันที</span>
+            </div>
+          </article>
+          <article class="card" data-sku="ABP-PC-STD">
+            <a class="card__link" href="game.html?sku=ABP-PC-STD"><span>ดูรายละเอียด Abyss Protocol — Standard (แผ่นแท้)</span></a>
+            <div class="card__media">
+              <div class="art art--abyss card__art" aria-hidden="true"><img class="art__photo" src="img/g-abyss.webp" alt="" loading="lazy" decoding="async"></div>
+              <div class="badges"><b class="badge badge--off">-25%</b></div>
+              <div class="card__title-art" aria-hidden="true">ABYSS<br>PROTOCOL</div>
+              <div class="card__plat" aria-hidden="true"><b>PC</b></div>
+            </div>
+            <div class="card__body">
+              <h3 class="card__name">Abyss Protocol — Standard (แผ่นแท้)</h3>
+              <div class="rating"><svg class="icon" aria-hidden="true"><use href="#i-star"/></svg>4.4 <span>(203)</span></div>
+              <div class="price price--hot"><b>฿890</b><s>฿1,190</s></div>
+              <span class="card__ship">ส่งฟรี</span>
+            </div>
+          </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= เครื่องเกม ================= -->
+  <section class="section" id="consoles" aria-labelledby="con-title">
+    <div class="wrap">
+      <div class="sechead sechead--split">
+        <div>
+          <h2 id="con-title">เครื่องเกม</h2>
+          <a class="sechead__more" href="shop.html?cat=console" style="margin-top:.6rem">ดูเครื่องทั้งหมด <svg class="icon icon--sm" aria-hidden="true"><use href="#i-right"/></svg></a>
+        </div>
+        <p class="sechead__note"><b>เครื่องศูนย์ไทยทุกเครื่อง</b> — ประกันศูนย์ 1 ปี เคลมได้ที่ศูนย์บริการทั่วประเทศ ไม่ต้องส่งกลับร้าน · ผ่อน 0% นาน 10 เดือนกับบัตรเครดิตทุกธนาคาร · เราลงระบบและอัปเดตเฟิร์มแวร์ให้เสร็จก่อนส่ง เปิดกล่องมาเล่นได้เลย</p>
+      </div>
+      <div class="consoles" data-fx="tilt">
+
+        <article class="console" data-sku="HW-PS5-SLIM">
+          <a class="card__link" href="game.html?sku=HW-PS5-SLIM"><span>ดูรายละเอียด</span></a>
+          <div class="console__shot" aria-hidden="true"><img src="img/ps5.webp" alt="เครื่อง PlayStation 5 สีขาว ตั้งแนวตั้งพร้อมจอย DualSense วางอยู่ข้างหน้า" width="900" height="600" loading="lazy" decoding="async"></div>
+          <div>
+            <h3>PlayStation 5 Slim <span class="console__sub">(รุ่นใส่แผ่น)</span></h3>
+            <ul class="console__spec"><li>1TB SSD</li><li>4K 120Hz</li><li>จอย DualSense 1 ตัว</li><li>เครื่องศูนย์ไทย</li></ul>
+            <div class="console__pay">ผ่อน ฿1,690 × 10 เดือน</div>
+            <div class="console__foot">
+              <div class="price"><b>฿16,900</b><s>฿18,500</s></div>
+              <span class="stock" data-stock>พร้อมส่ง</span>
+            </div>
+            <button class="btn btn--primary btn--sm btn--block" type="button" data-add="HW-PS5-SLIM" style="margin-top:.6rem">ใส่ตะกร้า</button>
+          </div>
+        </article>
+
+        <article class="console" data-sku="HW-NSW-OLED">
+          <a class="card__link" href="game.html?sku=HW-NSW-OLED"><span>ดูรายละเอียด</span></a>
+          <div class="console__shot" aria-hidden="true"><img src="img/switch.webp" alt="เครื่อง Nintendo Switch เปิดหน้าจอเมนู ประกบจอย Joy-Con สีแดงและน้ำเงินสองข้าง" width="900" height="600" loading="lazy" decoding="async"></div>
+          <div>
+            <h3>Nintendo Switch OLED <span class="console__sub">(เครื่องศูนย์ไทย)</span></h3>
+            <ul class="console__spec"><li>จอ OLED 7"</li><li>64GB</li><li>จอย Joy-Con คู่</li><li>ประกัน 1 ปี</li></ul>
+            <div class="console__pay">ผ่อน ฿1,190 × 10 เดือน</div>
+            <div class="console__foot">
+              <div class="price"><b>฿11,900</b></div>
+              <span class="stock stock--low" data-stock>เหลือ 4 เครื่อง</span>
+            </div>
+            <button class="btn btn--primary btn--sm btn--block" type="button" data-add="HW-NSW-OLED" style="margin-top:.6rem">ใส่ตะกร้า</button>
+          </div>
+        </article>
+
+        <article class="console" data-sku="HW-XBX-SX">
+          <a class="card__link" href="game.html?sku=HW-XBX-SX"><span>ดูรายละเอียด</span></a>
+          <div class="console__shot" aria-hidden="true"><img src="img/xbox.webp" alt="เครื่อง Xbox Series X ทรงแท่งสีดำ ตั้งอยู่บนพื้นหลังสีเขียว" width="900" height="600" loading="lazy" decoding="async"></div>
+          <div>
+            <h3>Xbox Series X <span class="console__sub">(1TB · ใส่แผ่น)</span></h3>
+            <ul class="console__spec"><li>1TB SSD</li><li>4K 120Hz</li><li>จอยไร้สาย</li><li>ประกัน 1 ปี</li></ul>
+            <div class="console__pay">ผ่อน ฿1,590 × 10 เดือน</div>
+            <div class="console__foot">
+              <div class="price"><b>฿15,900</b><s>฿17,200</s></div>
+              <span class="stock" data-stock>พร้อมส่ง</span>
+            </div>
+            <button class="btn btn--primary btn--sm btn--block" type="button" data-add="HW-XBX-SX" style="margin-top:.6rem">ใส่ตะกร้า</button>
+          </div>
+        </article>
+
+        <article class="console" data-sku="HW-PS5-VR">
+          <a class="card__link" href="game.html?sku=HW-PS5-VR"><span>ดูรายละเอียด</span></a>
+          <div class="console__shot" aria-hidden="true"><img src="img/vr.webp" alt="ชุดแว่น VR สีขาวพร้อมสายรัดศีรษะ วางอยู่บนโต๊ะไม้" width="900" height="600" loading="lazy" decoding="async"></div>
+          <div>
+            <h3>ชุดแว่น VR ไร้สาย <span class="console__sub">(เล่นได้เองไม่ต้องต่อเครื่อง)</span></h3>
+            <ul class="console__spec"><li>จอ OLED 4K</li><li>คอนโทรลเลอร์ 2 ชิ้น</li><li>ประกัน 1 ปี</li></ul>
+            <div class="console__pay">ผ่อน ฿1,890 × 10 เดือน</div>
+            <div class="console__foot">
+              <div class="price"><b>฿18,900</b></div>
+              <span class="stock stock--low" data-stock>เหลือ 2 ชุด</span>
+            </div>
+            <button class="btn btn--primary btn--sm btn--block" type="button" data-add="HW-PS5-VR" style="margin-top:.6rem">ใส่ตะกร้า</button>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= บัตรเติมเงิน ================= -->
+  <section class="section section--tight" id="codes" aria-labelledby="code-title">
+    <div class="wrap">
+      <div class="sechead sechead--center">
+        <h2 id="code-title">บัตรเติมเงิน &amp; โค้ดดิจิทัล</h2>
+        <p>จ่ายเสร็จ ระบบส่งโค้ดเข้าอีเมลอัตโนมัติภายใน 1 นาที ตลอด 24 ชม. ไม่ต้องรอร้านเปิด</p>
+      </div>
+      <div class="codes" data-fx="sweep">
+        <a class="code" href="#cart" data-add="GC-PSN" data-sku="GC-PSN">
+          <h3>บัตร PlayStation Store</h3>
+          <p>฿300 / ฿600 / ฿1,000 / ฿2,000</p>
+          <div class="code__price">เริ่ม ฿300</div>
+          <span class="code__instant"><svg class="icon icon--sm" aria-hidden="true"><use href="#i-bolt"/></svg> ได้โค้ดทันที</span>
+        </a>
+        <a class="code" href="#cart" data-add="GC-NIN" data-sku="GC-NIN">
+          <h3>บัตร Nintendo eShop</h3>
+          <p>฿350 / ฿700 / ฿1,400</p>
+          <div class="code__price">เริ่ม ฿350</div>
+          <span class="code__instant"><svg class="icon icon--sm" aria-hidden="true"><use href="#i-bolt"/></svg> ได้โค้ดทันที</span>
+        </a>
+        <a class="code" href="#cart" data-add="GC-XGP" data-sku="GC-XGP">
+          <h3>บัตร Xbox Game Pass</h3>
+          <p>1 เดือน / 3 เดือน / 12 เดือน</p>
+          <div class="code__price">เริ่ม ฿329</div>
+          <span class="code__instant"><svg class="icon icon--sm" aria-hidden="true"><use href="#i-bolt"/></svg> ได้โค้ดทันที</span>
+        </a>
+        <a class="code" href="#cart" data-add="GC-STM" data-sku="GC-STM">
+          <h3>บัตร Steam Wallet</h3>
+          <p>฿150 / ฿500 / ฿1,000</p>
+          <div class="code__price">เริ่ม ฿150</div>
+          <span class="code__instant"><svg class="icon icon--sm" aria-hidden="true"><use href="#i-bolt"/></svg> ได้โค้ดทันที</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= บทความ/รีวิว ================= -->
+  <section class="section" id="reviews" aria-labelledby="post-title">
+    <div class="wrap">
+      <div class="sechead">
+        <div>
+          <h2 id="post-title">รีวิวและคู่มือซื้อ</h2>
+          <p>เขียนเอง ไม่ก๊อปมา — และเป็นส่วนที่ทำให้ Google เข้ามาเก็บเว็บบ่อยขึ้น</p>
+        </div>
+        <a class="sechead__more" href="#">อ่านทั้งหมด <svg class="icon icon--sm" aria-hidden="true"><use href="#i-right"/></svg></a>
+      </div>
+      <div class="posts" data-fx="unfold">
+        <article class="post">
+          <div class="post__media"><div class="art art--drift" aria-hidden="true"><img class="art__photo" src="img/g-drift.webp" alt="" loading="lazy" decoding="async"></div></div>
+          <div class="post__body">
+            <span class="post__tag">คู่มือซื้อ</span>
+            <h3>เครื่องศูนย์ไทย กับ เครื่องหิ้ว ต่างกันตรงไหน</h3>
+            <p>เรื่องประกัน ภาษา และการเคลม อธิบายให้คนซื้อเครื่องแรกเข้าใจใน 3 นาที</p>
+          </div>
+        </article>
+        <article class="post">
+          <div class="post__media"><div class="art art--siege" aria-hidden="true"><img class="art__photo" src="img/g-siege.webp" alt="" loading="lazy" decoding="async"></div></div>
+          <div class="post__body">
+            <span class="post__tag">รีวิว</span>
+            <h3>Iron Siege: Last Bastion — คุ้มไหมกับ ฿1,290</h3>
+            <p>เล่นจบแล้ว 27 ชั่วโมง สรุปข้อดีข้อเสียแบบไม่อวย</p>
+          </div>
+        </article>
+        <article class="post">
+          <div class="post__media"><div class="art art--noir" aria-hidden="true"><img class="art__photo" src="img/g-noir.webp" alt="" loading="lazy" decoding="async"></div></div>
+          <div class="post__body">
+            <span class="post__tag">เกมมือสอง</span>
+            <h3>ซื้อเกมมือสองยังไงไม่ให้โดนแผ่นเสีย</h3>
+            <p>วิธีเช็ก 5 ข้อก่อนจ่ายเงิน และร้านเราตรวจอะไรบ้างก่อนวางขาย</p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= สมัครรับข่าว ================= -->
+  <section class="section section--tight">
+    <div class="wrap">
+      <div class="signup signup--stack">
+        <div class="sechead sechead--center">
+          <h2>รู้ก่อนใครเวลาของลดราคา</h2>
+          <p>ส่งเฉพาะรอบลดราคาจริงกับของเข้าใหม่ ไม่เกินเดือนละ 2 ฉบับ ยกเลิกได้ทุกเมื่อ</p>
+        </div>
+        <div>
+          <form action="#" novalidate>
+            <label class="sr-only" for="mail">อีเมลของคุณ</label>
+            <input id="mail" name="email" type="email" placeholder="you@example.com" required>
+            <button class="btn btn--primary" type="submit">สมัครรับข่าว</button>
+          </form>
+          <small>หรือแอดไลน์ @gamedock.demo รับโค้ดส่วนลด ฿100 สำหรับการสั่งซื้อครั้งแรก</small>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ================= ฟุตเตอร์ ================= -->
+<footer class="site-footer">
+  <div class="wrap foot-main">
+    <div class="foot-about">
+      <a class="brand" href="#top">
+        <span class="brand__mark" aria-hidden="true"><svg viewBox="0 0 48 48"><use href="#brand-mark"/></svg></span>
+        <span class="brand__word">GAME<b>DOCK</b><small>GAME &amp; CONSOLE</small></span>
+      </a>
+      <p>ร้านเกมและเครื่องเกมออนไลน์ นำเข้าถูกกฎหมาย มีหน้าร้านจริงที่กรุงเทพฯ เปิดทุกวัน 10:00–20:00 น.</p>
+      <div class="foot-social">
+        <a href="#" aria-label="LINE"><svg class="icon icon--fill" aria-hidden="true"><use href="#i-line"/></svg></a>
+        <a href="#" aria-label="Facebook"><svg class="icon icon--fill" aria-hidden="true"><use href="#i-fb"/></svg></a>
+        <a href="#" aria-label="TikTok"><svg class="icon" aria-hidden="true"><use href="#i-tiktok"/></svg></a>
+        <a href="#" aria-label="YouTube"><svg class="icon" aria-hidden="true"><use href="#i-yt"/></svg></a>
+      </div>
+      <div class="pay">
+        <b>ชำระเงิน:</b><span>PromptPay</span><span>บัตรเครดิต</span><span>ผ่อน 0%</span><span>เก็บปลายทาง</span>
+      </div>
+    </div>
+
+    <nav aria-labelledby="f-shop">
+      <h4 id="f-shop">ซื้อสินค้า</h4>
+      <ul>
+        <li><a href="shop.html?cat=PS5">เกม PlayStation 5</a></li>
+        <li><a href="shop.html?cat=SWITCH">เกม Nintendo Switch</a></li>
+        <li><a href="shop.html?cat=XBOX">เกม Xbox Series</a></li>
+        <li><a href="shop.html?cat=PC">เกม PC / Steam</a></li>
+        <li><a href="shop.html?cat=console">เครื่องเกม</a></li>
+        <li><a href="shop.html?cat=code">บัตรเติมเงิน</a></li>
+      </ul>
+    </nav>
+
+    <nav aria-labelledby="f-help">
+      <h4 id="f-help">หลังการขาย</h4>
+      <ul>
+        <li><a href="#track">ติดตามพัสดุ</a></li>
+        <li><a href="#return">เปลี่ยน/คืนสินค้า 7 วัน</a></li>
+        <li><a href="#warranty">เงื่อนไขการรับประกัน</a></li>
+        <li><a href="#help">วิธีสั่งซื้อและชำระเงิน</a></li>
+        <li><a href="#help">ค่าจัดส่งและระยะเวลา</a></li>
+        <li><a href="#help">คำถามที่พบบ่อย</a></li>
+      </ul>
+    </nav>
+
+    <nav aria-labelledby="f-about">
+      <h4 id="f-about">เกี่ยวกับร้าน</h4>
+      <ul>
+        <li><a href="#">เรื่องราวของ GAMEDOCK</a></li>
+        <li><a href="#">หน้าร้านและแผนที่</a></li>
+        <li><a href="#">รับซื้อเกมมือสอง</a></li>
+        <li><a href="#">ขายส่ง / ร้านค้าตัวแทน</a></li>
+        <li><a href="#">ร่วมงานกับเรา</a></li>
+        <li><a href="#">ติดต่อเรา</a></li>
+      </ul>
+    </nav>
+  </div>
+
+  <div class="wrap foot-legal">
+    <span>© 2026 GAMEDOCK · ทะเบียนพาณิชย์อิเล็กทรอนิกส์เลขที่ 0000000000000</span>
+    <ul>
+      <li><a href="#">นโยบายความเป็นส่วนตัว</a></li>
+      <li><a href="#">เงื่อนไขการใช้งาน</a></li>
+      <li><a href="#">นโยบายคุกกี้</a></li>
+    </ul>
+  </div>
+</footer>
+
+<!-- แถบล่างติดจอบนมือถือ: ตะกร้าต้องกดถึงตลอดเวลา ไม่ใช่ต้องเลื่อนขึ้นไปหาหัวเว็บ -->
+<nav class="tabbar" aria-label="เมนูลัด">
+  <a class="is-on" href="#top"><svg class="icon" aria-hidden="true"><use href="#i-home"/></svg>หน้าแรก</a>
+  <a href="shop.html"><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg>หมวดสินค้า</a>
+  <a href="cart.html"><svg class="icon" aria-hidden="true"><use href="#i-cart"/></svg><span class="iconbtn__count" data-cart-count>3</span>ตะกร้า</a>
+  <a href="account.html"><svg class="icon" aria-hidden="true"><use href="#i-user"/></svg>บัญชี</a>
+</nav>
+
+<script src="js/data.js" defer></script>
+<script src="js/store.js" defer></script>
+<script src="js/main.js" defer></script>
+<script src="/work/_demo-badge.js" defer></script>
+</body>
+</html>

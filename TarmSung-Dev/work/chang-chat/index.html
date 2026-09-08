@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="th" class="no-js">
+<head>
+<meta charset="utf-8">
+<!-- คืนตำแหน่งที่อ่านค้างไว้เอง ไม่รอเบราว์เซอร์ (ที่มา: work/_JANK-REFRESH.md)
+     Safari คืนตำแหน่ง scroll หลังอีเวนต์ load เท่านั้น — วัดแล้ว DCL/load ยังอยู่ที่ y=0
+     ทั้งคู่ คนที่รีเฟรชกลางหน้าจึงเห็น "ฮีโร่แวบ" ตั้งแต่เฟรมแรกจนกว่าไฟล์สุดท้ายจะโหลดจบ
+     (เน็ตช้า = ค้างนานเป็นวินาที) สคริปต์นี้เก็บตำแหน่งไว้เองใน sessionStorage แล้ววาง
+     กลับตั้งแต่เฟรมแรกที่ความสูงหน้าพอ — เร็วกว่ารอ load หลายเท่าและไม่ต้องรอรูป
+     หยุดทันทีถ้าผู้ใช้ขยับเอง (wheel/touch/key/pointer) จะได้ไม่แย่งมือกับคนอ่าน -->
+<script>
+(function () {
+  try {
+    if (!("scrollRestoration" in history)) return;
+    history.scrollRestoration = "manual";
+    var key = "ts:y:" + location.pathname;
+    var want = parseInt(sessionStorage.getItem(key) || "0", 10) || 0;
+    var timer = 0;
+    var save = function () { try { sessionStorage.setItem(key, String(Math.round(window.scrollY))); } catch (e) {} };
+    addEventListener("scroll", function () {
+      if (timer) return;
+      timer = setTimeout(function () { timer = 0; save(); }, 200);
+    }, { passive: true });
+    addEventListener("pagehide", save);
+    /* แถบเมนูต้องไม่ "โผล่" ตอนหน้าเปิดมากลางหน้าอยู่แล้ว (jek 25/8/26 · the-bed)
+       แถบมีสองชั้นที่ไล่เข้าเอง — พื้นทึบบน .nav-shell::before (opacity 300ms) กับเส้นทอง
+       บน border-color (400ms) — พอคืนตำแหน่ง scroll ปุ๊บ สคริปต์แถบเมนูใส่คลาส scrolled
+       ทั้งสองชั้นจึงไล่ให้เห็นทุกครั้งที่รีเฟรช ทั้งที่ผู้ใช้ไม่ได้เลื่อนอะไรเลย
+       ระหว่างช่วงคืนตำแหน่ง จึงปิดทรานซิชันของหัวเว็บไว้ = แถบอยู่ในสถานะสุดท้ายตั้งแต่
+       เฟรมแรก · เปิดคืนทันทีที่ผู้ใช้ขยับเอง (หรืออย่างช้า 900ms) การเลื่อนของจริงจึงยังลื่น */
+    if (want) {
+      var root = document.documentElement;
+      root.className += " nav-instant";
+      var st = document.createElement("style");
+      st.textContent = "html.nav-instant .nav-shell,html.nav-instant .nav-shell::before," +
+        "html.nav-instant .site-header,html.nav-instant header,html.nav-instant header > *," +
+        "html.nav-instant header > * > *{transition:none !important}";
+      (document.head || document.documentElement).appendChild(st);
+      var unlock = function () { root.className = root.className.replace(/\s*nav-instant/, ""); };
+      ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+        addEventListener(ev, unlock, { passive: true, once: true });
+      });
+      setTimeout(unlock, 900);
+    }
+    if (!want || location.hash) return;
+    var stop = false;
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+      addEventListener(ev, function () { stop = true; }, { passive: true, once: true });
+    });
+    var t0 = (performance.now ? performance.now() : 0);
+    var now = function () { return performance.now ? performance.now() : t0; };
+    var done = false;
+    var put = function () {
+      if (stop || done) return true;
+      var el = document.scrollingElement || document.documentElement;
+      if (!el || el.scrollHeight - window.innerHeight < want) return false;   /* หน้ายังสูงไม่พอ ค่อยลองใหม่ */
+      if (Math.round(window.scrollY) !== want) {
+        var prev = el.style.scrollBehavior;      /* html { scroll-behavior: smooth } จะทำให้การวางกลับกลายเป็นการไถ */
+        el.style.scrollBehavior = "auto";
+        window.scrollTo(0, want);
+        el.style.scrollBehavior = prev;
+      }
+      done = Math.round(window.scrollY) === want;
+      /* ใส่สถานะ "เลื่อนแล้ว" ให้หัวเว็บทันทีในจังหวะเดียวกับที่คืนตำแหน่ง — ไม่ต้องรอสคริปต์
+         ของหน้ามันเองซึ่งอยู่ท้าย <body> (วัดแล้วช้ากว่ากันราว 20ms = เห็นแถบเปล่าได้ 1 เฟรม)
+         เกณฑ์คนละค่าเพราะแต่ละที่ตั้งไว้ไม่เท่ากัน: .site-header > 8px · .nav-shell > 40px
+         (ดู js/main.js กับสคริปต์ท้ายหน้าเดโม) สคริปต์ของหน้าจะคำนวณซ้ำเองอยู่แล้ว ค่าจึงตรงกัน */
+      if (done) {
+        var mark = function (sel, cls, min) {
+          if (want <= min) return;
+          var n = document.querySelectorAll(sel);
+          for (var i = 0; i < n.length; i++) n[i].classList.add(cls);
+        };
+        /* หัวเว็บของแต่ละใบใช้คนละคลาสคนละเกณฑ์ (ของเดิมเป็นแบบนั้นมาก่อนแล้ว):
+           .site-header.scrolled >8px (เว็บเรา) · .nav-shell.scrolled >40px (the-bed)
+           .site-header.stuck (the-terrace ใช้ sentinel ไม่ใช่ตัวเลข — 80px คือค่าประมาณ)
+           header.small >120px (homecraft/lumen/glow-clinic ผ่าน js/nav-response.js)
+           เดาพลาดไม่เป็นไร สคริปต์ของหน้าคำนวณทับให้ในเฟรมถัดไป และช่วงนี้ทรานซิชันถูกปิดอยู่
+           การแก้จึงเป็นการสลับทันที ไม่ใช่การไล่สีให้เห็น */
+        mark(".site-header", "scrolled", 8);
+        mark(".nav-shell", "scrolled", 40);
+        mark(".site-header, header[data-header]", "stuck", 80);
+        mark("header, .site-header", "small", 120);
+      }
+      return done;
+    };
+    /* ลองทุกทางที่มาถึงก่อน: setTimeout(0) มักได้ก่อนเฟรมแรกด้วยซ้ำ · rAF ทำงานก่อนวาด
+       · readystatechange/DOMContentLoaded คือจุดที่ body ครบแล้วแน่ๆ
+       เหตุที่ไม่พอถ้าใช้ rAF อย่างเดียว: วัดแล้วบางหน้า (หน้าแรกของเว็บเรา) เฟรมแรก
+       มาก่อนที่ความสูงจะพอ ทำให้เลื่อนไม่ได้ แล้วต้องรอ rAF รอบถัดไป = เห็นหัวเว็บ 1 เฟรม */
+    /* สองสายแยกกัน สายละหนึ่งนัด — ถ้าให้สายเดียวนัดทั้ง setTimeout และ rAF
+       จำนวนนัดจะเพิ่มเป็นสองเท่าทุกรอบ (2^n) ภายในไม่กี่ร้อยมิลลิวินาที */
+    var tick = function () { if (put() || stop) return; if (now() - t0 < 3000) setTimeout(tick, 0); };
+    var frame = function () { if (put() || stop) return; if (now() - t0 < 3000) requestAnimationFrame(frame); };
+    tick();
+    frame();
+    document.addEventListener("readystatechange", put);
+    addEventListener("DOMContentLoaded", put);
+    addEventListener("load", put);
+  } catch (e) {}
+})();
+</script>
+  <!-- เดโมสาธิต ไม่ใช่ธุรกิจจริง: ห้ามให้เสิร์ชเอนจินเก็บเข้าดัชนี ไม่งั้นจะมีหน้า
+       ที่ดูเหมือนร้านจริง (มีชื่อ ราคา เบอร์โทร) ลอยอยู่บน Google ในชื่อโดเมนของเรา -->
+  <meta name="robots" content="noindex,nofollow">
+  <!-- เดโมสาธิต ไม่ใช่ธุรกิจจริง: ห้ามให้เสิร์ชเอนจินเก็บเข้าดัชนี ไม่งั้นจะมีหน้า
+       ที่ดูเหมือนร้านจริง (มีชื่อ ราคา เบอร์โทร) ลอยอยู่บน Google ในชื่อโดเมนของเรา -->
+  <meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>อู่ช่างชัด — ซ่อมรถยนต์บางนา รู้ราคาก่อนเราแตะรถ</title>
+  <link rel="canonical" href="https://tarmsung.pages.dev/work/chang-chat/">
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "AutoRepair",
+  "name": "อู่ช่างชัด",
+  "description": "อู่ซ่อมรถยนต์ย่านบางนา ทุกคันได้ใบตรวจ 30 จุดและใบเสนอราคาก่อนลงมือ งานที่ไม่ได้อยู่ในใบ เราโทรถามก่อนเสมอ",
+  "url": "https://tarmsung.pages.dev/work/chang-chat/",
+  "inLanguage": "th",
+  "image": "https://tarmsung.pages.dev/assets/work/chang-chat.webp"
+}
+  </script>
+  <!-- การ์ดพรีวิวตอนวางลิงก์ในแชท: ส่งลิงก์เฉยๆ แล้ว LINE/เฟซบุ๊กขึ้นรูปให้เอง
+       รูปที่ใช้คือปกเดียวกับที่โชว์ในพอร์ต -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="อู่ช่างชัด — ซ่อมรถยนต์บางนา รู้ราคาก่อนเราแตะรถ">
+  <meta property="og:description" content="อู่ซ่อมรถยนต์ย่านบางนา ทุกคันได้ใบตรวจ 30 จุดและใบเสนอราคาก่อนลงมือ กดเลือกอาการรถแล้วดูช่วงราคาได้เลย">
+  <meta property="og:image" content="https://tarmsung.pages.dev/assets/work/chang-chat.webp">
+  <meta name="twitter:card" content="summary_large_image">
+  <!-- การ์ดพรีวิวตอนวางลิงก์ในแชท (22/8/26): ส่งลิงก์เฉยๆ แล้ว LINE/เฟซบุ๊กจะขึ้นรูป
+       ให้เอง ไม่ต้องแนบภาพหรือคลิปเพิ่ม รูปที่ใช้คือปกเดียวกับที่โชว์ในพอร์ต -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="อู่ช่างชัด — ซ่อมรถยนต์บางนา รู้ราคาก่อนเราแตะรถ">
+  <meta property="og:description" content="อู่ซ่อมรถยนต์ย่านบางนา ทุกคันได้ใบตรวจ 30 จุดและใบเสนอราคาก่อนลงมือ งานที่ไม่ได้อยู่ในใบ เราโทรถามก่อนเสมอ">
+  <meta property="og:image" content="https://tarmsung.pages.dev/assets/work/chang-chat.webp">
+  <meta name="twitter:card" content="summary_large_image">
+<meta name="description" content="อู่ซ่อมรถยนต์ย่านบางนา ทุกคันได้ใบตรวจ 30 จุดและใบเสนอราคาก่อนลงมือ งานที่ไม่ได้อยู่ในใบ เราโทรถามก่อนเสมอ">
+<script>document.documentElement.classList.replace("no-js","js");</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- preload ฟอนต์หัวเรื่อง (Kanit) — คู่กับ display=optional ข้างล่าง
+     optional เฉยๆ แปลว่าคนที่เข้าครั้งแรกได้ฟอนต์สำรองทั้งหน้า preload ทำให้ไฟล์
+     มาทันช่วงต้นเกือบทุกครั้ง · มีสองไฟล์เพราะ Google เสิร์ฟ Chrome กับ Safari คนละตัว
+     (เติมอัตโนมัติด้วย playbook/fix-font-flash.mjs) -->
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/kanit/v17/nKKU-Go6G5tXcr5mOBWzVaF5NQ.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/kanit/v17/nKKU-Go6G5tXcr5mOBWnVaE.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/kanit/v17/nKKU-Go6G5tXcr5KPxWzVaF5NQ.woff2" />
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=optional" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23191814'/%3E%3Ccircle cx='16' cy='7' r='4' fill='%2357C77F'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%23F2A81E'/%3E%3Ccircle cx='16' cy='25' r='4' fill='%23FF6B5A'/%3E%3C/svg%3E">
+</head>
+<body>
+<a class="skip" href="#main">ข้ามไปเนื้อหา</a>
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a class="brand" href="#top">
+      <span class="mark" aria-hidden="true">
+        <span class="pip pip--ok"></span><span class="pip pip--warn"></span><span class="pip pip--bad"></span>
+      </span>
+      <span class="brand-name">อู่ช่างชัด<small>CHANGCHAT AUTO</small></span>
+    </a>
+    <button class="burger" data-burger aria-expanded="false" aria-controls="menu" aria-label="เปิดเมนู">
+      <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+    </button>
+    <nav class="nav-links" id="menu" data-nav aria-label="เมนูหลัก">
+      <a href="#quote">ราคาก่อนแตะรถ</a>
+      <a href="#estimate">บอกอาการ ดูราคา</a>
+      <a href="#inspect">ใบตรวจ 30 จุด</a>
+      <a href="#status">สถานะรถ</a>
+      <a href="#parts">อะไหล่</a>
+      <a href="#book">นัดเข้าอู่</a>
+    </nav>
+    <a class="btn btn--primary btn--sm nav-cta" href="tel:">โทรหาช่าง</a>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ══ HERO ══════════════════════════════════════════════════════════════
+       สูตรฮีโร่ (รูปเต็มจอ + หัวเรื่อง + ปุ่มคู่) ซ้ำได้ตามที่ตัดสินไว้ 21/8/26
+       สิ่งที่ห้ามซ้ำคือ "ข้างใน" — ดู ENGINE §1b ข้อ 4b
+       รูปเลือกจาก "ฉากหลังมืดเข้ากับพื้นเว็บ" ก่อนความสวย: ประแจปอนด์บนล้อ
+       พื้นหลังมืดอยู่แล้ว จึงไม่ต้องคลุมด้วยแผ่นดำหนาจนรูปหาย -->
+  <section class="hero" id="top" aria-labelledby="hero-title">
+    <img class="hero-photo" src="img/hero.jpg" alt="ช่างยกรถขึ้นลิฟต์แล้วก้มส่องตรวจใต้ท้องรถทีละจุด" width="1600" height="900" fetchpriority="high">
+    <div class="wrap hero-inner">
+      <div class="hero-copy">
+        <p class="kicker reveal">อู่ซ่อมรถยนต์ · บางนา กม.4 · จันทร์–เสาร์ 08:30–18:00</p>
+        <h1 id="hero-title" class="reveal d1">รู้ราคา<br>ก่อนเราแตะรถ</h1>
+        <p class="lede reveal d2">ทุกคันที่เข้ามาได้ <strong>ใบตรวจ 30 จุด</strong> กับ <strong>ใบเสนอราคา</strong> ก่อนช่างลงมือ
+          งานที่ไม่ได้อยู่ในใบนั้น เราโทรถามก่อนทุกครั้ง — ไม่มีบิลที่คุณไม่เคยเห็น</p>
+        <p class="hero-cta reveal d3">
+          <a class="btn btn--primary" href="#estimate">ประเมินราคาจากอาการ</a>
+          <a class="btn btn--ghost" href="tel:">โทร 02-xxx-xxxx</a>
+        </p>
+      </div>
+
+      <!-- ลายเซ็น 3: แผ่นมาตรวัด — ตัวเลขโมโนในช่องมืดมีร่อง อ่านเป็นหน้าปัดรถ -->
+      <aside class="gauge reveal d2" aria-label="ตัวเลขของอู่">
+        <p class="gauge-row"><span class="num mono" data-count="30">30</span><span class="gauge-lb">จุดที่ตรวจให้ทุกคัน<br>ไม่ว่าเข้ามาด้วยอาการอะไร</span></p>
+        <p class="gauge-row"><span class="mono gauge-zero">0</span><span class="gauge-lb">บาทที่บวกเพิ่ม<br>หลังคุณเซ็นอนุมัติใบราคา</span></p>
+        <p class="gauge-row"><span class="num mono" data-count="12">12</span><span class="gauge-lb">เดือน รับประกันงานซ่อม<br>ตามเงื่อนไขที่เขียนไว้ท้ายหน้า</span></p>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ลายเซ็น 2: แถบเตือนเหลือง-ดำ ใช้เป็นตัวคั่นชั้นเนื้อหา -->
+  <div class="hazard-rule" aria-hidden="true"></div>
+
+  <!-- ══ 1. ราคาก่อนแตะรถ (ตอบความกลัวข้อ 1: บานปลาย) ═══════════════════
+       รูปแบบ = เอกสารใบเสนอราคาจริง ไม่ใช่การ์ด 3 ใบ เพราะสิ่งที่ลูกค้ากลัว
+       คือ "บรรทัดที่โผล่มาตอนจ่าย" ต้องเห็นบรรทัดจริงถึงจะหายกลัว -->
+  <section class="section" id="quote" aria-labelledby="quote-title">
+    <div class="wrap grid-quote">
+      <div class="quote-copy">
+        <p class="kicker reveal">01 — ราคาก่อนแตะรถ</p>
+        <h2 id="quote-title" class="reveal">ใบเดียวกันนี้ คุณได้ก่อนช่างเปิดฝากระโปรง</h2>
+        <ol class="rules reveal d1">
+          <li><span class="pip pip--ok" aria-hidden="true"></span><b>ตรวจก่อน แล้วค่อยแจ้งราคา</b> — ค่าตรวจ 30 จุดไม่คิดเงิน ถ้าคุณไม่ซ่อมต่อ ก็ขับกลับได้เลย</li>
+          <li><span class="pip pip--ok" aria-hidden="true"></span><b>แยกค่าแรงกับค่าอะไหล่ทุกบรรทัด</b> — คุณเห็นว่าจ่ายค่าของเท่าไหร่ ค่าฝีมือเท่าไหร่</li>
+          <li><span class="pip pip--ok" aria-hidden="true"></span><b>เกินจากใบที่อนุมัติ = เราออก</b> — เจองานเพิ่มระหว่างซ่อม เราหยุดแล้วโทรหาคุณก่อนเสมอ</li>
+        </ol>
+        <p class="note reveal d2">ใบด้านขวาเป็นตัวอย่างจากงานเบรกหน้าคันหนึ่ง ตัวเลขในใบเป็นข้อมูลสาธิต</p>
+      </div>
+
+      <article class="qsheet reveal--right reveal d1" aria-label="ตัวอย่างใบเสนอราคา">
+        <header class="qsheet-head">
+          <p class="qsheet-no mono">CQ-2608-114</p>
+          <dl class="qsheet-meta">
+            <div><dt>ทะเบียน</dt><dd class="plate mono">3กษ 4412</dd></div>
+            <div><dt>รุ่น / ปี</dt><dd>Civic FB 1.8 · 2015</dd></div>
+            <div><dt>เลขไมล์</dt><dd class="mono">142,860 กม.</dd></div>
+          </dl>
+        </header>
+        <table class="qsheet-lines">
+          <caption class="sr-only">รายการค่าอะไหล่และค่าแรงของงานเบรกหน้า</caption>
+          <thead>
+            <tr><th scope="col">รายการ</th><th scope="col">อะไหล่</th><th scope="col">ค่าแรง</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>ผ้าเบรกหน้า (คู่)</td><td class="mono">1,850</td><td class="mono">400</td></tr>
+            <tr><td>เจียจานเบรกหน้า 2 ใบ</td><td class="mono">—</td><td class="mono">600</td></tr>
+            <tr><td>น้ำมันเบรก DOT4 + ไล่ลม</td><td class="mono">420</td><td class="mono">350</td></tr>
+            <tr><td>ทำความสะอาด/อัดจารบีสลักคาลิเปอร์</td><td class="mono">—</td><td class="mono">250</td></tr>
+          </tbody>
+          <tfoot>
+            <tr><th scope="row">รวมค่าอะไหล่</th><td class="mono" colspan="2">2,270</td></tr>
+            <tr><th scope="row">รวมค่าแรง</th><td class="mono" colspan="2">1,600</td></tr>
+            <tr class="qsheet-total"><th scope="row">รวมทั้งสิ้น</th><td class="mono" colspan="2">3,870</td></tr>
+          </tfoot>
+        </table>
+        <footer class="qsheet-foot">
+          <p class="stamp">ลูกค้าอนุมัติแล้ว<br><span class="mono">26/08 09:12 น.</span></p>
+          <p class="qsheet-note">งานที่ไม่ได้อยู่ในใบนี้ ช่างจะหยุดแล้วโทรหาคุณก่อน<br>ใบนี้ยืนราคา 30 วัน</p>
+        </footer>
+      </article>
+    </div>
+  </section>
+
+  <!-- ══ 2. บอกอาการ ดูราคา (ตอบข้อ 2) ═════════════════════════════════
+       block ที่ให้ "ทำ" ไม่ใช่ "อ่าน" — ค่าเริ่มต้นถูกพิมพ์ไว้ใน HTML แล้ว
+       ปิด JS ก็ยังอ่านได้ครบ JS แค่เปลี่ยนตัวเลขให้ตรงกับที่กด -->
+  <section class="section section--well" id="estimate" aria-labelledby="estimate-title">
+    <div class="wrap">
+      <div class="head head--split reveal">
+        <div>
+          <p class="kicker">02 — บอกอาการ ดูราคา</p>
+          <h2 id="estimate-title">กดบอกอาการ แล้วดูว่าอู่นี้คิดประมาณเท่าไหร่</h2>
+        </div>
+        <p class="lede">ไม่ต้องโทรมาถามก่อนก็ได้ เลือกอาการที่ตรงที่สุดกับรถคุณ แล้วดูช่วงราคากับเวลาที่ต้องจอด
+          ตัวเลขนี้คือช่วงที่งานแบบนี้จบจริงในอู่ ไม่ใช่ราคาล่อให้เข้ามา</p>
+      </div>
+
+      <div class="tool reveal d2">
+        <div class="tool-picks">
+          <fieldset class="pickset">
+            <legend>อาการที่เจอ</legend>
+            <div class="chips" data-sym>
+              <button type="button" class="chip is-on" data-key="brake" aria-pressed="true">เบรกมีเสียง / เหยียบลึก</button>
+              <button type="button" class="chip" data-key="air" aria-pressed="false">แอร์ไม่เย็น</button>
+              <button type="button" class="chip" data-key="idle" aria-pressed="false">เครื่องสั่นตอนจอด</button>
+              <button type="button" class="chip" data-key="steer" aria-pressed="false">พวงมาลัยหนัก / มีเสียงตอนเลี้ยว</button>
+              <button type="button" class="chip" data-key="fuel" aria-pressed="false">กินน้ำมันขึ้นผิดปกติ</button>
+              <button type="button" class="chip" data-key="service" aria-pressed="false">ถึงระยะเช็คตามเลขไมล์</button>
+            </div>
+          </fieldset>
+          <fieldset class="pickset">
+            <legend>กลุ่มรถ</legend>
+            <div class="chips" data-grp>
+              <button type="button" class="chip is-on" data-key="jp" aria-pressed="true">ญี่ปุ่น</button>
+              <button type="button" class="chip" data-key="eu" aria-pressed="false">ยุโรป</button>
+              <button type="button" class="chip" data-key="pickup" aria-pressed="false">กระบะ / PPV</button>
+            </div>
+          </fieldset>
+        </div>
+
+        <output class="tool-out" for="estimate" aria-live="polite">
+          <p class="out-lb">ช่วงราคาที่งานแบบนี้จบจริง</p>
+          <p class="out-price mono"><span data-out-lo>1,800</span> – <span data-out-hi>4,200</span> <i>บาท</i></p>
+          <dl class="out-meta">
+            <div><dt>เวลาที่รถต้องจอด</dt><dd data-out-time>2–4 ชั่วโมง (รับคืนวันเดียวกัน)</dd></div>
+            <div><dt>ตรวจก่อนเสมอ</dt><dd data-out-check>วัดความหนาผ้าเบรกทั้ง 4 ล้อ · ดูจานเบรกว่าเจียได้อีกไหม · เช็ครอยรั่วน้ำมันเบรก</dd></div>
+          </dl>
+          <p class="out-fine">ช่วงราคานี้ประเมินจากงานที่เคยทำ ราคาจริงยืนยันหลังตรวจและก่อนลงมือเสมอ</p>
+          <a class="btn btn--primary btn--block" href="#book" data-book>นัดเข้าอู่พร้อมอาการนี้</a>
+        </output>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 3. ใบตรวจ 30 จุด (ตอบข้อ 3: กลัวโดนเปลี่ยนของที่ยังไม่ต้องเปลี่ยน) ══
+       รูปแบบ = ใบเช็ครายจุด + ไดอะแกรมรถ ไม่ใช่การ์ด
+       หมุดสามสีคือกลไกเดียวกับหมุดใน hero/ไทม์ไลน์ (ENGINE: ของชนิดเดียวกัน
+       ต้องใช้กลไกเดียวกัน ไม่ใช่ผลลัพธ์เหมือนกันแต่คนละกลไก) -->
+  <section class="section" id="inspect" aria-labelledby="inspect-title">
+    <div class="wrap">
+      <div class="head head--center reveal">
+        <p class="kicker">03 — ใบตรวจ 30 จุด</p>
+        <h2 id="inspect-title">เขียวคือผ่าน เหลืองคือรอบหน้า แดงคือต้องซ่อมวันนี้</h2>
+        <p class="lede narrow">คุณเลือกซ่อมเฉพาะแถวสีแดงก็ได้ แถวเหลืองเราจดไว้ให้ว่าอีกกี่กิโลค่อยกลับมา
+          อู่ที่บอกว่า "ต้องเปลี่ยนทั้งหมด" คืออู่ที่ไม่ได้แยกสามสีนี้ให้คุณดู</p>
+      </div>
+
+      <div class="inspect-grid">
+        <!-- ลายเซ็น 4: ไดอะแกรมรถมุมบน จุดตรวจไล่ติดตามลำดับที่ช่างเดินตรวจจริง -->
+        <figure class="cardiag reveal--scale reveal d1">
+          <svg viewBox="0 0 220 380" role="img" aria-labelledby="diag-title">
+            <title id="diag-title">แผนผังรถมุมบน แสดงตำแหน่งจุดตรวจ 8 กลุ่ม</title>
+            <g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+              <path d="M56 34c0-12 20-20 54-20s54 8 54 20l10 78v170c0 38-12 66-64 66s-64-28-64-66V112Z"/>
+              <path d="M74 60c10-6 62-6 72 0l10 34c-30-8-62-8-92 0Z"/>
+              <path d="M74 320c10 6 62 6 72 0l8-30c-30 8-58 8-88 0Z"/>
+              <path d="M66 150h88M66 250h88" stroke-dasharray="4 8" opacity=".55"/>
+            </g>
+            <g class="wheels" fill="currentColor" opacity=".5">
+              <rect x="34" y="104" width="20" height="46" rx="4"/><rect x="166" y="104" width="20" height="46" rx="4"/>
+              <rect x="34" y="254" width="20" height="46" rx="4"/><rect x="166" y="254" width="20" height="46" rx="4"/>
+            </g>
+            <g class="dots">
+              <circle class="dot dot--bad"  cx="44"  cy="127" r="9"/>
+              <circle class="dot dot--warn" cx="176" cy="127" r="9"/>
+              <circle class="dot dot--ok"   cx="44"  cy="277" r="9"/>
+              <circle class="dot dot--ok"   cx="176" cy="277" r="9"/>
+              <circle class="dot dot--ok"   cx="110" cy="90"  r="9"/>
+              <circle class="dot dot--warn" cx="110" cy="170" r="9"/>
+              <circle class="dot dot--ok"   cx="110" cy="230" r="9"/>
+              <circle class="dot dot--warn" cx="110" cy="340" r="9"/>
+            </g>
+          </svg>
+          <figcaption>ตำแหน่งที่ช่างเดินตรวจ เรียงตามลำดับจริง: ล้อหน้าซ้าย → ล้อหน้าขวา → ห้องเครื่อง → ใต้ท้อง → ล้อหลัง → ท้ายรถ</figcaption>
+        </figure>
+
+        <div class="sheet-wrap reveal--left reveal d2">
+          <p class="tally">
+            <span><span class="num mono" data-count="24">24</span> <i class="pip pip--ok" aria-hidden="true"></i> ผ่าน</span>
+            <span><span class="num mono" data-count="4">4</span> <i class="pip pip--warn" aria-hidden="true"></i> ควรดูรอบหน้า</span>
+            <span><span class="num mono" data-count="2">2</span> <i class="pip pip--bad" aria-hidden="true"></i> ต้องซ่อมวันนี้</span>
+          </p>
+          <ul class="sheet">
+            <li class="row row--bad"><i class="pip pip--bad" aria-hidden="true"></i><b>ผ้าเบรกหน้า</b><span class="row-note mono">เหลือ 2.1 มม.</span></li>
+            <li class="row row--bad"><i class="pip pip--bad" aria-hidden="true"></i><b>ยางหน้าซ้าย</b><span class="row-note mono">ดอก 1.4 มม. · แตกข้างแก้ม</span></li>
+            <li class="row row--warn"><i class="pip pip--warn" aria-hidden="true"></i><b>โช้คอัพหลัง</b><span class="row-note">ซึมเล็กน้อย ยังไม่มีอาการ</span></li>
+            <li class="row row--warn"><i class="pip pip--warn" aria-hidden="true"></i><b>สายพานหน้าเครื่อง</b><span class="row-note mono">เปลี่ยนที่ 160,000 กม.</span></li>
+            <li class="row row--warn"><i class="pip pip--warn" aria-hidden="true"></i><b>แบตเตอรี่</b><span class="row-note mono">วัดได้ 12.3V · อายุ 2 ปี 4 เดือน</span></li>
+            <li class="row row--warn"><i class="pip pip--warn" aria-hidden="true"></i><b>น้ำมันเกียร์</b><span class="row-note mono">ถึงระยะที่ 150,000 กม.</span></li>
+            <li class="row row--ok"><i class="pip pip--ok" aria-hidden="true"></i><b>ลูกหมาก / ปีกนก</b><span class="row-note">ไม่มีระยะคลอน</span></li>
+            <li class="row row--ok"><i class="pip pip--ok" aria-hidden="true"></i><b>ระบบไฟและไฟเลี้ยว</b><span class="row-note">ครบทุกดวง</span></li>
+            <li class="row row--ok"><i class="pip pip--ok" aria-hidden="true"></i><b>น้ำมันเครื่อง / หม้อน้ำ</b><span class="row-note">ระดับปกติ ไม่มีรอยซึม</span></li>
+          </ul>
+          <p class="note">แสดง 9 จาก 30 แถว — ใบจริงส่งเป็นไฟล์พร้อมรูปถ่ายรายจุดทางไลน์</p>
+        </div>
+      </div>
+
+    </div>
+    <figure class="band-shot reveal--fade reveal">
+      <img src="img/inspect.jpg" alt="ภายในอู่ มองเห็นตู้เครื่องมือ ชั้นอะไหล่ และถังน้ำมันเรียงอยู่ใต้ไฟนีออน" width="1200" height="675" loading="lazy">
+      <figcaption class="wrap">เครื่องมือที่ใช้ตรวจทั้ง 30 จุดอยู่ในอู่นี้ ไม่ต้องส่งต่อไปที่อื่น — และทุกจุดที่ขึ้นเหลืองหรือแดง เราถ่ายรูปแนบให้ในใบตรวจ ไม่ต้องเชื่อคำพูดช่าง</figcaption>
+    </figure>
+  </section>
+
+  <!-- ══ 4. รถคุณอยู่ขั้นไหน (ตอบข้อ 4) ═══════════════════════════════════
+       ไทม์ไลน์นี้คือ "สถานะของรถคันจริงที่กำลังเดินอยู่" ไม่ใช่ "ขั้นตอนบริการ"
+       จึงมีเวลาจริงกำกับทุกขั้น และมีหมุดบอกว่าตอนนี้อยู่ตรงไหน -->
+  <section class="section section--well" id="status" aria-labelledby="status-title">
+    <div class="wrap">
+      <p class="kicker reveal">04 — สถานะรถ</p>
+      <h2 id="status-title" class="reveal">ไม่ต้องโทรมาถามว่า "รถเสร็จยัง"</h2>
+      <p class="lede narrow reveal d1">ทุกครั้งที่รถขยับขั้น ระบบส่งไลน์หาคุณพร้อมรูป นี่คือหน้าสถานะของคันตัวอย่าง
+        ทะเบียน <span class="plate mono">3กษ 4412</span> ที่เข้ามาเมื่อเช้า</p>
+
+      <ol class="tl reveal d2">
+        <li class="tl-done"><i class="pip pip--ok" aria-hidden="true"></i>
+          <p class="tl-t mono">08:40</p><p class="tl-h">รับรถ + ถ่ายรูปรอบคัน</p>
+          <p class="tl-d">ถ่าย 12 รูปเก็บสภาพก่อนเข้าอู่ ป้องกันเถียงกันทีหลังว่ารอยนี้มีมาก่อนไหม</p></li>
+        <li class="tl-done"><i class="pip pip--ok" aria-hidden="true"></i>
+          <p class="tl-t mono">08:55</p><p class="tl-h">ตรวจ 30 จุด</p>
+          <p class="tl-d">ยกขึ้นลิฟต์ ตรวจตามใบเช็ค พร้อมถ่ายรูปทุกจุดที่ไม่ผ่าน</p></li>
+        <li class="tl-done"><i class="pip pip--ok" aria-hidden="true"></i>
+          <p class="tl-t mono">09:05</p><p class="tl-h">ส่งใบราคาให้ดู</p>
+          <p class="tl-d">ส่งทางไลน์ แยกค่าแรง/ค่าอะไหล่ทุกบรรทัด</p></li>
+        <li class="tl-now"><i class="pip pip--warn" aria-hidden="true"></i>
+          <p class="tl-t mono">09:12</p><p class="tl-h">รอคุณกดอนุมัติ <span class="tl-badge">ตอนนี้อยู่ขั้นนี้</span></p>
+          <p class="tl-d">ช่างยังไม่แตะอะไรทั้งนั้นจนกว่าจะได้คำตอบ อนุมัติเฉพาะบางรายการก็ได้</p></li>
+        <li><i class="pip pip--idle" aria-hidden="true"></i>
+          <p class="tl-t mono">—</p><p class="tl-h">ลงมือซ่อม</p>
+          <p class="tl-d">อะไหล่ที่ถอดออกเก็บใส่ถุงไว้ให้ดูทุกชิ้น</p></li>
+        <li><i class="pip pip--idle" aria-hidden="true"></i>
+          <p class="tl-t mono">—</p><p class="tl-h">ทดลองวิ่ง แล้วส่งมอบ</p>
+          <p class="tl-d">วิ่งทดสอบก่อนคืนรถทุกคัน แล้วส่งใบตรวจหลังซ่อมให้อีกใบ</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ══ 5. อะไหล่ (ตอบข้อ 5) — ตารางเปรียบเทียบ ไม่ใช่ตารางแพ็กเกจ ═══════
+       จุดต่างสำคัญ: ตารางนี้ให้ลูกค้า "เลือกของ" ไม่ใช่ "เลือกแพ็ก" ราคาจึงเป็น
+       ช่วง และมีคอลัมน์ "เหมาะกับใคร" แทนปุ่มซื้อ -->
+  <section class="section" id="parts" aria-labelledby="parts-title">
+    <div class="wrap">
+      <div class="head head--split reveal">
+        <div>
+          <p class="kicker">05 — อะไหล่</p>
+          <h2 id="parts-title">แท้ เทียบ หรือ OEM — เราให้คุณเลือก ไม่ได้เลือกให้</h2>
+        </div>
+        <p class="lede">อู่ที่ใส่ของเทียบแล้วคิดราคาของแท้คือปัญหาที่คนกลัวที่สุดเรื่องอะไหล่
+          เราเขียนไว้ในใบราคาทุกครั้งว่าบรรทัดนั้นเป็นของอะไร และเก็บกล่องอะไหล่ไว้ให้ดูตอนรับรถ</p>
+      </div>
+    </div>
+    <div class="wrap grid-parts">
+      <div>
+        <figure class="shot shot--inline reveal d2">
+          <img src="img/advise.jpg" alt="พนักงานถือแท็บเล็ตอธิบายผลตรวจให้ลูกค้าฟัง ข้างรถที่ยกอยู่บนลิฟต์" width="900" height="675" loading="lazy">
+        </figure>
+      </div>
+
+      <div class="table-scroll reveal--right reveal d1">
+        <table class="cmp">
+          <caption>เทียบอะไหล่ 3 แบบที่อู่ใช้จริง (ตัวอย่างจากผ้าเบรกหน้ารถเก๋งญี่ปุ่น)</caption>
+          <thead>
+            <tr><th scope="col">หัวข้อ</th><th scope="col">แท้ศูนย์</th><th scope="col">OEM</th><th scope="col">เทียบ</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">ใครผลิต</th><td>ผู้ผลิตเดิม กล่องแบรนด์รถ</td><td>ผู้ผลิตเดิม กล่องแบรนด์ตัวเอง</td><td>โรงงานอื่น</td></tr>
+            <tr><th scope="row">ราคาโดยประมาณ</th><td class="mono">3,200–4,500</td><td class="mono">1,600–2,400</td><td class="mono">700–1,400</td></tr>
+            <tr><th scope="row">อายุที่เจอจริง</th><td class="mono">35–45k กม.</td><td class="mono">30–40k กม.</td><td class="mono">15–25k กม.</td></tr>
+            <tr><th scope="row">รับประกันของ</th><td>ตามศูนย์</td><td class="mono">12 เดือน</td><td class="mono">3–6 เดือน</td></tr>
+            <tr><th scope="row">เหมาะกับใคร</th><td>รถยังอยู่ในประกัน / อยากได้เหมือนเดิมเป๊ะ</td><td>ใช้ยาว คุ้มที่สุดในสามตัว</td><td>รถกำลังจะขาย / งบจำกัดจริงๆ</td></tr>
+          </tbody>
+        </table>
+        <p class="note">ตัวเลขเป็นช่วงจากงานที่ทำบ่อย ใช้เป็นตัวอย่างประกอบเดโม ไม่ใช่ราคายืนของร้าน</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 6. รับประกัน (ตอบข้อ 6) — ใบรับประกันสั้นๆ ที่เขียนข้อยกเว้นไว้ด้วย ══ -->
+  <section class="section section--warranty" id="warranty" aria-labelledby="warranty-title">
+    <div class="wrap warranty">
+      <div class="wr-card reveal--scale reveal">
+        <p class="kicker head--center-kicker">06 — รับประกันงานซ่อม</p>
+        <h2 id="warranty-title">ซ่อมแล้วมีอาการเดิมซ้ำใน <span class="mono">12</span> เดือน กลับมาฟรี</h2>
+        <ul class="wr-list">
+          <li><span class="pip pip--ok" aria-hidden="true"></span>ค่าแรงในการแก้อาการเดิม — ไม่คิดเงิน</li>
+          <li><span class="pip pip--ok" aria-hidden="true"></span>อะไหล่ที่เราขายให้ — เคลมตามประกันของอะไหล่ตัวนั้น เราเดินเรื่องให้</li>
+          <li><span class="pip pip--bad" aria-hidden="true"></span><b>ไม่รวม:</b> ของสิ้นเปลืองตามอายุ (ผ้าเบรก ยาง แบตเตอรี่ น้ำมัน) · อาการใหม่คนละจุด · รถที่เอาไปแก้ต่อที่อื่นแล้ว</li>
+        </ul>
+        <p class="note">เขียนข้อยกเว้นไว้ตั้งแต่แรก เพราะ "รับประกันทุกอย่าง" คือประโยคที่จบด้วยการเถียงกันหน้าเคาน์เตอร์</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 7. นัดเข้าอู่ (ตอบข้อ 7) — ฟอร์ม + แผนผังวาดเอง ═══════════════════ -->
+  <section class="section section--well" id="book" aria-labelledby="book-title">
+    <div class="wrap grid-book">
+      <div>
+        <p class="kicker reveal">07 — นัดเข้าอู่</p>
+        <h2 id="book-title" class="reveal">บอกอาการมาก่อน เราจะได้เตรียมช่างกับอะไหล่ให้ตรงคิว</h2>
+        <form class="form reveal d1" data-form novalidate>
+          <p class="f-row"><label for="f-name">ชื่อที่ให้เรียก</label>
+            <input id="f-name" name="name" type="text" autocomplete="name" required placeholder="เช่น คุณเอ"></p>
+          <p class="f-row"><label for="f-tel">เบอร์โทร</label>
+            <input id="f-tel" name="tel" type="tel" inputmode="tel" autocomplete="tel" required placeholder="08x-xxx-xxxx"></p>
+          <p class="f-row"><label for="f-car">รุ่นรถ / ปี</label>
+            <input id="f-car" name="car" type="text" required placeholder="เช่น Civic FB 1.8 ปี 2015"></p>
+          <p class="f-row"><label for="f-date">วันที่สะดวกเข้าอู่</label>
+            <input id="f-date" name="date" type="date"></p>
+          <p class="f-row f-row--full"><label for="f-sym">อาการที่เจอ</label>
+            <textarea id="f-sym" name="symptom" rows="3" placeholder="เล่าตามที่ได้ยิน/รู้สึกได้เลย ไม่ต้องใช้ศัพท์ช่าง"></textarea></p>
+          <p class="hp" aria-hidden="true"><label for="f-line2">อย่ากรอกช่องนี้</label>
+            <input id="f-line2" name="line2" type="text" tabindex="-1" autocomplete="off"></p>
+          <p class="f-actions">
+            <button class="btn btn--primary" type="submit" data-submit>ส่งนัดเข้าอู่</button>
+            <span class="f-msg" role="status" data-msg></span>
+          </p>
+          <p class="fine">เบอร์ของคุณใช้เพื่อโทรกลับยืนยันคิวเท่านั้น ไม่ส่งต่อให้ใคร และไม่มีการโทรขายประกันตามมา</p>
+        </form>
+      </div>
+
+      <aside class="visit reveal--left reveal d1" aria-label="ที่ตั้งและเวลาเปิด">
+        <!-- แผนผังวาดเอง ไม่ใช่แผนที่ฝัง: แผนที่ฝังบนพื้นมืดจะเป็นสี่เหลี่ยมสว่างกลางหน้า
+             และโหลดสคริปต์ของคนอื่นมาทั้งก้อนเพื่อบอกทางแค่ซอยเดียว -->
+        <svg class="map" viewBox="0 0 320 220" role="img" aria-labelledby="map-title">
+          <title id="map-title">แผนผังทางเข้าอู่ จากถนนบางนา-ตราด เลี้ยวซ้ายเข้าซอย xx ตรงข้ามปั๊ม แล้วอู่อยู่ขวามือ 80 เมตร</title>
+          <rect x="0" y="40" width="320" height="36" class="m-road"/>
+          <rect x="150" y="76" width="26" height="144" class="m-road"/>
+          <path d="M0 58h320" class="m-dash"/>
+          <path d="M163 88v122" class="m-dash m-dash--thin"/>
+          <text x="8" y="32" class="m-lb">ถนนบางนา-ตราด (ขาออก)</text>
+          <text x="186" y="100" class="m-lb">ซอย xx</text>
+          <rect x="92" y="92" width="46" height="34" class="m-blk" rx="3"/>
+          <text x="115" y="113" class="m-lb m-lb--c">ปั๊ม</text>
+          <rect x="188" y="140" width="98" height="46" class="m-us" rx="3"/>
+          <text x="200" y="169" class="m-lb m-lb--ink">อู่ช่างชัด</text>
+          <path d="M176 152h12" class="m-way"/>
+          <circle cx="188" cy="140" r="7" class="m-pin"/>
+          <text x="8" y="206" class="m-lb">เลี้ยวซ้ายตรงข้ามปั๊ม เข้าไป 80 ม.</text>
+        </svg>
+        <dl class="visit-meta">
+          <div><dt>ที่อยู่</dt><dd>88/xx ซอยบางนา-ตราด xx แขวงบางนาเหนือ กรุงเทพฯ 10260</dd></div>
+          <div><dt>เวลาเปิด</dt><dd>จันทร์–ศุกร์ <span class="mono">08:30–18:00</span> · เสาร์ <span class="mono">08:30–16:00</span> · อาทิตย์ปิด</dd></div>
+          <div><dt>โทร</dt><dd><a href="tel:" class="mono">02-xxx-xxxx</a></dd></div>
+          <div><dt>ไลน์</dt><dd>@changchat.demo (ส่งรูป/คลิปเสียงเครื่องมาก่อนได้)</dd></div>
+        </dl>
+        <p class="note">จอดรอในร้านได้ 6 คัน มีที่นั่งรอในห้องแอร์ ถ้าต้องจอดค้างคืนแจ้งได้ ไม่คิดค่าจอด</p>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap foot">
+    <p class="foot-brand"><span class="mark" aria-hidden="true"><span class="pip pip--ok"></span><span class="pip pip--warn"></span><span class="pip pip--bad"></span></span>
+      อู่ช่างชัด <small>CHANGCHAT AUTO</small></p>
+    <p class="foot-lines">88/xx ซอยบางนา-ตราด xx กรุงเทพฯ 10260 · <a href="tel:" class="mono">02-xxx-xxxx</a></p>
+    <p class="foot-demo"><b>งานสาธิต:</b> อู่ช่างชัดเป็นร้านสมมติที่สร้างขึ้นเพื่อแสดงระดับงานเว็บ ชื่อร้าน ที่อยู่ เบอร์โทร ราคา
+      และตัวเลขทุกตัวในหน้านี้เป็นตัวอย่างสำหรับวางเนื้อหาจริงของลูกค้า · ภาพประกอบจาก Unsplash</p>
+  </div>
+</footer>
+
+<!-- แถบลอยล่างสำหรับมือถือ: โผล่เมื่อฮีโร่พ้นจอ และซ่อนตัวเองเมื่อถึงฟอร์ม
+     (ไม่ทับสิ่งที่ตัวเองชี้ไป — ENGINE §4) -->
+<div class="orderbar" data-orderbar hidden>
+  <a class="btn btn--ghost btn--sm" href="tel:">โทรหาช่าง</a>
+  <a class="btn btn--primary btn--sm" href="#book">นัดเข้าอู่</a>
+</div>
+
+<script src="js/nav-response.js" defer></script>
+<script src="js/main.js" defer></script>
+<script src="js/estimate.js" defer></script>
+<script src="/work/_demo-badge.js" defer></script>
+</body>
+</html>

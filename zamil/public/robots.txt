@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# No Sitemap line until there is a domain: the one that used to sit here pointed
+# at the template's own host and at a sitemap.xml this project has never had.

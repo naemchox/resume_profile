@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="th" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+<!-- คืนตำแหน่งที่อ่านค้างไว้เอง ไม่รอเบราว์เซอร์ (ที่มา: work/_JANK-REFRESH.md)
+     Safari คืนตำแหน่ง scroll หลังอีเวนต์ load เท่านั้น — วัดแล้ว DCL/load ยังอยู่ที่ y=0
+     ทั้งคู่ คนที่รีเฟรชกลางหน้าจึงเห็น "ฮีโร่แวบ" ตั้งแต่เฟรมแรกจนกว่าไฟล์สุดท้ายจะโหลดจบ
+     (เน็ตช้า = ค้างนานเป็นวินาที) สคริปต์นี้เก็บตำแหน่งไว้เองใน sessionStorage แล้ววาง
+     กลับตั้งแต่เฟรมแรกที่ความสูงหน้าพอ — เร็วกว่ารอ load หลายเท่าและไม่ต้องรอรูป
+     หยุดทันทีถ้าผู้ใช้ขยับเอง (wheel/touch/key/pointer) จะได้ไม่แย่งมือกับคนอ่าน -->
+<script>
+(function () {
+  try {
+    if (!("scrollRestoration" in history)) return;
+    history.scrollRestoration = "manual";
+    var key = "ts:y:" + location.pathname;
+    var want = parseInt(sessionStorage.getItem(key) || "0", 10) || 0;
+    var timer = 0;
+    var save = function () { try { sessionStorage.setItem(key, String(Math.round(window.scrollY))); } catch (e) {} };
+    addEventListener("scroll", function () {
+      if (timer) return;
+      timer = setTimeout(function () { timer = 0; save(); }, 200);
+    }, { passive: true });
+    addEventListener("pagehide", save);
+    /* แถบเมนูต้องไม่ "โผล่" ตอนหน้าเปิดมากลางหน้าอยู่แล้ว (jek 25/8/26 · the-bed)
+       แถบมีสองชั้นที่ไล่เข้าเอง — พื้นทึบบน .nav-shell::before (opacity 300ms) กับเส้นทอง
+       บน border-color (400ms) — พอคืนตำแหน่ง scroll ปุ๊บ สคริปต์แถบเมนูใส่คลาส scrolled
+       ทั้งสองชั้นจึงไล่ให้เห็นทุกครั้งที่รีเฟรช ทั้งที่ผู้ใช้ไม่ได้เลื่อนอะไรเลย
+       ระหว่างช่วงคืนตำแหน่ง จึงปิดทรานซิชันของหัวเว็บไว้ = แถบอยู่ในสถานะสุดท้ายตั้งแต่
+       เฟรมแรก · เปิดคืนทันทีที่ผู้ใช้ขยับเอง (หรืออย่างช้า 900ms) การเลื่อนของจริงจึงยังลื่น */
+    if (want) {
+      var root = document.documentElement;
+      root.className += " nav-instant";
+      var st = document.createElement("style");
+      st.textContent = "html.nav-instant .nav-shell,html.nav-instant .nav-shell::before," +
+        "html.nav-instant .site-header,html.nav-instant header,html.nav-instant header > *," +
+        "html.nav-instant header > * > *{transition:none !important}";
+      (document.head || document.documentElement).appendChild(st);
+      var unlock = function () { root.className = root.className.replace(/\s*nav-instant/, ""); };
+      ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+        addEventListener(ev, unlock, { passive: true, once: true });
+      });
+      setTimeout(unlock, 900);
+    }
+    if (!want || location.hash) return;
+    var stop = false;
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+      addEventListener(ev, function () { stop = true; }, { passive: true, once: true });
+    });
+    var t0 = (performance.now ? performance.now() : 0);
+    var now = function () { return performance.now ? performance.now() : t0; };
+    var done = false;
+    var put = function () {
+      if (stop || done) return true;
+      var el = document.scrollingElement || document.documentElement;
+      if (!el || el.scrollHeight - window.innerHeight < want) return false;   /* หน้ายังสูงไม่พอ ค่อยลองใหม่ */
+      if (Math.round(window.scrollY) !== want) {
+        var prev = el.style.scrollBehavior;      /* html { scroll-behavior: smooth } จะทำให้การวางกลับกลายเป็นการไถ */
+        el.style.scrollBehavior = "auto";
+        window.scrollTo(0, want);
+        el.style.scrollBehavior = prev;
+      }
+      done = Math.round(window.scrollY) === want;
+      /* ใส่สถานะ "เลื่อนแล้ว" ให้หัวเว็บทันทีในจังหวะเดียวกับที่คืนตำแหน่ง — ไม่ต้องรอสคริปต์
+         ของหน้ามันเองซึ่งอยู่ท้าย <body> (วัดแล้วช้ากว่ากันราว 20ms = เห็นแถบเปล่าได้ 1 เฟรม)
+         เกณฑ์คนละค่าเพราะแต่ละที่ตั้งไว้ไม่เท่ากัน: .site-header > 8px · .nav-shell > 40px
+         (ดู js/main.js กับสคริปต์ท้ายหน้าเดโม) สคริปต์ของหน้าจะคำนวณซ้ำเองอยู่แล้ว ค่าจึงตรงกัน */
+      if (done) {
+        var mark = function (sel, cls, min) {
+          if (want <= min) return;
+          var n = document.querySelectorAll(sel);
+          for (var i = 0; i < n.length; i++) n[i].classList.add(cls);
+        };
+        /* หัวเว็บของแต่ละใบใช้คนละคลาสคนละเกณฑ์ (ของเดิมเป็นแบบนั้นมาก่อนแล้ว):
+           .site-header.scrolled >8px (เว็บเรา) · .nav-shell.scrolled >40px (the-bed)
+           .site-header.stuck (the-terrace ใช้ sentinel ไม่ใช่ตัวเลข — 80px คือค่าประมาณ)
+           header.small >120px (homecraft/lumen/glow-clinic ผ่าน js/nav-response.js)
+           เดาพลาดไม่เป็นไร สคริปต์ของหน้าคำนวณทับให้ในเฟรมถัดไป และช่วงนี้ทรานซิชันถูกปิดอยู่
+           การแก้จึงเป็นการสลับทันที ไม่ใช่การไล่สีให้เห็น */
+        mark(".site-header", "scrolled", 8);
+        mark(".nav-shell", "scrolled", 40);
+        mark(".site-header, header[data-header]", "stuck", 80);
+        mark("header, .site-header", "small", 120);
+      }
+      return done;
+    };
+    /* ลองทุกทางที่มาถึงก่อน: setTimeout(0) มักได้ก่อนเฟรมแรกด้วยซ้ำ · rAF ทำงานก่อนวาด
+       · readystatechange/DOMContentLoaded คือจุดที่ body ครบแล้วแน่ๆ
+       เหตุที่ไม่พอถ้าใช้ rAF อย่างเดียว: วัดแล้วบางหน้า (หน้าแรกของเว็บเรา) เฟรมแรก
+       มาก่อนที่ความสูงจะพอ ทำให้เลื่อนไม่ได้ แล้วต้องรอ rAF รอบถัดไป = เห็นหัวเว็บ 1 เฟรม */
+    /* สองสายแยกกัน สายละหนึ่งนัด — ถ้าให้สายเดียวนัดทั้ง setTimeout และ rAF
+       จำนวนนัดจะเพิ่มเป็นสองเท่าทุกรอบ (2^n) ภายในไม่กี่ร้อยมิลลิวินาที */
+    var tick = function () { if (put() || stop) return; if (now() - t0 < 3000) setTimeout(tick, 0); };
+    var frame = function () { if (put() || stop) return; if (now() - t0 < 3000) requestAnimationFrame(frame); };
+    tick();
+    frame();
+    document.addEventListener("readystatechange", put);
+    addEventListener("DOMContentLoaded", put);
+    addEventListener("load", put);
+  } catch (e) {}
+})();
+</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+  <title>นโยบายความเป็นส่วนตัว — ตามสั่ง (TarmSung)</title>
+  <link rel="canonical" href="https://tarmsung.pages.dev/privacy.html">
+  <meta name="description" content="นโยบายความเป็นส่วนตัวของ ตามสั่ง (TarmSung) — เราเก็บข้อมูลอะไร เก็บไว้ที่ไหน นานเท่าไหร่ และคุณขอลบได้อย่างไร" />
+  <meta name="theme-color" content="#d63a00" />
+  <meta name="robots" content="index, follow" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anuphan:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" />
+
+  <link rel="stylesheet" href="css/tokens.css?v=78" />
+  <link rel="stylesheet" href="css/styles.css?v=216" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1" />
+  <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><path%20d='M15.00,3.40%20C16.58,3.40%2018.73,3.50%2020.50,4.20%20C22.27,4.90%2024.25,6.23%2025.60,7.60%20C26.95,8.97%2028.43,10.77%2028.60,12.40%20C28.77,14.03%2026.37,15.93%2026.60,17.40%20C26.83,18.87%2030.33,19.87%2030.00,21.20%20C29.67,22.53%2026.50,24.17%2024.60,25.40%20C22.70,26.63%2020.80,28.13%2018.60,28.60%20C16.40,29.07%2013.47,28.77%2011.40,28.20%20C9.33,27.63%207.50,26.50%206.20,25.20%20C4.90,23.90%203.90,22.03%203.60,20.40%20C3.30,18.77%204.47,17.03%204.40,15.40%20C4.33,13.77%202.70,12.20%203.20,10.60%20C3.70,9.00%206.10,6.87%207.40,5.80%20C8.70,4.73%209.73,4.60%2011.00,4.20%20C12.27,3.80%2013.42,3.40%2015.00,3.40%20Z'%20fill='%23fdf7ef'%20stroke='%230e0705'%20stroke-width='1.3'/><circle%20cx='18.4'%20cy='13.2'%20r='5.2'%20fill='%23e84400'/></svg>" />
+
+  <style>
+    .legal { max-width: 46rem; margin-inline: auto; }
+    .legal h2 { font-size: var(--text-xl); margin-top: var(--space-7); margin-bottom: var(--space-3); }
+    .legal p, .legal li { color: var(--color-text-muted); max-width: 65ch; }
+    .legal p { margin-bottom: var(--space-3); }
+    .legal ul { padding-inline-start: 1.2rem; display: grid; gap: var(--space-2); margin-bottom: var(--space-3); }
+    .legal .updated { font-size: var(--text-sm); color: var(--color-text-subtle); }
+    .legal table { width: 100%; border-collapse: collapse; margin-bottom: var(--space-4); font-size: var(--text-sm); }
+    .legal th, .legal td { text-align: start; padding: var(--space-3); border-bottom: 1px solid var(--color-border); vertical-align: top; }
+    .legal th { font-family: var(--font-display); color: var(--color-text); }
+    .legal td { color: var(--color-text-muted); }
+    .legal a { color: var(--color-brand-text); text-decoration: underline; text-underline-offset: 2px; }
+    .legal .back { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 44px; }
+  </style>
+<script>
+  /* Same guard as index.html: theme before first paint, and mark that scripting
+     booted. Without it this page flashed white for anyone on the dark theme. */
+  document.documentElement.classList.add("js");
+  /* Same as index.html: the attribute is always written, OS preference included,
+     because the CSS only understands the two explicit values. */
+  var t = null;
+  try { t = localStorage.getItem("ts-theme"); } catch (e) {}
+  if (t !== "light" && t !== "dark") {
+    t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  document.documentElement.setAttribute("data-theme", t);
+
+  /* The loading screen is opt-in per session, and the decision has to be made
+     here, before the first paint: a screen that appears one frame after the page
+     has already shown itself is worse than no screen at all. js/loader.js only
+     takes it away again — with scripting off this class is never written and
+     .ld stays display:none, so nobody can be shut behind it. */
+  /* Every load, jek's call (20/8/26). It was once per session first — the reasoning
+     being that someone clicking through four pages should be greeted once — but
+     the screen is the kitchen opening, and a kitchen opens every time you walk in.
+     One line to put the session gate back if that ever reads as a delay:
+       if (!sessionStorage.getItem("ts-served")) ...add("loading")   (wrapped in
+     try/catch — Safari's "Block All Cookies" throws on read rather than returning
+     null). Nothing else in the mechanism depends on which of the two it is. */
+  document.documentElement.classList.add("loading");
+
+  /* One gate for every entrance on the page. Anything that animates on arrival —
+     the hero rise, the work cards, the reference grid — has to wait behind the
+     loading screen, or it plays out against the back of a sheet of paper and the
+     page is already static by the time anyone sees it. Defined here, in the one
+     script that runs on every page before anything else, so the home page and the
+     reference page cannot end up with two different ideas of when the page begins.
+     No loading screen (returning visitor, no JS gate written) = runs at once. */
+  window.tsCurtain = function (fn) {
+    if (!document.documentElement.classList.contains("loading")) { fn(); return; }
+    var ran = false;
+    var go = function () { if (ran) return; ran = true; fn(); };
+    document.addEventListener("ts:served", go);
+    setTimeout(go, 5000);   // past the loader's own 4s cap: nothing waits forever
+  };
+
+</script>
+  <script src="js/loader.js?v=34" defer></script>
+</head>
+
+<body>
+
+  <!-- ไอคอนชุดเดียวของหน้านี้ (สร้างด้วย playbook/make-icons.mjs) -->
+<svg class="sr-only" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0"><defs>
+</defs></svg>
+<!-- ============================ LOADING SCREEN ============================
+       The ScoreUp shape — ring, mark, wordmark, shuttle bar — in this site's ink.
+       Gated on html.loading (see the head script) and taken away by js/loader.js.
+       The other variant, the order ticket printing out of the rail, is parked in
+       _archive/loading-ticket.html; its CSS is still live in styles.css.
+       Everything visible is aria-hidden: the one line a screen reader gets is the
+       .sr-only status, because a wordmark and a bar read aloud are noise. -->
+  <div class="ld ld--orb" id="ld" role="status" aria-live="polite">
+    <p class="sr-only">กำลังเปิดครัว กรุณารอสักครู่</p>
+    <div class="ld-stack" aria-hidden="true">
+      <div class="ld-orb">
+        <img class="ld-egg" src="assets/emoji/1f373-anim.webp?v=1" width="78" height="78" alt="" decoding="async" fetchpriority="high">
+        <span class="ld-mark"><svg viewBox="0 0 32 32" focusable="false" aria-hidden="true"><path class="egg-white" d="M15.00,3.40 C16.58,3.40 18.73,3.50 20.50,4.20 C22.27,4.90 24.25,6.23 25.60,7.60 C26.95,8.97 28.43,10.77 28.60,12.40 C28.77,14.03 26.37,15.93 26.60,17.40 C26.83,18.87 30.33,19.87 30.00,21.20 C29.67,22.53 26.50,24.17 24.60,25.40 C22.70,26.63 20.80,28.13 18.60,28.60 C16.40,29.07 13.47,28.77 11.40,28.20 C9.33,27.63 7.50,26.50 6.20,25.20 C4.90,23.90 3.90,22.03 3.60,20.40 C3.30,18.77 4.47,17.03 4.40,15.40 C4.33,13.77 2.70,12.20 3.20,10.60 C3.70,9.00 6.10,6.87 7.40,5.80 C8.70,4.73 9.73,4.60 11.00,4.20 C12.27,3.80 13.42,3.40 15.00,3.40 Z"/><circle class="yolk" cx="18.4" cy="13.2" r="5.2"/></svg></span>
+      </div>
+      <div class="ld-name">ตามสั่ง<small>web &amp; app studio</small></div>
+      <div class="ld-track"><i></i></div>
+    </div>
+    <p class="ld-msg" aria-hidden="true">กำลังเปิดครัว<span>.</span><span>.</span><span>.</span></p>
+  </div>
+  <a class="skip-link" href="#main">ข้ามไปยังเนื้อหาหลัก</a>
+
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html" aria-label="ตามสั่ง หน้าแรก">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false"><path class="egg-white" d="M15.00,3.40 C16.58,3.40 18.73,3.50 20.50,4.20 C22.27,4.90 24.25,6.23 25.60,7.60 C26.95,8.97 28.43,10.77 28.60,12.40 C28.77,14.03 26.37,15.93 26.60,17.40 C26.83,18.87 30.33,19.87 30.00,21.20 C29.67,22.53 26.50,24.17 24.60,25.40 C22.70,26.63 20.80,28.13 18.60,28.60 C16.40,29.07 13.47,28.77 11.40,28.20 C9.33,27.63 7.50,26.50 6.20,25.20 C4.90,23.90 3.90,22.03 3.60,20.40 C3.30,18.77 4.47,17.03 4.40,15.40 C4.33,13.77 2.70,12.20 3.20,10.60 C3.70,9.00 6.10,6.87 7.40,5.80 C8.70,4.73 9.73,4.60 11.00,4.20 C12.27,3.80 13.42,3.40 15.00,3.40 Z"/><circle class="yolk" cx="18.4" cy="13.2" r="5.2"/></svg></span>
+        <span>ตามสั่ง<small>WEB &amp; APP STUDIO</small></span>
+      </a>
+      <div class="nav-actions" style="margin-inline-start:auto">
+        <!-- Byte-identical to the header switch in index.html. It was left behind as
+             the old icon-btn when the pill landed there: .theme-toggle styled it as a
+             54px track while its two icons kept the .icon classes the tt- rules never
+             match, so the sun and the moon sat stacked in the middle of an empty pill
+             and neither the thumb nor the icons moved on a press. One switch, one
+             markup — change them together or not at all. -->
+        <button class="theme-toggle" id="themeToggle" type="button" role="switch" aria-checked="false"
+                aria-label="สลับเป็นธีมมืด">
+          <span class="tt-thumb">
+            <svg class="tt-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"/></svg>
+            <svg class="tt-moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+          </span>
+        </button>
+        <a class="btn btn--secondary" href="index.html#contact">ติดต่อเรา</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="section">
+      <div class="container legal">
+        <h1>นโยบายความเป็นส่วนตัว</h1>
+        <p class="updated">ปรับปรุงล่าสุด: 22 สิงหาคม 2569</p>
+
+        <p>หน้านี้อธิบายว่า <strong>ตามสั่ง (TarmSung)</strong> เก็บข้อมูลส่วนบุคคลอะไรจากคุณ
+          เก็บไว้ที่ไหน ใช้ทำอะไร และคุณใช้สิทธิของคุณได้อย่างไร ตามพระราชบัญญัติคุ้มครองข้อมูล
+          ส่วนบุคคล พ.ศ. 2562 (PDPA)</p>
+
+        <h2>1. ผู้ควบคุมข้อมูลส่วนบุคคล</h2>
+        <p>ตามสั่ง (TarmSung)<br />
+          อีเมล: <a href="mailto:tarmsungdev@gmail.com">tarmsungdev@gmail.com</a><br />
+          โทรศัพท์: <a href="tel:+66816547401">081-654-7401</a></p>
+
+        <h2>2. ข้อมูลที่เราเก็บ และเก็บเมื่อไหร่</h2>
+        <p><strong>เว็บไซต์นี้ไม่มีแบบฟอร์มให้กรอกแล้ว</strong> (ปิดไปเมื่อ 21 สิงหาคม 2569)
+          เราจึงไม่ได้เก็บข้อมูลใดๆ จากการที่คุณเปิดดูเว็บไซต์ ไม่มีระบบสมัครสมาชิก
+          ไม่มีการติดตามข้ามเว็บไซต์ และไม่มีโฆษณา</p>
+        <p>เราจะมีข้อมูลของคุณก็ต่อเมื่อ <strong>คุณเป็นฝ่ายติดต่อเรามาเอง</strong> ทางอีเมล โทรศัพท์
+          หรือแชทในระบบ Fastwork — และมีเท่าที่คุณพิมพ์มาในข้อความนั้นเท่านั้น โดยทั่วไปคือ</p>
+        <table>
+          <thead>
+            <tr><th scope="col">ข้อมูล</th><th scope="col">มาจากไหน</th><th scope="col">ใช้ทำอะไร</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>ชื่อที่คุณใช้เรียกตัวเอง</td><td>คุณพิมพ์มาเอง</td><td>เรียกชื่อคุณถูกต้องเวลาติดต่อกลับ</td></tr>
+            <tr><td>อีเมล หรือเบอร์โทร</td><td>ช่องทางที่คุณติดต่อมา</td><td>ส่งใบเสนอราคาและตอบกลับ</td></tr>
+            <tr><td>รายละเอียดงานที่คุณเล่ามา</td><td>คุณพิมพ์มาเอง</td><td>ประเมินขอบเขตงานและราคา</td></tr>
+          </tbody>
+        </table>
+        <p>ถ้าคุณติดต่อผ่าน <strong>Fastwork</strong> ข้อความและข้อมูลบัญชีของคุณอยู่ในระบบของ Fastwork
+          ซึ่งมีนโยบายความเป็นส่วนตัวของตัวเอง เราเห็นเท่าที่ระบบนั้นแสดงให้ผู้ขายเห็น</p>
+        <p>เรา <strong>ไม่</strong> เก็บเลขบัตรประชาชน ข้อมูลบัตรเครดิต ข้อมูลสุขภาพ ศาสนา
+          หรือข้อมูลอ่อนไหวอื่นใดผ่านเว็บไซต์นี้ และไม่มีช่องให้กรอกด้วย</p>
+
+        <h2>3. ฐานทางกฎหมายที่เราใช้</h2>
+        <p>เราประมวลผลข้อมูลของคุณบนฐาน <strong>ประโยชน์อันชอบด้วยกฎหมาย</strong>
+          ในการตอบกลับคำขอใบเสนอราคาที่คุณเป็นผู้เริ่มติดต่อมาเอง
+          และฐาน <strong>การปฏิบัติตามสัญญา</strong> ถ้าเราตกลงรับงานกัน</p>
+
+        <h2>4. ข้อมูลถูกเก็บไว้ที่ไหน และใครเข้าถึงได้</h2>
+        <p>ข้อความที่คุณส่งมาอยู่ในกล่องอีเมลของทีม (Google Workspace) หรือในแชท Fastwork
+          แล้วแต่ช่องทางที่คุณเลือก ผู้ให้บริการเหล่านี้อาจเก็บข้อมูลบนเซิร์ฟเวอร์นอกประเทศไทย</p>
+        <p><strong>ข้อมูลเก่าก่อน 21 สิงหาคม 2569:</strong> ตอนที่เว็บยังมีแบบฟอร์ม ข้อมูลที่ส่งเข้ามาถูกบันทึก
+          เป็นแถวใน Google Sheet ของทีม แถวเหล่านั้นยังอยู่และอยู่ภายใต้นโยบายฉบับนี้ทุกข้อ
+          ส่วนช่องทางรับข้อมูลอัตโนมัตินั้นถูกปิดแล้ว ไม่รับข้อมูลใหม่อีก</p>
+        <ul>
+          <li>ผู้ที่เข้าถึงได้คือ <strong>ทีมงานตามสั่งเท่านั้น</strong> — ปัจจุบันคือ Pat และ Naem</li>
+          <li>เรา <strong>ไม่ขาย ไม่ให้เช่า และไม่แลกเปลี่ยน</strong> ข้อมูลของคุณกับใคร</li>
+          <li>เราไม่ส่งข้อมูลของคุณให้บุคคลที่สามเพื่อการตลาด</li>
+        </ul>
+
+        <h2>5. เก็บไว้นานเท่าไหร่</h2>
+        <p>เราเก็บข้อมูลการติดต่อของคุณไว้ไม่เกิน <strong>24 เดือน</strong> นับจากวันที่คุณติดต่อมาครั้งล่าสุด
+          เพื่อให้ติดตามงานและอ้างอิงใบเสนอราคาเดิมได้ หลังจากนั้นเราจะลบข้อมูลนั้นออก
+          ถ้าเราเริ่มทำงานร่วมกันจริง ข้อมูลที่จำเป็นต่อสัญญาและเอกสารทางบัญชี
+          จะถูกเก็บตามระยะเวลาที่กฎหมายกำหนด</p>
+
+        <h2>6. คุกกี้และการวิเคราะห์</h2>
+        <p>เว็บไซต์นี้ <strong>ไม่ใช้คุกกี้เพื่อการติดตามหรือโฆษณา</strong> และไม่มี Google Analytics
+          หรือ Facebook Pixel เราเก็บเพียงค่าเดียวไว้ในเบราว์เซอร์ของคุณ (localStorage) คือ
+          <strong>ธีมสว่าง/มืดที่คุณเลือก</strong> (คีย์ <code>ts-theme</code>) เพื่อจำไว้ตอนคุณกลับมา ค่านี้อยู่ในเครื่องคุณ
+          ไม่ถูกส่งมาที่เรา และลบได้เองด้วยการล้างข้อมูลเว็บไซต์ในเบราว์เซอร์</p>
+        <p>เราโหลดฟอนต์จาก Google Fonts ซึ่งทำให้เบราว์เซอร์ของคุณเชื่อมต่อไปที่เซิร์ฟเวอร์ของ
+          Google และ Google อาจเห็น IP ของคุณตามปกติของการโหลดไฟล์</p>
+
+        <h2>7. สิทธิของคุณ</h2>
+        <p>ตาม PDPA คุณมีสิทธิขอ <strong>เข้าถึง แก้ไข ลบ ระงับการใช้ คัดค้านการประมวลผล
+          และถอนความยินยอม</strong> ได้ตลอดเวลา</p>
+        <p>วิธีใช้สิทธิ: อีเมลมาที่ <a href="mailto:tarmsungdev@gmail.com">tarmsungdev@gmail.com</a>
+          พร้อมระบุว่าต้องการอะไร เราจะดำเนินการและตอบกลับ <strong>ภายใน 30 วัน</strong>
+          การขอลบข้อมูลไม่มีค่าใช้จ่าย และไม่กระทบสิทธิอื่นของคุณ</p>
+
+        <h2>8. ความปลอดภัย</h2>
+        <p>ข้อมูลถูกส่งผ่านการเชื่อมต่อที่เข้ารหัส (HTTPS) และเก็บในบัญชี Google ของทีมที่เข้าถึง
+          ได้เฉพาะผู้ที่ระบุไว้ในข้อ 4 อย่างไรก็ตาม ไม่มีระบบใดปลอดภัยสมบูรณ์แบบ —
+          กรุณาอย่าส่งรหัสผ่าน เลขบัตรเครดิต หรือข้อมูลอ่อนไหวมาทางอีเมลหรือแชท</p>
+
+        <h2>9. การเปลี่ยนแปลงนโยบายนี้</h2>
+        <p>ถ้าเราแก้ไขนโยบายนี้ เราจะอัปเดตวันที่ด้านบนของหน้า
+          การเปลี่ยนแปลงที่กระทบสิทธิของคุณอย่างมีนัยสำคัญ เราจะแจ้งทางอีเมลที่คุณเคยติดต่อมา</p>
+
+        <h2>10. ร้องเรียน</h2>
+        <p>ถ้าคุณเห็นว่าเราจัดการข้อมูลของคุณไม่ถูกต้อง ติดต่อเราก่อนได้ตามช่องทางในข้อ 1
+          และคุณมีสิทธิร้องเรียนต่อสำนักงานคณะกรรมการคุ้มครองข้อมูลส่วนบุคคล (สคส.) ได้</p>
+
+        <p style="margin-top:var(--space-7)">
+          <a class="back btn btn--secondary" href="index.html">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+            กลับหน้าแรก
+          </a>
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-bottom">
+        <span>© <span id="year">2026</span> ตามสั่ง (TarmSung) — สงวนลิขสิทธิ์</span>
+      </div>
+    </div>
+    <div class="wordmark" aria-hidden="true"><span>SERVED</span></div>
+  </footer>
+
+  <script src="js/main.js?v=166" defer></script>
+</body>
+</html>

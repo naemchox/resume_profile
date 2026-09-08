@@ -1,0 +1,3061 @@
+:root {
+  color-scheme: dark; /* Windows renders native <select> popups and scrollbars from this. Without it the
+                         snip-style dropdown opened as a light-scheme list with a greyed-out selected row
+                         (jek, Win11 2026-07-30). Mac never showed it because its controls are dark anyway. */
+  --bg: rgb(18, 20, 26); /* FULLY opaque. backdrop-filter can't blur the desktop through a transparent
+                            overlay window, so any translucency just lets bright content behind bleed
+                            through — at 0.985 it still showed as a lighter, uneven top-left corner over a
+                            white page (jek's "edge error", 2026-07-26). Opaque = clean uniform surfaces on
+                            every surface that uses --bg (pill, panel, card). */
+  --fg: #f3f4f6;
+  --muted: #9aa3b2;
+  --accent: #7dd3fc;
+  --accent-rgb: 125, 211, 252; /* rgb() form of --accent, for rgba(var(--accent-rgb),a) tints */
+  --text-dim: #9aa3b2;         /* = --muted; used by faint helper text */
+  /* One edge, three states — the same discipline the motion tokens above impose on duration, for
+     the same reason: this file had grown four resting weights (0.12/0.14/0.22/0.28) and three hover
+     weights (0.22/0.24/0.35) picked one control at a time, plus two different answers to "what does
+     focus look like" (the Type field went accent, every other field went white). Anything new uses
+     these three. (jek asked whether the edges were consistent, 2026-08-02. They were not.) */
+  --line: rgba(255, 255, 255, 0.12);        /* resting: a surface edge or a divider */
+  --line-hover: rgba(255, 255, 255, 0.22);  /* the cursor is on it */
+  --line-focus: rgba(125, 211, 252, 0.6);   /* it has the keyboard — accent, so it is unmistakable */
+  --btn: rgba(255, 255, 255, 0.08);
+  --btn-hover: rgba(255, 255, 255, 0.18);
+
+  /* ---- Motion. Three speeds and two curves, nothing else. The file had grown seven near-identical
+     durations (0.14/0.15/0.17/0.18/0.2/0.22/0.26) picked ad hoc, so the pill felt tuned and the panel
+     felt cheap — same app, two different products. Anything new uses these.
+       --t-fast  : state you're already looking at (hover, focus, colour)
+       --t-base  : something appears, moves, or resizes
+       --t-slow  : a whole surface travelling across the screen (tuck, dock glide)
+       --ease-out: things ENTERING or settling — overshoot-free deceleration
+       --ease-mid: things RESIZING between two known heights */
+  --t-fast: 0.14s;
+  --t-base: 0.2s;
+  --t-slow: 0.28s;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-mid: cubic-bezier(0.4, 0, 0.2, 1);
+  /* --ease-spring: overshoots ~13% and settles, the way a physical thing with mass does.
+     THE PILL ONLY. It went app-wide on 2026-08-01 and came straight back off every surface that is
+     really a BAR — the panel, the card, the coach, the drop stack, and worst of all the max-height
+     resize shared by .log/#settingsView/.panel, where an overshoot on height makes a list of rows
+     visibly bounce past its resting size and come back. On the pill (its width, its keycap, its
+     buttons) the same curve reads as weight, because those are small things moving a short distance
+     with room to overshoot into. On a bar full of text it reads as a jitter. (jek, 2026-08-07)
+     Everything else uses --ease-out (entering/settling) or --ease-mid (resizing). */
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+
+/* Accessibility + a real safety valve: this overlay sits on top of GAMES, and someone sensitive to
+   motion (or just mid-boss-fight) should be able to kill every loop — the mascot bob, the dot pulse,
+   the hint marquee — from one OS switch. Durations collapse to ~0 instead of 0 so transitionend and
+   the JS timers that wait on it still fire. */
+@media (prefers-reduced-motion: reduce) {
+  :root { --t-fast: 0.01s; --t-base: 0.01s; --t-slow: 0.01s; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* The two glass values are REGISTERED so they can be interpolated. Without this they are untyped
+   strings: a new sample would repaint the scrim in a single frame while the rim — which .pill happens
+   to transition — eased across 0.35s, and a surface whose fill snaps while its edge glides reads as a
+   flash. (jek: "the pill glowed, is it a bug?" 2026-08-03. Half of it was.) initial-value matches the
+   fallback each var() already carried, so nothing changes before the first sample lands. */
+@property --glass-scrim {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(18, 20, 26, 0.72);
+}
+@property --glass-edge {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(255, 255, 255, 0.18);
+}
+/* Declared where the values CHANGE — JS writes both on the root — and inherited down to every
+   surface. One duration for both, so the fill and the rim arrive together. */
+:root { transition: --glass-scrim 0.35s ease, --glass-edge 0.35s ease; }
+
+/* ONLY THE PILL. The panel, the translation card and the first-run card were glass too for most of
+   2026-08-03; jek asked to see them opaque again and they stayed that way. The pill is chrome — a
+   status capsule you glance at — so seeing the desktop through it costs nothing. The other three
+   hold text you READ, and glass buys atmosphere there by spending contrast, which is the one thing
+   a translation card cannot afford. Re-widening this selector is how you undo it.
+
+   ---------- Real glass ----------------------------------------------------------------------
+   Every surface here has described itself as glass since the first commit while being a flat opaque
+   slab, because backdrop-filter cannot reach the desktop through a transparent overlay window (the
+   long --bg note above is the scar from trying). main.js solves it from the other side: it hides us
+   from screen capture, photographs what is actually behind the stack, and hands back a 24px-wide
+   bitmap. Stretched over a 336px pill that IS the blur — one source pixel per 14 screen pixels, and
+   the upscale between them is a gaussian. No filter, so no GPU pass over live gameplay and none of
+   the square-cornered filter-region artifact that killed backdrop-filter.
+
+   Three variables come from JS, and the fallback is the entire point of how they're split:
+     --glass-img    the photo (on :root)          none until the first sample lands
+     --glass-w/h    the sampled patch's size      so every surface shares ONE continuous backdrop
+     --gx/--gy      this surface's offset in it   set per element, the reason the pill and the panel
+                                                  line up instead of each showing its own crop
+   Nothing above is applied until JS puts .glass-on on <html>, which it only does once a sample has
+   actually come back. No permission, mid-snip, a capture failure, an old macOS — the class never
+   lands and every surface keeps the approved opaque look, untouched. */
+.glass-on .pill {
+  /* The opaque slab has to go, or it sits between the glass and the eye. */
+  background-color: transparent;
+  background-image:
+    /* 1. Specular sheen: a soft highlight the surface carries UNDER the cursor, the way a curved
+          piece of glass catches a light source. Parked off-canvas (-999px) until the cursor is
+          actually over this surface, so an unhovered pill shows no stray bloom. */
+    radial-gradient(160px circle at var(--mx, -999px) var(--my, -999px),
+                    rgba(255, 255, 255, 0.10), transparent 70%),
+    /* 2. Scrim: one flat wash that both DIMS the photo so text stays readable and tints it toward
+          the scene's own colour. JS builds the whole rgba() because its alpha is computed from how
+          bright the patch is — glass over a white webpage needs far more dim than glass over a
+          night-time game, and a fixed value has to be wrong for one of them. */
+    linear-gradient(var(--glass-scrim, rgba(18, 20, 26, 0.72)), var(--glass-scrim, rgba(18, 20, 26, 0.72))),
+    /* 3. The photo. */
+    var(--glass-img, none);
+  background-repeat: no-repeat;
+  background-size: auto, auto, var(--glass-w, 100%) var(--glass-h, 100%);
+  background-position: 0 0, 0 0, var(--gx, 0px) var(--gy, 0px);
+  /* The edge, and the two rules it has to obey — both learned from getting it wrong (jek, 2026-08-02:
+     "เห็นมันแหว่งๆ").
+     1. UNIFORM, not directional. The first version lit only the top (inset 0 1px 0). On a 23px-radius
+        capsule that highlight wraps down both sides and terminates at the equator, so the ring was
+        bright across the top, faded down the flanks, and absent along the bottom — it read as a
+        chipped edge, not a lit one. The border does the whole perimeter at one width instead.
+     2. OPAQUE, not translucent. A see-through edge is not an edge, it's a window: its brightness
+        becomes a property of whatever is behind that particular millimetre, so the same ring glowed
+        over the bright half of the scene and vanished over the dark half. --glass-edge is a fully
+        opaque colour mixed from the scrim by JS, so the ring is the same all the way round no matter
+        what it is lying on, and still belongs to the glass rather than being painted-on white.
+     The outer dark ring and tight shadow are the pill's originals, untouched: they were already
+     uniform, and they are what keeps the edge crisp over a bright scene. */
+  border-color: var(--glass-edge, rgba(255, 255, 255, 0.18));
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.55),
+    0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* No photo for these — see alignGlass. Setting the variable to none empties the third background
+   layer while the sheen and the scrim above it stay, so the surface keeps its glass COLOURS and
+   simply has nothing behind them. Tucked is permanent (it is never sampled); glass-partial lasts
+   until the next sample covers the surface. */
+.glass-on .glass-partial,
+.glass-on .pill.tucked { --glass-img: none; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: transparent;
+  color: var(--fg);
+  /* Sarabun, Noto Sans Thai and IBM Plex Sans Thai are all MISSING on Windows (checked 2026-08-10),
+     so Thai here is drawn by DirectWrite's per-character fallback. That looked like the cause of the
+     143ms first-render frame on the History view and is NOT: adding the installed "Leelawadee UI"
+     ahead of the fallback left the frame at 154.1ms, unchanged, so it was taken back out. */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue",
+    "Sarabun", "Noto Sans Thai", sans-serif;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* The window is a full-screen transparent canvas; content sits at the bottom-centre by default
+   and grows upward. Dragging the pill shifts the whole stack via the --drag-x/--drag-y transform
+   (set in index.js) — the OS window itself never moves, so the pill can be parked anywhere. */
+/* Until the remembered dock is applied (getSettings resolves async), keep the pill unpainted so it
+   never flashes at the default bottom-centre and then warps to its saved spot. */
+body:not(.ready) .wrap { visibility: hidden; }
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  height: 100%;
+  gap: 8px;
+  padding: 14px;
+  /* --tuck-x (index.js tuck()/untuck()) shifts the whole stack further out past the drag offset so
+     the pill hides off-screen at the edge, leaving only its TAB showing. 0 when not tucked. */
+  /* --peek-x: tiny hover nudge while tucked (see .tuck-left/right below). */
+  transform: translate(calc(var(--drag-x, 0px) + var(--tuck-x, 0px) + var(--peek-x, 0px)), var(--drag-y, 0px));
+  will-change: transform;
+}
+/* Magnetic "vacuum" glide when the pill snaps to a dock spot on release (added only for the snap, so
+   live dragging stays 1:1 with the cursor). */
+.wrap.snapping { transition: transform var(--t-base) var(--ease-out); }
+/* Same glide, applied while the pill tucks out to the edge or untucks back in (index.js). */
+.wrap.tucking { transition: transform var(--t-slow) var(--ease-out); }
+/* Card + panel as one upward-growing stack (DOM order: panel on top, card nearest the pill).
+   There is no flipped variant any more — updateDropRoom() in index.js caps this to the room above
+   the pill, and the panel's own list scrolls inside, so it can never run off the top edge. */
+.drop {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+  /* clip, not hidden, WITH a margin: the stack still gets clipped to its height cap (that's what the
+     old overflow:hidden was for), but the clip box is grown 26px so the panel's and card's shadows
+     can paint outside their boxes like the pill's does. With plain hidden, those shadows were sliced
+     off at the container edge — the straight-edged grey band jek spotted next to the card, and the
+     reason the panel looked like it had no shadow at all while the pill had one (2026-07-30). */
+  overflow: clip;
+  overflow-clip-margin: 26px;
+}
+/* Parked high with no room above, the stack hangs BELOW the pill instead. This is ONE absolutely
+   positioned box being moved — not the old two-elements-at-the-same-spot layout that forced the code
+   to close the panel whenever a card arrived. column-reverse keeps the card nearest the pill either
+   way, so the pair reads the same up or down. updateDropRoom() picks the side and caps the height. */
+/* Side switch (updateDropRoom): a keyframe animation rather than a transition, because the switch
+   also changes `position`, and an animation restates its own from/to instead of depending on what the
+   previous computed value happened to be. Each variant carries the centring translateX, or the stack
+   would jump sideways the moment the animation takes over the transform. */
+/* The re-entry GROWS OUT OF THE PILL: transform-origin sits on the edge nearest it, so a tall panel
+   unfolds from the pill instead of blinking in at full size somewhere else. A plain fade + small nudge
+   was enough for the little card but read as a flicker on the ~340px Settings panel (jek). */
+.drop.swap { transform-origin: bottom center; animation: dropSwap 0.26s var(--ease-out); }
+@keyframes dropSwap {
+  from { opacity: 0.2; transform: translateY(10px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+.wrap.flip .drop.swap { transform-origin: top center; animation: dropSwapFlip 0.26s var(--ease-out); }
+@keyframes dropSwapFlip {
+  from { opacity: 0.2; transform: translateX(-50%) translateY(-10px) scale(0.96); }
+  to   { opacity: 1; transform: translateX(-50%); }
+}
+
+/* Split: when the pill sits near the middle and BOTH a panel and a card are open, the combined stack
+   won't fit on either side alone — so the panel stays on its side (above) and the card is pulled to
+   the OTHER side of the pill (below, adjacent to it). Each side then holds one bar at full size
+   instead of one side clipping both. Only kicks in near centre; the common bottom/top docks stack as
+   before. (jek's idea — a bar that can't fit goes to the pill's other side.) */
+.wrap.split { position: relative; }
+.wrap.split .result {
+  position: absolute;
+  top: calc(100% - 6px);   /* just under the pill — same calibration as the flipped .drop below */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+}
+
+.wrap.flip { position: relative; }
+.wrap.flip .drop {
+  position: absolute;
+  top: calc(100% - 6px);   /* wrap bottom padding 14px − stack gap 8px → 8px under the pill */
+  left: 50%;
+  transform: translateX(-50%);
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+}
+
+/* The panel is flex:0 0 auto on its own, which meant a .drop capped near the top of the screen CLIPPED
+   it mid-row instead of shrinking it. Inside the stack it may shrink; its list scrolls instead. */
+.drop > .panel { flex: 0 1 auto; min-height: 0; }
+
+/* Tucked: hovering the tab nudges the pill a touch back toward the screen — "ready to slide out"
+   affordance so the tab reads as clickable. :not(.tucking) keeps the main tuck glide at its own
+   0.28s timing. Classes set by tuck()/untuck() in index.js. */
+.wrap.tuck-right:not(.tucking), .wrap.tuck-left:not(.tucking) { transition: transform var(--t-base) ease; }
+.wrap.tuck-right:has(.pill:hover) { --peek-x: -16px; }
+.wrap.tuck-left:has(.pill:hover) { --peek-x: 16px; }
+/* LOCKED + TUCKED, cursor on the tab. The 16px nudge above is an affordance — it says "there is
+   something here", which is the wrong answer to the only question a locked pill is ever asked. This
+   cancels the tuck offset outright so the pill comes all the way back and can be READ: it is the
+   pill that carries the unlock key, and a 26px tab has nowhere to write it.
+
+   Set from JS (lockHover), not from :hover, and that is not a style choice — while locked the window
+   is click-through, so it receives no mouse events and CSS :hover can never fire. The position comes
+   from main's cursor feed instead. Sliding, not appearing: same transition the tab's own peek uses,
+   so leaving takes it back the way it came. */
+.wrap.lock-reveal { --tuck-x: 0px; }
+
+/* ---------- 8-bit slime mascot ---------- */
+
+.mascot {
+  flex: 0 0 auto;
+  margin-bottom: -6px; /* sit slightly onto the pill */
+  cursor: pointer;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.5));
+  animation: mascotBob 2.4s ease-in-out infinite;
+}
+
+/* Sit above the right quarter of the pill (not centred). translateX is on the
+   svg so it doesn't clash with the bob animation's transform on .mascot. */
+.mascot svg { image-rendering: pixelated; display: block; transform: translateX(55px); }
+
+/* gentle idle bob + squash */
+@keyframes mascotBob {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50%      { transform: translateY(-3px) scaleY(1.04); }
+}
+
+/* blink every few seconds */
+.mascot .m-eye { animation: mascotBlink 4s step-end infinite; transform-origin: center; }
+@keyframes mascotBlink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+}
+
+.mascot:hover { animation-play-state: paused; }
+
+/* ---------- pill (always visible, parked at the bottom) ---------- */
+
+.pill {
+  flex: 0 0 46px;
+  /* Two fixed widths so collapse/expand animates. Collapsed is the spacious
+     look; expanded fits dot + brand + hint + 5 buttons. */
+  width: 220px;
+  /* No overflow:hidden — it clipped the status dot's round glow into a square.
+     Buttons stay invisible (opacity 0) until the pill is wide, so they never
+     visibly spill during the expand instead. */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  /* macOS-glass look: deep near-black translucent slab + heavy saturated blur, so it reads like
+     the Mac menu-bar / Dynamic Island rather than a flat dark box. */
+  /* Same glass intensity as the Settings/History panel (var(--bg), blur 10) so the pill and the
+     panel read as one solid surface — the 0.34 near-transparent version looked washed out. */
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 23px;
+  /* No backdrop-filter: --bg is fully opaque so there's nothing to blur, and Chromium renders the
+     filter region as an un-rounded RECTANGLE that leaves a faint square edge at the corners (jek's
+     "square shadow edge"). Dropping it removes that artifact and a needless GPU pass (2026-07-26). */
+  /* Dark 1px ring OUTSIDE the light border keeps the pill's edge crisp over dark game scenes, plus a
+     TIGHT drop-shadow (offset 4px, not 10px). The Windows port had swapped this for a heavy floated
+     shadow (0 10px 34px) that pooled visibly below the pill — restored to the approved look (jek 2026-07-26). */
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(0, 0, 0, 0.4);
+  /* Width springs: the pill widening under the cursor is the one motion you watch every single time,
+     and a plain decelerate made a 116px change look like a panel resizing rather than a surface
+     stretching. The dock anchors already reserve 182px for a half-EXPANDED pill against 168px of
+     actual half-width, so there is 14px of clearance for the overshoot to live in at a side dock —
+     measured at 8px, comfortably inside it. */
+  transition: width var(--t-slow) var(--ease-spring), opacity 0.35s ease, border-color 0.35s ease;
+  /* One case must NOT animate the width: a card opening from nothing. The card paints at its full
+     332px in its first frame, so a pill still gliding up from 220px leaves the stack ragged for the
+     whole fade-in (measured: pill 220 → 333 over ~200ms while the card sat full-size above it).
+     showResult snaps the width for that single frame; everything else still glides. */
+  /* NOT an -webkit-app-region: drag handle — that swallows mouse events and
+     breaks hover. The window is moved manually in index.js instead. */
+  /* ONE cursor for the whole pill = the native arrow (macOS clickable controls keep the arrow; the
+     finger-pointer is a web-ism). A per-element split (grab body vs pointer buttons) swapped the cursor
+     image on every element edge, and on a transparent always-on-top overlay that swap visibly lags.
+     `cursor` inherits, so the arrow flows to dot/brand/buttons/hint unless one re-declares it. */
+  cursor: default;
+}
+/* The only cursor change on the pill: a closed grabbing hand WHILE actually dragging it — a correct
+   drag affordance that only appears when relevant, so there's no idle-hover flicker. */
+.wrap.dragging .pill, .wrap.dragging .pill * { cursor: grabbing; }
+/* A thing being dragged tracks the pointer exactly, always — no easing, ever. The tucked pill keeps
+   .tuck-right/.tuck-left for the hover-peek nudge, and the rule below gives those a 0.2s transform
+   transition, so dragging the tucked circle along the edge animated every single pointer move: the
+   circle trailed the cursor and then caught up, which is the "warp / doesn't stay at the mouse" jek
+   reported (and had reported once before — the earlier fix removed a FLIP animation, it never
+   covered this path). Highest specificity so it wins against every positional transition on .wrap,
+   present or future: whatever else is true, if it is under your finger it does not animate. */
+.wrap.dragging { transition: none !important; }
+
+.pill.open { width: 336px; }
+
+/* Edge-tuck (replaces the old ghost-fade idle): after a few seconds of no activity and no hover, the
+   pill vacuums out toward whichever side it's parked on (index.js tuck()), leaving only a small TAB
+   showing at the screen edge — click the tab to bring it back. A new translation / snip / status also
+   untucks it automatically. While tucked, ALL motion freezes since only a sliver shows. */
+.pill.tucked .dot { animation: none; box-shadow: none; } /* freeze the pulse + glow while tucked */
+
+/* The locked badge, beside the status dot. Small enough that the pill does not change shape when it
+   appears. It used to sit BEHIND a `.pill.tucked` selector that had lost its opening brace, so the
+   comment welded the two selectors together and the browser read the whole thing as
+   `.pill.tucked .pill-lock` — the badge got none of its own styling unless the pill happened to be
+   tucked, which is why it rendered as a bare padlock hanging off the edge. The same accident scoped
+   the freeze rule above to every .dot in the app instead of only the tucked one. */
+.pill-lock { flex: 0 0 auto; display: inline-flex; align-items: center; line-height: 1; opacity: 0.9; margin-left: -2px; color: var(--muted); }
+.pill-lock[hidden] { display: none; }
+/* NOT ON THE TAB. Tucked, the pill is a 26px sliver and the badge is squeezed in beside a status dot
+   at a size where it is a smudge, not a padlock — and worse, it is the only mark there, so it reads
+   as if hiding the pill were itself the locked state. They are two different things: tucked is "get
+   out of my way" and locked is "stop taking my clicks", and either can be on without the other
+   (jek, 2026-08-19).
+
+   Nothing is lost by dropping it, because the tab now ANSWERS: hover it and the pill slides back out
+   with the unlock key in the slot (see .wrap.lock-reveal above and lockHover in index.js). The badge
+   comes back with it — at full size, next to the key it belongs to, where it can actually be read. */
+.pill.tucked .pill-lock { display: none; }
+.wrap.lock-reveal .pill.tucked .pill-lock { display: inline-flex; }
+.pill.tucked #hintText { animation-play-state: paused; } /* freeze any marquee */
+/* The tucked rule above kills box-shadow (freezes the status glow) and out-specifies .dot:hover —
+   re-allow the hover halo while tucked. Triggered by hovering ANYWHERE on the tab (the whole
+   tucked pill), not just the dot itself — the dot can even be offscreen when tucked left. */
+.pill.tucked:hover .dot { box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.14); }
+/* While tucked the pill is a blank tab — no text sliver, even during the hover peek nudge. */
+.pill.tucked .brand, .pill.tucked .hint { opacity: 0; transition: opacity var(--t-fast) ease; }
+/* A translation just landed: widen the pill IN STEP with the card growing out of it (both 0.22s, both
+   start together) so the pair reads as one motion — not a wide-but-empty pill opening ahead of the card.
+   Matches the card's 0.22s so they finish together; handed back to the normal speed once the glide lands. */
+.pill.arrive { transition: width 0.22s var(--ease-out), opacity 0.35s ease, border-color 0.35s ease; }
+
+.dot {
+  flex: 0 0 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: background var(--t-base) ease, box-shadow var(--t-fast) ease;
+  /* cursor inherits the pill's arrow — no per-element swap (native macOS keeps the arrow on controls). */
+  position: relative;
+}
+/* Invisible hit-area extender: the hide/show toggle is really the whole left cap of the pill —
+   from the pill's left edge up to just before the brand text — not only the 11px circle.
+   Clicks/hovers on the pseudo target the .dot itself, so the handler + halo just work. */
+.dot::after {
+  content: '';
+  position: absolute;
+  left: -12px;              /* pill left padding */
+  top: -18px;               /* pill 46px tall, dot 11px → cover full height */
+  width: 31px;              /* padding 12 + dot 11 + gap 8 (stop before the brand) */
+  height: 46px;
+}
+.dot:hover { box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.14); } /* halo so it reads as a button */
+
+/* PRO. The status light KEEPS its job — colour still says live/error — and the plan is said in the one
+   channel nothing else was using: SHAPE. The dot itself becomes a diamond (jek: the glowing circle
+   should change shape, not grow a frame around it).
+   Rotating it is the honest way to do that: the glow and the hover halo are box-shadows, and they
+   rotate with it, so a Pro dot glows as a diamond instead of a circle. clip-path would have cut both
+   off — a status light with no glow is not a status light.
+   The catch, and the fix: .dot::after is the invisible hit-area that makes the WHOLE left cap the
+   hide/show button, and a rotation takes that rectangle with it. Counter-rotating the pseudo about
+   the DOT's centre — 17.5px 23.5px in the pseudo's own coordinates (12 + 5.5, 18 + 5.5) — cancels it
+   exactly, so the click target stays the upright rectangle it always was.
+   Size is untouched (11px): a smaller dot would shift the label sideways, and Free and Pro must not
+   sit differently on screen. */
+.pill.pro .dot {
+  border-radius: 2px;
+  transform: rotate(45deg);
+}
+.pill.pro .dot::after {
+  transform: rotate(-45deg);
+  transform-origin: 17.5px 23.5px;
+}
+
+.dot.live {
+  background: #4ade80;
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.9);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+/* CC (live subtitles) ON: steady green + halo RING — deliberately different from .live's pulse
+   (pulse = actively reading/translating right now). Readable even when the pill is collapsed. */
+.dot.cc { background: #4ade80; }
+.dot.cc:not(.live) { box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.3); animation: none; }
+/* CC muted (✕-closed a live card): steady AMBER ring instead of green — a persistent "CC on but
+   paused" signal so stopped subtitles never look like a silent failure. Wins over the green ring. */
+.dot.cc.cc-muted { background: #fbbf24; box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.35); animation: none; }
+/* Tucked wins over the CC ring — the tab must stay a quiet sliver ("while tucked, ALL motion
+   freezes"); without this the ring's equal specificity + later source order leaked it through. */
+.pill.tucked .dot.cc { box-shadow: none; animation: none; }
+.dot.paused { background: #fbbf24; box-shadow: 0 0 8px rgba(251, 191, 36, 0.8); }
+.dot.error { background: #f87171; box-shadow: 0 0 8px rgba(248, 113, 113, 0.8); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* Hugs the language label so the PRO tag can hang off ITS right edge (see index.html). Carries the
+   label's old flex behaviour so the pill's layout is byte-for-byte what it was. */
+.brand-wrap { position: relative; display: inline-flex; flex: 0 0 auto; min-width: 0; }
+
+/* "AI is on" mark. Sits above the ARROW between the two languages, not at the label's tail (jek,
+   2026-08-15) — the tail is where the target language ends, and a badge hanging off it read as
+   belonging to that language. Above the arrow it belongs to the pair, which is what it is about.
+   `left` is set from the arrow's measured centre (positionProTag in index.js) because the arrow moves
+   with the tag widths — EN→TH and 中文→ไทย do not put it in the same place. Absolute +
+   pointer-events:none: no layout shift, and the label underneath keeps its click and its tooltip. */
+.pro-tag {
+  position: absolute;
+  left: 0;
+  transform: translateX(-50%);
+  top: -8px;
+  font-size: 7.5px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  line-height: 1.45;
+  padding: 0 3px;
+  border-radius: 3px;
+  color: #7dd3fc;
+  background: rgba(125, 211, 252, 0.16);
+  border: 0.5px solid rgba(125, 211, 252, 0.45);
+  pointer-events: none;
+}
+.pro-tag[hidden] { display: none; }
+/* Tucked/locked: the label fades, so its tag has to go with it or it floats alone on the glass. */
+.pill.tucked .pro-tag { opacity: 0; transition: opacity var(--t-fast) ease; }
+
+/* The arrow between the two tags is TEXT, not a control (it was a swap button until 2026-08-19 — see
+   index.html). It keeps its own element and its own padding so the pair still reads as "EN → TH" with
+   air around the arrow, and so the PRO tag has something measurable to centre itself on. Slightly
+   dimmer than the tags: the languages are the information, the arrow is punctuation. */
+.brand-arrow {
+  padding: 0 3px;
+  opacity: 0.72;
+  line-height: 1;
+}
+
+.brand {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--fg);
+  -webkit-font-smoothing: antialiased;
+  /* Never let the brand shrink/wrap while the pill is mid-expand — that squeeze
+     and release is what read as a jitter. */
+  flex: 0 0 auto;
+  white-space: nowrap;
+  /* Fixed-canvas invariant: the pill never resizes, so cap the brand and clip
+     with an ellipsis. Guarantees a long/untagged language label can never push
+     the hint or controls past the pill edge. Tags are 2 chars, so this never
+     bites normal use — it's purely a guard. */
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Flex filler between the buttons and the single right-hand slot below — eats all the leftover
+   width so that slot stays pinned to the pill's right edge, empty/invisible otherwise. */
+.spacer { flex: 1 1 auto; min-width: 0; }
+
+/* Lock mode (⌘⇧L): pill is click-through / non-interactive — dim it so the locked state is obvious. */
+body.locked .pill { opacity: 0.5; }
+body.locked .dot { background: var(--muted); box-shadow: none; animation: none; }
+/* Ticker math assumes the text's natural position is the slot's LEFT edge — with text-align:right
+   the head started mid-slot already clipped ("cut off early"). Left-align while sliding, and drop
+   the side margins so the text runs flush up to the brand/buttons. */
+.hint:has(.marquee) { text-align: left; }
+/* Promote the moving text to its own GPU layer: it slides on top of the pill's backdrop-filter
+   blur, and without this every frame forced a blur repaint — the deep cause of the ticker looking
+   janky/warpy no matter what the animation math did. */
+#hintText.marquee { will-change: transform; backface-visibility: hidden; }
+/* The ticker does NOT pause while the pill resizes. It used to: the idea was that it would "ride the
+   pill" like the static EN→TH label, since two motions at once could read as judder. Measured against
+   the real window, that trade is the wrong way round — the pill resizes on every hover in and hover
+   out, so the text hit a DEAD STOP of ~250-300ms several times per pass (sampled: 39px/s → 0 → 39px/s).
+   A dead stop reads as broken; sliding on through a 250ms width change does not. */
+
+.hint {
+  /* Long status messages MAY shrink (flex-shrink 1 + min-width 0) so they fit the pill and marquee
+     instead of overflowing past the rounded edge. The fixed ⌘⇧S variant below opts out of shrinking
+     so it's never clipped when a long vocab is competing for width. */
+  flex: 0 1 auto;
+  min-width: 0;
+  /* The pill's 12px side padding is measured off the bounding box, but the right end is a full
+     semicircle (radius 23px) and the text sits at mid-height — exactly where that curve bulges
+     furthest in. So 12px reads tighter than it measures. This takes the optical gap to ~17px, which
+     is about half the radius, the point where text stops looking pinned to a capsule's end.
+     margin, NOT padding: the ticker sizes itself from container.clientWidth, which INCLUDES padding
+     — padding here would start the slide inside the gap and throw off the travel distance. */
+  margin-right: 5px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+}
+/* ⌘⇧S is short and must always show in full — never let it shrink; the parked vocab / a status
+   yield first (they're the ones that may marquee). */
+.hint.fixed { flex: 0 0 auto; min-width: auto; }
+/* When ⌘⇧S RETURNS to the slot (a status just cleared, or a parked translation was dismissed), it
+   fades + lifts in instead of snapping — the reveal reads as smooth. Only fires on the real
+   transition INTO the fixed state (gaining the .fixed class re-triggers the animation); a slot that's
+   already showing ⌘⇧S doesn't re-animate. */
+@keyframes keyAppear { from { opacity: 0; transform: scale(0.55); } to { opacity: 1; transform: scale(1); } }
+.hint.fixed #hintText { animation: keyAppear 0.34s var(--ease-spring) backwards; transform-origin: right center; }
+/* Reverse of keyAppear: fade+scale the keyword OUT before a LONG parked word slides in. Only added by
+   index.js when the incoming word will actually SLIDE — a short word that just pops in gets no keyword
+   fade (jek 2026-07-26). Higher specificity than keyAppear so it wins while .fixed is still on. */
+@keyframes keyLeave { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.55); } }
+.hint.fixed #hintText.key-leave { animation: keyLeave 0.15s var(--ease-out) forwards; transform-origin: right center; }
+
+#hintText {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* Ticker (jek's final loop spec): head enters at the slot's right edge, slides left, tail exits
+   the left edge, and the next head re-enters immediately — the loop jump is entirely off-screen
+   (no visible warp, no dead moment). --tick-start/--tick-end set in index.js; correctness of the
+   px math relies on the :has() left-align rule above. */
+#hintText.marquee {
+  animation: hintMarquee var(--marquee-dur, 6s) linear infinite;
+  /* Hold at the start (off-screen, empty slot) for a short beat before the head slides in — sliding
+     the instant the text appeared read as too abrupt. `backwards` keeps it at the 0% (off-screen)
+     frame during the delay so nothing flashes at its static spot (jek 2026-07-26). */
+  animation-delay: var(--marquee-delay, 0.45s);
+  animation-fill-mode: backwards;
+}
+/* A parked word too short to slide still gets an entrance — the same scale+fade pop the keyword (⌘⇧S)
+   uses, so it doesn't just blink in static (jek 2026-07-26). index.js adds .pop only on a fresh word. */
+#hintText.pop { animation: keyAppear 0.34s var(--ease-spring) backwards; transform-origin: right center; }
+/* After its loops index.js parks the ticker with inline animation:none + transform:translateX(0):
+   the text sits at its start so the HEAD stays readable, and the .marquee class stays on to keep the
+   left-align rule (dropping it snapped the text right-aligned and cut its head off). */
+/* Slide across the first 92% of the cycle, then HOLD off-screen for the last 8% — a ~1s breather
+   before it replays instead of looping straight back. JS scales --marquee-dur by /0.92 so the visible
+   slide keeps its constant px/sec and only the pause is added.
+   This IS the shipped behaviour (HEAD). It was briefly removed here because the comment at the top of
+   marqueeIfOverflow says "no holds, no pauses" — but that comment describes the loop JUMP being
+   off-screen, not the breather, and the breather is what jek has been living with. The hold happens
+   entirely off-screen: nothing is visibly frozen, the slot just stays empty for ~1s between passes. */
+@keyframes hintMarquee {
+  0%   { transform: translateX(var(--tick-start, 100%)); }
+  92%  { transform: translateX(var(--tick-end, -100%)); }
+  100% { transform: translateX(var(--tick-end, -100%)); }
+}
+
+/* The buttons GROW open in sync with the pill's width transition (max-width 0→130px) instead of
+   popping in via display — an instant pop stole ~110px from the ticker slot in one frame, which
+   made hover-open look rough while collapse looked smooth. */
+.controls {
+  display: flex;
+  max-width: 0;
+  overflow: hidden;
+  /* overflow clips to the PADDING box, and this box is exactly as tall as the buttons — so btnPop's
+     3px rise put each button up to 3px below the clip for its first ~11 frames and the bottom of the
+     icon was sliced off on the way in (measured: 3px, 3px, 2.8, 2, 1.4, 0.9 …). The padding gives the
+     clip 4px of vertical slack and the negative margin takes it straight back out of the layout, so
+     nothing moves and the horizontal clipping that max-width relies on is untouched. */
+  padding: 4px 0;
+  margin: -4px 0;
+  opacity: 0;
+  pointer-events: none;
+  gap: 3px;
+  flex: 0 0 auto;
+  /* Sits right after the brand, left of the spacer — buttons cluster on the LEFT now (jek). */
+  /* CLOSE (unhover) transition: opacity LEADS — it fades fast (--t-fast, no delay) so the buttons are
+     gone before the slower max-width collapse (--t-slow, ease-out) clips them. Measured: with the old
+     delayed fade, width hit 33px while opacity was still 0.93, so the buttons were sliced off by the
+     shrinking edge instead of fading. The OPEN transition (with the delayed fade) lives on .pill.open. */
+  transition: max-width var(--t-slow) var(--ease-out), opacity var(--t-fast) ease;
+  -webkit-app-region: no-drag;
+}
+
+/* OPEN transition: delay the fade-in so the buttons only appear once the pill has widened enough —
+   this state's transition wins when .open is ADDED, so hover keeps the smooth grow-then-fade-in. */
+.pill.open .controls { max-width: 130px; opacity: 1; pointer-events: auto;
+  transition: max-width var(--t-slow) var(--ease-out), opacity var(--t-base) ease 0.05s; }
+/* No freeze/park-on-open: a running ticker keeps sliding straight through hover — any pause,
+   park, or restart on hover state read as "lag" (jek). */
+/* Let the hint shrink so a long preview truncates with an ellipsis instead of
+   spilling past the pill edge. */
+.pill.open .hint { flex: 0 1 auto; min-width: 0; margin-left: 6px; } /* text-align left to .hint / :has(.marquee) so marquee stays left even when open */
+/* Keep the ⌘⇧S no-shrink invariant even when the pill is open (higher specificity than the rule above). */
+.pill.open .hint.fixed { flex: 0 0 auto; min-width: auto; }
+/* Cursor hint: the slot is only clickable-to-reopen while it's showing the parked vocab. */
+/* (Parked vocab is tap-to-reopen, but the cursor stays the pill's arrow — no per-element swap.) */
+/* When the right slot holds a parked translation or a status (NOT the short ⌘⇧S), it must TAKE the
+   full leftover width instead of the spacer hogging it — otherwise the ticker ran in a tiny window,
+   clipping the text early and leaving a big empty gap to its left (jek's images 9/10). The spacer
+   collapses; the slot grows and fills. ⌘⇧S stays short/right because idle sets neither class. */
+/* display:none (not flex:0) so the collapsed spacer stops eating its two 8px flex gaps — that dead
+   16px was half the "too much gap" between the brand/buttons and the text. */
+.pill.has-status .spacer, .pill.has-vocab .spacer { display: none; }
+/* Fill the leftover width AND left-align the text so it sits right after the brand/buttons instead of
+   hugging the far-right edge with empty space to its left (jek's gap complaint). Long text still
+   marquees; short text just starts where the buttons end. */
+/* Fill the leftover width. Text alignment is left to `.hint`(right, default) + `.hint:has(.marquee)`
+   (left) below: SHORT text that fits sits on the RIGHT (tidier composition), LONG text left-aligns and
+   slides. No text-align here so those two win. */
+.pill.has-status .hint, .pill.has-vocab .hint { flex: 1 1 auto; min-width: 0; }
+/* Keep the text one tidy 8px gap from whatever's on its left in BOTH states:
+   - collapsed: buttons are 0-width but still leave two 8px flex gaps → pull back 8px (16→8).
+   - open: kill the `.pill.open .hint` 6px margin so it's just the single 8px flex gap after ✕. */
+.pill:not(.open).has-status .hint, .pill:not(.open).has-vocab .hint { margin-left: -8px; }
+.pill.open.has-status .hint, .pill.open.has-vocab .hint { margin-left: 0; }
+/* The parked word gets NO chip and NO accent colour — it reads exactly like the ⌃⌥ hint next to it.
+   A blue capsule was tried here (7b96092, 16 Jul) on the theory that the pill's one piece of real
+   content shouldn't look like chrome. jek rejected it on sight: it's ugly, and the pill is meant to
+   be one quiet capsule, not a capsule with a second capsule inside it. Do not re-add the tint. */
+
+/* While the translation card is up, an open History/Settings panel SHRINKS so the pair can't
+   shove the panel's top off-screen (jek: stack them, don't close). The scrolling happens in the
+   panel's own inner scrollers (the history .log / the settings view) — never on the panel shell,
+   which put a second scrollbar in a weird spot. */
+/* Card + panel coexist (History/Settings open over a card): let the card shrink + scroll too, so its
+   fixed 38vh doesn't push the panel's tabs/search off the top edge when the pill is parked high. */
+.result.squeeze { flex: 0 1 auto; max-height: 22vh; }
+.panel.squeeze { max-height: 34vh; }
+.panel.squeeze .log { max-height: 14vh; }
+.panel.squeeze #settingsView { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+
+/* Instant button label: tiny chip shown the moment a pill button is hovered — native tooltips are
+   too slow (~1s) and the icons alone weren't understood. Positioned by index.js. */
+#btnTip {
+  position: fixed;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: rgba(18, 20, 26, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: var(--fg);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
+}
+#btnTip[hidden] { display: none; }
+/* fadeIn was defined below and never referenced — the label was always meant to fade in and had been
+   popping in hard since. Re-hiding is still instant on purpose: the label must be gone the moment the
+   cursor leaves, not linger over the thing you moved on to. */
+#btnTip:not([hidden]) { animation: fadeIn var(--t-fast) ease; }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.controls button {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  /* Blend into the pill — just the icon shows; a hint of background appears only
+     on hover/active for feedback. */
+  background: transparent;
+  color: var(--fg);
+  /* Text-presentation symbol font so every icon renders monochrome and matches
+     — no colour emoji sneaking in. */
+  font-family: -apple-system, "Segoe UI Symbol", system-ui, sans-serif;
+  font-variant-emoji: text;
+  font-size: 13px;
+  line-height: 1;
+  cursor: default; /* inherit the pill's arrow — no cursor swap when crossing button edges (see .pill) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--t-fast) ease, color var(--t-fast) ease, transform 0.1s ease;
+}
+
+/* Drawn icons: block kills the inline baseline gap that would shove the glyph off centre again, and
+   the fixed box keeps every button the same size whatever the icon's own bounds are. */
+/* `display: flex` above out-specifies the browser's own `[hidden] { display: none }`, so setting
+   .hidden on one of these buttons did nothing visible — the mic, hidden on Windows since 07-30
+   because voice input is macOS-only, was still drawn and still holding its 26px slot in the row.
+   Measured: hidden=true, display=flex, width 24, x 1687-1710, sitting between the snip button and the
+   list button. Every control to its right was one slot further along than it looked, and the gear's
+   left-hand neighbour is the list — which is how aiming for Settings opens History. (jek, 2026-07-31) */
+.controls button[hidden] { display: none; }
+.controls button svg { display: block; flex: 0 0 auto; }
+.controls button:hover:not(:disabled) { background: var(--btn-hover); }
+.controls button:active:not(:disabled) { transform: scale(0.9); }
+.controls button:disabled { opacity: 0.35; cursor: default; }
+.controls button.active { background: rgba(125, 211, 252, 0.28); }
+/* Armed quit (first click) — turns red so "click again to quit" reads at a glance. */
+.controls button.confirm { color: #fca5a5; background: rgba(248, 113, 113, 0.28); }
+/* Mic while a phrase is being recorded — red and breathing, so "it is listening to me right now" is
+   readable at a glance from across the screen. */
+.controls button.listening { color: #fca5a5; background: rgba(248, 113, 113, 0.3); animation: micPulse 1.1s ease-in-out infinite; }
+
+/* ---- Learn Mode counter on the pill --------------------------------------------------------------
+   A NUMBER beside the icon, not a badge on top of it. The badge version was measured at 11×11px with
+   8px digits — below the size any digit reads at, and it needed a 1.5px ring in the pill background
+   just to lift itself off the mortarboard's strokes, which is the tell that two things were fighting
+   for one 26px box. Set loose beside the icon the digits get 11px, no ring, nothing overlapping.
+   Colour does the job the pill shape was doing: accent on an otherwise white row says "this is a
+   count", and it is the only accent-coloured thing in .controls.
+
+   It costs the row NO width. .controls is capped at 130px against 5×26+4×3 = 142px of buttons, so the
+   buttons are already flex-shrunk to 23.6px (measured); the number widens this one button's basis and
+   they settle around 21px instead. Growing the cap was the obvious alternative and it is the wrong
+   one: every px added to .controls comes straight out of the right-hand slot, which drops from 90.1px
+   to 78.1px at max-width 150 (measured) — and that slot is where the parked word has to be readable.
+   With no count there is no element, so the row is byte-for-byte what it was before. */
+#learnPillBtn { gap: 2px; }
+.learn-n {
+  flex: 0 0 auto;
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  font-style: normal;
+  line-height: 1;
+  /* Tabular figures: 1 is narrower than 8 in the proportional set, so a count ticking 8 → 9 → 10 would
+     shove every button right of it by a fraction of a px each time. */
+  font-variant-numeric: tabular-nums;
+  color: var(--accent, #7dd3fc);
+  pointer-events: none; /* the whole button is the target — never let the number eat the click */
+}
+.learn-n[hidden] { display: none; }
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.5); }
+  50%      { box-shadow: 0 0 0 5px rgba(248, 113, 113, 0); }
+}
+
+/* "I am hearing you", in the pill's own slot. The pulsing mic button above only exists while the pill
+   is OPEN, so triggering voice by shortcut from a collapsed pill showed nothing at all — and on
+   Windows nothing fills the gap afterwards either: winspeak.ps1 is one blocking recognition with no
+   partial results, so the slot sits on "Speak now" in silence for up to six seconds while the user
+   wonders whether the key registered. Mac never noticed because its helper streams words.
+   Three bars, not a spinner: a spinner means "wait", and the app is not the one working here — you
+   are. This lives ON THE PILL, the one surface that kept its motion. (jek, 2026-08-07) */
+.mic-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 9px; margin-right: 5px; vertical-align: middle; }
+/* [hidden] loses to a display rule, so it needs saying again — otherwise the bars never go away. */
+.mic-bars[hidden] { display: none; }
+.mic-bars i { width: 2px; height: 3px; border-radius: 1px; background: #fca5a5; animation: micBar 0.9s ease-in-out infinite; }
+.mic-bars i:nth-child(2) { animation-delay: 0.15s; }
+.mic-bars i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes micBar { 0%, 100% { height: 3px; } 50% { height: 9px; } }
+/* .live = index.js has a real stream and is writing heights per frame from the FFT. The keyframe loop
+   above is then the FALLBACK, for a refused or missing microphone: bars that move without meaning
+   still say "open", where three frozen sticks would say "broken". The transition is what turns 60
+   discrete samples a second into motion instead of a strobe — short enough to stay in step with the
+   voice, long enough to hide a single noisy frame. */
+.mic-bars.live i { animation: none; transition: height 70ms linear; }
+@media (prefers-reduced-motion: reduce) { .mic-bars i { animation: none; height: 6px; } }
+
+/* When the pill opens, the icons don't just fade with the container — each pops in with a tiny
+   staggered scale so the reveal feels alive. `backwards` fill shows the from-state during the delay
+   (no first-frame flash) but does NOT hold the end-state, so the :active press-scale still works. */
+/* Rises into place instead of scaling up. A centre-origin scale moves both EDGES of the button —
+   13 x (1 - scale), so 7.8px at scale 0.4 — and because the pops are staggered out to 490ms while the
+   pill finishes widening at 280ms, that edge travel happened AFTER everything else had stopped. On
+   screen it reads as: the buttons pop, then slide a little further left. Measured on the settings
+   button through a real hover: 1727.1 -> 1732.6 -> 1717.9, a bounce right and then ~15px of drift
+   left, all of it after the row was still. Vertical movement cannot do that, and still arrives.
+   (An earlier pass measured each button's offset INSIDE .controls, which is stationary by
+   definition, and concluded there was nothing wrong. The eye watches the screen, so measure the
+   screen.) (jek, 2026-07-31) */
+@keyframes btnPop { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+/* Staggered so the row arrives left-to-right instead of all at once. Two things were wrong with the
+   plain :nth-child() version, and together they are the stutter you can see at the end of the hover:
+   it counted the HIDDEN mic (so Windows spent slot 2 on nothing and left a hole in the sequence), and
+   there was no rule for the fifth button at all — which meant ✕ fell back to a 0s delay and popped
+   FIRST, ahead of everything. That second one was wrong on macOS too, where all five are visible.
+   Measured mid-animation before the fix: ✕ and ⧉ well ahead at 24.6px and 22.8px while ☰ and ⚙ were
+   still at 10.4px. `of :not([hidden])` counts only the buttons that exist on this platform.
+   (The left-edge drift that comes with it is btnPop scaling from its centre: a button at 0.88 scale
+   sits 1.6px right of where it lands. That part is the animation doing its job.) (jek, 2026-07-31) */
+.pill.open .controls button { animation: btnPop 0.3s var(--ease-spring) backwards; }
+.pill.open .controls button:nth-child(1 of :not([hidden])) { animation-delay: 0.03s; }
+.pill.open .controls button:nth-child(2 of :not([hidden])) { animation-delay: 0.08s; }
+.pill.open .controls button:nth-child(3 of :not([hidden])) { animation-delay: 0.13s; }
+.pill.open .controls button:nth-child(4 of :not([hidden])) { animation-delay: 0.18s; }
+.pill.open .controls button:nth-child(5 of :not([hidden])) { animation-delay: 0.23s; }
+
+/* ---------- history panel (only when ☰ is toggled) ---------- */
+
+.panel {
+  /* Content-sized now (the window is full-screen and never resizes): settings view is short,
+     history view grows with the log which caps + scrolls via .log max-height. */
+  flex: 0 0 auto;
+  width: 344px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  /* No backdrop-filter — --bg is opaque; it only left a square-cornered filter-region edge. */
+  /* Same shadow as the pill (jek, 2026-07-30): one floating surface, one shadow. */
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  /* The panel does not appear ABOVE the pill — it comes OUT of it. The pill is 336px open and the
+     panel is 344px, so there is almost no width to travel: the whole morph is vertical, unrolling
+     from the pill's top edge to full height.
+     Done with clip-path rather than scaleY because a squashed panel is a squashed panel — the tabs
+     and the Type field visibly stretch back to shape, which reads as a cheap CSS trick. Clipping
+     REVEALS the panel already at its true size, the way a real surface would slide out from behind
+     the pill, and the `round` on the inset carries the corner radius from the pill's 23px capsule to
+     the panel's 16px slab on the way. The 4px side insets are the half of the 8px width difference
+     that each edge has to grow by, so the panel's sides leave the pill's sides exactly. */
+  animation: panelMorph 0.34s var(--ease-out);
+  /* Chrome, not content: a drag anywhere on the panel MOVES the window. Only the parts that hold
+     words you might want to copy opt back in below (.log, and the card's text) — a settings row's
+     description is prose to read, not text to keep, and jek asked for every bar to be a handle
+     (2026-08-10). */
+  user-select: none;
+}
+/* Smooth exit: the panel fades out instead of snapping to display:none (index.js holds [hidden] back
+   until this finishes). Opacity-only — NOT transform — so it never fights the flip layout's
+   translateX(-50%) centering (a transform keyframe there would jerk the panel sideways as it closed).
+   `forwards` keeps the faded end-state during the brief hold before [hidden] lands. */
+.panel.closing { animation: panelOut var(--t-base) ease forwards; pointer-events: none; }
+@keyframes panelOut { from { opacity: 1; } to { opacity: 0; } }
+/* See the note on .panel's animation. The `from` state is the pill's own footprint: clipped down to
+   the bottom edge, inset by the 4px each side has to grow, and carrying the pill's 23px radius. */
+/* The insets end NEGATIVE, and that is the whole point. clip-path clips to the border box, and a
+   box-shadow is painted OUTSIDE the border box — so an animation ending at inset(0) hides the shadow
+   for its entire 0.34s and then hands it back in one frame when the animation drops the clip-path
+   altogether. What you see is a panel that arrives and a shadow that turns up afterwards (jek,
+   2026-08-03). -28px is past the reach of `0 4px 16px` plus the 1px ring, so the shadow is fully
+   revealed before the animation ends and dropping the clip changes nothing visible. */
+@keyframes panelMorph {
+  from {
+    clip-path: inset(100% 4px -28px 4px round 23px);
+    opacity: 0.55;
+  }
+  to {
+    clip-path: inset(-28px -28px -28px -28px round 16px);
+    opacity: 1;
+  }
+}
+/* Flipped stack: the panel hangs BELOW the pill, so it has to unroll downward from its TOP edge
+   instead of upward from its bottom one. Same four numbers, top and bottom swapped — `bottom: 100%`
+   clips everything up to the top edge, which is the pill's footprint in this layout exactly as
+   `top: 100%` was in the other. The -28px stays on whichever edge is not doing the unrolling, for the
+   box-shadow reason spelled out above. */
+.wrap.flip .panel { animation-name: panelMorphFlip; }
+@keyframes panelMorphFlip {
+  from {
+    clip-path: inset(-28px 4px 100% 4px round 23px);
+    opacity: 0.55;
+  }
+  to {
+    clip-path: inset(-28px -28px -28px -28px round 16px);
+    opacity: 1;
+  }
+}
+/* There was a fadeIn on the panel's children here, delayed 0.1s, to make the surface arrive before
+   its content. Removed: the clip-path morph ALREADY reveals content progressively as it unrolls, so
+   the fade was a second, slower motion layered on the first — and what you actually saw was every
+   bar's outline materialising a beat after the panel it sits in, which is exactly the "ขอบขึ้นช้า"
+   jek reported (2026-08-02). One motion per thing. */
+
+.panel[hidden] { display: none; }
+
+/* The translation, shown inside the pill's stack (above the pill face). Keeps
+   its natural height so the window can be measured and sized to it. */
+.result {
+  flex: 0 0 auto;
+  position: relative;
+  /* The card's SURFACE is a drag handle like everything else; only its words are selectable, and
+     they say so themselves (see .r-th/.r-en/.rw-* below). Without this the whole card counted as
+     text and the padding around the translation refused to move the window. */
+  user-select: none;
+  /* Fixed width (OPEN_W 360 − .wrap padding 28) so scrollHeight is stable no
+     matter the current window width — the height measurement must not depend on
+     a resize that hasn't happened yet. */
+  width: 332px;
+  /* Cap the card so it never covers much of the game — a full AI card (meaning + example) scrolls
+     inside instead. 38vh (was 60vh): this is an overlay over live gameplay, stay small. */
+  max-height: 38vh;
+  overflow-y: auto;
+  /* Reserve the bar's 8px whether it is there or not — the same fix .log and #settingsView already
+     carry, and the card is the one scroller that never got it. These are CLASSIC scrollbars: they
+     take layout width, so the moment a card grew past 38vh the bar appeared and shoved ☆ 🔊 ✕ and
+     every line of text 8px left in one frame (jek, 2026-08-09). With the gutter reserved its arrival
+     changes nothing, and the buttons sit still whatever the card does. */
+  scrollbar-gutter: stable;
+  background: var(--bg);
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  border-radius: 18px;
+  padding: 12px 14px;
+  /* No backdrop-filter — --bg is opaque; it only left a square-cornered filter-region edge (jek). */
+  /* Same crisp dark ring as the pill — see .pill above. */
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(0, 0, 0, 0.4);
+  /* Unrolls out of the pill: the surface is REVEALED at its final size, nothing about it travels.
+     It used to rise — translateY(6px) + scale(0.96) — which carried the card's own TEXT 8px upward
+     over 260ms and read as the source line stuttering up the moment the bar appears. That was fixed
+     once for the fresh-translation path only (.quiet-in below); every other way of opening the card
+     kept the lift and kept the stutter with it (jek: "มันกระตุกแล้วเลื่อนขึ้นอีกแล้ว", 2026-08-13).
+     A clip morph is the panel's own entrance vocabulary (see .panel/panelMorph) and says the same
+     "it came out of the pill" without moving a single glyph. */
+  animation: cardRollIn 0.26s var(--ease-out);
+  transition: opacity var(--t-fast) ease;
+}
+
+/* The card unrolls upward out of the pill's top edge, exactly like the panel does — the numbers and
+   the reasoning behind them are spelled out on panelMorph: `top: 100%` starts the clip as the pill's
+   own footprint, the negative insets sit past the reach of the box-shadow so the shadow is revealed
+   WITH the surface instead of arriving a frame after the animation drops the clip, and `round` walks
+   the corner radius from the pill's 23px capsule to the card's 18px slab. Sides do not travel: the
+   card is 332px against the pill's 336px, so there is nothing to morph horizontally.
+   Starting opacity is 0.55 rather than 0 for the same reason as the panel: a surface that is already
+   half there while it unrolls reads as one motion, not as a fade racing a reveal. */
+@keyframes cardRollIn {
+  from { clip-path: inset(100% -28px -28px -28px round 23px); opacity: 0.55; }
+  to   { clip-path: inset(-28px -28px -28px -28px round 18px); opacity: 1; }
+}
+/* No split variant, and none is needed now: .wrap.split .result centres itself with a static
+   transform: translateX(-50%), and the entrance no longer touches transform at all. The two
+   cardInSplit* keyframes that used to live here existed only to carry that centring through the
+   lift. (cardIn/cardInFlip themselves stay — .coach still rises, and a one-line hint has no source
+   text under it to drag.) */
+
+/* Grows out of the pill rather than sliding up to it. transform-origin already sits on the edge
+   nearest the pill, so scaling from 0.96 makes the surface appear to come FROM there — with the
+   spring easing it arrives with a little weight instead of gliding to a stop. 4% of a 344px panel is
+   13.8px inward and the overshoot is ~7px outward, both well inside .drop's 26px clip margin. */
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---- Flipped stack: everything grows DOWNWARD out of the pill ----------------------------------
+   The whole entrance vocabulary here says "this surface came out of the pill": the origin sits on the
+   edge nearest it and the lift travels toward it. All of it was written for the pill parked at the
+   BOTTOM of the screen with the stack above it. Flip the stack (pill at the top, surfaces below) and
+   nothing followed: the card still lifted UP from 6px below and the panel still unrolled UPWARD from
+   its bottom edge, so both animated AWAY from the pill and read as sliding in from somewhere else.
+   .drop.swap has had its flip variant since it was written; these three never got theirs.
+   (jek, 2026-08-07) */
+.wrap.flip .result { animation-name: cardRollInFlip; }
+/* Same four numbers as cardRollIn with top and bottom swapped: hanging below the pill, the card has
+   to unroll DOWNWARD from its top edge — `bottom: 100%` is the pill's footprint in this layout
+   exactly as `top: 100%` is in the other. Mirrors panelMorphFlip. */
+@keyframes cardRollInFlip {
+  from { clip-path: inset(-28px -28px 100% -28px round 23px); opacity: 0.55; }
+  to   { clip-path: inset(-28px -28px -28px -28px round 18px); opacity: 1; }
+}
+.wrap.flip .coach { transform-origin: top center; animation-name: cardInFlip; }
+@keyframes cardInFlip {
+  from { opacity: 0; transform: translateY(-6px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+/* FRESH translation: the card does not even unroll — the PILL widening is the motion, and a surface
+   morphing inside a box that is itself still growing is two motions on one thing. It fades, at rest,
+   while the pill กาง underneath it. showResult() sets this class on exactly the branch that widens
+   the pill.
+   (This class was the 2026-08-12 fix for the stutter, back when the entrance was a lift: cardIn's
+   translateY(6px) + scale(0.96) carried the whole card — text included — 8.35px upward over 260ms,
+   measured per frame as enTop 336.66 → 328.31 with no font-size change and no layout thrash. It only
+   ever covered this one branch, so every other way of opening the card kept the lift and jek saw the
+   same stutter again on 2026-08-13. The lift is gone from .result altogether now — see cardRollIn —
+   and this class is back to being about the pill, not about the text.)
+   Listed against every stack variant because .wrap.flip .result outranks a bare .result rule. */
+.wrap.flip.split .result.quiet-in,
+.wrap.flip .result.quiet-in,
+.wrap.split .result.quiet-in,
+.result.quiet-in { animation-name: cardFadeIn; }
+@keyframes cardFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+/* Animated EXIT (mirrors .panel.closing/panelOut) so the card fades out instead of snapping — makes
+   opening, closing, and swapping card↔panel smooth. index.js's hideResult adds .closing then hides
+   after this duration. Opacity only — a transform here would fight the flip layout's translateX(-50%)
+   centering and make the card jump sideways mid-animation. */
+/* Default close = the ORIGINAL: a 0.16s opacity fade, card keeping its size on the way out (HEAD).
+   It was replaced wholesale by a height-collapse, and jek felt the change immediately. */
+.result.closing { animation: cardOut 0.16s ease forwards; pointer-events: none; }
+@keyframes cardOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+/* The collapse is kept for the ONE case it was written for: a History/Settings panel sitting above
+   the card. There, a pure fade leaves the card holding its full height and the panel drops in a
+   single frame the instant [hidden] lands — the jolt jek reported as lag. hideResult() pins the
+   measured height and adds this only when a panel is open; the negative margin swallows the .drop
+   gap so the panel glides down instead of jumping. With nothing above the card, there is nothing to
+   jolt, so the plain fade above stands. */
+.result.closing.collapse {
+  overflow: hidden;
+  padding-top: 0;
+  padding-bottom: 0;
+  transition: height var(--t-base) var(--ease-mid),
+              padding 0.18s var(--ease-mid), margin-bottom 0.18s var(--ease-mid);
+}
+
+.result[hidden] { display: none; }
+/* Measure first, animate second. showResult unhides the card with this class on,
+   so the box lays out — and fitCard's scrollHeight↔font-size loop forces its
+   layouts — with the entrance NOT armed. One frame later the class comes off and
+   cardIn plays against a box that has stopped moving. Without it the animation
+   was armed before all that work, so its first frames landed late and the open
+   read as a blink, while the close (a pure opacity fade that touches no layout)
+   read as smooth (jek 2026-07-30). */
+.result.premeasure { visibility: hidden; animation: none !important; }
+/* Tucking the pill: the card/panel above fade out WHILE riding the pill's glide to the edge (they
+   already translate with .wrap), so they hide together with the pill instead of snapping away. */
+.result.tuck-out, .panel.tuck-out, .coach.tuck-out { opacity: 0 !important; pointer-events: none; transition: opacity var(--t-slow) ease; }
+/* No fade while a new translation loads — the old card stays crisp until the new one replaces it
+   (the spinning dot already signals "working"). */
+.result.loading { opacity: 1; }
+
+/* Centred by FLEX, like the three buttons beside it. It was the only one of the four left centring a
+   glyph by its line box — the same thing that put ☰ off-centre once already and cost a whole row of
+   icons to fix. Same cluster, same mechanism. */
+.r-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--t-fast) ease, color var(--t-fast) ease;
+}
+.r-close:hover { background: rgba(255, 255, 255, 0.12); color: var(--fg); }
+
+/* Pronounce button — sits just left of the close ✕, same size/feel. */
+.r-speak {
+  position: absolute;
+  top: 6px;
+  right: 32px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background var(--t-fast) ease, color var(--t-fast) ease;
+}
+.r-speak:hover { background: rgba(255, 255, 255, 0.12); color: var(--fg); }
+.r-speak.speaking { color: var(--accent); }
+.r-fav {
+  position: absolute; top: 6px; right: 56px; width: 20px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; border-radius: 5px; background: transparent;
+  color: var(--muted); font-size: 14px; line-height: 1; cursor: pointer;
+  transition: background var(--t-fast) ease, color var(--t-fast) ease;
+}
+/* The AI card is the paid feature, so it gets a control the reader can see rather than happening
+   invisibly on every read. Fourth slot in the same top-right cluster (8 / 32 / 56 / 80). It hides
+   itself once the card HAS the AI fields — a button that does nothing is worse than no button. */
+.r-ai {
+  position: absolute; top: 6px; right: 80px; width: 20px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; border-radius: 5px; background: transparent;
+  color: var(--muted); font-size: 13px; line-height: 1; cursor: pointer;
+  transition: background var(--t-fast) ease, color var(--t-fast) ease;
+}
+.r-ai:hover { background: rgba(255, 255, 255, 0.12); color: var(--accent); }
+
+/* ⚑ Report this read — fifth slot in the cluster (8/32/56/80/104), same size and feel as the rest.
+   Muted until hovered on purpose: it is for the times the card is wrong, and a control that draws
+   the eye on every correct card would be asking a question nobody has. */
+.r-report {
+  position: absolute; top: 6px; right: 104px; width: 20px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; border-radius: 5px; background: transparent;
+  color: var(--muted); font-size: 12px; line-height: 1; cursor: pointer; opacity: 0.55;
+  transition: background var(--t-fast) ease, color var(--t-fast) ease, opacity var(--t-fast) ease;
+}
+.r-report:hover { background: rgba(255, 255, 255, 0.12); color: var(--fg); opacity: 1; }
+.r-report.sent { color: var(--accent); opacity: 1; pointer-events: none; }
+/* Busy is the one state this button spends real time in: a full card is a round trip to a model,
+   measured at 9.4s on 2026-09-07. It used to spend those seconds at 0.6 opacity, which at 20px
+   reads as the button leaving rather than working — press, nothing, then the card silently becomes
+   a different card. Lit, tinted and turning: motion is the only thing at this size that says a
+   wait is a wait. */
+.r-ai.busy {
+  color: var(--accent); opacity: 1; pointer-events: none;
+  background: rgba(255, 255, 255, 0.12);
+}
+/* The star twinkles, the chip it sits in does not — animating the button tilts its rounded square
+   into a diamond and reads as a broken control rather than a busy one (seen at 8x, 2026-09-07). It
+   used to be a ::before carrying a copy of the ✦ character; the button holds the real drawing now,
+   so the drawing is what moves.
+   It used to TURN, and a four-point star has no visible orientation — rotating one animates nothing
+   the eye can follow, so 9.4s of waiting looked like a still icon that had merely gone blue (jek,
+   2026-09-08). A twinkle is the motion this shape already implies: scale and light, no rotation. */
+.r-ai.busy svg { animation: r-ai-twinkle 1.1s ease-in-out infinite; }
+/* One optical size across the cluster. The speaker is drawn at 13 because that is the size the
+   24px row icons want; on the card it sits beside four 15px drawings and reads as the odd one out. */
+.result .r-speak svg { width: 15px; height: 15px; }
+@keyframes r-ai-twinkle {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(0.68); opacity: 0.4; }
+}
+/* Someone who turned motion off still has to be told the same thing, so the signal changes shape
+   rather than disappearing. */
+@media (prefers-reduced-motion: reduce) {
+  .r-ai.busy svg { animation: r-ai-breathe 1.5s ease-in-out infinite; }
+  @keyframes r-ai-breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+}
+/* Already bought. Lit rather than gone, and inert — the same grammar .r-report.sent uses two rules
+   up, so the two receipts on this bar read as one idea. */
+.r-ai.done { color: var(--accent); opacity: 1; pointer-events: none; background: transparent; }
+.r-ai[hidden] { display: none; }
+/* Card side of the same mark — see .entry.has-ai .th. Outranks .result .r-th's var(--fg) on specificity. */
+.result.has-ai .r-th { color: var(--accent); }
+
+.r-fav svg { display: block; fill: none; } /* same star icon as the History rows — hollow by default */
+.r-fav:hover { background: rgba(255, 255, 255, 0.12); color: var(--fg); }
+.r-fav.on { color: #fbbf24; } /* gold when saved — matches the History ★ */
+.r-fav.on svg { fill: currentColor; }
+
+
+/* THE WORDS — the only things in the stack a drag selects instead of moving the window. The rule is
+   "would you ever want to keep this?": the translation, the line it came from, a tapped word and its
+   meaning/forms, and the History/Vocab rows (.log has its own copy of this). Prose that only explains
+   the UI — settings descriptions, hints, tab labels — is chrome and stays a drag handle.
+   index.js reads this back with getComputedStyle rather than keeping its own list, so this selector
+   is the single source of truth for what counts as text. Adding a new word-bearing element here is
+   all that is needed to make it selectable. */
+.result .r-th,
+.result .r-en,
+.result .r-meaning,
+.result .r-forms,
+.result .rw-word,
+.result .rw-meaning,
+.result .rw-senses {
+  user-select: text;
+  cursor: text;
+}
+
+.result .r-th {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--fg);
+  /* THE TOP LINE CLAIMS THE CARD'S OWN TOP AND SIDE PADDING, then hands it straight back as its own,
+     so nothing on screen moves — this is purely about what is UNDER the cursor when a drag starts.
+
+     A selection cannot BEGIN on a `user-select: none` box. The card surface is one (it has to be —
+     it is a drag handle, see .result above), so pressing in the 12px strip above the translation and
+     pulling down selected NOTHING: measured in Chromium, that gesture returns "" while the identical
+     drag started one pixel lower, on the words, returns the whole card. The top line was the one you
+     could never grab, because it is the one whose natural approach is from ABOVE, and Ctrl+A was the
+     only way to get it (jek, 2026-08-19).
+
+     Extending the line box instead of making the card selectable keeps both behaviours: the strip
+     around the words selects, everything else on the card still moves the window. The ✕/☆/🔊 buttons
+     are absolutely positioned, so they still take their own clicks over the top of this. */
+  margin: -12px -14px 0;
+  padding: 12px 96px 0 14px; /* 82px of button room + the 14px of card padding now owned here */
+  font-family: "Noto Sans Thai", "IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
+}
+
+.result .r-en {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+.result .r-en[hidden] { display: none; }
+/* The line and its pencil share a row so the pencil sits at the end of the TEXT, not floating at the
+   card's edge — it belongs to this line and should read that way. align-items:flex-start keeps it on
+   the first line when the source wraps to two. */
+.result .r-en-row { display: flex; align-items: flex-start; gap: 6px; }
+.result .r-en-row .r-en { flex: 1 1 auto; min-width: 0; }
+/* Quiet until wanted: a correction is rare and this must not compete with the translation above it.
+   Big enough to hit (24px) while drawing as a 12px glyph. */
+.result .r-en-fix {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 20px;
+  margin-top: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  opacity: 0.55;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+.result .r-en-fix:hover { opacity: 1; color: var(--fg); background: rgba(255, 255, 255, 0.08); }
+.result .r-en-fix[hidden] { display: none; }
+/* The source line, mid-correction. It has to sit in the SAME place at the SAME size as the text it
+   replaced — a field that grows the card by a few pixels makes everything under it jump at the moment
+   you are trying to aim at a letter. So: the line's own metrics, a hairline box to say it is editable,
+   and no other change to the row. */
+.result .r-en-edit {
+  width: 100%;
+  box-sizing: border-box;
+  margin: -3px 0;
+  padding: 2px 6px;
+  font: inherit;
+  color: var(--fg);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(125, 211, 252, 0.55);
+  border-radius: 7px;
+  outline: none;
+}
+/* Clamped source line — two lines, then the toggle below. The spans are all still there, so nothing
+   about word-tapping changes once it's expanded. */
+.result .r-en.clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.r-en-more {
+  margin-top: 4px;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.r-en-more[hidden] { display: none; }
+.r-en-more:hover { text-decoration: underline; }
+
+/* The spelling, under the line it corrects. Same size and colour as the source line itself — this is
+   that line, written properly, not a note about it — and only the words that were WRONG are lifted to
+   full brightness, so a sentence answers "which word did I misread?" without being re-read whole. No
+   label and no tooltip: a pencil beside a word one letter off from the one above it says the whole
+   thing in every language, and a card over a game is the wrong place to spend a sentence explaining
+   itself. Selectable, like every other piece of text on the card — the corrected spelling is exactly
+   the thing someone will want to copy. (jek, 2026-08-12) */
+.result .r-fix {
+  margin-top: 3px;
+  /* It is a tap target now (fillSpell), so it gets the padding to be one — pulled back out at the
+     sides with a matching negative margin so the words still line up under the source line above
+     them. The row must read as the same quiet correction it always was until you go near it. */
+  margin-left: -6px;
+  margin-right: -6px;
+  /* Indented behind a hairline rule. Both lines used to start at the same x in the same size and
+     colour, so the eye read them as one paragraph of two sentences instead of a line and a note
+     about it. The rule is the cheapest signal there is for "this belongs to what's above", and it
+     costs 4px of indent rather than a size or colour change — the corrected text is usually
+     Japanese or Chinese, where 12px is already the floor and 10px stops being readable. */
+  padding: 2px 6px 2px 8px;
+  border-left: 2px solid rgba(var(--accent-rgb), 0.45);
+  /* Square-ish on the ruled side only. At a full 7px the 2px border curves away at both ends and
+     stops reading as a rule — it draws a stray "(" beside the words instead. */
+  border-radius: 2px 7px 7px 2px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--muted);
+  user-select: text;
+  /* Not `text`: the row's job is now the tap, and the caret cursor promised only a selection. The
+     selection still works — fillSpell ignores a click that ends one. */
+  cursor: pointer;
+  transition: background var(--t-fast) ease, color var(--t-fast) ease;
+}
+/* Hover, not a border or a button face: this sits under a translation on a card over live gameplay,
+   and the affordance has to appear when it is looked for without shouting the rest of the time. */
+.result .r-fix:hover { background: var(--btn); color: var(--fg); }
+/* The trip to main, on the row itself — the card cannot show a spinner without changing height, and
+   a card that resizes while you wait for it is the jitter this file spends half its comments on. */
+.result .r-fix.busy { opacity: 0.5; pointer-events: none; }
+/* Coming BACK is the quieter of the two: going out fixes a misread, coming back merely undoes it. */
+.result .r-fix.rf-back { opacity: 0.8; }
+.result .r-fix[hidden] { display: none; }
+.result .r-fix .rf-pen {
+  margin-right: 5px;
+  opacity: 0.75;
+  font-size: 10px;
+  /* The glyph rides its own line box, so it sits a touch high next to 12px text. */
+  vertical-align: 1px;
+  user-select: none;
+}
+/* THE SWAP SHAPE: "was → now", only for the words that changed (see spellDiff in index.js). The old
+   word is struck through rather than merely dimmed — dim alone was how the whole row already read,
+   and the one thing this row has to say is which of the two is wrong. */
+.result .r-fix.rf-diff .rf-was {
+  text-decoration: line-through;
+  /* Thinner than the text it crosses: the word still has to be readable, it is half the comparison. */
+  text-decoration-color: rgba(154, 163, 178, 0.7);
+}
+.result .r-fix.rf-diff .rf-arrow {
+  margin: 0 5px;
+  opacity: 0.55;
+}
+/* Between two swaps on one row. A comma would read as part of the sentence being corrected. */
+.result .r-fix.rf-diff .rf-sep {
+  margin: 0 7px;
+  opacity: 0.45;
+}
+
+.result .r-fix .rf-w {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+/* How the source line reads (Settings › "Reading", off by default). Under the source line and quieter
+   than it: this is a pronunciation guide for the line above, not a third translation competing with
+   the two that are already here. Italic because it is the one line on the card that is not words of
+   any language you are reading — it is a sound written down. */
+.result .r-read {
+  margin-top: 3px;
+  font-size: 11.5px;
+  line-height: 1.35;
+  font-style: italic;
+  color: var(--muted);
+  opacity: .85;
+}
+.result .r-read[hidden] { display: none; }
+
+/* A long reading shrinks its own type and cap instead of filling the screen — the app is an overlay
+   over live gameplay, and a mis-aimed box shouldn't blind the game. */
+.result.compact { max-height: 28vh; }
+/* A card the model wrote reads in the accent; a free one stays plain. It is the cheapest possible
+   answer to "did this one use my AI?", asked of the thing you are already looking at instead of a
+   control in the corner. Only the reading is tinted — the source line and the meaning rows stay
+   neutral, or the card becomes a colour block and the signal stops being a signal. */
+.result.ai-read .r-th { color: var(--accent); }
+.entry.ai-read .th { color: var(--accent); }
+.result.compact .r-th { font-size: 14px; line-height: 1.35; }
+.result.compact .r-en { font-size: 11.5px; }
+
+.result .r-meta {
+  margin-top: 8px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.result .r-meta[hidden] { display: none; }
+
+/* The card's part-of-speech slot is now just a place to put the shared chip (shared/pos-badge.css) —
+   it used to carry its own accent-blue pill here, spelling the tag out in caps ("NOUN"). */
+.result .r-badge:empty { display: none; }
+
+.result .r-meaning {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #c3c9d4;
+  font-family: "Noto Sans Thai", "IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
+}
+
+/* Word forms (go · went · gone). Source-language text, so no Thai font stack — and monospaced-ish
+   letter-spacing keeps the "·" separated list scannable at a glance mid-game. */
+.result .r-forms {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: 0.2px;
+  color: #c3c9d4;
+}
+.result .r-forms[hidden] { display: none; }
+
+.result .r-ex {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.result .r-ex[hidden] { display: none; }
+.result .r-ex-en { color: #c3c9d4; }
+.result .r-ex-th {
+  color: var(--muted);
+  font-family: "Noto Sans Thai", "IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
+}
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  font-size: 11px;
+  background: rgba(220, 38, 38, 0.22);
+  border-bottom: 1px solid rgba(248, 113, 113, 0.4);
+  color: #fecaca;
+}
+
+.banner[hidden] { display: none; }
+
+/* The banner grew a second line and a second button, and the panel it lives in is ~342px wide. Two
+   nowrap buttons claim ~240px of that between them, so sharing one row with the text left the words
+   86px to live in — measured, not guessed. The text takes a full row of its own and the buttons wrap
+   underneath it; anything that adds a third button inherits this instead of re-breaking it. */
+.banner { flex-wrap: wrap; align-items: flex-start; row-gap: 6px; }
+.banner__text { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 100%; }
+.banner button:first-of-type { margin-left: auto; } /* park the button row on the right */
+/* :first-of-type counts a hidden button too, so when the reveal button is off (every reason that is
+   not a macOS permission — see showBanner) the margin would sit on an element that draws nothing and
+   Open Settings would fall back against the text. Hand it to whatever follows a hidden one. */
+.banner button[hidden] + button { margin-left: auto; }
+/* Quieter than the reason above it: this is the fine print you read only when the reason doesn't
+   match what you're looking at. Same colour family so it still reads as part of the warning. */
+.banner__stale { font-size: 10px; line-height: 1.35; opacity: 0.75; }
+/* Numbered, because the order is the whole content: a person who flips the switch before opening the
+   pane, or who never reopens the app, has done every individual thing right and still has a red dot. */
+.banner__steps { margin: 2px 0 0; padding-left: 16px; font-size: 10px; line-height: 1.5; opacity: 0.8; }
+.banner__steps li { margin: 0; }
+.banner__steps b { font-weight: 700; opacity: 1; }
+
+.banner button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  background: var(--btn);
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.banner button:hover { background: var(--btn-hover); }
+/* One thing to press. The row used to be three identical buttons, which is three decisions at the
+   moment the reader has the least patience for one. */
+.banner__go { background: var(--accent) !important; color: #0b0b0d !important; font-weight: 700; }
+.banner__go:hover { filter: brightness(1.08); }
+.banner__aside { opacity: 0.6; font-size: 10px; }
+.banner__aside:hover { opacity: 1; }
+
+.panel-view { display: flex; flex-direction: column; min-height: 0; }
+.panel-view[hidden] { display: none; }
+/* Tab switch used to fade the incoming view in while the panel's height slid. Both halves are gone as
+   motion now: switching mode should be instant (jek, 2026-08-07). The .enter class stays — it is
+   cleared on a timer in animatePanelHeight, not on animationend, so nothing is waiting on a frame
+   that no longer comes — and the height slide it pairs with is on --ease-mid rather than a spring.
+   @keyframes viewIn went with it: the tab pages, the settings sub-pages and the type-ahead peek were
+   its only other users and none of them fade any more, so the rule had no callers left. */
+/* Settings grew tall (Shortcuts list + CC controls) and could run off the bottom of the screen. Cap it
+   to the viewport and scroll the overflow instead — same idea the .panel.squeeze rule already uses. */
+#settingsView { max-height: 66vh; overflow-y: auto; scrollbar-gutter: stable; } /* same reserved gutter as .log */
+/* .panel.h-anim is GONE with the height slide it existed for (2026-08-12). It froze the inner
+   scrollers while the panel was mid-slide and therefore shorter than its own content, which made them
+   flash a scrollbar for ~180ms. The panel now takes its full height in one frame and reveals the
+   growth with clip-path (see animatePanelHeight), so the scrollers are never smaller than they end up
+   and there is nothing to suppress. */
+/* Keep the tab row and the Reset-all footer pinned while the middle scrolls, so navigation + reset are
+   always reachable no matter how long the active tab is. */
+#settingsView .set-tabs { position: sticky; top: 0; z-index: 2; background: var(--bg); flex: 0 0 auto; }
+#settingsView .set-footer { position: sticky; bottom: 0; z-index: 2; background: var(--bg); margin-top: 0; flex: 0 0 auto; }
+
+.log {
+  flex: 1;
+  max-height: 190px; /* ~3 rows tall, then scroll for the rest — keeps the panel compact over the game */
+  overflow-y: auto;
+  /* Always reserve the scrollbar's 8px, scrollable or not. These are CLASSIC scrollbars (they take
+     layout width, see ::-webkit-scrollbar below), so a list that grows past 190px used to steal 8px
+     from every row the moment the bar appeared — every line re-wrapped in one frame. That is the
+     judder when switching History ↔ Vocab: the two tabs rarely both overflow, so the bar arrives or
+     leaves on almost every switch. With the gutter reserved, its arrival changes nothing. */
+  scrollbar-gutter: stable;
+  padding: 5px 10px 10px;
+  user-select: text; /* rows are selectable/copyable — the panel no longer drags the window (that's the
+                        pill's job), so a drag over the list selects text instead of hauling the overlay. */
+}
+
+/* Thin, on-theme scrollbars. Default macOS renders a fat grey overlay slab that sits over the list
+   (looks like a broken widget) — replace it with a slim translucent thumb on a transparent track. */
+.log::-webkit-scrollbar,
+.result::-webkit-scrollbar,
+#settingsView::-webkit-scrollbar { width: 8px; }
+.log::-webkit-scrollbar-track,
+.result::-webkit-scrollbar-track,
+#settingsView::-webkit-scrollbar-track { background: transparent; }
+.log::-webkit-scrollbar-thumb,
+.result::-webkit-scrollbar-thumb,
+#settingsView::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.log::-webkit-scrollbar-thumb:hover,
+.result::-webkit-scrollbar-thumb:hover,
+#settingsView::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); background-clip: padding-box; }
+
+.empty {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+  padding: 16px 8px;
+}
+
+.empty small { opacity: 0.75; }
+
+.entry {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-left: 2px solid var(--accent);
+  border-radius: 6px;
+  transition: opacity var(--t-base) ease, background var(--t-fast) ease, border-left-color var(--t-base) ease;
+  /* Rows outside the 190px viewport are not laid out at all. The panel views are display:none while
+     hidden, so entering History threw away every row's layout and rebuilt it — a row holds one <span>
+     per WORD, so the bill grows with the whole history, not with the ~3 rows you can see. Measured
+     (2026-08-10, GT_DEBUG probeFrames): the forced layout in animatePanelHeight cost sync=37-60ms
+     every time going IN, against 0.0ms coming back out to the small Type page. That one-directional
+     stall is the "History lags" report — the height slide is the same 200ms in both directions.
+     `auto` on the intrinsic size, not a fixed number: rows wrap to different heights, and auto keeps
+     the REAL height once a row has been rendered once, so the scrollbar stops guessing after the
+     first pass. 44px is only the estimate for rows never yet seen. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 44px;
+}
+/* "N new" — subtitles that arrived while you were reading the list, waiting to be let down (ccHold,
+   index.js). Sticky rather than scrolling away with the rows: the count is only useful where the rows
+   will land, which is the top, and a chip you have to scroll up to find is a chip nobody presses.
+   Full width because it is a LINE in the list, not one of the lens chips above it — pressing it
+   changes what the list holds, not which kind of row it keeps. */
+.hist-new {
+  position: sticky; top: 0; z-index: 3;
+  display: block; width: 100%;
+  padding: 5px 10px; margin-bottom: 6px;
+  font-size: 10.5px; text-align: center;
+  color: var(--accent); background: rgba(var(--accent-rgb), 0.16);
+  border: 1px solid rgba(var(--accent-rgb), 0.45); border-radius: 6px;
+  cursor: pointer;
+  transition: background var(--t-fast) ease;
+}
+.hist-new:hover { background: rgba(var(--accent-rgb), 0.26); }
+
+/* A LOOKUP THAT JUST LANDED slides in from the top of the log. Only addEntry() sets .fresh — a full
+   re-render (tab switch, search) must not animate 300 rows at once, which is what happens if the
+   entrance lives on .entry itself. */
+.entry.fresh { animation: entryIn var(--t-base) var(--ease-out); }
+@keyframes entryIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+/* Deleting one row (− button) collapses its space instead of yanking the list up under the cursor. */
+.entry.removing {
+  opacity: 0; transform: translateX(12px);
+  margin-bottom: 0; padding-top: 0; padding-bottom: 0;
+  max-height: 0; overflow: hidden; pointer-events: none;
+  transition: opacity var(--t-fast) ease, transform var(--t-base) var(--ease-mid),
+              max-height var(--t-base) var(--ease-mid), padding var(--t-base) var(--ease-mid),
+              margin var(--t-base) var(--ease-mid);
+}
+.entry-top { display: flex; align-items: flex-start; gap: 6px; }
+.entry-body { flex: 1; min-width: 0; }
+/* One consistent icon-button SET for the row controls: ⤢ open · ★ save · 🗑 delete — identical box +
+   stroke weight, differing only in the semantic hover colour (jek 2026-07-28). */
+.entry-open, .entry-star, .entry-del, .entry-speak, .entry-ai {
+  flex: 0 0 auto; display: flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; padding: 0; background: none; border: none;
+  color: var(--muted); opacity: 0.55; cursor: pointer;
+  transition: color var(--t-fast) ease, opacity var(--t-fast) ease;
+}
+.entry-open svg, .entry-star svg, .entry-del svg, .entry-speak svg, .entry-ai svg { display: block; }
+/* Same three states as the card: plain, turning while the model is answering, lit once the row
+   carries the fuller card. */
+.entry-ai.busy { color: var(--accent); opacity: 1; pointer-events: none; }
+.entry-ai.busy svg { animation: r-ai-twinkle 1.1s ease-in-out infinite; }
+.entry-ai.done { color: var(--accent); opacity: 1; pointer-events: none; }
+.entry-ai[hidden] { display: none; }
+
+/* Row icons stay inline SVG. Converting the three stateless ones to CSS masks was tried and
+   measured WORSE — 173-175ms against 149-153ms — because a mask still composites a layer per icon
+   per row; the earlier 71ms reading came from deleting the icons outright, which is not an option.
+   Do not retry without a number. */
+
+.entry.fresh { animation: entryIn var(--t-base) var(--ease-out); }
+@keyframes entryIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+/* Deleting one row (− button) collapses its space instead of yanking the list up under the cursor. */
+.entry.removing {
+  opacity: 0; transform: translateX(12px);
+  margin-bottom: 0; padding-top: 0; padding-bottom: 0;
+  max-height: 0; overflow: hidden; pointer-events: none;
+  transition: opacity var(--t-fast) ease, transform var(--t-base) var(--ease-mid),
+              max-height var(--t-base) var(--ease-mid), padding var(--t-base) var(--ease-mid),
+              margin var(--t-base) var(--ease-mid);
+}
+.entry-top { display: flex; align-items: flex-start; gap: 6px; }
+.entry-body { flex: 1; min-width: 0; }
+/* One consistent icon-button SET for the row controls: ⤢ open · ★ save · 🗑 delete — identical box +
+   stroke weight, differing only in the semantic hover colour (jek 2026-07-28). */
+.entry-open, .entry-star, .entry-del, .entry-speak, .entry-ai {
+  flex: 0 0 auto; display: flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; padding: 0; background: none; border: none;
+  color: var(--muted); opacity: 0.55; cursor: pointer;
+  transition: color var(--t-fast) ease, opacity var(--t-fast) ease;
+}
+.entry-open svg, .entry-star svg, .entry-del svg, .entry-speak svg, .entry-ai svg { display: block; }
+/* Same three states as the card: plain, turning while the model is answering, lit once the row
+   carries the fuller card. */
+.entry-ai.busy { color: var(--accent); opacity: 1; pointer-events: none; }
+.entry-ai.busy svg { animation: r-ai-twinkle 1.1s ease-in-out infinite; }
+.entry-ai.done { color: var(--accent); opacity: 1; pointer-events: none; }
+.entry-ai[hidden] { display: none; }
+
+/* Row icons stay inline SVG. Converting the three stateless ones (⤢, 🗑, 🔊) to CSS masks was tried
+   and measured WORSE — 173-175ms against 149-153ms — because a mask still composites a layer per icon
+   per row. The 71ms reading that suggested it came from DELETING the icons outright, which measures
+   the cost of not drawing them, not the cost of a cheaper way to draw them. Do not retry on the
+   strength of that number. (2026-08-10) */
+.entry-open:hover { color: var(--accent); opacity: 1; }
+.entry-del:hover  { color: #f87171; opacity: 1; }
+/* ★ save: hollow by default (fill:none), gold outline on hover (preview save), gold FILLED when .on. */
+.entry-star svg { fill: none; }
+.entry-star:hover { color: #fbbf24; opacity: 1; }
+.entry-star.on { color: #fbbf24; opacity: 1; }
+.entry-star.on svg { fill: currentColor; }
+.entry-star:disabled { opacity: 0.5; cursor: default; }
+/* Vocab rows: hovering the LIT star hollows it + dims to muted → previews "this un-stars it". Must come
+   after the .on rule to win. */
+.entry-star.unstar:hover { color: var(--muted); opacity: 1; }
+.entry-star.unstar:hover svg { fill: none; }
+/* Pronounce on a row. It used to carry the CARD's hover (a white 12% pill) while its three neighbours
+   brighten from opacity .55 and tint — so it read as a different kind of control sitting in the same
+   row (jek, 2026-07-30). It's part of the row family above now: same box, same fade-in, and the same
+   accent tint .entry-open uses, since both are neutral actions (del is red, star is gold). */
+.entry-speak:hover { color: var(--accent); opacity: 1; }
+.entry-speak.speaking { color: var(--accent); opacity: 1; }
+
+/* Offline vocab picker: whitespace-split chips inside a History entry, shown when its ★ is tapped
+   and no Claude key is set. Each chip is one candidate word — tap to translate + save. */
+.entry-chips { display: none; flex-wrap: wrap; gap: 6px; }
+/* display:none→flex kills a transition, but an ANIMATION restarts the moment the element is displayed
+   — so the chip row unfolds instead of appearing under your cursor fully formed. */
+.entry-chips.open { display: flex; animation: chipsIn var(--t-base) var(--ease-out); }
+@keyframes chipsIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+.entry-chips .vocab-hint { font-size: 11px; color: var(--muted); }
+.vocab-chip {
+  border: 1px solid var(--line);
+  background: var(--btn);
+  color: var(--fg);
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background var(--t-fast) ease, border-color var(--t-fast) ease,
+              color var(--t-fast) ease, opacity var(--t-fast) ease;
+}
+.vocab-chip:hover { background: var(--btn-hover); }
+.vocab-chip.on { background: rgba(var(--accent-rgb), 0.22); border-color: var(--accent); color: var(--accent); }
+.vocab-chip.busy { opacity: 0.6; cursor: default; }
+.vocab-chip:disabled { cursor: default; }
+
+/* ── The panel's one control row: pages on the left, input modes on the right ──
+   Two stacked rows (tabs, then the mode strip) cost ~124px of a game screen before any content and
+   ranked the panel upside down — the tabs only swap a page, yet they were the loudest thing in it.
+   Merged, the tabs can go quiet: sitting beside the chips, "which page am I on" needs a mark, not a
+   filled pill. Everything here is scoped to .ctrl-row on purpose — .hist-tab is shared with the
+   Settings tab bar (.set-tabs, 2368), which still wants the old full-width pills. */
+.ctrl-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 10px 10px 8px; }
+/* The tabs SHARE the leftover width instead of hugging their labels. Hugging left ~180px of dead
+   panel between "History" and the CC chip — the row read as two things flung at opposite walls rather
+   than one bar (jek: fix the proportions). Stretching costs nothing: they stay quiet (transparent
+   until active), they just stop leaving a hole in the middle of the panel. */
+.ctrl-row .hist-tabs { flex: 1 1 auto; gap: 3px; margin: 0; padding: 0; min-width: 0; }
+.ctrl-row .hist-tab {
+  display: flex; align-items: center; justify-content: center; flex: 1 1 0; min-width: 0;
+  height: 24px; padding: 0 10px; border-radius: 7px;
+  background: transparent; font-size: 11px; font-weight: 600;
+}
+.ctrl-row .hist-tab:hover:not(.active) { background: rgba(255, 255, 255, 0.08); }
+.ctrl-row .hist-tab.active { background: rgba(var(--accent-rgb), 0.16); color: var(--accent); }
+/* Two poles, not a queue: pages on the left, the mode(s) and ⤢ on the right. The hairline that used to
+   divide them is gone with the chips it was dividing — one chip and a tab pair do not need a rule
+   between them when the gap already says it, and a 1px mark next to a lone chip only made the row look
+   busier than it is. */
+/* One height for everything in the row (24px) and one radius (7px): tab, chip and ⤢ were 22/22/20 with
+   three different paddings, which is what made the row look assembled out of spare parts. */
+.ctrl-row .mode-strip { flex: 0 0 auto; }
+.ctrl-row .icon-tab {
+  flex: 0 0 auto; width: 24px; height: 24px; padding: 0; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center; font-size: 12px;
+}
+
+/* History / ★ Saved tabs */
+.hist-tabs { display: flex; gap: 6px; margin-bottom: 8px; padding: 10px 10px 0; } /* breathing room above the tabs + inset to match the log */
+.hist-tab { flex: 1; padding: 6px; border: none; border-radius: 7px; background: rgba(255,255,255,0.06);
+  color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer;
+  transition: background var(--t-fast) ease, color var(--t-fast) ease; }
+.hist-tab:hover:not(.active) { background: rgba(255,255,255,0.11); color: var(--fg); }
+.hist-tab.active { background: rgba(var(--accent-rgb),0.22); color: var(--accent); }
+.hist-tab .tab-ic { vertical-align: -2px; margin-right: 4px; opacity: 0.9; }
+/* Icon-only actions (Learn, ⤢) — NOT destinations, so they must not take an equal flex share from
+   the three real tabs, and they never get the .active tab highlight. */
+.icon-tab { flex: 0 0 auto; padding: 6px 9px; font-size: 13px; line-height: 1; }
+.icon-tab .tab-ic { margin-right: 0; }
+.icon-tab.on { background: rgba(var(--accent-rgb), 0.22); color: var(--accent); }
+
+/* Expanded: let the list use the height it actually needs. The panel is still capped against the
+   viewport (and keeps its own inner scroll) so it can never grow past the top of the screen.
+   The cap is TRANSITIONED because the panel's own height already glides (animatePanelHeight): without
+   this the outer box slid open while the inner scroller's ceiling jumped in one frame — the list
+   visibly finished moving before the panel did. */
+/* Spring, not ease-mid: this is a surface GROWING while you watch it, which is the same motion the
+   pill has always had on its width, and the reason the pill reads as fluid while the bars read as
+   mechanical. Measured before changing it — no extra dropped frames and no frame where the taller
+   panel clipped its own content. Things LEAVING (a row being deleted, the card collapsing shut) keep
+   the flat curve below: an overshoot on the way out reads as a stutter, not as weight. */
+/* --ease-mid, not the spring: this is a RESIZE between two known heights, and an overshoot on
+   max-height makes a list of rows shoot past its resting size and come back — the bounce you see on
+   every settings page and every history render. The token's own comment says as much. */
+.log, #settingsView, .panel { transition: max-height var(--t-base) var(--ease-mid); }
+.panel.tall .log { max-height: 62vh; }
+.panel.tall #settingsView { max-height: 74vh; }
+/* A card is up, so the pair shares the screen — expanded still gets more room than the default, just
+   not the full 62vh, or the card would be pushed off the top. */
+.panel.tall.squeeze { max-height: 56vh; }
+.panel.tall.squeeze .log { max-height: 34vh; }
+
+/* The panel's three destinations are Type / Dictionary / Learn — one page visible at a time. Column
+   flex + min-height:0 so the Dictionary page's .log keeps its own scroll instead of stretching. */
+.tab-page { display: flex; flex-direction: column; min-height: 0; }
+.tab-page[hidden] { display: none; }
+/* These used to fade in on display:none→flex, so switching Type/History/Vocab and the Settings
+   sub-pages eased the new page up from transparent. Removed with the rest of the switching motion —
+   changing page is navigation, not an event, and a fade on top of a resizing panel is the "fluid"
+   feel jek asked to be rid of everywhere except the pill (2026-08-07). Nothing waits on these frames:
+   the pages are shown by toggling [hidden], never by an animation event. */
+
+/* "What this page is" blurb on the Type page — shown only while the field is empty; the live meaning
+   takes its place the moment you type. */
+.type-tip {
+  padding: 2px 12px 12px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.type-tip[hidden] { display: none; }
+.type-tip small { opacity: 0.8; }
+
+/* Pro / Upgrade box in Settings */
+.pro-box { border: 1px solid rgba(var(--accent-rgb),0.35); background: rgba(var(--accent-rgb),0.06);
+  border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+.pro-head { display: flex; align-items: center; justify-content: space-between; }
+.pro-title { font-size: 14px; font-weight: 800; color: var(--accent); }
+.pro-status { font-size: 11px; font-weight: 700; color: var(--muted); }
+body.is-pro .pro-status { color: var(--accent); }
+.pro-perks { font-size: 11px; color: var(--muted); line-height: 1.5; margin: 6px 0 10px; }
+.pro-btn { width: 100%; padding: 9px; border: none; border-radius: 9px; cursor: pointer;
+  background: var(--accent); color: #0e1015; font-weight: 800; font-size: 12px; }
+.pro-box.flash { animation: proFlash 0.6s ease 2; }
+@keyframes proFlash { 0%,100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb),0); } 50% { box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.5); } }
+
+.entry .th {
+  font-size: 15px;
+  line-height: 1.45;
+  font-weight: 600;
+}
+/* A line that came back from the model is written in the accent its ✦ lights up in — one colour for
+   one meaning across the row and the card, so "this one is an AI read" is legible scanning the list. */
+.entry.has-ai .th { color: var(--accent); }
+
+.entry .en {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+/* Every word in the source line is its own tap target (fillSourceWords). Deliberately styled as
+   PLAIN TEXT until hovered — a history row peppered with buttons would read as noise, and the line's
+   job is still to be read. The hover box is what teaches that words are tappable. */
+.src-word { border-radius: 4px; padding: 0 2px; margin: 0 -2px; cursor: pointer;
+  transition: background var(--t-fast) ease, color var(--t-fast) ease, opacity var(--t-fast) ease; }
+.src-word:hover { background: rgba(var(--accent-rgb), 0.18); color: var(--accent); }
+/* Already collected — amber, matching the ★ that marks a saved row. */
+.src-word.on { color: #fbbf24; background: rgba(251, 191, 36, 0.13); }
+.src-word.on:hover { background: rgba(251, 191, 36, 0.22); color: #fbbf24; }
+.src-word.busy { opacity: 0.5; cursor: default; }
+/* The word that just got looked up flashes once — it names the source of the bubble that appeared
+   under it, instead of both simply being there on the next frame (jek, 2026-07-30). */
+.src-word.just { animation: srcPop 0.55s ease-out; }
+@keyframes srcPop {
+  0%   { background: rgba(251, 191, 36, 0.55); color: #fff7e0; }
+  100% { background: rgba(251, 191, 36, 0.13); color: #fbbf24; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .src-word.just { animation: none; }
+  .r-word { animation: none; }
+}
+
+/* ×N re-encounter count — how often you've met this word while playing. */
+/* Graduated: met 5+ times. This used to dim the whole row, which read as "disabled" rather than
+   "you know this one" (jek, 2026-07-30) — it's an earned badge now, same as the learn window's. */
+.known-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.14);
+  border-radius: 999px;
+  padding: 1px 7px;
+  line-height: 1.5;
+  vertical-align: middle;
+}
+/* Progress line at the top of the Saved list — "how much of my deck have I learned by playing". */
+.saved-head {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  padding: 0 4px 6px;
+  letter-spacing: 0.2px;
+}
+
+/* Day heading in the ★ list — the thing that makes it a timeline instead of a pile. It sits ON the
+   list background rather than a tint, because a filled band at this size competes with the rows it is
+   labelling. The hairline under it is the separator doing the work the fill would have.
+   It used to be STICKY, so the day you were reading stayed named while you scrolled through it. Every
+   heading is a flat sibling in one scroller, though, and sticky siblings do not push each other along
+   — they PILE at top: 0, later ones painting over earlier ones. So scrolling out of Today parked
+   "Today · 1 words" at the top and slid "Yesterday · 3 words" straight over it: two dates in one strip,
+   neither readable (jek's screenshot, 2026-08-13: "บางทีมันมี yesterday ซ้อนกับ today"). Naming the day
+   you are in is not worth showing two days at once, and the headings are close enough together in a
+   list of saved words that scrolling one away is never a long walk. They scroll like everything else
+   now. */
+.day-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  /* The gap above the heading stays PADDING rather than margin, as it had to be while this was sticky
+     (a margin was a transparent strip that travelled with it, showing the rows sliding underneath —
+     jek, 2026-08-12, screenshot of "Aug 9"). It reads identically now that nothing travels, and the
+     painted band is still what keeps the heading legible against a row that ends right above it. */
+  margin: 0 0 4px;
+  padding: 9px 4px 4px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.2px;
+}
+/* First heading has the "recognise a of b" line right above it — no extra gap on top of that.
+   Padding now, for the same reason the rule above gives. */
+.day-head:first-child { padding-top: 3px; }
+.day-head__n {
+  font-weight: 600;
+  color: rgba(138, 148, 163, 0.7);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* subtitle appearance bar (bottom of the history panel) */
+.typebar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+}
+.typebar[hidden] { display: none; }
+
+/* "This session" scope chip on the History tab — a lens over the same rows, not a new store. Its own
+   line under the search box; margin tightened so it sits close to the search rather than floating. */
+/* The lens row. Wraps rather than clips: the widths here are labels in two languages, so no fixed
+   layout can promise they fit — what CAN be promised is that a chip is never half-visible.
+   Side inset 8px (was 10): the chips' own 1px borders sit inside it, and the 2px bought back is the
+   difference between Words fitting on line one or not at 344px. */
+.hist-lens {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  margin: 2px 8px 4px;
+}
+/* Row one: "This session" on the left, ★ Words hard right. Never wraps — it holds two chips and the
+   panel is 326px, so the space between them is the separation itself. */
+.hist-lens__top { display: flex; align-items: center; gap: 3px; }
+.hist-lens__top .hist-src__opt[data-key="star"] { margin-left: auto; }
+/* Same box as a source chip — height, radius, type size — because it is the same KIND of thing: a
+   lens over the list. It used to be a taller pill on its own line, and that difference is what made
+   the two strips read as unrelated pieces of chrome. Only the extra side padding is kept, so the one
+   chip with a two-word label still has room to breathe. */
+.hist-scope {
+  height: 20px;
+  padding: 0 9px;
+  white-space: nowrap;
+  font-size: 10.5px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--btn);
+  color: var(--muted);
+  cursor: pointer;
+  transition: background var(--t-fast) ease, color var(--t-fast) ease, border-color var(--t-fast) ease;
+}
+.hist-scope:hover { background: var(--btn-hover); }
+/* Source lens: All / snip / CC / typed. Sits on the same line inset as the scope chip above it, and
+   uses the row marks themselves as labels so the button and the thing it filters for are the same
+   picture. */
+/* Row two: the four source lenses. Wraps rather than clips — these are labels in two languages, so no
+   fixed layout can promise they fit, and a chip cut in half is the one outcome worth preventing. */
+.hist-src { display: flex; flex-wrap: wrap; gap: 3px; }
+.hist-src[hidden] { display: none; }
+.hist-src__opt {
+  display: flex; align-items: center; justify-content: center; gap: 3px;
+  /* flex-shrink off: these were being squeezed under their own labels once the row went over (measured
+     333.3px of chips into 322px, 2026-08-12). A chip that shrinks to fit is a chip with its text cut
+     in half — wrapping to the next line is the readable failure. */
+  flex: 0 0 auto;
+  height: 20px; padding: 0 6px;
+  font-size: 10.5px; color: var(--muted); background: var(--btn);
+  border: 1px solid var(--line); border-radius: 6px; cursor: pointer;
+  transition: background var(--t-fast) ease, color var(--t-fast) ease, border-color var(--t-fast) ease;
+}
+.hist-src__opt:hover { color: var(--fg); background: var(--btn-hover); }
+.hist-src__opt.on { color: var(--accent); border-color: rgba(var(--accent-rgb), 0.55); background: rgba(var(--accent-rgb), 0.14); }
+/* ★'s separation is now structural — it sits on the top row (see .hist-lens__top), not at the end of
+   the source strip. Nothing to do here; the rule that used to push it lives with that row. */
+/* The per-row mark. Dim by default — it is there to be scanned past until you are looking for it. */
+.entry-src { display: inline-flex; vertical-align: -1px; margin-right: 4px; color: var(--muted); opacity: 0.75; }
+/* Replace the browser's bright default focus ring (read as a glitchy green glow on the overlay) with a
+   subtle on-theme accent ring — only on keyboard focus, so a mouse click doesn't light it up. */
+.hist-scope:focus { outline: none; }
+.hist-scope:focus-visible { outline: 2px solid rgba(var(--accent-rgb), 0.55); outline-offset: 2px; }
+.hist-scope.active { background: rgba(var(--accent-rgb), 0.22); border-color: transparent; color: var(--accent); }
+.hist-scope[hidden] { display: none; }
+
+.typebar input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 9px;
+  font-size: 12px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  outline: none;
+}
+
+.typebar input::placeholder { color: rgba(255, 255, 255, 0.4); }
+.typebar input:focus { border-color: var(--line-focus); }
+
+.typebar button {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 28px;
+  font-size: 14px;
+  color: #0b1620;
+  background: #7dd3fc;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.typebar button:hover { background: #a5e0fd; }
+
+/* The mic sits in the same row as ↵ but must not compete with it: ↵ is the filled primary (the thing
+   that commits), the mic is the alternative INPUT method, so it takes the quiet outlined treatment.
+   Two solid blue buttons side by side read as two submit buttons. */
+.typebar button.mic-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid var(--line);
+}
+.typebar button.mic-btn:hover { background: rgba(255, 255, 255, 0.09); }
+/* Same red breathing cue as the pill's mic used to give — one visual language for "live mic",
+   wherever the button happens to live. */
+.typebar button.mic-btn.listening {
+  color: #fca5a5;
+  background: rgba(248, 113, 113, 0.28);
+  border-color: rgba(248, 113, 113, 0.55);
+  animation: micPulse 1.1s ease-in-out infinite;
+}
+
+/* Live dictionary line under the type box — the rough meaning while you type. Visually QUIETER than
+   a history entry (no card chrome, muted sub-line) so it never gets mistaken for the real card. */
+.peek {
+  padding: 2px 10px 8px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 6px;
+  transition: opacity var(--t-fast) ease; /* the .loading dim was itself a hard jump on every keystroke */
+}
+.peek[hidden] { display: none; }
+/* No entrance fade here either — the answer should just be there while you type. The opacity
+   TRANSITION above stays: that one is the in-flight dim, and removing it brings back the hard jump on
+   every keystroke it was added to fix. Entrance motion and state motion are not the same thing. */
+/* Dim while a newer lookup is in flight — the previous answer stays put instead of blanking, which
+   read as flicker on every keystroke. */
+.peek.loading { opacity: 0.5; }
+.peek-th {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg);
+  line-height: 1.3;
+  word-break: break-word;
+}
+.peek-sub { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+/* The word's other classes (Settings › "Other meanings"). Same size and colour as the sub-line it
+   sits under — it is the same kind of aside — but its own row, because the sub-line's job is to say
+   what key to press next and a list of meanings running into that sentence buries it. */
+.peek-senses { font-size: 10.5px; color: var(--muted); margin-top: 3px; line-height: 1.6; }
+.peek-senses[hidden] { display: none; }
+
+.subbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-top: 1px solid var(--line);
+}
+/* Full-width muted note under a setting (e.g. the Snip-style scope hint). Block — NOT a .subbar flex
+   item, which squeezed the text into a 1-char-wide column that overflowed the panel. */
+.setting-note {
+/* The quota line is information at rest and a warning when it matters — same row, two weights, so
+   the number being there every time never reads as an alarm going off every time. */
+#quotaNote { color: var(--ink-faint, var(--muted)); }
+#quotaNote.warn { color: var(--fg); font-weight: 600; }
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--muted);
+  padding: 2px 10px 8px;
+}
+
+.subbar button {
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--fg);
+  background: var(--btn);
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.subbar button:hover { background: var(--btn-hover); }
+
+/* Native checkboxes recoloured to the app accent so they don't clash with the macOS system blue. */
+/* Checkboxes must opt OUT of the greedy `.subbar input { flex:1; padding; background; border }` rule
+   below (that rule is for text fields) — otherwise the box stretches to fill the row and shoves its
+   label to the far edge. Keep it a natural little tick sat right next to its text. */
+.toggle input[type="checkbox"] {
+  accent-color: var(--accent);
+  flex: 0 0 auto;
+  width: auto;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+}
+
+.subbar input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 7px;
+  font-size: 11px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  outline: none;
+}
+
+.subbar input::placeholder { color: rgba(255, 255, 255, 0.4); }
+.subbar input:focus { border-color: var(--line-focus); }
+
+/* Slide-speed row: label · range · value */
+.slide-row { align-items: center; gap: 10px; }
+.slide-row .slide-lbl { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.slide-row .slide-val {
+  font-size: 11px; color: var(--fg); min-width: 22px; text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.subbar input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  flex: 1; min-width: 0; height: 4px; padding: 0;
+  background: rgba(255, 255, 255, 0.14); border: none; border-radius: 999px;
+  cursor: pointer;
+}
+.subbar input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--accent); border: none; cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+.subbar input[type="range"]:focus { border: none; }
+
+/* One rule instead of ten. Every hover state on the PILL animated while every hover state in the
+   PANEL snapped, which is why the two halves felt like different apps. Same tokens, same feel. */
+.reset-btn, .adv-toggle, .sc-toggle, .sc-reset, .sc-rowreset, .sc-chip,
+.subbar button, .subbar .toggle, #lockBtn, #exportBtn, .banner button,
+.typebar input, .subbar input {
+  transition: background var(--t-fast) ease, color var(--t-fast) ease,
+              border-color var(--t-fast) ease, box-shadow var(--t-fast) ease;
+}
+
+/* Reset-to-defaults: full-width, quiet until hovered (it's a destructive-ish action). */
+/* Reset lives in a persistent footer under all three settings tabs. */
+.set-footer { margin-top: 4px; padding-top: 10px; border-top: 1px solid var(--line); }
+.reset-btn {
+  flex: 1;
+  padding: 9px; /* match #lockBtn — both are full-width row buttons, keep them the same height */
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+}
+.reset-btn:hover {
+  color: #fca5a5;
+  background: rgba(248, 113, 113, 0.12);
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+.subbar .fontsize {
+  min-width: 38px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.subbar .toggle {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted);
+  cursor: pointer;
+}
+/* Standalone toggle on its own row (e.g. Hide-from-capture): sit left and fill the row instead of
+   floating off to the far right edge the way margin-left:auto does when paired with a button. */
+.subbar .toggle.wide { margin-left: 0; flex: 1; }
+
+/* Sized to its label beside Lock; padding matched so the two read as one row, not two stacked bars. */
+#exportBtn { flex: 0 0 auto; padding: 9px 10px; }
+
+.adv-toggle {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  margin-top: 8px; /* separate the API-key section from the destructive Reset button above it */
+}
+.adv-toggle:hover { color: var(--fg); }
+
+/* Lock button + shortcut cheat-sheet, now both on the Controls page (Export moved to System). */
+#lockBtn { flex: 1; padding: 9px; }
+body.locked #lockBtn { background: rgba(248, 113, 113, 0.22); }
+/* ---------- rebindable shortcuts list ---------- */
+.shortcuts-block { border-top: 1px solid var(--line); margin-top: 2px; padding: 8px 4px 2px; }
+.shortcuts-head { display: flex; align-items: center; justify-content: space-between; padding: 0 6px 4px; }
+/* The disclosure that opens the block. Styled as the old <b> heading, not as a button — it reads as
+   the section title it replaced, and the ▾ is what says it's clickable. */
+.sc-toggle {
+  padding: 0; font-size: 11px; font-weight: 700; color: var(--muted);
+  background: none; border: none; cursor: pointer;
+}
+.sc-toggle:hover { color: var(--fg); }
+.sc-reset {
+  padding: 2px 8px; font-size: 10px; color: var(--muted);
+  background: var(--btn); border: 1px solid var(--line); border-radius: 7px; cursor: pointer;
+}
+.sc-reset:hover { background: var(--btn-hover); color: var(--fg); }
+.shortcuts-list { display: flex; flex-direction: column; gap: 3px; }
+.sc-row { display: flex; align-items: center; gap: 8px; padding: 2px 6px; }
+/* Fixed 13px box so every label starts on the same x whatever its mark is — and so a row whose action
+   has no icon still lines up with the rest instead of sliding left on its own. Dimmed: these are for
+   scanning the list, not for looking at; at full contrast eight of them out-shout the labels. */
+.sc-icon { flex: 0 0 13px; width: 13px; height: 13px; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.sc-row:hover .sc-icon { color: var(--fg); }
+.sc-label { flex: 1; font-size: 11px; color: var(--fg); }
+.sc-chip {
+  /* 88, measured, not guessed: the widest default chip renders at 86px (Ctrl+Shift+X) and the
+     narrowest at 74 (Alt+C). At 74 every row put its chip at a different width, so the switch in
+     front of it started at a different x — three switches, three columns, 57px apart. One width for
+     all of them puts every control on the same line down the list. */
+  min-width: 88px; text-align: center; padding: 3px 10px; font-size: 11px; font-weight: 600;
+  color: var(--fg); background: var(--btn); border: 1px solid var(--line); border-radius: 7px;
+  cursor: pointer; transition: background var(--t-fast) ease, border-color var(--t-fast) ease, color var(--t-fast) ease;
+}
+.sc-chip:hover { background: var(--btn-hover); }
+/* Recording: amber ring so it's obvious the app is now listening for the next combo. */
+.sc-chip.recording { color: var(--accent); border-color: rgba(var(--accent-rgb), 0.7); background: rgba(var(--accent-rgb), 0.12); }
+.sc-rowreset {
+  padding: 2px 6px; font-size: 11px; line-height: 1; color: var(--muted);
+  background: transparent; border: none; border-radius: 6px; cursor: pointer;
+}
+.sc-rowreset:hover { color: var(--fg); background: var(--btn); }
+.shortcuts-holddrag { font-size: 10px; line-height: 1.5; color: var(--text-dim); padding: 6px 6px 2px; }
+
+/* The .lang wrapper that used to hold each <select> is gone — settings rows are .gs-row now and the
+   <select> sits directly in them, so those rules were deleted with it. */
+
+/* Custom dropdown — stands in for a native <select> whose OPEN popup Chromium renders itself with an
+   un-stylable, greyed-out option list on Windows (jek, 2026-07-31). Styled to match the .lang select it
+   replaces, but every part (including the menu) is ours, so it looks identical on Mac and Windows. */
+.cdd { position: relative; flex: 1; min-width: 0; }
+.cdd-btn {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 6px;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+.cdd-btn:hover { border-color: var(--line-hover); }
+.cdd.open .cdd-btn { border-color: rgba(255, 255, 255, 0.35); }
+.cdd-val { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cdd-caret { font-size: 9px; color: var(--muted); transition: transform var(--t-fast) var(--ease-mid); }
+.cdd.open .cdd-caret { transform: rotate(180deg); }
+.cdd-menu {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30;
+  background: var(--bg);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.cdd-menu[hidden] { display: none; }
+.cdd-opt {
+  display: block; width: 100%; text-align: left;
+  background: transparent; color: var(--fg);
+  border: 0; border-radius: 5px;
+  padding: 6px 8px; font-size: 12px; cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cdd-opt:hover { background: rgba(255, 255, 255, 0.1); }
+.cdd-opt[aria-selected="true"] { background: rgba(var(--accent-rgb), 0.18); }
+
+/* ==========================================================================
+   GAME-STYLE SETTINGS (jek, 2026-07-31)
+   Every setting is one row with the same shape a console options menu uses:
+   LABEL on the left, VALUE hard right, and a one-line explanation that only
+   costs height while you're actually looking at that row.
+   ========================================================================== */
+
+/* The row. .subbar is still the base (lots of existing CSS keys off it) — gs-row only adds the
+   wrap needed for the description line and stops the label collapsing. */
+.gs-row { flex-wrap: wrap; row-gap: 0; }
+.gs-row__label {
+  flex: 1; min-width: 0;
+  font-size: 11px; color: var(--fg);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Sliders keep their muted label colour — the number to their right is the value, not the label.
+   They also stay natural-width: the RANGE is the flexible part of the row, not the caption. */
+.slide-row .gs-row__label { flex: 0 0 auto; color: var(--muted); }
+
+/* Description bar: one fixed strip near the bottom of the panel whose TEXT changes with the hovered
+   row — the way a console options screen does it. Height is fixed at two lines: a strip that grew
+   with the text would move the panel, which is the whole thing this replaced. */
+.gs-desc-bar {
+  /* Exactly two lines of content (2 × 10.5px × 1.35) plus the padding — every description is written
+     to fit that, and the fixed height means the panel is the same size no matter what's hovered. */
+  height: 37px; padding: 4px 8px;
+  /* ...but height alone does not hold in a flex column. #settingsView is a capped flex column, so
+     once the page inside it is taller than the cap the browser takes the difference out of whatever
+     is allowed to shrink — and this bar was, collapsing 37px → 8px and slicing the description in
+     half with no way to scroll to the rest (jek, 2026-08-05). The sticky tab row and Reset footer
+     are in the same column and shrink the same way, so they are pinned here too. */
+  flex: 0 0 auto;
+  border-top: 1px solid var(--line);
+  font-size: 10.5px; line-height: 1.35; color: var(--muted);
+  overflow: hidden;
+}
+.gs-row[data-desc], .gs-row[data-desc-el] { cursor: default; }
+/* A row the current build can't honour (start-at-login in a dev run) — dimmed but still readable and
+   still hoverable, so its description bar can say why. */
+.gs-row--off { opacity: 0.45; }
+.gs-row--off .gs-toggle { cursor: default; }
+
+/* Group heading inside a page ("Live captions") — the sub-header a game puts above a related block. */
+.gs-sub {
+  padding: 12px 8px 3px;
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.7px; text-transform: uppercase;
+  color: var(--muted); opacity: 0.75;
+}
+
+/* Action rows (Live subtitles / Lock / Export): full-width bar, like a game's "Calibrate…" button. */
+.gs-row--action button { flex: 1; padding: 9px; }
+.gs-row--action #exportBtn { flex: 1; padding: 9px; }
+
+/* ---- Language bar: the Google Translate shape --------------------------------------------------
+   Two language buttons with the swap between them. Nobody has to be taught this layout, which is the
+   whole reason for it (jek, 2026-08-19) — the pair used to be a From row and a To row, two ‹ ›
+   steppers that never drew the direction and never offered the swap. The chips themselves are the
+   ordinary .cdd dropdowns from enhanceSelect(); this only lays them out. */
+.gs-langbar {
+  display: flex; align-items: flex-end; gap: 6px;
+  margin: 2px 8px 6px;
+}
+/* flex:1 1 0 + min-width:0 on BOTH sides, so the two chips stay the same width whatever is in them —
+   "English" and "Tiếng Việt" must not make the bar lopsided — and a long name ellipsises (.cdd-val)
+   instead of pushing the swap button out of the panel. */
+.gs-langbar__side { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+/* From / To, small and quiet. Google Translate leaves them out, but it also has a language ON each
+   side of a translation you can see; here the two chips are a setting, and which one the game is
+   read FROM is the whole question. Muted enough that the language name stays the thing you read. */
+.gs-langbar__cap {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+  color: var(--muted); opacity: 0.75; padding-left: 2px;
+}
+/* The swap. Square, sits on the chips' own line (the bar aligns to flex-end, so the captions above
+   push the chips down and this stays level with them), and carries the same border/fill as a chip so
+   the three read as one control. */
+.gs-langswap {
+  flex: 0 0 auto;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0;
+  font-size: 14px; line-height: 1;
+  color: var(--fg);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color var(--t-fast) ease, transform 0.12s ease;
+}
+.gs-langswap:hover { border-color: var(--line-hover); }
+.gs-langswap:active { transform: scale(0.92); }
+/* Nothing to swap TO (the target is not a language the OCR can read). A CLASS, not the disabled
+   attribute: a disabled button drops its own hover in Chromium, and hover is how its tooltip — the
+   only place the reason is written — gets shown. The click handler checks the same fact. */
+.gs-langswap--off { opacity: 0.4; cursor: default; }
+.gs-langswap--off:hover { border-color: var(--line); }
+.gs-langswap--off:active { transform: none; }
+
+/* Live CC on: say so with COLOUR, not only with the button's text. #lockBtn already tints when it's
+   locked, and every toggle on these pages reads state at a glance — this was the one that didn't. */
+#liveBtn.active {
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.22);
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.4);
+}
+
+/* ---- ‹ value › stepper — replaces a dropdown for short option lists ---- */
+.gs-stepper {
+  display: flex; align-items: center; gap: 2px;
+  flex: 0 0 auto; margin-left: auto;
+}
+/* Scoped under .subbar on purpose: `.subbar button` (colour/border/padding/font-size) would otherwise
+   out-specify a bare .gs-stepper__arrow and the arrows would lose their outline. */
+.subbar .gs-stepper__arrow, .gs-stepper__arrow {
+  width: 20px; height: 20px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0; font-size: 13px; line-height: 1;
+  color: var(--muted); background: var(--btn);
+  border: 1px solid var(--line); border-radius: 5px; cursor: pointer;
+  transition: background var(--t-fast) ease, color var(--t-fast) ease;
+}
+.subbar .gs-stepper__arrow:hover, .gs-stepper__arrow:hover { background: var(--btn-hover); color: var(--fg); }
+.gs-stepper__arrow:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.gs-stepper__val {
+  min-width: 92px; max-width: 92px;
+  text-align: center; font-size: 11px; color: var(--fg);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* ---- snip-mode toggle, riding on the Snip shortcut row ----
+   Two segments, both always visible: a control you can only see one half of is one you cannot choose
+   with, which is exactly why the old ‹ value › stepper for this setting read as meaningless. It sits
+   between the action's label and its key chip so the row reads as one sentence — "Snip · Normally ·
+   Ctrl+Alt" — instead of as a setting that happens to be near a key. */
+/* A row's follow-up question, on its own line. Indented to start under the LABEL (row padding 6 +
+   icon 13 + gap 8 = 27) so it reads as belonging to the row above rather than as a new entry. */
+.sc-subrow { display: flex; padding: 0 6px 4px 27px; margin-top: -2px; }
+.sc-mode {
+  display: flex; align-items: stretch; gap: 2px;
+  flex: 0 0 auto;
+}
+/* The on/off switch on a MODE row (CC, point-at-a-word). Same shape language as the settings toggles
+   so it reads as a switch on sight, but sized against .sc-chip like .sc-mode above — this lives in
+   the shortcut list, where anything taller than the key it sits beside breaks the row's baseline.
+   margin-left:auto pushes it (and everything after it) right, exactly as .sc-mode does. */
+/* CC's "pick the strip again" button: an icon, the size of the row's other marks, sitting just
+   ahead of the switch. Square rather than a labelled pill so the row carries one kind of label
+   (the action's name) and one kind of key (the chip), instead of a third thing that is both. */
+.sc-area {
+  flex: 0 0 auto; margin-left: 8px;
+  width: 24px; height: 22px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); background: var(--btn);
+  border: 1px solid var(--line); border-radius: 6px; cursor: pointer;
+  transition: background var(--t-fast) ease, color var(--t-fast) ease, border-color var(--t-fast) ease;
+}
+.sc-area:hover { color: var(--fg); background: var(--btn-hover); border-color: rgba(var(--accent-rgb), 0.5); }
+.sc-switch {
+  flex: 0 0 auto; margin-left: auto;
+  width: 30px; height: 17px; padding: 0;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--btn); cursor: pointer;
+  display: flex; align-items: center;
+  transition: background var(--t-fast) ease, border-color var(--t-fast) ease;
+}
+.sc-switch__dot {
+  width: 11px; height: 11px; margin-left: 2px;
+  border-radius: 50%; background: var(--muted);
+  transition: transform var(--t-fast) ease, background var(--t-fast) ease;
+}
+.sc-switch.on { background: rgba(var(--accent-rgb), 0.28); border-color: rgba(var(--accent-rgb), 0.55); }
+.sc-switch.on .sc-switch__dot { transform: translateX(13px); background: var(--accent); }
+/* The key chip must not be shoved right by the switch as well — the switch already took the auto
+   margin, so everything after it sits next to it rather than at the far edge. */
+.sc-switch + .sc-chip { margin-left: 8px; }
+/* Sized against .sc-chip (the key next to it), not against the settings-page controls: this lives in
+   the shortcut list, and a segment taller than the key it modifies would fight the row's baseline. */
+.sc-mode__opt {
+  padding: 3px 7px; font-size: 10px; line-height: 1.3;
+  color: var(--muted); background: var(--btn);
+  border: 1px solid var(--line); border-radius: 5px; cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--t-fast) ease, color var(--t-fast) ease, box-shadow var(--t-fast) ease;
+}
+.sc-mode__opt:hover { background: var(--btn-hover); color: var(--fg); }
+/* The live one carries the accent the way #liveBtn.active does — state read as colour, not as a dot
+   you have to go looking for. */
+.sc-mode__opt.on {
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.22);
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.4);
+}
+.sc-mode__opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* "Show all (8)" — the way to the five keys you bind once and never touch. A full-width quiet row
+   rather than a button floating in the list: it is a continuation of the list, not an action on it. */
+.sc-more {
+  display: block; width: 100%; margin-top: 2px; padding: 5px;
+  font-size: 10px; color: var(--muted);
+  background: transparent; border: 1px dashed var(--line); border-radius: 5px; cursor: pointer;
+  transition: background var(--t-fast) ease, color var(--t-fast) ease;
+}
+.sc-more:hover { background: var(--btn-hover); color: var(--fg); }
+
+/* A− / A+ was already a stepper in spirit; this makes it the same object as the others. */
+.subbar .gs-stepper .fontsize { min-width: 92px; color: var(--fg); }
+
+/* ---- ON / OFF pill — replaces the native tick ---- */
+.subbar .toggle.gs-toggle { display: flex; align-items: center; gap: 8px; margin-left: 0; flex: 1; }
+/* Kept in the layout (not display:none) so it still takes focus and clicks/keyboard work unchanged. */
+.gs-toggle input[type="checkbox"] {
+  position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; margin: 0;
+}
+.gs-toggle__pill {
+  position: relative; flex: 0 0 auto; margin-left: auto;
+  width: 32px; height: 18px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid var(--line);
+  transition: background var(--t-fast) ease, border-color var(--t-fast) ease;
+}
+.gs-toggle__dot {
+  position: absolute; top: 1px; left: 1px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--muted);
+  transition: transform var(--t-fast) var(--ease-mid), background var(--t-fast) ease;
+}
+.gs-toggle input:checked ~ .gs-toggle__pill {
+  background: rgba(var(--accent-rgb), 0.28);
+  border-color: rgba(var(--accent-rgb), 0.5);
+}
+.gs-toggle input:checked ~ .gs-toggle__pill .gs-toggle__dot {
+  transform: translateX(14px); background: var(--accent);
+}
+.gs-toggle input:focus-visible ~ .gs-toggle__pill { outline: 2px solid var(--accent); outline-offset: 1px; }
+.gs-toggle:hover .gs-toggle__pill { border-color: var(--line-hover); }
+
+/* ---- Card preview -------------------------------------------------------------------------------
+   The picture that answers "what does this switch add?" for the four card-content toggles. Built to
+   the real card's proportions rather than its exact type sizes — it sits inside a 344px panel, so the
+   17px translation line would dwarf the rows around it. Dashed border, like .gs-preview: a picture of
+   a card, not a card. Lines disappear via [hidden] (renderCardPreview), and the box is free to shrink
+   with them: the whole point is seeing how much smaller the card gets. */
+.gs-cardprev {
+  margin: 2px 8px 6px;
+  padding: 9px 11px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.gs-cardprev__th {
+  font-size: 13px; font-weight: 700; line-height: 1.35; color: var(--fg);
+  font-family: "Noto Sans Thai", "IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
+}
+/* Source line sits ABOVE the translation here, the same order the card uses. */
+.gs-cardprev__src { font-size: 11px; line-height: 1.35; color: var(--muted); margin-bottom: 2px; }
+.gs-cardprev__read { color: var(--accent); opacity: 0.85; margin-left: 4px; }
+.gs-cardprev__meta { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.gs-cardprev__pos {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.4px;
+  color: var(--accent); background: rgba(var(--accent-rgb), 0.16);
+  padding: 1px 5px; border-radius: 4px;
+}
+.gs-cardprev__en { font-size: 11px; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gs-cardprev__senses {
+  font-size: 11px; color: var(--muted); opacity: 0.8; margin-top: 4px;
+  padding-top: 4px; border-top: 1px solid var(--line);
+  font-family: "Noto Sans Thai", "IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
+}
+.gs-cardprev [hidden] { display: none; }
+
+/* ---- Pill-style preview -------------------------------------------------------------------------
+   A small stand-in for the pill, so the style you pick is something you SEE rather than a word you
+   have to imagine. It must be a mock: the real pill is forced fully visible while this panel is open
+   (setPanel → clearRetuck), so it can never show you Faded or Tucked. Height is fixed — switching
+   style must not resize the panel. */
+.gs-preview {
+  height: 62px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  margin: 2px 8px 4px;
+  border: 1px dashed var(--line); /* dashed = "this is a picture of the pill, not the pill" */
+  border-radius: 10px;
+  /* A SCENE, not an empty swatch. The three styles differ only in how much they let a game through,
+     and against a flat panel-coloured rectangle all three looked like "a pill on a rectangle" —
+     which is why the option that hides the pill was sitting there unchosen and unnoticed while jek
+     hid it by hand every time (2026-08-02). Same recipe as the shot on the website: soft lights, no
+     detail, nothing to read. The picture only has to answer "how much of my game does this cover". */
+  background: linear-gradient(160deg, #20304a 0%, #3b2f4d 46%, #4a2f38 100%);
+  overflow: hidden;
+}
+.gs-preview::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(38% 52% at 22% 28%, rgba(255, 196, 120, 0.4), transparent 70%),
+    radial-gradient(30% 40% at 80% 22%, rgba(120, 200, 255, 0.32), transparent 70%),
+    radial-gradient(52% 44% at 60% 94%, rgba(0, 0, 0, 0.5), transparent 70%);
+}
+/* Above the scene, and glass over it — the same translucent slab the real pill now is, so the
+   picture keeps telling the truth after the Real Glass change. */
+.gs-preview__pill, .gs-preview__tab { position: relative; }
+.gs-preview__pill {
+  display: flex; align-items: center; gap: 7px;
+  height: 34px; padding: 0 11px;
+  background: rgba(18, 20, 26, 0.62);
+  backdrop-filter: blur(10px) saturate(1.4);
+  border: 1px solid var(--glass-edge, rgba(255, 255, 255, 0.18));
+  border-radius: 17px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 3px 10px rgba(0, 0, 0, 0.4);
+}
+.gs-preview__dot {
+  width: 9px; height: 9px; flex: 0 0 auto; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 7px rgba(var(--accent-rgb), 0.8);
+}
+.gs-preview__brand { font-size: 11px; font-weight: 600; color: var(--fg); }
+.gs-preview__hint { font-size: 9.5px; color: var(--muted); }
+/* Faded: the WHOLE pill sits back, at the real pill's own value. This picture used to fade the label
+   and hint alone and keep the dot bright — which was the real pill's rule too, until fading the text
+   under a full-strength slab read as "not faded at all" and the pill moved to one `opacity` on itself
+   (see .pill.style-dim). The preview kept the abandoned mechanism and so drew the rejected look while
+   the setting shipped the new one (jek, 2026-08-09). Same property, same 0.45: the picture is only
+   worth having if it is the thing it is a picture of — including the dot fading with it. */
+.gs-preview[data-style="dim"] .gs-preview__pill { opacity: 0.45; }
+/* Tucked: the pill is off the edge and only the tab shows. Drawn against the frame's right edge so
+   the picture matches what actually happens on screen. */
+.gs-preview[data-style="ghost"],
+.gs-preview[data-style="ghostdim"] { justify-content: flex-end; }
+.gs-preview[data-style="ghost"] .gs-preview__pill,
+.gs-preview[data-style="ghostdim"] .gs-preview__pill { display: none; }
+.gs-preview__tab {
+  display: none;
+  width: 26px; height: 34px;             /* 26px = TUCK_TAB, the real sliver width */
+  align-items: center; padding-left: 8px;
+  background: rgba(18, 20, 26, 0.62);
+  backdrop-filter: blur(10px) saturate(1.4);
+  border: 1px solid var(--glass-edge, rgba(255, 255, 255, 0.18)); border-right: none;
+  border-radius: 17px 0 0 17px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
+}
+.gs-preview[data-style="ghost"] .gs-preview__tab,
+.gs-preview[data-style="ghostdim"] .gs-preview__tab { display: flex; margin-right: -1px; }
+/* Tucked + Faded: the same tab, drawn back. Both tucked styles hide the pill, so the tab is the ONLY
+   thing left that can carry the difference — without this the two options show an identical picture
+   and the second one looks like it does nothing. `opacity`, matching Faded above and the real thing:
+   the tucked sliver IS .pill (same element, `style-dim` still on it), so on screen it fades whole at
+   0.45, dot included. Recolouring the tab's glass and edge instead — what this used to do, to keep
+   the dot bright — now draws a difference the app no longer makes. */
+.gs-preview[data-style="ghostdim"] .gs-preview__tab { opacity: 0.45; }
+
+/* ---- The real pill's Faded style --------------------------------------------------------------
+   Only the LABEL fades. .dot keeps its full brightness and its pulse in every style — dimming the one
+   thing that tells you a translation landed would defeat the app. .controls isn't listed because it's
+   already opacity:0 until .pill.open (hover), and hover is a wake condition anyway.
+
+   One custom property does the work: --dim says how faded the chrome is, and the wake list below is
+   the ONLY place that decides when it isn't. Everything in that list is readable from the DOM, so
+   there is no JS flag to keep in sync and nothing that can drift. */
+.pill.style-dim { --dim: 0.45; }
+/* .style-quiet = Tucked + Faded. It shipped identical to plain Tucked and this list is why: a tucked
+   pill only comes back for a hover, a landing translation, a read in flight or the panel — and all
+   four woke it to full strength, so the faded half had no moment left to happen in. jek noticed
+   within a day of using it. The two that are the app TALKING to you (a card arriving, a read
+   running) no longer wake this style — that arrival being quiet is the entire point of choosing it.
+   The two that are YOU talking to the app (hovering it, opening the panel) still do: reaching for a
+   control and having it stay faded is not calm, it is broken. Excluded at the source rather than
+   overridden below, because :has(#result) carries an id and out-specifies almost anything. */
+.pill.style-dim:hover,                                          /* you're looking at it */
+.pill.style-dim:not(.style-quiet):has(.dot.live),               /* a read is in flight (setDot('live')) */
+.wrap:has(#result:not([hidden])) .pill.style-dim:not(.style-quiet), /* a translation card is up */
+.wrap:has(#panel:not([hidden])) .pill.style-dim {               /* Settings/History is open */
+  --dim: 1;
+}
+/* THE WHOLE PILL fades, as one surface. Three earlier attempts each fixed a part and each still read
+   as "not faded": the label alone left a full-strength slab under faint text; recolouring the border
+   and body made it darker, and a darker slab is still a slab; thinning the glass scrim made it
+   see-through, which is a different look than the one being asked for. What was wanted is the plain
+   one — you can see it is on, and it does not compete with the game (jek, 2026-08-09: "อยากให้มันเป็น
+   ลด Opacity ของตัว Pill มากกว่า ... ก็ไม่รบกวนการเล่นเกม เพราะมันจางไง").
+
+   One `opacity` on the pill does what the three separate properties were circling, and does it in
+   the one way that cannot chip an edge or wash out a colour: nothing is recoloured, the whole surface
+   is simply less present. It is also the reason the status dot fades with everything else — opacity
+   applies to the entire subtree and no child rule can win it back. That is a change to the rule that
+   the dot never dims, made because the alternative is not fading the pill; the dot is still the
+   brightest thing on the surface at any dim level, and hovering or a card landing restores it whole. */
+.pill.style-dim {
+  opacity: var(--dim);
+  transition: width var(--t-slow) var(--ease-spring), opacity 0.25s ease;
+}
+/* …and that `transition` shorthand quietly outranked .pill.arrive (line ~376) — same specificity,
+   1900 lines further down, so source order decided it. Faded is the DEFAULT pill style, so the
+   no-overshoot widening the card path asks for has never actually run: measured 12/8/26, a card
+   opening took the pill 220 → 342 → 336px, a 6px spring out and back over ~300ms, which is the bar
+   visibly wobbling as it stretches (jek: "คำภาษาอังกฤษสั่น" while it opens — the card's own text is
+   still to 3 decimals, so the motion was all on the bar). Restated here so .arrive wins whatever
+   style the pill wears; opacity stays at this style's own 0.25s. */
+.pill.style-dim.arrive { transition: width 0.22s var(--ease-out), opacity 0.25s ease; }
+
+/* Tab bar reads as a menu bar. Weight/padding are IDENTICAL active vs inactive (only colour changes)
+   so switching pages can never resize the bar — four tabs at 344px has no slack for a reflow. */
+.set-tabs .hist-tab {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
+  padding: 6px 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ---- Word bubble (tap a word in the card's source line) ---- */
+.r-word {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 9px;
+  padding: 8px 10px;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  border-radius: 9px;
+  animation: rwIn 0.24s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  transform-origin: top center;
+}
+.r-word[hidden] { display: none; }
+/* The same bubble, hosted in a History row instead of the card (see makeEntry). The card gives it
+   padding on both sides; a row does not, and the row's own text is already inset — so it gets the
+   inset here rather than a second copy of the rule living in the row's stylesheet. Slightly tighter
+   than in the card: it sits in a scrolling list where every extra pixel costs a visible row. */
+.entry > .r-word.in-row {
+  margin: 4px 8px 8px 8px;
+  padding: 7px 9px;
+}
+@keyframes rwIn {
+  from { opacity: 0; transform: translateY(-7px) scale(0.97); }
+  60%  { opacity: 1; }
+  to   { opacity: 1; transform: none; }
+}
+/* Leaving on its own (a lookup that failed, not the card closing — see hideWordBubble). Shorter than
+   the entrance on purpose: arriving is the event worth watching, leaving is just getting out of the
+   way, and matching the two makes the exit feel slow. */
+.r-word.leaving {
+  animation: rwOut 0.15s cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none; /* the ★ and 🔊 must not be clickable while it's on its way out */
+}
+@keyframes rwOut {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(-4px) scale(0.985); }
+}
+@media (prefers-reduced-motion: reduce) { .r-word, .r-word.leaving { animation: none; } }
+
+.rw-body { flex: 1; min-width: 0; }
+/* No text-transform. The bubble shows the word you just TAPPED, and uppercasing it meant the box said
+   CHOX while the line you tapped said Chox — two spellings of one word, half a second apart. Case is
+   also information in OCR'd game text (the ALL-CAPS echo the translate retry exists for), so the app
+   should never be the one inventing it. */
+.rw-word {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: #fbbf24;
+}
+.rw-meaning { margin-top: 2px; font-size: 14px; font-weight: 600; line-height: 1.45; color: var(--fg); word-break: break-word; }
+/* "Translating…" was a static grey line, which at a glance is indistinguishable from an answer that
+   happens to be grey — the wait had no motion in it at all. It breathes instead of shimmering: a
+   breathing line is the smallest thing that reads as work in progress. Animated dots were the other
+   option and were dropped: they change the width of a popup positioned under the cursor, so the
+   box would twitch on every frame. */
+.rw-meaning.loading {
+  color: var(--muted);
+  font-weight: 500;
+  animation: rw-breathe 1.3s ease-in-out infinite;
+}
+@keyframes rw-breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .rw-meaning.loading { animation: none; opacity: 1; } }
+
+/* Same star as .entry-star / .r-fav: real button box, hollow by default, gold + filled when saved. */
+.rw-fav {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  color: var(--muted);
+  opacity: 0.75;
+  cursor: pointer;
+  transition: color var(--t-fast) ease, opacity var(--t-fast) ease;
+}
+.rw-fav svg { display: block; fill: none; }
+.rw-fav:hover { color: #fbbf24; opacity: 1; }
+.rw-fav.on { color: #fbbf24; opacity: 1; }
+.rw-fav.on svg { fill: currentColor; }
+
+/* Age of a History row — quiet enough to ignore while reading, there when you're looking for
+   "the one from a minute ago". */
+.entry-ago {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: rgba(138, 148, 163, 0.7);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Part of speech on a collected word, and the other senses under the bubble's meaning — the chip
+   itself is shared/pos-badge.css now. It used to be defined here in accent blue, which meant a noun
+   and a verb wore the same colour in this window while the hover bubble over the game coloured them
+   apart. One fact, one look (jek, 2026-08-12). */
+.rw-senses {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.rw-senses[hidden] { display: none; }
+
+/* Speaker inside the word bubble — one word, not the whole line. */
+.rw-speak {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  color: var(--muted);
+  opacity: 0.75;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color var(--t-fast) ease, opacity var(--t-fast) ease;
+}
+.rw-speak:hover { color: var(--accent); opacity: 1; }
+.rw-speak.speaking { color: var(--accent); }
+
+/* ---- First run ----------------------------------------------------------------------------------
+   One card, once. It sits in the stack above the pill like the panel and the translation card do, so
+   it inherits their glass and their "grows out of the pill" position rather than floating somewhere
+   of its own. Deliberately narrower than the card: it is a sentence, not a surface you work in. */
+.coach {
+  flex: 0 0 auto;
+  width: 300px;
+  padding: 14px 16px 13px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--bg);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(0, 0, 0, 0.4);
+  animation: cardIn 0.26s var(--ease-out);
+  transform-origin: bottom center;
+}
+.coach[hidden] { display: none; }
+/* Same exit as the translation card. It arrived with cardIn and then vanished in a single frame on
+   "Got it", which is the one moment the card is DOING something for you — a surface that answers a
+   click by blinking out reads as a glitch rather than as an acknowledgement. */
+.coach.closing { animation: cardOut 0.16s ease forwards; pointer-events: none; }
+.coach-do { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--fg); font-weight: 600; }
+/* The keys drawn as keys. This is the whole message; if only one thing survives being skimmed at a
+   glance, it has to be the two caps. */
+.coach-do b {
+  display: inline-grid; place-items: center;
+  min-width: 24px; height: 24px; padding: 0 5px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.24); border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.coach-why { margin-top: 8px; font-size: 12px; line-height: 1.5; color: var(--muted); }
+.coach-ok {
+  margin-top: 11px;
+  padding: 7px 14px;
+  border: 1px solid rgba(var(--accent-rgb), 0.4); border-radius: 9px;
+  background: rgba(var(--accent-rgb), 0.16); color: var(--accent);
+  font-size: 12.5px; font-weight: 800; cursor: pointer;
+}
+.coach-ok:hover { background: rgba(var(--accent-rgb), 0.26); }
+
+/* GT_SELFTEST=nocv only — turns the row containment off so its effect can be measured against
+   itself. No ordinary run ever sets this class. */
+:root.no-cv .entry { content-visibility: visible; contain-intrinsic-size: auto; }
+
+/* ── The mode chip(s), sharing the control row with the tabs ──
+   Borrows .hist-src__opt for the chip itself (see index.html #modeStrip), so this row and the History
+   source strip are visibly the same kind of control. Only the group's own box is defined here.
+   Wraps rather than shrinks, for the reason written on .hist-src__opt: a chip squeezed under its own
+   label is a chip with its text cut in half. */
+.mode-strip { display: flex; flex-wrap: wrap; gap: 4px; }
+/* Only CC is left here (and Point on Windows), so the chip can afford the tabs' own height instead of
+   the History strip's 20px — it is one control carrying a mode, not one of six filters. */
+.mode-strip__opt { position: relative; height: 24px; padding: 0 10px; border-radius: 7px; font-size: 11px; }
+/* ── CC = one control, two segments ──
+   Wide half: live subtitles on/off. Narrow half: re-draw the square being watched. Two calls that are
+   genuinely different (toggleLive reuses the saved square, pickLiveArea always asks) and one thing in
+   the user's head — "CC" — so they share a border, a height and a lit state, and are told apart by a
+   1px seam. Sibling buttons, not nested: a button inside a button is invalid HTML.
+   The state classes land on the chip (syncModeStrip), so the wrapper reads them with :has() — that is
+   what keeps the seam, the ring and the corner dot on the WHOLE control rather than on half of it. */
+.mode-split { display: flex; align-items: stretch; position: relative; border-radius: 7px; }
+.mode-split .mode-strip__opt { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.mode-area {
+  display: flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; padding: 0;
+  border: 1px solid var(--line); border-left: none;
+  border-top-right-radius: 7px; border-bottom-right-radius: 7px;
+  color: var(--muted); background: var(--btn); cursor: pointer;
+  transition: background var(--t-fast) ease, color var(--t-fast) ease, border-color var(--t-fast) ease;
+}
+.mode-area:hover { color: var(--fg); background: var(--btn-hover); }
+/* The seam. Drawn by the area button's own left edge (the chip drops its right border so the two do not
+   stack into a 2px line), and it lights with the rest when the mode is running. */
+.mode-split .mode-strip__opt { border-right-color: transparent; }
+.mode-split .mode-area::before {
+  content: ''; position: absolute; left: 0; top: 4px; bottom: 4px; width: 1px;
+  background: var(--line);
+}
+.mode-area { position: relative; }
+.mode-split:has(.mode-strip__opt.on) .mode-area,
+.mode-split:has(.mode-strip__opt.armed) .mode-area {
+  color: var(--accent); border-color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.28);
+}
+.mode-split:has(.mode-strip__opt.armed) .mode-area { background: rgba(var(--accent-rgb), 0.16); }
+.mode-split:has(.mode-strip__opt.on) .mode-area::before,
+.mode-split:has(.mode-strip__opt.armed) .mode-area::before { background: rgba(var(--accent-rgb), 0.45); }
+/* A mode that is RUNNING is louder than a filter that is merely selected: CC left on over a game is a
+   thing you need to spot without reading. The old .on (accent text + a 14% tint, inherited from
+   .hist-src__opt) said "selected" at a glance and jek read a running CC as off.
+   Two states, one mechanism (see syncModeStrip):
+     armed — CC is waiting for YOUR gesture: the drag that picks the subtitle strip
+     on    — CC is reading: the mic's own radar ping, in accent instead of red (jek asked for the
+             mic button's animation here, and one visual language for "this is live" is the point) */
+.mode-strip__opt.on,
+.mode-strip__opt.armed {
+  color: var(--accent); border-color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.28);
+}
+/* armed sits BELOW on even standing still (0.16 vs 0.28, no dot, no ping): the motion tells them apart
+   in the corner of your eye, but a paused eye must be able to tell them apart too. */
+.mode-strip__opt.armed { background: rgba(var(--accent-rgb), 0.16); animation: modeArmedPulse 1.1s ease-in-out infinite; }
+@keyframes modeArmedPulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.3); }
+  50%      { box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.3), 0 0 8px 2px rgba(var(--accent-rgb), 0.45); }
+}
+/* Same keyframe SHAPE as micPulse (a ring that expands and fades), so "live" reads the same whether it
+   is the mic or the captions. Colour is the only difference, and it is the right one: red is a mic
+   recording your voice, accent is the app reading the screen. */
+.mode-strip__opt.on { animation: modeOnPulse 1.1s ease-in-out infinite; }
+/* Inside a split the ping has to go around BOTH halves, so the wrapper wears it and the chip stops. */
+.mode-split .mode-strip__opt.on, .mode-split .mode-strip__opt.armed { animation: none; }
+.mode-split:has(.mode-strip__opt.on) { animation: modeOnPulse 1.1s ease-in-out infinite; }
+.mode-split:has(.mode-strip__opt.armed) { animation: modeArmedPulse 1.1s ease-in-out infinite; }
+@keyframes modeOnPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.55); }
+  50%      { box-shadow: 0 0 0 5px rgba(var(--accent-rgb), 0); }
+}
+/* The dot is a CORNER BADGE, not an inline element, on purpose: an inline dot widens the chip by ~8px
+   the moment a mode starts, which would shove the whole right-hand group sideways. It is also what is
+   left of the "on" cue for anyone running reduced motion. */
+.mode-strip__opt.on::before {
+  content: ''; position: absolute; top: -2px; right: -2px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 6px 1px rgba(var(--accent-rgb), 0.7);
+}
+/* Same dot, moved to the corner of the whole control when CC is split in two. */
+.mode-split .mode-strip__opt.on::before { display: none; }
+.mode-split:has(.mode-strip__opt.on)::after {
+  content: ''; position: absolute; top: -2px; right: -2px; z-index: 1;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 6px 1px rgba(var(--accent-rgb), 0.7);
+}
+/* Reduced motion: both states still have to be readable standing still, so the animations are replaced
+   by the ring each one was breathing, not simply switched off. */
+@media (prefers-reduced-motion: reduce) {
+  .mode-strip__opt.armed, .mode-strip__opt.on, .mode-split { animation: none; }
+  .mode-strip__opt.armed { box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.5); }
+  .mode-strip__opt.on { box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.6), 0 0 6px 1px rgba(var(--accent-rgb), 0.3); }
+}
+
+/* The card's other-word-classes row. Deliberately the same size and colour as .peek-senses in the
+   Type bar: it is the same information answering the same question, and two visual languages for one
+   answer is what this row was added to stop. */
+.result .r-senses { font-size: 10.5px; color: var(--muted); margin-top: 3px; line-height: 1.6; }
+.result .r-senses[hidden] { display: none; }
+
+/* ✎ on a saved-word row — same size and quietness as the ⤢ / 🔊 beside it, so the row does not grow a
+   loud new control; it is used rarely and must not compete with the word itself. */
+/* The field replaces the word IN PLACE, at the row's own size — a taller field would push every row
+   below it down at the moment you are aiming at a character. */
+.line-edit {
+  width: 100%;
+  box-sizing: border-box;
+  margin: -2px 0;
+  padding: 1px 5px;
+  font: inherit;
+  color: var(--fg);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(125, 211, 252, 0.55);
+  border-radius: 6px;
+  outline: none;
+}
+.entry.busy { opacity: 0.55; }
+
+/* ---- Licence / activation ------------------------------------------------------------------- */
+/* One boxed block, because these four lines are one subject — what you have, how to change it, and
+   what happened when you tried. Loose rows in a settings list read as four unrelated settings. */
+.lic-box {
+  margin: 6px 0 2px;
+  padding: 9px 10px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.lic-state { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
+/* The dot IS the state — colour first, words second, so the answer survives a glance. */
+.lic-dot { width: 8px; height: 8px; border-radius: 50%; background: #9aa3b2; flex: 0 0 auto; }
+.lic-box.pro .lic-dot { background: #4ade80; }
+/* NOT amber. Amber means "on, but paused / look again" everywhere else here (.dot.paused,
+   .dot.cc-muted) and it is also the colour a kept word wears — so the one state that means
+   "you paid, it is saved, we simply could not reach the server yet" was wearing the app's own
+   warning colour, at the exact moment a buyer is least sure. The accent says "in progress" without
+   saying "something is wrong". */
+.lic-box.unknown .lic-dot { background: #7dd3fc; }
+.gs-langbar--fixed { justify-content: flex-start; }
+.gs-langfixed { font-size: 13px; font-weight: 600; color: var(--fg); }
+.gs-langfixed b { color: var(--muted); font-weight: 600; margin: 0 4px; }
+.coach-lang { margin: 10px 0 0; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+/* display:flex would otherwise beat the hidden attribute, the same trap .lic-buy needed a line for. */
+.coach-lang[hidden] { display: none; }
+.coach-lang select {
+  padding: 4px 8px; border-radius: 7px; border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.06); color: var(--fg); font-size: 12px;
+}
+.lic-buy {
+  display: block; width: 100%; margin: 8px 0 0; padding: 7px 10px;
+  border: 0; border-radius: 8px; cursor: pointer;
+  background: var(--accent); color: #0b0b0d; font-size: 12px; font-weight: 700;
+}
+.lic-buy:hover { filter: brightness(1.08); }
+.lic-buy[hidden] { display: none; }
+.lic-title { font-size: 12px; font-weight: 700; color: var(--fg); }
+.lic-sub { font-size: 11px; color: var(--muted); }
+.lic-msg { margin-top: 7px; font-size: 11px; line-height: 1.45; color: var(--muted); }
+.lic-msg.bad { color: #f87171; }
+.lic-msg.good { color: #4ade80; }
+.lic-msg[hidden] { display: none; }
+.lic-box #licRow { margin: 0; }

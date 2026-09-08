@@ -1,0 +1,69 @@
+============================================================
+  IJEK — TODO ที่เหลือทั้งหมด  (อัปเดต 2026-06-26)
+============================================================
+App: https://withered-block-4669.monmon7735.workers.dev/train.html
+Supabase ref: lkwrzbuyyqgkibpeixmw
+เครื่องหมาย:  [ ] ยังไม่ทำ   [x] เสร็จ
+              (คุณ) = คุณต้องทำเอง   (ผม) = บอก Claude ทำให้ได้
+รันคำสั่งทั้งหมดใน PowerShell ที่:  C:\Users\PC\train-app
+------------------------------------------------------------
+
+
+### 🔴 BLOCKER — ต้องทำก่อนขายเด็ดขาด ###
+
+[ ] 1. (คุณ) ตั้ง ANTHROPIC_API_KEY  ← AI พังทั้งหมดถ้าไม่ทำ
+       - เอา key: console.anthropic.com → API Keys → Create Key (ต้องมีเครดิต)
+       - รัน:  npx supabase secrets set ANTHROPIC_API_KEY=sk-ant-xxxxx
+       - ไม่ต้อง redeploy, AI ใช้ได้ทันที
+
+[ ] 2. (ผม) เทส AI ซ้ำหลังตั้งคีย์ — chat / check-in / week-plan ตอบจริงไหม
+       (บัญชี monmon7735 เป็น temp-Pro อยู่ พร้อมเทสทันที)
+
+[ ] 3. (คุณเช็ค / ผมแก้) ราคา Lemon Squeezy ให้ตรงแอป
+       - แอปโชว์ = ฿359/ปี (launch)   แต่ LS จด = ฿890/ปี
+       - เช็ค: LS → Products → Ijek Pro (Yearly) → ดูราคา
+       - ไม่ตรง = คนโดนชาร์จผิด → แก้ราคาใน LS หรือบอกผมแก้ตัวเลขในแอป
+
+[ ] 4. (คุณ) เปลี่ยน signing secret ใหม่ (ตัวเก่า ijekwhsec... หลุดในแชทแล้ว)
+       - สร้างใหม่ใน LS webhook settings → copy
+       - รัน:  npx supabase secrets set LEMONSQUEEZY_SIGNING_SECRET=ตัวใหม่
+
+[ ] 5. (คุณ) Revoke Supabase PAT (sbp_...) ที่หลุดในแชท
+       - Supabase → Account → Access Tokens → ลบตัวเก่า
+
+
+### 🟡 รัน SQL + ตั้งค่า (ก่อนเทส) ###
+
+[ ] 6. (คุณ+ผม) รัน supabase_billing.sql ก่อน → แล้ว  npx supabase functions deploy jek-ai
+[ ] 7. (คุณ) ยืนยันได้รัน SQL พวกนี้แล้ว (รันซ้ำได้ปลอดภัย):
+       - supabase_schema.sql      (friendships.status — ถ้าขาด leaderboard error)
+       - supabase_user_images.sql (รูป avatar sync ข้ามเครื่อง)
+       - supabase_push.sql        (ถ้าจะใช้ background push)
+[ ] 8. (คุณ) Supabase → Auth → URL Configuration → Site URL = workers.dev URL
+[ ] 9. (คุณ) Supabase → Auth → เปิด confirm-email (กันสแปม)
+
+
+### 🟢 เทส + เปิดขายจริง ###
+
+[ ] 10. (คุณ+ผม) เทสจ่ายเงิน Test mode — บัตร 4242 4242 4242 4242 → Pro เด้งไหม
+[ ] 11. (ผม) QA เต็ม — multiplayer / reminders / achievements / ME-drag /
+        landing mobile+desktop / manifest / Lighthouse PWA
+[ ] 12. (คุณ) Upgrade Supabase Pro $25/เดือน (ก่อนรับ user คนแรก)
+[ ] 13. (คุณ) LS → Identity verification = Individual + บัตร ปชช → Activate
+[ ] 14. (คุณ) เชื่อม Payout (PayPal/Wise)
+[ ] 15. (คุณ) ปิด Test mode → ขายจริงได้ 🚀
+
+
+### ⚪ หลังขายได้ (ไม่ใช่ blocker) ###
+
+[ ] 16. (คุณ+ผม) Custom domain เช่น ijek.app (~฿350/ปี) ผูก Cloudflare Worker
+        + อัปเดต URL ใน Supabase Redirect + Google redirect
+[ ] 17. (ผม) ลบ dead code PromptPay — PromptPayModal + pp.* i18n
+[ ] 18. (คุณ) ลบ edge fn เก่า: npx supabase functions delete promptpay-charge charge-status opn-webhook
+
+
+------------------------------------------------------------
+ลำดับแนะนำ:  1→2→3 ก่อน (AI คือหัวใจของ Pro)
+            → 4-9 → เทส 10-11 → go-live 12-15
+หมายเหตุ: fee LS ~5%+$0.50/ดีล → รายเดือนเสีย ~22%, รายปีเสีย ~7% → ดันแพ็กรายปี
+============================================================

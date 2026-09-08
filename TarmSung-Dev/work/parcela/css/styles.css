@@ -1,0 +1,637 @@
+/* =============================================================================
+   ครัวบ้านสวน — base → layout → components → sections   (mobile-first)
+   ========================================================================== */
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: calc(var(--header-h) + 12px); }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: var(--color-bg);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+/* พื้นไม่ใช่จอเปล่า — grain บางๆ ทับทั้งหน้า */
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: var(--grain); mix-blend-mode: multiply;
+}
+img { display: block; max-width: 100%; height: auto; }
+a { color: inherit; text-decoration: none; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: var(--weight-bold); line-height: 1.18; }
+/* ไทยไม่มีช่องว่างระหว่างคำ เบราว์เซอร์จึงตัดกลางคำได้ — คำไหนต้องอยู่ครบใส่ .nb */
+.nb { white-space: nowrap; }
+
+:focus-visible { outline: 3px solid var(--color-brand); outline-offset: 3px; border-radius: 4px; }
+.skip {
+  position: absolute; left: -9999px; top: 0; z-index: 99;
+  background: var(--color-surface); padding: var(--space-3) var(--space-4); border-radius: 0 0 var(--radius-md) 0;
+}
+.skip:focus { left: 0; }
+
+.wrap { width: min(100% - 2rem, 1120px); margin-inline: auto; position: relative; z-index: 1; }
+
+/* ---- ปุ่ม ----------------------------------------------------------------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  min-height: 48px; padding: 0 var(--space-5);
+  border: 1px solid transparent; border-radius: var(--radius-pill);
+  font-family: var(--font-display); font-weight: var(--weight-bold); font-size: 1rem;
+  transition: transform 220ms var(--ease), background-color 220ms var(--ease);
+}
+.btn:active { transform: translateY(1px); }
+.btn--primary { background: var(--color-brand); color: var(--color-on-brand); }
+.btn--ghost { border-color: currentColor; color: var(--color-text); }
+.btn--sm { min-height: 40px; padding: 0 var(--space-4); font-size: .9rem; }
+.on-photo .btn--ghost { color: #fff; }
+
+/* ---- header --------------------------------------------------------------- */
+.site-header {
+  position: sticky; top: 0; z-index: 20;
+  height: var(--header-h);
+  display: flex; align-items: center;
+  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--color-line);
+}
+.nav { display: flex; align-items: center; gap: var(--space-4); }
+.brand { display: flex; align-items: center; gap: var(--space-2); font-family: var(--font-display); font-weight: var(--weight-bold); font-size: 1.15rem; }
+.brand .mark {
+  width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+  background: var(--color-brand); color: var(--color-on-brand);
+}
+/* โลโก้เป็นรูป ไม่ใช่ตัวอักษรตัวเดียว — ตัวอักษรในกรอบอ่านเป็น placeholder ไม่ใช่แบรนด์ */
+.brand .mark svg { width: 21px; height: 21px; display: block; }
+.brand small { display: block; font-family: var(--font-body); font-weight: 400; font-size: .62rem; letter-spacing: .18em; color: var(--color-text-muted); }
+.nav-links { display: none; gap: var(--space-4); margin-inline-start: auto; font-size: .95rem; }
+.nav-links a { padding: var(--space-2) 0; border-bottom: 2px solid transparent; }
+.nav-links a:hover { border-bottom-color: var(--color-brand); }
+.nav-cta { margin-inline-start: auto; }
+
+/* ---- hero ----------------------------------------------------------------- */
+.hero { position: relative; min-height: min(86svh, 720px); display: flex; align-items: flex-end; color: #fff; isolation: isolate; }
+.hero-photo { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; }
+.hero::after {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(180deg, rgba(20,14,8,.62) 0%, rgba(20,14,8,.34) 30%, rgba(20,14,8,.90) 100%);
+}
+.hero-copy { padding-block: var(--space-8) var(--space-6); }
+.eyebrow {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  font-size: .78rem; letter-spacing: .12em; text-transform: uppercase;
+  padding: 6px 14px; border-radius: var(--radius-pill);
+  background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.28);
+}
+.hero h1 { font-size: clamp(2.3rem, 11vw, 4.2rem); margin-block: var(--space-4) var(--space-3); text-shadow: 0 2px 24px rgba(0,0,0,.4); }
+.hero .lead { font-size: 1.02rem; max-width: 34ch; color: rgba(255,255,255,.92); }
+.hero-cta { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-5); }
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin-top: var(--space-5); font-size: .85rem; color: rgba(255,255,255,.86); }
+.chips span { display: inline-flex; align-items: center; gap: 6px; }
+.star { color: #F3C969; }
+
+/* ---- section -------------------------------------------------------------- */
+.section { padding-block: var(--space-8); }
+.section-head { max-width: 46ch; margin-bottom: var(--space-6); }
+.section-head h2 { font-size: clamp(1.7rem, 7vw, 2.6rem); }
+.section-head p { color: var(--color-text-muted); margin-top: var(--space-2); }
+.kicker { font-size: .8rem; letter-spacing: .14em; text-transform: uppercase; color: var(--color-brand-text); font-weight: 600; }
+
+/* ---- การ์ดเมนู ------------------------------------------------------------ */
+.cards { display: grid; gap: var(--space-4); }
+.card {
+  background: var(--color-surface); border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg); overflow: hidden;
+  display: grid; grid-template-columns: 116px 1fr; align-items: stretch;
+}
+.card img { width: 100%; height: 100%; object-fit: cover; }
+.card-body { padding: var(--space-4); display: flex; flex-direction: column; gap: 4px; }
+.card h3 { font-size: 1.05rem; }
+.card p { font-size: .88rem; color: var(--color-text-muted); }
+.price { font-family: var(--font-display); font-weight: var(--weight-bold); color: var(--color-price); margin-top: auto; }
+
+/* ---- แถบปิดท้าย ----------------------------------------------------------- */
+.band {
+  background: var(--color-surface-alt); border-block: 1px solid var(--color-line);
+  padding-block: var(--space-8); text-align: center;
+}
+.band h2 { font-size: clamp(1.6rem, 6.5vw, 2.4rem); }
+.band p { color: var(--color-text-muted); margin-top: var(--space-2); }
+.band .hero-cta { justify-content: center; }
+
+.site-footer { padding-block: var(--space-6); font-size: .88rem; color: var(--color-text-muted); }
+.site-footer strong { color: var(--color-text); }
+
+/* ---- reveal ---------------------------------------------------------------
+   start state ถูก gate ใต้ html.js เสมอ — JS พังเมื่อไหร่หน้าต้องยังอ่านได้ */
+.js .reveal { opacity: 0; transform: translateY(18px); transition: opacity 1100ms var(--ease), transform 1100ms var(--ease); }
+.js .reveal.in { opacity: 1; transform: none; }
+.js .d1 { transition-delay: 90ms; }
+.js .d2 { transition-delay: 180ms; }
+.js .d3 { transition-delay: 270ms; }
+
+
+/* ---- ตัวเลขที่วิ่งมา ------------------------------------------------------
+   tabular-nums ตรึงให้ทุกหลักกว้างเท่ากัน บรรทัดจึงไม่กระตุกตอนเลขเปลี่ยน
+   แต่ใส่ค้างไว้ไม่ได้: ตัวเลขจะกว้างกว่าปกติจนขึ้นช่องว่างแปลกๆ ("68,000 + กล่อง")
+   จึงใส่เฉพาะตอนที่มันกำลังนับ แล้วถอดออกเมื่อถึงค่าปลายทาง */
+.tally { font-weight: inherit; }
+.tally.counting { font-variant-numeric: tabular-nums; }
+
+/* ---- หัวข้อขึ้นทีละคำ ----------------------------------------------------
+   ห่อคำด้วย span ซ้อนสองชั้น ช่องว่างระหว่างคำยังเป็น text node จริง
+   => ลากคลุมแล้ว copy ออกมาได้เป็นประโยคปกติ screen reader ก็อ่านต่อกันปกติ
+   ใช้ .in เป็น state เดียวกับ .reveal — ของชนิดเดียวกันต้องใช้กลไกเดียวกัน */
+.js .rise .w {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+.js .rise .w > span { display: inline-block; transform: translateY(110%); transition: transform 900ms var(--ease); }
+.js .rise.in .w > span { transform: none; }
+
+/* ---- เส้นทางส่งของที่ลากตัวเองใต้หัวข้อ ----------------------------------
+   ร้านนี้ขายเรื่อง "ของถึงบ้านใน 1-2 วัน" เส้นคั่นจึงเป็นเส้นทางที่วิ่งจากซ้าย
+   ไปจบที่หัวลูกศร ไม่ใช่ border-bottom เส้นตรงที่ไม่ได้พูดอะไรเลย */
+.route { display: block; margin-top: 14px; overflow: visible; }
+.route path {
+  fill: none;
+  stroke: var(--color-brand);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.js .route path { stroke-dasharray: var(--len); stroke-dashoffset: var(--len); }
+.js .route.in path { transition: stroke-dashoffset 1000ms var(--ease) 120ms; stroke-dashoffset: 0; }
+.js .route.in path:nth-child(2) { transition-delay: 720ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .js .reveal, .js .reveal.in { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .js .rise .w > span { transform: none !important; transition: none !important; }
+  .js .route path, .js .stamp path { stroke-dashoffset: 0 !important; transition: none !important; }
+  .btn { transition: none; }
+}
+
+/* ---- ≥ 768px -------------------------------------------------------------- */
+@media (min-width: 768px) {
+  .nav-links { display: flex; }
+  .nav-cta { margin-inline-start: 0; }
+  .cards { grid-template-columns: repeat(3, 1fr); }
+  .card { grid-template-columns: 1fr; }
+  .card img { aspect-ratio: 4 / 3; height: auto; }
+  .hero-copy { padding-block: 6rem 4rem; }
+}
+
+/* =============================================================================
+   เฉพาะร้านค้า: hero เป็นแถบสว่าง (ไม่ใช่ภาพเต็มจอ) + กริดสินค้า 2 คอลัมน์
+   ร้านค้าออนไลน์ขายด้วย "ของ + ราคา" ไม่ใช่บรรยากาศ hero รูปเดียวจึงกินที่เปล่า
+   ========================================================================== */
+.hero--shop {
+  /* พื้นน้ำเงินเต็มแถบ ไม่ใช่พื้นขาว: จอแรกเดิมเป็นตัวหนังสือดำบนขาวล้วน อ่านแล้วเป็น
+     "หน้าบทความ" มากกว่า "หน้าร้าน" — ร้านค้าออนไลน์จอแรกต้องมีสีของแบรนด์ ของหนึ่งชิ้น
+     และราคาหนึ่งราคา. สีเดิมในระบบทั้งหมด ไม่ได้เพิ่มสีใหม่: ไล่จาก --blue-600 ไป
+     --blue-700 แล้วเข้มลงอีกขั้นเพื่อไม่ให้แถบใหญ่ขนาดนี้แบนเป็นแผ่นเดียว */
+  min-height: 0; display: block; color: #fff;
+  background: linear-gradient(168deg, var(--blue-600) 0%, var(--blue-700) 58%, #12308A 100%);
+  border-bottom: 0;
+  /* มาร์กกล่องยื่นพ้นขอบขวาโดยตั้งใจ ถ้าไม่ตัดตรงนี้หน้าจะเลื่อนแนวนอนได้
+     (วัดแล้วที่ 420px: scrollWidth 454) */
+  overflow: hidden;
+}
+/* สองชั้นคนละหน้าที่: grain = ทำให้พื้นเป็นวัสดุ · route = บอกว่าร้านนี้ทำอะไร
+   วัดแล้วด้วยการปิด/เปิดชั้นแล้วเทียบพิกเซล ทั้งคู่ปรากฏบนจอจริง ไม่ได้ประกาศลอยๆ */
+.hero--shop::after {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background-image: var(--grain); pointer-events: none;
+}
+.hero--shop::before {
+  content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background-image: var(--pattern-route);
+  background-size: 96px 96px;
+  /* .10 ไม่ใช่ .03: ลายเส้น 1.6px สีขาวบนน้ำเงินเข้ม ที่ 3% คือความสว่างขึ้นไม่ถึง
+     หนึ่งเปอร์เซ็นต์ = ไม่มีอยู่จริงบนจอ (บทเรียนจาก The Bed) */
+  opacity: .10;
+  /* จางหายไปทางล่าง ไม่ให้ไปแย่งสายตากับการ์ดดีล */
+  -webkit-mask-image: linear-gradient(190deg, #000 0%, #000 34%, transparent 78%);
+          mask-image: linear-gradient(190deg, #000 0%, #000 34%, transparent 78%);
+}
+.hero--shop > * { position: relative; z-index: 1; }
+
+/* ---- มาร์กที่ใช้ใหญ่ -------------------------------------------------------
+   กล่องพัสดุติดเครื่องหมายถูก = โลโก้ตัวเดียวกับบนหัวเว็บ แต่ใช้เป็น "ภาพ" ขนาดใหญ่
+   ไม่ใช่ไอคอน 32px วาดตัวเองด้วย stroke-dashoffset กลไกเดียวกับเส้นใต้หัวข้อ */
+.stamp {
+  position: absolute;
+  right: -34px; bottom: -26px;
+  width: min(300px, 52%);
+  z-index: 0;
+  color: #fff;
+  opacity: .16;
+  pointer-events: none;
+}
+.stamp path {
+  fill: none;
+  stroke: currentColor;
+  /* viewBox กว้าง 32 หน่วยแต่วาดจริง 300px = ขยาย 9.4 เท่า ถ้าปล่อยไว้ stroke 1.4
+     จะกลายเป็นเส้นหนา 13px ไม่เข้ากับลายเส้นบางๆ ของ pattern ที่อยู่ข้างหลัง
+     non-scaling-stroke ตรึงความหนาไว้เป็น px จริงไม่ว่าจะขยายเท่าไหร่ */
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.js .stamp path { stroke-dasharray: var(--len); stroke-dashoffset: var(--len); }
+.js .stamp.in path { transition: stroke-dashoffset 1400ms var(--ease); stroke-dashoffset: 0; }
+.js .stamp.in path:nth-child(2) { transition-delay: 260ms; }
+.js .stamp.in path:nth-child(3) { transition-delay: 420ms; }
+.js .stamp.in path:nth-child(4) { transition-delay: 620ms; }
+
+/* ---- ลายพื้นของแถบสว่าง ---------------------------------------------------
+   พื้น --color-bg เป็นสีเรียบล้วนทั้งหน้า grain ช่วยเรื่องวัสดุแต่ไม่ได้เล่าอะไร */
+.band-route { position: relative; isolation: isolate; }
+.band-route::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  /* ลายในไฟล์เป็นเส้นสีขาว ซึ่งบนพื้นสว่างคือมองไม่เห็น — ใช้เป็น "แบบตัด" (mask)
+     แล้วเทสีน้ำเงินของแบรนด์ผ่านช่องนั้นแทน จะได้ไม่ต้องทำไฟล์ลายชุดที่สอง
+     ห้ามใส่ background-image ซ้ำ: รอบแรกใส่ไว้ด้วย เส้นขาวเลยไปทับสีที่เทไว้
+     กลายเป็นขาวบนขาว วัดด้วยเครื่องบอกว่า "เรนเดอร์แล้ว" แต่ตาไม่เห็นอะไรเลย */
+  background-color: var(--color-brand);
+  -webkit-mask-image: var(--pattern-route);
+          mask-image: var(--pattern-route);
+  -webkit-mask-size: 96px 96px;
+          mask-size: 96px 96px;
+  opacity: .11;
+}
+.hero--shop .hero-copy { padding-block: var(--space-6) var(--space-5); }
+.hero--shop h1 { font-size: clamp(1.9rem, 8.5vw, 3.2rem); text-shadow: none; }
+.hero--shop .lead { color: rgba(255,255,255,.92); }
+.hero--shop .chips { color: rgba(255,255,255,.82); }
+.hero--shop .eyebrow { color: rgba(255,255,255,.86); }
+
+/* ช่องค้นหา: เป็นสีขาวจริงบนพื้นน้ำเงิน + มีปุ่มค้นหาที่ปลาย ของเดิมเป็นเทาบนขาว
+   ซึ่งบนภาพหน้าจอมองไม่ออกว่าเป็นช่องกรอก */
+.search {
+  display: flex; align-items: center; gap: var(--space-2);
+  margin-top: var(--space-5); padding: 4px 4px 4px var(--space-4);
+  min-height: 52px; border-radius: var(--radius-pill);
+  background: var(--color-surface); border: 0;
+  color: var(--color-text-muted); font-size: .95rem;
+  box-shadow: 0 10px 24px rgba(9, 25, 66, .28);
+}
+.search svg { width: 18px; height: 18px; flex: none; }
+.search-go {
+  margin-inline-start: auto; padding: 10px 18px; border-radius: var(--radius-pill);
+  background: var(--color-brand); color: var(--color-on-brand);
+  font-family: var(--font-display); font-weight: var(--weight-bold); font-size: .9rem;
+}
+
+/* หมวดสินค้า: เลื่อนแนวนอนได้เหมือนแอปร้านค้า ไม่ตัดบรรทัดจนดันของข้างล่างหลุดจอ */
+.cats {
+  display: flex; gap: var(--space-2); margin-top: var(--space-3);
+  padding-bottom: 2px; overflow-x: auto; scrollbar-width: none;
+  list-style: none;
+}
+.cats::-webkit-scrollbar { display: none; }
+.cats a {
+  display: block; white-space: nowrap; padding: 7px 14px; border-radius: var(--radius-pill);
+  background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.3);
+  color: #fff; font-size: .85rem; text-decoration: none;
+}
+
+/* การ์ดดีล: ของ + ราคา + เวลา อยู่ในใบเดียว รูปคร่อมสองแถวเพื่อให้ปุ่มเต็มความกว้าง
+   ของฝั่งตัวหนังสือ — บนจอ 390px การวางปุ่มไว้คอลัมน์ที่สามบีบชื่อสินค้าจนเหลือคำเดียว */
+.deal {
+  position: relative; display: grid; gap: 4px var(--space-3);
+  grid-template-columns: 92px 1fr; grid-template-areas: "img body" "img cta";
+  margin-top: var(--space-5); padding: 10px; border-radius: var(--radius-lg);
+  background: var(--color-surface); color: var(--color-text);
+  box-shadow: 0 18px 40px rgba(9, 25, 66, .34);
+}
+.deal img { grid-area: img; width: 92px; height: 100%; min-height: 92px; object-fit: cover; border-radius: 14px; background: var(--color-surface-alt); }
+.deal-body { grid-area: body; display: grid; gap: 2px; align-content: center; min-width: 0; }
+.deal-cta { grid-area: cta; justify-content: center; padding-block: 10px; }
+.deal-kicker {
+  display: flex; align-items: center; gap: var(--space-2);
+  font-size: .78rem; color: var(--color-text-muted);
+}
+.deal-badge {
+  padding: 2px 8px; border-radius: var(--radius-pill);
+  background: var(--color-price); color: var(--color-on-brand);
+  font-family: var(--font-display); font-weight: var(--weight-bold); font-size: .72rem;
+}
+/* ตัวเลขนาฬิกาเป็น tabular ไม่งั้นความกว้างขยับทุกวินาที และบรรทัดทั้งบรรทัดกระตุก */
+.deal-clock { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--color-price); }
+.deal h2 { font-size: .98rem; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.deal .price { font-size: 1.15rem; color: var(--color-price); font-family: var(--font-display); font-weight: var(--weight-bold); }
+
+/* แถบความมั่นใจ 3 ช่อง: สามข้อที่คนซื้อของออนไลน์ในไทยถามก่อนกดจ่ายเสมอ */
+.trust {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2);
+  margin-top: var(--space-4); padding-top: var(--space-4);
+  border-top: 1px solid rgba(255,255,255,.22);
+  list-style: none; font-size: .78rem; color: rgba(255,255,255,.94); text-align: center;
+}
+.trust li { display: grid; justify-items: center; gap: 6px; line-height: 1.25; }
+.trust svg { width: 22px; height: 22px; color: #fff; }
+
+@media (min-width: 768px) {
+  /* จอใหญ่: คำโปรยกับการ์ดดีลอยู่คนละฝั่ง แทนที่จะเรียงยาวลงมาเป็นเสาเดียว */
+  .hero--shop .hero-copy {
+    display: grid; grid-template-columns: 1.05fr .95fr; gap: 0 var(--space-8); align-items: start;
+    padding-block: var(--space-8);
+  }
+  .hero--shop .eyebrow, .hero--shop h1, .hero--shop .lead, .search, .cats { grid-column: 1; }
+  /* ป้ายบนสุดเป็น span: ในกริดมันจะถูกยืดเต็มคอลัมน์กลายเป็นแถบว่างยาว */
+  .hero--shop .eyebrow { justify-self: start; }
+  .deal { grid-column: 2; grid-row: 1 / span 6; align-self: center; margin-top: 0; }
+  /* สามช่องนี้อยู่ใต้คำโปรย ไม่ลากยาวใต้การ์ดด้วย — พาดเต็ม 1200px แล้วไอคอนห่างกัน
+     จนอ่านเป็นของคนละชุด */
+  .trust, .hero--shop .chips { grid-column: 1; }
+  .deal img { min-height: 128px; }
+}
+
+.cards--grid2 { grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }
+.cards--grid2 .card { grid-template-columns: 1fr; }
+.cards--grid2 .card img { aspect-ratio: 1 / 1; height: auto; background: var(--color-surface-alt); }
+.cards--grid2 .card-body { padding: var(--space-3); gap: 2px; }
+.cards--grid2 .card h3 { font-size: .95rem; }
+.cards--grid2 .card p { font-size: .8rem; }
+.badge {
+  position: absolute; inset-block-start: 8px; inset-inline-start: 8px;
+  padding: 3px 10px; border-radius: var(--radius-pill);
+  background: var(--color-price); color: var(--color-on-brand); font-size: .72rem; font-weight: 600;
+}
+.cards--grid2 .card { position: relative; }
+.was { text-decoration: line-through; color: var(--color-text-muted); font-weight: 400; font-size: .85em; margin-inline-start: 6px; }
+@media (min-width: 768px) { .cards--grid2 { grid-template-columns: repeat(4, 1fr); } }
+
+/* =============================================================================
+   เสียงของแบรนด์นี้: ป้ายลดราคา — ตัวหนา ชิด และมีแถบไฮไลต์คาดคำที่ต้องจำ
+   (ร้านค้าออนไลน์แข่งกันที่ "อ่านออกใน 1 วินาที" ไม่ใช่ความสง่า)
+   ========================================================================== */
+.hero h1 { line-height: 1.22; letter-spacing: -.012em; }
+.section-head h2, .band h2 { letter-spacing: -.01em; }
+.brand { letter-spacing: -.01em; }
+.brand small { letter-spacing: .2em; font-size: .56rem; }
+.brand .mark { border-radius: 9px; }
+/* แถบไฮไลต์ = สีที่ 2 ตัวเดิม ไม่เพิ่มสีใหม่เข้าระบบ */
+.hero h1 mark {
+  background: none; color: inherit; position: relative; z-index: 0; padding-inline: 2px;
+}
+.hero h1 mark::after {
+  content: ""; position: absolute; z-index: -1; inset-inline: -2px; inset-block-end: .1em; height: .38em;
+  background: var(--color-price); opacity: .22; border-radius: 3px;
+}
+/* ...แต่บนแถบน้ำเงินของหน้าร้าน แถบคาดที่โปร่ง 22% กลายเป็นสี่เหลี่ยมเทาอมม่วง
+   เหมือนไฮไลต์ที่ลืมลบ จึงทึบไปเลย: สีเดียวกัน ไม่ได้เพิ่มสีใหม่ และแถบคาดนี้ก็คือ
+   ป้ายลดราคาซึ่งเป็นสิ่งที่ระบบล็อกสีนี้ไว้ให้อยู่แล้ว (ขาวบน --flame-700 = 5.9:1)
+   เขียนไว้ตรงนี้ ไม่ใช่ในบล็อกของ .hero--shop ข้างบน เพราะสองซีเล็กเตอร์นี้น้ำหนัก
+   เท่ากันเป๊ะ — อันที่อยู่ท้ายไฟล์ชนะ และบล็อกนี้อยู่ท้ายกว่า */
+.hero--shop h1 mark::after {
+  background: var(--color-price); opacity: .95;
+  /* สูงเกือบเต็มบรรทัดและกินขอบซ้ายขวาออกไปหน่อย = แถบคาดที่อยู่ "หลังคำ" จริงๆ
+     ที่ .38em มันไปกองอยู่ครึ่งล่างของตัวอักษร อ่านเป็นเส้นใต้หนาๆ ที่วางเยื้อง */
+  inset-inline: -8px; inset-block-end: .02em; height: .78em; border-radius: 6px;
+}
+.kicker { font-family: var(--font-body); font-weight: 600; }
+.price { letter-spacing: -.01em; }
+
+/* โลโก้ทึบตันในกล่องสี + เจาะสายฟ้าทะลุ = อ่านออกตั้งแต่ขนาดเล็ก แบบป้ายร้านค้า */
+.brand .mark { width: 36px; height: 36px; border-radius: 11px; }
+.brand .mark svg { width: 24px; height: 24px; }
+
+/* =============================================================================
+   บล็อกที่ทุกเดโมใช้ร่วมกัน: ขั้นตอน · รีวิว · คำถามที่พบบ่อย
+   หน้าเดโมรอบแรกมีแค่ hero + การ์ด 3 ใบ เลื่อนได้ ~1,000px ซึ่งสั้นกว่างานจริง
+   5-8 เท่า (วัดแล้ว) ทั้งดูไม่เหมือนเว็บที่ลูกค้าจ่ายเงินซื้อ และคลิป hover ที่
+   ถ่ายจากหน้าสั้นๆ ได้แค่ 3-4 วินาที — สามบล็อกนี้คือส่วนที่เว็บธุรกิจจริงมีเสมอ
+   โครงเดียวกันทั้งสามเดโม ต่างกันแค่เนื้อหาและสีจาก tokens ของแต่ละแบรนด์
+   ========================================================================== */
+.steps { display: grid; gap: var(--space-4); counter-reset: step; }
+.step {
+  display: grid; grid-template-columns: 44px 1fr; gap: var(--space-4); align-items: start;
+  padding: var(--space-4); background: var(--color-surface);
+  border: 1px solid var(--color-line); border-radius: var(--radius-lg);
+}
+.step::before {
+  counter-increment: step; content: counter(step);
+  width: 44px; height: 44px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--color-brand); color: var(--color-on-brand);
+  font-family: var(--font-display); font-size: 1.1rem;
+}
+.step h3 { font-size: 1.02rem; margin-bottom: 2px; }
+.step p { font-size: .9rem; color: var(--color-text-muted); }
+
+.quotes { display: grid; gap: var(--space-4); }
+.quote {
+  padding: var(--space-5); background: var(--color-surface);
+  border: 1px solid var(--color-line); border-radius: var(--radius-lg);
+}
+.quote p { font-size: .96rem; }
+.quote footer { margin-top: var(--space-3); font-size: .85rem; color: var(--color-text-muted); }
+.quote .stars { color: #E0A424; letter-spacing: .1em; font-size: .9rem; }
+
+.faq { display: grid; gap: var(--space-2); }
+.faq details {
+  background: var(--color-surface); border: 1px solid var(--color-line);
+  border-radius: var(--radius-md); padding: var(--space-4);
+}
+.faq summary {
+  cursor: pointer; font-family: var(--font-display); font-size: 1rem;
+  display: flex; align-items: center; gap: var(--space-3); list-style: none;
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; margin-inline-start: auto; font-size: 1.3rem; color: var(--color-brand-text); }
+.faq details[open] summary::after { content: "–"; }
+.faq p { margin-top: var(--space-3); font-size: .92rem; color: var(--color-text-muted); }
+
+@media (min-width: 768px) {
+  .steps { grid-template-columns: repeat(3, 1fr); }
+  /* สี่ขั้นในกริดสามคอลัมน์ = ใบที่สี่ลอยเดี่ยวบนแถวใหม่ โดยมีที่ว่างกว้างสองใบข้างๆ
+     (jek จับได้ 21/8/26 ที่ glow-clinic) กริดต้องจบเป็นสี่เหลี่ยมเต็มเสมอ — พอดีสี่ใบ
+     ให้เป็น 2×2 ไม่ใช่ 3+1 เขียนเป็น :has() ไม่ใช่ class ติดมือ เพราะจำนวนใบมาจาก
+     เนื้อหา คนแก้เนื้อหาจะไม่มีวันจำว่าต้องไปสลับ class ที่ container ด้วย
+     เบราว์เซอร์ที่ไม่รู้จัก :has() ตกกลับไปได้ 3+1 เท่าของเดิม ไม่แย่ลง */
+  .steps:has(.step:nth-child(4)):not(:has(.step:nth-child(5))) { grid-template-columns: repeat(2, 1fr); }
+  .quotes { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* wordmark เป็นอังกฤษล้วน ตัวพิมพ์ใหญ่ต้องการ tracking บวก ไม่ใช่ลบแบบคำไทย */
+.brand .wm { letter-spacing: .06em; }
+
+/* ===========================================================================
+   รอบ "แก้จืด" ต่อจากที่ทำไว้แล้ว — 20/8/26
+   ===========================================================================
+   หน้านี้ได้ชั้น "reveal + ตัวเลขวิ่ง + เส้นทางที่วาดตัวเอง" มาแล้ว วัดซ้ำแล้วเส้นทาง
+   วาดครบ 12 เส้น ตัวเลขวิ่งจริง นาฬิกานับถอยหลังเดินจริง — แต่ทั้งหน้ามี element
+   ที่มี animation อยู่ 0 ตัว คือไม่มีอะไรขยับเองเลยหลังจากทุกอย่าง reveal เสร็จ
+   สองชิ้นนี้จึงเป็นของที่ "เดินตลอด" และมาจากธุรกิจนี้เท่านั้น: พัสดุที่เดินทาง
+   บนเส้นทางที่เพิ่งวาดเสร็จ และตรากล่องที่ใหญ่พอจะเป็นภาพ ไม่ใช่ไอคอนมุมจอ
+   -------------------------------------------------------------------------- */
+
+/* กล่องเดินทางบนเส้นทาง — ออกเดินหลังเส้นวาดเสร็จ (หน่วง 900ms) แล้ววนช้าๆ
+   ใช้ transform อย่างเดียว วิ่งบน compositor ไม่แตะ layout */
+/* กึ่งกลางในแถบ: หัวข้อของแถบจัดกึ่งกลาง แต่เส้นทางถูกทิ้งไว้ชิดซ้ายตั้งแต่ตอนวาง
+   ทำให้ลูกศรกับหัวข้อไม่ได้อยู่แกนเดียวกัน (เห็นชัดตอนถ่ายภาพเต็มหน้า) */
+.band .route { display: block; margin-inline: auto; color: currentColor; overflow: visible; }
+.parcel { opacity: 0; }
+.js .band .rise.in + .route .parcel,
+.js .band .reveal.in .route .parcel { animation: pc-travel 4.6s var(--ease, ease-in-out) 900ms infinite; }
+@keyframes pc-travel {
+  0%   { opacity: 0; transform: translate(2px, 12px); }
+  8%   { opacity: 1; }
+  35%  { transform: translate(60px, 3px); }
+  65%  { transform: translate(120px, 2px); }
+  92%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(182px, 9px); }
+}
+
+/* ตรากล่องขนาดใหญ่ — มาร์กเดียวกับมุมซ้ายบน ขยายจนอ่านได้ว่าเป็นกล่องพัสดุ
+   9% ของสีหมึกคือค่าที่วัดกับพื้นแถบสีน้ำเงินจริง */
+.band { position: relative; overflow: hidden; }
+.band > .wrap { position: relative; z-index: 1; }
+.brandmark {
+  position: absolute; right: -2rem; top: 50%; translate: 0 -50%;
+  width: clamp(11rem, 22vw, 19rem); height: auto; z-index: 0;
+  color: rgba(20,22,26,.09);   /* สำรอง */
+  color: color-mix(in oklch, currentColor 9%, transparent);
+  pointer-events: none;
+}
+@media (max-width: 700px) { .brandmark { right: -28%; opacity: .8; } }
+
+/* ปิดสองทางเหมือนอีกสองเดโม: ค่าระบบ และ .still จาก ?reduce=1 */
+@media (prefers-reduced-motion: reduce) { .parcel { animation: none !important; opacity: .9 !important; } }
+.still .parcel { animation: none !important; opacity: .9 !important; }
+
+/* ---- หมวดสินค้า + ตารางค่าส่ง ---------------------------------------------
+   สองบล็อกนี้เป็นตัวหนังสือล้วน ตั้งใจ: ร้านที่ขายเรื่อง "ถึงไว" ต้องโหลดไว และคำถาม
+   ที่ทั้งสองบล็อกตอบ (ขายอะไรอีกบ้าง / ของถึงเมื่อไหร่ กี่บาท) ไม่ต้องใช้รูปมาตอบเลย */
+.section--tint { background: color-mix(in oklch, var(--color-brand) 6%, var(--color-bg, transparent)); }
+.cat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--space-3); }
+.cat {
+  display: flex; flex-direction: column; gap: 2px; padding: var(--space-4);
+  border: 1px solid var(--color-line, currentColor); border-radius: var(--radius-lg, 14px);
+  background: var(--color-surface, transparent); text-decoration: none; color: inherit;
+  transition: border-color 180ms ease, transform 180ms ease;
+}
+.cat b { font-family: var(--font-display, inherit); font-size: 1.02rem; }
+.cat span { font-size: var(--text-sm, .88rem); color: var(--color-text-muted, inherit); font-variant-numeric: tabular-nums; }
+@media (hover: hover) { .cat:hover { border-color: var(--color-brand); transform: translateY(-2px); } }
+
+.table-wrap { overflow-x: auto; }
+.cmp { width: 100%; border-collapse: collapse; font-size: var(--text-sm, .92rem); }
+.cmp th, .cmp td { text-align: left; padding: var(--space-3); vertical-align: top; }
+.cmp thead th { font-size: .82rem; letter-spacing: .04em; text-transform: uppercase; color: var(--color-text-muted, inherit); border-bottom: 1px solid var(--color-line, currentColor); }
+.cmp tbody th[scope="row"] { font-family: var(--font-display, inherit); font-size: 1rem; }
+.cmp tbody tr + tr th, .cmp tbody tr + tr td { border-top: 1px solid color-mix(in oklch, var(--color-text) 12%, transparent); }
+.cmp b { white-space: nowrap; }
+.menu-note { margin-top: var(--space-5); text-align: center; font-size: var(--text-sm, .9rem); color: var(--color-text-muted, inherit); }
+
+/* จอแคบ: ตารางสามคอลัมน์พับเป็นการ์ด ป้ายหัวคอลัมน์มาจาก data-l (หัวตารางซ่อนแต่ไม่ลบ) */
+/* =============================================================================
+   บล็อกที่เพิ่ม 21/8/26 — ตารางเทียบรุ่น, วิธีจ่ายเงิน, ประกัน, ร้านจริง
+   ทำไม: หน้านี้จบที่ 4.9 จอ ส่วนเดโมใบยาวในกริดเดียวกันอยู่ที่ 11 จอ พอสองใบ
+   นี้ถูกกดดูต่อกันจากหน้าอ้างอิง ใบสั้นอ่านออกทันทีว่าทำมาน้อยกว่า ทั้งที่ร้าน
+   ออนไลน์จริงมีคำถามก่อนโอนเงินอีกเยอะที่หน้านี้ยังไม่ตอบ
+   .pays ใช้ทั้งบล็อก "วิธีจ่ายเงิน" และ "ร้านจริง" เพราะเป็นของชนิดเดียวกัน:
+   กล่องข้อเท็จจริงสั้นๆ ที่อ่านทีละใบ ไม่ใช่การ์ดสินค้าที่มีรูป
+   ========================================================================== */
+.pays { display: grid; gap: var(--space-3); }
+.pay { background: var(--color-surface); border: 1px solid var(--color-line);
+       border-radius: var(--radius-lg, 14px); padding: var(--space-4); }
+.pay b { display: block; font-family: var(--font-display, inherit); font-size: 1.02rem; }
+.pay span { display: block; margin-top: 4px; font-size: .88rem; line-height: 1.65; color: var(--color-text-muted); }
+.table-wrap + .table-wrap, .steps + .table-wrap { margin-top: var(--space-5); }
+@media (min-width: 768px) {
+  .pays { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 700px) {
+  .cmp thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .cmp, .cmp tbody, .cmp tr, .cmp th, .cmp td { display: block; width: 100%; }
+  .cmp tbody tr { border: 1px solid var(--color-line, currentColor); border-radius: var(--radius-lg, 14px); padding: var(--space-3); margin-bottom: var(--space-4); background: var(--color-surface, transparent); }
+  .cmp tbody tr + tr th, .cmp tbody tr + tr td { border-top: 0; }
+  .cmp td { display: flex; justify-content: space-between; gap: var(--space-4); padding: var(--space-2) 0; text-align: right; }
+  .cmp td::before { content: attr(data-l); color: var(--color-text-muted, inherit); flex: 0 0 auto; }
+}
+
+/* ===========================================================================
+   รอบ "แก้จืดใต้ hero" — 21/8/26
+   ===========================================================================
+   AUDIT ก่อนแก้ (วัดบนหน้าจริง): ใต้ hero ลงมา 6,921px หน้านี้ใช้สีพื้นของ
+   section แค่ 3 ค่า และซีดทั้งสามค่า — mist-50, slate-100, blue-100 —
+   กับมีกล่องขอบ 1px 39 กล่อง ซึ่งเป็นจำนวนมากที่สุดในชุดผลงาน
+   หน้าที่ยาว 7,570px แล้วไม่เคยเปลี่ยนระดับความสว่างเลย อ่านเป็นเอกสาร
+   ไม่ใช่ร้านค้า — และร้านค้าออนไลน์คือที่ที่คนตัดสินใจด้วยตา
+
+   ใช้ชื่อคลาสชุดเดียวกับครัวบ้านสวน/โกลว์ (.deep / .stat-row / .fact-ico)
+   ของชนิดเดียวกันในชุดผลงานนี้ต้องแก้ด้วยกลไกเดียวกัน
+   ไม่มี .soi เพราะร้านออนไลน์ไม่ได้ขายที่ตั้ง — บล็อกที่คู่กันคือ #real
+   -------------------------------------------------------------------------- */
+
+/* ---- แถบมืดหนึ่งแถบต่อหน้า -------------------------------------------------
+   ที่ #deal "สั่งวันนี้ ส่งพรุ่งนี้" เพราะเป็นบล็อกเดียวที่พูดเรื่องเวลา ไม่ใช่สินค้า
+   และเป็นจุดที่หน้ากำลังขอให้คนตัดสินใจ สีคือ --slate-950 ตัวเดียวกับตัวหนังสือ */
+.deep {
+  position: relative; overflow: hidden;
+  background-color: var(--color-deep);
+  background-image: radial-gradient(120% 90% at 50% -10%, #232833 0%, var(--color-deep) 62%);
+  color: var(--color-on-deep);
+  border-block: 0;
+  padding-block: calc(var(--space-8) * 1.35);
+}
+.deep h2 { color: var(--color-on-deep); font-size: clamp(1.7rem, 6.5vw, 2.5rem); }
+.deep p { color: var(--color-deep-muted); margin-top: var(--space-2); }
+/* .route path ตั้ง stroke เป็น --color-brand ไว้ตรงๆ การเปลี่ยนแค่ color จึงไม่พอ
+   น้ำเงิน blue-600 บนสเลตเข้มวัดได้ 2.24:1 = ลูกศรจะจมหายไปกับพื้น */
+.deep .route { color: var(--color-deep-accent); }
+.deep .route path { stroke: var(--color-deep-accent); }
+.deep .btn--primary { background: var(--color-deep-accent); color: var(--slate-950); }
+.deep .brandmark { color: rgba(245,247,250,.10); }   /* สำรอง */
+.deep .brandmark { color: color-mix(in oklch, var(--color-on-deep) 10%, transparent); }
+
+/* ---- ตัวเลขจริงของร้าน -----------------------------------------------------
+   สามตัวนี้อยู่ใน hero ของหน้านี้อยู่ก่อนแล้วทั้งหมด (4.8 · 12,400 รีวิว ·
+   68,000+ กล่อง) แถบนี้แค่ทำให้มันใหญ่พอจะเป็นภาพ ตัวนับใช้ .tally ตัวเดิม
+   ของหน้านี้ ไม่ได้เขียนตัวนับที่สองขึ้นมาทำเรื่องเดียวกัน */
+.stat-row {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4);
+  margin-top: var(--space-6); padding-top: var(--space-6);
+  border-top: 1px solid color-mix(in oklch, var(--color-on-deep) 14%, transparent);
+}
+.stat b {
+  display: block; font-family: var(--font-display); font-weight: var(--weight-bold);
+  font-size: clamp(1.8rem, 7.5vw, 2.8rem); line-height: 1.1;
+  color: var(--color-deep-accent); font-variant-numeric: tabular-nums;
+}
+/* `>` ไม่ใช่ช่องว่าง: ตัวเลขถูกห่อด้วย <b class="tally"> ถ้าเขียนแบบ descendant
+   กฎนี้จะไปยุบขนาดตัวเลขเอง (เจอมาแล้วกับครัวบ้านสวน 46.4 → 13.12px) */
+.stat > span { display: block; margin-top: 4px; font-size: .82rem; color: var(--color-deep-muted); }
+
+/* ---- ลายเส้นในกล่องที่เป็นตัวหนังสือล้วน -----------------------------------
+   #pay 6 กล่อง กับ #real 4 กล่อง รวมสิบกล่องติดกันที่ไม่มีอะไรนอกจากตัวอักษร
+   ทั้งที่เป็นสองบล็อกที่ตัดสินใจแทนราคาได้จริงสำหรับคนที่ยังไม่เคยซื้อกับร้านนี้ */
+.pay { display: grid; grid-template-columns: 38px 1fr; gap: var(--space-4); align-items: start; }
+.fact-ico { width: 38px; height: 38px; color: var(--color-brand); }
+.fact-ico svg { display: block; width: 100%; height: auto; }
+
+/* ---- motion: กลไกเดียวกับเส้น route ของหน้านี้ (dasharray + dashoffset) ---- */
+.js .fact-ico path, .js .fact-ico circle, .js .fact-ico rect { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.js .pay.in .fact-ico path, .js .pay.in .fact-ico circle, .js .pay.in .fact-ico rect {
+  transition: stroke-dashoffset 900ms var(--ease) 120ms; stroke-dashoffset: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .js .fact-ico path, .js .fact-ico circle, .js .fact-ico rect {
+    stroke-dashoffset: 0 !important; transition: none !important;
+  }
+}
+.still .fact-ico path, .still .fact-ico circle, .still .fact-ico rect {
+  stroke-dashoffset: 0 !important; transition: none !important;
+}
+
+@media (min-width: 768px) { .stat-row { gap: var(--space-6); } }

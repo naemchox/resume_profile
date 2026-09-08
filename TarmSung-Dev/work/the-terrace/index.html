@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="th" class="no-js">
+<head>
+<!-- รูปทั้งหมดอยู่ใน img/ และเป็นภาพสัญญาอนุญาต Unsplash (ใช้เชิงพาณิชย์ได้)
+     ห้ามลิงก์รูปจากเซิร์ฟเวอร์ของเว็บอื่น — พอเขาย้ายไฟล์เมื่อไหร่พอร์ตเราพังทันที
+     (บทเรียนจากหน้า The Bed รอบ audit 2026-08-20)
+
+     รูปฮีโร่คือใบเดียวกับที่อยู่ในแบบร่างที่อนุมัติแล้ว (design/pc-terrace.html)
+     ไม่ใช่ใบที่ "คล้ายกัน" — รอบก่อนหน้านี้ผมเปลี่ยนรูปเองเพราะแบบร่างไปยืมไฟล์
+     ของเดโม SUMMIT มาใช้ ผลคือหน้าเว็บออกมาคนละหน้ากับที่อนุมัติ คราวนี้โหลดภาพ
+     ต้นฉบับจาก Unsplash มาเก็บเป็นไฟล์ของหน้านี้เอง (photo-1551632436-cbf8dd35adfa) -->
+<meta charset="utf-8">
+<!-- คืนตำแหน่งที่อ่านค้างไว้เอง ไม่รอเบราว์เซอร์ (ที่มา: work/_JANK-REFRESH.md)
+     Safari คืนตำแหน่ง scroll หลังอีเวนต์ load เท่านั้น — วัดแล้ว DCL/load ยังอยู่ที่ y=0
+     ทั้งคู่ คนที่รีเฟรชกลางหน้าจึงเห็น "ฮีโร่แวบ" ตั้งแต่เฟรมแรกจนกว่าไฟล์สุดท้ายจะโหลดจบ
+     (เน็ตช้า = ค้างนานเป็นวินาที) สคริปต์นี้เก็บตำแหน่งไว้เองใน sessionStorage แล้ววาง
+     กลับตั้งแต่เฟรมแรกที่ความสูงหน้าพอ — เร็วกว่ารอ load หลายเท่าและไม่ต้องรอรูป
+     หยุดทันทีถ้าผู้ใช้ขยับเอง (wheel/touch/key/pointer) จะได้ไม่แย่งมือกับคนอ่าน -->
+<script>
+(function () {
+  try {
+    if (!("scrollRestoration" in history)) return;
+    history.scrollRestoration = "manual";
+    var key = "ts:y:" + location.pathname;
+    var want = parseInt(sessionStorage.getItem(key) || "0", 10) || 0;
+    var timer = 0;
+    var save = function () { try { sessionStorage.setItem(key, String(Math.round(window.scrollY))); } catch (e) {} };
+    addEventListener("scroll", function () {
+      if (timer) return;
+      timer = setTimeout(function () { timer = 0; save(); }, 200);
+    }, { passive: true });
+    addEventListener("pagehide", save);
+    /* แถบเมนูต้องไม่ "โผล่" ตอนหน้าเปิดมากลางหน้าอยู่แล้ว (jek 25/8/26 · the-bed)
+       แถบมีสองชั้นที่ไล่เข้าเอง — พื้นทึบบน .nav-shell::before (opacity 300ms) กับเส้นทอง
+       บน border-color (400ms) — พอคืนตำแหน่ง scroll ปุ๊บ สคริปต์แถบเมนูใส่คลาส scrolled
+       ทั้งสองชั้นจึงไล่ให้เห็นทุกครั้งที่รีเฟรช ทั้งที่ผู้ใช้ไม่ได้เลื่อนอะไรเลย
+       ระหว่างช่วงคืนตำแหน่ง จึงปิดทรานซิชันของหัวเว็บไว้ = แถบอยู่ในสถานะสุดท้ายตั้งแต่
+       เฟรมแรก · เปิดคืนทันทีที่ผู้ใช้ขยับเอง (หรืออย่างช้า 900ms) การเลื่อนของจริงจึงยังลื่น */
+    if (want) {
+      var root = document.documentElement;
+      root.className += " nav-instant";
+      var st = document.createElement("style");
+      st.textContent = "html.nav-instant .nav-shell,html.nav-instant .nav-shell::before," +
+        "html.nav-instant .site-header,html.nav-instant header,html.nav-instant header > *," +
+        "html.nav-instant header > * > *{transition:none !important}";
+      (document.head || document.documentElement).appendChild(st);
+      var unlock = function () { root.className = root.className.replace(/\s*nav-instant/, ""); };
+      ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+        addEventListener(ev, unlock, { passive: true, once: true });
+      });
+      setTimeout(unlock, 900);
+    }
+    if (!want || location.hash) return;
+    var stop = false;
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+      addEventListener(ev, function () { stop = true; }, { passive: true, once: true });
+    });
+    var t0 = (performance.now ? performance.now() : 0);
+    var now = function () { return performance.now ? performance.now() : t0; };
+    var done = false;
+    var put = function () {
+      if (stop || done) return true;
+      var el = document.scrollingElement || document.documentElement;
+      if (!el || el.scrollHeight - window.innerHeight < want) return false;   /* หน้ายังสูงไม่พอ ค่อยลองใหม่ */
+      if (Math.round(window.scrollY) !== want) {
+        var prev = el.style.scrollBehavior;      /* html { scroll-behavior: smooth } จะทำให้การวางกลับกลายเป็นการไถ */
+        el.style.scrollBehavior = "auto";
+        window.scrollTo(0, want);
+        el.style.scrollBehavior = prev;
+      }
+      done = Math.round(window.scrollY) === want;
+      /* ใส่สถานะ "เลื่อนแล้ว" ให้หัวเว็บทันทีในจังหวะเดียวกับที่คืนตำแหน่ง — ไม่ต้องรอสคริปต์
+         ของหน้ามันเองซึ่งอยู่ท้าย <body> (วัดแล้วช้ากว่ากันราว 20ms = เห็นแถบเปล่าได้ 1 เฟรม)
+         เกณฑ์คนละค่าเพราะแต่ละที่ตั้งไว้ไม่เท่ากัน: .site-header > 8px · .nav-shell > 40px
+         (ดู js/main.js กับสคริปต์ท้ายหน้าเดโม) สคริปต์ของหน้าจะคำนวณซ้ำเองอยู่แล้ว ค่าจึงตรงกัน */
+      if (done) {
+        var mark = function (sel, cls, min) {
+          if (want <= min) return;
+          var n = document.querySelectorAll(sel);
+          for (var i = 0; i < n.length; i++) n[i].classList.add(cls);
+        };
+        /* หัวเว็บของแต่ละใบใช้คนละคลาสคนละเกณฑ์ (ของเดิมเป็นแบบนั้นมาก่อนแล้ว):
+           .site-header.scrolled >8px (เว็บเรา) · .nav-shell.scrolled >40px (the-bed)
+           .site-header.stuck (the-terrace ใช้ sentinel ไม่ใช่ตัวเลข — 80px คือค่าประมาณ)
+           header.small >120px (homecraft/lumen/glow-clinic ผ่าน js/nav-response.js)
+           เดาพลาดไม่เป็นไร สคริปต์ของหน้าคำนวณทับให้ในเฟรมถัดไป และช่วงนี้ทรานซิชันถูกปิดอยู่
+           การแก้จึงเป็นการสลับทันที ไม่ใช่การไล่สีให้เห็น */
+        mark(".site-header", "scrolled", 8);
+        mark(".nav-shell", "scrolled", 40);
+        mark(".site-header, header[data-header]", "stuck", 80);
+        mark("header, .site-header", "small", 120);
+      }
+      return done;
+    };
+    /* ลองทุกทางที่มาถึงก่อน: setTimeout(0) มักได้ก่อนเฟรมแรกด้วยซ้ำ · rAF ทำงานก่อนวาด
+       · readystatechange/DOMContentLoaded คือจุดที่ body ครบแล้วแน่ๆ
+       เหตุที่ไม่พอถ้าใช้ rAF อย่างเดียว: วัดแล้วบางหน้า (หน้าแรกของเว็บเรา) เฟรมแรก
+       มาก่อนที่ความสูงจะพอ ทำให้เลื่อนไม่ได้ แล้วต้องรอ rAF รอบถัดไป = เห็นหัวเว็บ 1 เฟรม */
+    /* สองสายแยกกัน สายละหนึ่งนัด — ถ้าให้สายเดียวนัดทั้ง setTimeout และ rAF
+       จำนวนนัดจะเพิ่มเป็นสองเท่าทุกรอบ (2^n) ภายในไม่กี่ร้อยมิลลิวินาที */
+    var tick = function () { if (put() || stop) return; if (now() - t0 < 3000) setTimeout(tick, 0); };
+    var frame = function () { if (put() || stop) return; if (now() - t0 < 3000) requestAnimationFrame(frame); };
+    tick();
+    frame();
+    document.addEventListener("readystatechange", put);
+    addEventListener("DOMContentLoaded", put);
+    addEventListener("load", put);
+  } catch (e) {}
+})();
+</script>
+  <!-- เดโมสาธิต ไม่ใช่ธุรกิจจริง: ห้ามให้เสิร์ชเอนจินเก็บเข้าดัชนี ไม่งั้นจะมีหน้า
+       ที่ดูเหมือนร้านจริง (มีชื่อ ราคา เบอร์โทร) ลอยอยู่บน Google ในชื่อโดเมนของเรา -->
+  <meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>เดอะ เทอเรส — เวนิวจัดงานแต่งและงานเลี้ยงบริษัท ทองหล่อ</title>
+  <link rel="canonical" href="https://tarmsung.pages.dev/work/the-terrace/">
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "EventVenue",
+  "name": "เดอะ เทอเรส",
+  "description": "เวนิวจัดงานริมน้ำ ทองหล่อ รับงานแต่ง งานเลี้ยงบริษัท และประชุมสัมมนา 40–300 ที่นั่ง ราคาต่อท่านบอกไว้ตรงหน้าแรก นัดชมสถานที่ฟรีทุกวัน",
+  "url": "https://tarmsung.pages.dev/work/the-terrace/",
+  "inLanguage": "th",
+  "image": "https://tarmsung.pages.dev/assets/work/the-terrace.webp"
+}
+  </script>
+  <!-- การ์ดพรีวิวตอนวางลิงก์ในแชท (22/8/26): ส่งลิงก์เฉยๆ แล้ว LINE/เฟซบุ๊กจะขึ้นรูป
+       ให้เอง ไม่ต้องแนบภาพหรือคลิปเพิ่ม รูปที่ใช้คือปกเดียวกับที่โชว์ในพอร์ต -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="เดอะ เทอเรส — เวนิวจัดงานแต่งและงานเลี้ยงบริษัท ทองหล่อ">
+  <meta property="og:description" content="เวนิวจัดงานริมน้ำ ทองหล่อ รับงานแต่ง งานเลี้ยงบริษัท และประชุมสัมมนา 40–300 ที่นั่ง ราคาต่อท่านบอกไว้ตรงหน้าแรก นัดชมสถานที่ฟรีทุกวัน">
+  <meta property="og:image" content="https://tarmsung.pages.dev/assets/work/the-terrace.webp">
+  <meta name="twitter:card" content="summary_large_image">
+<meta name="description" content="เวนิวจัดงานริมน้ำ ทองหล่อ รับงานแต่ง งานเลี้ยงบริษัท และประชุมสัมมนา 40–300 ที่นั่ง ราคาต่อท่านบอกไว้ตรงหน้าแรก นัดชมสถานที่ฟรีทุกวัน">
+<script>document.documentElement.classList.replace("no-js","js");</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- preload ฟอนต์หัวเรื่อง (Anuphan) — คู่กับ display=optional ข้างล่าง
+     optional เฉยๆ แปลว่าคนที่เข้าครั้งแรกได้ฟอนต์สำรองทั้งหน้า preload ทำให้ไฟล์
+     มาทันช่วงต้นเกือบทุกครั้ง · มีสองไฟล์เพราะ Google เสิร์ฟ Chrome กับ Safari คนละตัว
+     (เติมอัตโนมัติด้วย playbook/fix-font-flash.mjs) -->
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/anuphan/v6/2sDeZGxYgY7LkLT0mX4Dan29.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/anuphan/v6/2sDeZGxYgY7LkLT0mWoDag.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/anuphan/v6/2sDeZGxYgY7LkLT0mX4Dam--C70lZQ.woff2" />
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600&family=Noto+Sans+Thai:wght@600;700;800&family=Cormorant+Garamond:wght@500;600&display=optional" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/styles.css">
+<style>
+/* =============================================================================
+   รอบ "แก้จืด" ครั้งที่ 2 — 22/8/26 (playbook/PROMPT-JUED.md)
+   ===========================================================================
+   AUDIT ก่อนแก้: ไล่ css/styles.css + tokens.css ซ้ำอีกรอบ (grep rgba alpha ต่ำ,
+   blur, opacity ต่ำ) เจอแค่ .hero-grain (opacity .10, blur 6px บน .slots) ซึ่ง
+   ทั้งคู่จงใจให้จางตามคอมเมนต์เดิมในไฟล์ ไม่ใช่บั๊ก — ไม่แตะ ตรงกับที่ jek วัดมา
+   ว่าความจืดของหน้านี้คือ "นิ่ง" (@keyframes 1 อัน) ไม่ใช่ "ของจาง"
+
+   งานรอบนี้จึงเป็นชั้น 3 ล้วนๆ — หยิบภาษาของเวนิวจัดงานที่ยังไม่ได้ใช้: ไฟอุ่น
+   เหนือรูปฮีโร่ (ของชนิดเดียวกับไฟที่ #story ใช้ keyframe tt-warm เดิม ไม่เขียน
+   กลไกที่สอง), ผ้าม่านเปิดบนรูปห้อง, และการจัดโต๊ะ (เมนูทยอยวางทีละจาน) —
+   ไม่มี fade ทั่วไปเพิ่มสักตัว
+   -------------------------------------------------------------------------- */
+
+/* ---- 1) ไฟอุ่นเหนือรูปฮีโร่ --------------------------------------------------
+   จุดสนใจของภาพฮีโร่คือโคมไฟกับหน้าต่างริมน้ำที่ถูกจัดให้อยู่ขวาของหัวเรื่อง
+   (ดูคอมเมนต์ .hero-media img ด้านบน) ไฟดวงนี้หายใจช้าตรงตำแหน่งนั้น ใช้
+   keyframe เดียวกับไฟที่แถบมืด #story (tt-warm) เพราะเป็นของชนิดเดียวกัน:
+   ไฟอุ่นของเวนิวตอนค่ำ ไม่ใช่ไฟดิสโก้ที่กะพริบเร็ว */
+.hero-glow {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(55% 60% at 72% 38%,
+    color-mix(in oklch, var(--brass-400) 30%, transparent) 0%, transparent 68%);
+}
+.js .hero-glow { animation: tt-warm 11s ease-in-out infinite; }
+
+/* ---- 2) ผ้าม่านเปิดบนรูปห้อง -------------------------------------------------
+   #rooms เดิมรูปสามห้องโผล่มาพร้อมการ์ด (fade+เลื่อนขึ้นเฉยๆ) ตอนนี้มีแผ่นผ้า
+   สีเข้มปิดรูปอยู่ก่อน แล้วเลื่อนเปิดออกทางขวาเหมือนม่านเปิดพื้นที่จัดงาน —
+   ภาษาของเวนิวจัดงานที่ใช้ผ้าม่านจริงในพิธีและซุ้ม ไม่ใช่ fade ทั่วไป */
+.room-media { position: relative; display: block; overflow: hidden; }
+.room-curtain {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(100deg, var(--forest-950) 46%,
+    color-mix(in oklch, var(--forest-950) 55%, transparent) 100%);
+  transform-origin: right; transform: scaleX(1);
+}
+.js .room-curtain { transition: transform 900ms var(--ease); }
+.js .room.in .room-curtain { transform: scaleX(0); }
+.js .room:nth-child(1).in .room-curtain { transition-delay: 650ms; }
+.js .room:nth-child(2).in .room-curtain { transition-delay: 800ms; }
+.js .room:nth-child(3).in .room-curtain { transition-delay: 950ms; }
+
+/* ---- 3) เมนูทยอยวางทีละจาน --------------------------------------------------
+   รายการอาหารในแต่ละชุด (.set li) เดิมโผล่มาพร้อมกันทั้งลิสต์ตอนการ์ดเข้าจอ
+   ตอนนี้ทยอยขึ้นทีละบรรทัดเหมือนพนักงานจัดโต๊ะวางจานทีละจาน — ใช้ตัวเลข
+   ลำดับจานเดิม (counter(dish)) เป็นตัวบอกจังหวะอยู่แล้ว จึงให้ทยอยตามลำดับนั้น */
+.js .set li { opacity: 0; transform: translateY(10px); transition: opacity 420ms var(--ease), transform 420ms var(--ease); }
+.js .set.in li { opacity: 1; transform: none; }
+.js .set.in li:nth-child(1)  { transition-delay: 80ms; }
+.js .set.in li:nth-child(2)  { transition-delay: 130ms; }
+.js .set.in li:nth-child(3)  { transition-delay: 180ms; }
+.js .set.in li:nth-child(4)  { transition-delay: 230ms; }
+.js .set.in li:nth-child(5)  { transition-delay: 280ms; }
+.js .set.in li:nth-child(6)  { transition-delay: 330ms; }
+.js .set.in li:nth-child(7)  { transition-delay: 380ms; }
+.js .set.in li:nth-child(8)  { transition-delay: 430ms; }
+.js .set.in li:nth-child(9)  { transition-delay: 480ms; }
+.js .set.in li:nth-child(10) { transition-delay: 530ms; }
+.js .set.in li:nth-child(11) { transition-delay: 580ms; }
+.js .set.in li:nth-child(12) { transition-delay: 630ms; }
+
+/* ---- 4) ป้าย "จองมากที่สุด" คลี่ออกเหมือนริบบิ้น ----------------------------
+   ป้ายบนการ์ดแพ็กเกจที่ขายดีที่สุดเดิมโผล่มาพร้อมการ์ด ตอนนี้คลี่ออกจากกึ่งกลาง
+   หลังการ์ดตั้งตัวแล้ว เหมือนริบบิ้น/แถบผูกโบว์ในงานเลี้ยง ไม่ใช่ป้ายกระพริบ */
+.js .card .tag { transform: scaleX(0); transition: transform 380ms var(--ease) 520ms; }
+.js .card.in .tag { transform: scaleX(1); }
+
+/* ---- ปิดได้จริงสองทาง: media query ของระบบ และ .still ที่ main.js ติดให้เมื่อ
+   เปิดด้วย ?reduce=1 (ทางที่สคริปต์ถ่ายภาพใช้) ------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .js .hero-glow { animation: none !important; opacity: .8; }
+  .js .room-curtain { transition: none !important; transform: scaleX(0) !important; }
+  .js .set li { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .js .card .tag { transform: scaleX(1) !important; transition: none !important; }
+}
+.still .hero-glow { animation: none !important; opacity: .8; }
+.still .room-curtain { transition: none !important; transform: scaleX(0) !important; }
+.still .set li { opacity: 1 !important; transform: none !important; }
+.still .card .tag { transform: scaleX(1) !important; }
+</style>
+</head>
+<body>
+<!-- ไอคอนชุดเดียวของหน้านี้ (สร้างด้วย playbook/make-icons.mjs) -->
+<svg class="sr-only" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0"><defs>
+  <symbol id="i-icon1" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-icon2" viewBox="0 0 132 8"><path pathLength="1" d="M1 5c22-4 44-4 66 0s44 4 65-1" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-icon3" viewBox="0 0 24 24"><path d="M5 12h13M13 6.5 18.5 12 13 17.5"/></symbol>
+</defs></svg>
+<a class="skip" href="#main">ข้ามไปเนื้อหา</a>
+
+<header class="site-header" data-header>
+  <div class="wrap">
+    <a class="brand" href="#top">
+      <b>เดอะ เทอเรส</b><span>The Terrace</span>
+    </a>
+    <nav class="nav-links" aria-label="เมนูหลัก">
+      <a href="#packages">แพ็กเกจจัดงาน</a>
+      <a href="#rooms">สถานที่</a>
+      <a href="#menu">เมนูอาหาร</a>
+      <a href="#voices">รีวิวลูกค้า</a>
+      <a href="#faq">คำถามที่พบบ่อย</a>
+    </nav>
+    <span class="nav-right">
+      <a class="btn btn--outline btn--sm" href="tel:">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 4.5h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4.5 6.7 2 2 0 0 1 6.5 4.5z"/></svg>
+        02-xxx-xxxx</a>
+      <a class="btn btn--brass btn--sm" href="#packages">ขอใบเสนอราคา
+        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon3"/></svg></a>
+    </span>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero" id="top" aria-labelledby="hero-title">
+    <div class="hero-media" aria-hidden="true">
+      <img src="img/hero.jpg" alt="" width="1800" height="1013" fetchpriority="high">
+      <span class="hero-grain"></span>
+      <span class="hero-glow" aria-hidden="true"></span>
+    </div>
+    <div class="wrap">
+      <div class="hero-copy">
+        <span class="kicker reveal"><i aria-hidden="true"></i>เวนิวจัดงาน · ทองหล่อ</span>
+        <h1 id="hero-title" class="reveal d1"><span class="nb">จัดงานให้จบในที่เดียว</span><br><span class="nb">ตั้งแต่โต๊ะแรก ถึง</span><em class="nb">เพลงสุดท้าย</em></h1>
+        <p class="lede reveal d2">ห้องริมน้ำสองห้อง ครัวของเราเอง ทีมดูแลหน้างานตลอดคืน — คุณเลือกแค่วัน ที่เหลือเราจัดให้ครบ</p>
+        <p class="reveal d2"><span class="slots"><i aria-hidden="true"></i>เหลือ 3 เสาร์ว่างในเดือนตุลาคม</span></p>
+        <div class="act reveal d3">
+          <a class="btn btn--solid btn--lg" href="tel:">นัดชมสถานที่ฟรี
+            <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon3"/></svg></a>
+          <a class="btn btn--outline btn--lg" href="#packages">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M8 3.5v3M16 3.5v3M3.5 10h17"/></svg>
+            เช็กวันว่าง</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="svc" id="packages" aria-label="แพ็กเกจจัดงาน">
+    <article class="card reveal">
+      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V4M16 19v-6M21 19H3"/></svg></span>
+      <h3>ประชุม &amp; สัมมนา</h3>
+      <p>ห้องเงียบ อินเทอร์เน็ตสำรอง เบรกสองมื้อ</p>
+      <div class="price"><b>฿690</b><span>/ ท่าน · ครึ่งวัน–เต็มวัน</span></div>
+      <ul>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg>โปรเจกเตอร์ 4K + ไมค์ลอย 4 ตัว</li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg>อาหารว่าง 2 มื้อ + อาหารกลางวัน</li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg>ที่จอดรถฟรี 60 คัน</li>
+      </ul>
+      <a class="go" href="tel:">ดูรายละเอียดแพ็กเกจ
+        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon3"/></svg></a>
+    </article>
+
+    <article class="card card--pick reveal d1">
+      <span class="tag">จองมากที่สุด</span>
+      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="8.5" width="17" height="11" rx="2.5"/><path d="M9 8.5V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2.5M3.5 13h17"/></svg></span>
+      <h3>งานเลี้ยงบริษัท</h3>
+      <p>ปาร์ตี้ปีใหม่ ฉลองยอด งานขอบคุณลูกค้า</p>
+      <div class="price"><b>฿890</b><span>/ ท่าน · เริ่มต้น 40 ท่าน</span></div>
+      <ul>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg>บุฟเฟต์ 12 รายการ + ซุ้มเครื่องดื่ม</li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg>เครื่องเสียง จอ LED และพิธีกร</li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg>ออกใบกำกับภาษีเต็มรูปแบบ</li>
+      </ul>
+      <a class="go" href="tel:">ดูรายละเอียดแพ็กเกจ
+        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon3"/></svg></a>
+    </article>
+
+    <article class="card reveal d2">
+      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7-4.3-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11.5c0 4.7-7 9-7 9z"/></svg></span>
+      <h3>งานแต่งริมน้ำ</h3>
+      <p>พิธีเช้า–เลี้ยงเย็นในที่เดียว ไม่ต้องย้ายแขก</p>
+      <div class="price"><b>฿1,290</b><span>/ ท่าน · เริ่มต้น 80 ท่าน</span></div>
+      <ul>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg>อาหาร 9 รายการ + เครื่องดื่มไม่อั้น</li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg>ดอกไม้ ซุ้ม และแสงเวที</li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg>เวดดิ้งแพลนเนอร์ประจำงาน</li>
+      </ul>
+      <a class="go" href="tel:">ดูรายละเอียดแพ็กเกจ
+        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon3"/></svg></a>
+    </article>
+  </section>
+
+  <!-- ตัวคิดราคาต่อหัว — ของที่เวนิวปิดการขายด้วย และเป็นคำถามเดียวที่ทั้งหน้ายังไม่ตอบ
+       การ์ดแพ็กเกจข้างบนบอก "หัวละเท่าไหร่" แต่คนจัดงานคิดเป็น "ทั้งงานเท่าไหร่" เสมอ
+       แล้วต้องเปิดเครื่องคิดเลขเอง ซึ่งเป็นจังหวะที่คนออกจากหน้าเว็บไปหาที่อื่น
+       ราคาต่อท่านทุกตัวดึงมาจากการ์ดข้างบนของหน้านี้เอง สคริปต์แค่คูณ ไม่ได้ตั้งราคาใหม่
+       (ข้อมูลความจุ 40-300 ที่นั่ง มาจากแถบตัวเลขข้างล่าง) -->
+  <section class="section" id="quote" aria-labelledby="quote-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="kicker"><i aria-hidden="true"></i>คิดให้ดูก่อนโทร</span>
+        <h2 id="quote-title"><span class="w"><span>งานของคุณ</span></span> <span class="w"><span>ราวๆ เท่าไหร่</span></span></h2>
+        <svg class="rule" viewBox="0 0 132 8" aria-hidden="true" focusable="false"><use href="#i-icon2"/></svg>
+        <p>เลื่อนจำนวนแขกแล้วเห็นตัวเลขทันที — เป็นราคาประเมินจากราคาต่อท่านที่ประกาศไว้ ใบเสนอราคาจริงแจกแจงรายบรรทัดอีกที</p>
+      </div>
+
+      <div class="calc reveal" data-calc>
+        <fieldset class="calc-kind">
+          <legend>ประเภทงาน</legend>
+          <label><input type="radio" name="kind" value="meeting" data-rate="690" data-min="1" checked><span>ประชุม &amp; สัมมนา<b>฿690 / ท่าน</b></span></label>
+          <label><input type="radio" name="kind" value="party" data-rate="890" data-min="40"><span>งานเลี้ยงบริษัท<b>฿890 / ท่าน</b></span></label>
+          <label><input type="radio" name="kind" value="wedding" data-rate="1290" data-min="80"><span>งานแต่ง<b>฿1,290 / ท่าน</b></span></label>
+        </fieldset>
+
+        <div class="calc-guests">
+          <label for="guests">จำนวนแขก</label>
+          <output for="guests" data-guests>120</output>
+          <input id="guests" type="range" min="40" max="300" step="10" value="120" data-range>
+          <p class="calc-scale" aria-hidden="true"><span>40</span><span>300 ที่นั่ง</span></p>
+        </div>
+
+        <div class="calc-out" aria-live="polite">
+          <p class="calc-line"><span data-detail>฿690 × 120 ท่าน</span></p>
+          <p class="calc-total"><span>ประเมินทั้งงาน</span><b data-total>฿82,800</b></p>
+          <p class="calc-note" data-note>ราคานี้รวมอาหาร เครื่องดื่ม จัดโต๊ะ เครื่องเสียงพื้นฐาน และทีมดูแลหน้างานแล้ว</p>
+        </div>
+
+        <div class="act">
+          <a class="btn btn--solid" href="tel:">ขอใบเสนอราคาจริง
+            <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon3"/></svg></a>
+          <!-- btn--line ไม่ใช่ btn--outline: outline ถูกออกแบบมาให้วางบนรูป (ตัวหนังสือขาว)
+               พอมาอยู่บนพื้นสว่างของการ์ดจะขาวบนขาว หน้านี้มีตัวสำหรับพื้นสว่างอยู่แล้ว -->
+          <a class="btn btn--line" href="#compare">ดูว่ารวมอะไรบ้าง</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bar" aria-label="ตัวเลขของเดอะ เทอเรส">
+    <div><b><span class="num" data-count="480">480</span>+</b><span>งานที่จัดมาแล้วตั้งแต่ปี 2562</span></div>
+    <span class="sep" aria-hidden="true"></span>
+    <div><b>40–300</b><span>ที่นั่งต่อหนึ่งงาน</span></div>
+    <span class="sep" aria-hidden="true"></span>
+    <div><b><span class="stars" aria-hidden="true">★★★★★</span> <span class="num" data-count="4.9" data-dec="1">4.9</span></b><span>จาก <span class="num" data-count="216">216</span> รีวิวคู่บ่าวสาว</span></div>
+  </section>
+
+  <section class="section section--tint" id="compare" aria-labelledby="compare-title">
+    <div class="wrap">
+      <div class="section-head section-head--mid reveal">
+        <span class="kicker"><i aria-hidden="true"></i>เทียบแพ็กเกจ</span>
+        <h2 id="compare-title"><span class="w"><span>อะไรรวมอยู่แล้ว</span></span> <span class="w"><span>อะไรคิดเพิ่ม</span></span></h2>
+        <svg class="rule" viewBox="0 0 132 8" aria-hidden="true" focusable="false"><use href="#i-icon2"/></svg>
+        <p>ตารางนี้คือสิ่งที่ลูกค้าถามมากที่สุดหลังเห็นราคาต่อท่าน — เขียนไว้ก่อนคุยกัน จะได้ไม่ต้องมาเซอร์ไพรส์กันตอนใบเสนอราคา</p>
+      </div>
+      <div class="cmp reveal">
+        <table>
+          <caption class="sr-only">เปรียบเทียบสิ่งที่รวมในแต่ละแพ็กเกจ</caption>
+          <thead>
+            <tr><th scope="col">รายการ</th><th scope="col">ประชุม<span>฿690</span></th><th scope="col">งานเลี้ยงบริษัท<span>฿890</span></th><th scope="col">งานแต่ง<span>฿1,290</span></th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">ค่าเช่าสถานที่</th><td data-l="ประชุม"><b>รวมแล้ว</b></td><td data-l="งานเลี้ยง"><b>รวมแล้ว</b></td><td data-l="งานแต่ง"><b>รวมแล้ว</b></td></tr>
+            <tr><th scope="row">อาหารและเครื่องดื่ม</th><td data-l="ประชุม">เบรก 2 มื้อ + กลางวัน</td><td data-l="งานเลี้ยง">บุฟเฟต์ 12 รายการ</td><td data-l="งานแต่ง">โต๊ะจีน 9 รายการ</td></tr>
+            <tr><th scope="row">เครื่องเสียง + ไมค์</th><td data-l="ประชุม"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg></td><td data-l="งานเลี้ยง"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg></td><td data-l="งานแต่ง"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg></td></tr>
+            <tr><th scope="row">จอ LED เต็มผนัง</th><td data-l="ประชุม">โปรเจกเตอร์ 4K</td><td data-l="งานเลี้ยง"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg></td><td data-l="งานแต่ง"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg></td></tr>
+            <tr><th scope="row">ดอกไม้ ซุ้ม แสงเวที</th><td data-l="ประชุม"><span class="no">คิดเพิ่ม</span></td><td data-l="งานเลี้ยง"><span class="no">คิดเพิ่ม</span></td><td data-l="งานแต่ง"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg></td></tr>
+            <tr><th scope="row">ผู้ดูแลงานประจำคุณ</th><td data-l="ประชุม"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg></td><td data-l="งานเลี้ยง"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg></td><td data-l="งานแต่ง"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg> + เวดดิ้งแพลนเนอร์</td></tr>
+            <tr><th scope="row">ห้องเตรียมตัว</th><td data-l="ประชุม"><span class="no">ไม่มี</span></td><td data-l="งานเลี้ยง">ห้องพักทีมงาน</td><td data-l="งานแต่ง">ห้องเจ้าสาว + ห้องเจ้าบ่าว</td></tr>
+            <tr><th scope="row">ที่จอดรถ</th><td data-l="ประชุม">ฟรี 60 คัน</td><td data-l="งานเลี้ยง">ฟรี 60 คัน</td><td data-l="งานแต่ง">ฟรี 60 คัน + วาเลต์</td></tr>
+            <tr><th scope="row">เลยเวลาที่ตกลง</th><td data-l="ประชุม">ชม.ละ ฿3,000</td><td data-l="งานเลี้ยง">ชม.ละ ฿5,000</td><td data-l="งานแต่ง">ชม.ละ ฿5,000</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="cmp-note reveal d1">ทุกราคายังไม่รวม VAT 7% · หักภาษี ณ ที่จ่ายได้ตามปกติ · ใบเสนอราคาแจกแจงทุกบรรทัดเหมือนในตารางนี้</p>
+    </div>
+  </section>
+
+  <section class="section" id="rooms" aria-labelledby="rooms-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="kicker"><i aria-hidden="true"></i>สถานที่</span>
+        <h2 id="rooms-title"><span class="w"><span>สามพื้นที่</span></span> <span class="w"><span>ในรั้วเดียวกัน</span></span></h2>
+        <svg class="rule" viewBox="0 0 132 8" aria-hidden="true" focusable="false"><use href="#i-icon2"/></svg>
+        <p>ย้ายจากพิธีเช้าไปงานเลี้ยงเย็นได้โดยแขกไม่ต้องขึ้นรถ ทุกห้องเดินถึงกันในสองนาที</p>
+      </div>
+      <div class="rooms">
+        <article class="room reveal">
+          <span class="room-media"><img src="img/hall-grand.jpg" alt="ห้องบอลรูมจัดโต๊ะกลมพร้อมดอกไม้กลางโต๊ะ" width="1200" height="900" loading="lazy"><span class="room-curtain" aria-hidden="true"></span></span>
+          <div class="room-body">
+            <h3>เทอเรส แกรนด์</h3>
+            <p>ห้องใหญ่เพดานสูง เวทีถาวร จอ LED เต็มผนัง เหมาะกับงานเลี้ยงบริษัทและงานแต่งช่วงเย็น</p>
+            <p class="meta"><span>120–300 ที่นั่ง</span><span>มีเวที + จอ LED</span></p>
+          </div>
+        </article>
+        <article class="room reveal d1">
+          <span class="room-media"><img src="img/garden.jpg" alt="ซุ้มพิธีทรงโดมกลางสวนประดับดอกไม้" width="1200" height="900" loading="lazy"><span class="room-curtain" aria-hidden="true"></span></span>
+          <div class="room-body">
+            <h3>ลานซุ้มริมน้ำ</h3>
+            <p>ลานกลางแจ้งติดน้ำ ใช้สำหรับพิธีเช้าและงานค็อกเทล มีผ้าใบกันฝนสำรองทุกงาน</p>
+            <p class="meta"><span>60–150 ที่นั่ง</span><span>มีแผนสำรองวันฝนตก</span></p>
+          </div>
+        </article>
+        <article class="room reveal d2">
+          <span class="room-media"><img src="img/room-meeting.jpg" alt="ห้องประชุมโต๊ะยาวพร้อมเก้าอี้บุนวมริมหน้าต่าง" width="1200" height="900" loading="lazy"><span class="room-curtain" aria-hidden="true"></span></span>
+          <div class="room-body">
+            <h3>ห้องประชุมชั้น 2</h3>
+            <p>ห้องเก็บเสียง แสงธรรมชาติเต็มด้าน อินเทอร์เน็ตสองเส้นแยกวงจร สำหรับสัมมนาและอบรม</p>
+            <p class="meta"><span>40–80 ที่นั่ง</span><span>เน็ตสำรอง 2 เส้น</span></p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="story" aria-labelledby="story-title">
+    <svg class="band-mark" viewBox="0 0 40 40" aria-hidden="true"><path d="M8 32V17.5a12 12 0 0 1 24 0V32" stroke-width="1.2"/><path d="M4.5 32h31" stroke-width="1.2"/><path d="M14 32V19.5a6 6 0 0 1 12 0V32" stroke-width=".8"/></svg>
+    <div class="wrap">
+      <h2 id="story-title" class="reveal"><span class="w"><span>ครัวเป็นของเราเอง</span></span> <span class="w"><span>ไม่ใช่ผู้รับเหมาช่วง</span></span></h2>
+      <svg class="rule reveal d1" viewBox="0 0 132 8" aria-hidden="true" focusable="false"><path d="M1 5c22-4 44-4 66 0s44 4 65-1" stroke="currentColor" stroke-width="2"/></svg>
+      <p class="reveal d1">อาหารทุกจานออกจากครัวหลังห้องจัดเลี้ยง ทีมหน้างานเป็นพนักงานประจำ <span class="num" data-count="22">22</span> คน — เวลามีอะไรผิดแผนกลางงาน คุณเรียกคนที่แก้ได้ ไม่ใช่คนที่ต้องโทรถามคนอื่นต่อ</p>
+      <div class="act reveal d2">
+        <a class="btn btn--brass btn--lg" href="https://line.me/R/ti/p/@theterrace.demo">ทักไลน์คุยรายละเอียดงาน</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="menu" aria-labelledby="menu-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="kicker"><i aria-hidden="true"></i>อาหาร</span>
+        <h2 id="menu-title"><span class="w"><span>สามชุดที่สั่งบ่อยที่สุด</span></span> <span class="w"><span>(เลือกสลับรายการได้)</span></span></h2>
+        <svg class="rule" viewBox="0 0 132 8" aria-hidden="true" focusable="false"><use href="#i-icon2"/></svg>
+        <p>ชิมก่อนเซ็นได้ นัดล่วงหน้า 3 วัน ชิมได้ 4 รายการต่อครั้ง ไม่มีค่าใช้จ่ายถ้าจองงานภายใน 30 วันหลังชิม</p>
+      </div>
+      <div class="sets">
+        <article class="set reveal">
+          <header><h3>โต๊ะจีน 9 รายการ</h3><p class="set-price">฿6,900 <span>/ โต๊ะ 10 ท่าน</span></p></header>
+          <ol>
+            <li>ออร์เดิร์ฟรวมมิตร 4 อย่าง</li>
+            <li>หูฉลามน้ำแดง (หรือเป๋าฮื้อน้ำแดงสำหรับงานเจ)</li>
+            <li>กุ้งแม่น้ำเผา</li>
+            <li>ปลาเก๋านึ่งซีอิ๊ว</li>
+            <li>เป็ดปักกิ่งห่อแป้ง</li>
+            <li>ไก่อบเกลือโบราณ</li>
+            <li>ผัดหมี่ฮ่องกงทะเล</li>
+            <li>ซุปเห็ดหอมเต้าหู้ไข่</li>
+            <li>ของหวานตามฤดูกาล</li>
+          </ol>
+          <p class="set-note">งานแต่งเลือกชุดนี้ 7 ใน 10 งาน</p>
+        </article>
+        <article class="set set--pick reveal d1">
+          <span class="tag">สั่งบ่อยที่สุด</span>
+          <header><h3>บุฟเฟต์นานาชาติ 12 รายการ</h3><p class="set-price">฿890 <span>/ ท่าน</span></p></header>
+          <ol>
+            <li>สลัดบาร์ + น้ำสลัด 3 ชนิด</li>
+            <li>ซุปข้นวันละ 2 ชนิด</li>
+            <li>สเต๊กสันคอหมูย่างซอสพริกไทยดำ</li>
+            <li>ไก่อบสมุนไพรทั้งตัว แล่หน้างาน</li>
+            <li>ปลาแซลมอนซอสเลมอนบัตเตอร์</li>
+            <li>สปาเกตตีสองซอส</li>
+            <li>ข้าวผัดปู · ผัดไทยกุ้งสด</li>
+            <li>แกงเขียวหวานไก่ + โรตี</li>
+            <li>ซุ้มก๋วยเตี๋ยวเรือ ลวกสด</li>
+            <li>ผัดผักรวมน้ำมันหอย</li>
+            <li>ของหวานไทย 3 อย่าง + ไอศกรีม</li>
+            <li>ผลไม้ตามฤดูกาล</li>
+          </ol>
+          <p class="set-note">เพิ่มซุ้มสด (ซูชิ / เนื้อย่าง) ซุ้มละ ฿12,000</p>
+        </article>
+        <article class="set reveal d2">
+          <header><h3>ค็อกเทล 8 คำ + เครื่องดื่ม</h3><p class="set-price">฿590 <span>/ ท่าน · 2 ชั่วโมง</span></p></header>
+          <ol>
+            <li>คานาเป้แซลมอนรมควัน</li>
+            <li>บรูสเกตต้ามะเขือเทศโหระพา</li>
+            <li>เกี๊ยวซ่าทอดซอสยูซุ</li>
+            <li>สะเต๊ะไก่จิ้มอาจาด</li>
+            <li>มินิเบอร์เกอร์เนื้อ</li>
+            <li>ทาร์ตเห็ดทรัฟเฟิล</li>
+            <li>ชีสแพลตเตอร์ + ผลไม้</li>
+            <li>ขนมหวานพอดีคำ 2 ชนิด</li>
+          </ol>
+          <p class="set-note">เหมาะกับงานเปิดตัวสินค้าและงานขอบคุณลูกค้าช่วงเย็น</p>
+        </article>
+      </div>
+      <p class="cmp-note reveal d1">แพ้อาหาร อาหารเจ ฮาลาล และเมนูเด็ก แจ้งล่วงหน้า 7 วัน ครัวแยกกระทะให้โดยไม่คิดเพิ่ม</p>
+    </div>
+  </section>
+
+  <section class="section" id="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <div class="section-head section-head--mid reveal">
+        <span class="kicker"><i aria-hidden="true"></i>ขั้นตอนจัดงาน</span>
+        <h2 id="how-title"><span class="w"><span>สี่ขั้น</span></span> <span class="w"><span>ตั้งแต่ทักมาจนถึงวันงาน</span></span></h2>
+        <svg class="rule" viewBox="0 0 132 8" aria-hidden="true" focusable="false"><use href="#i-icon2"/></svg>
+      </div>
+      <div class="steps">
+        <div class="step reveal"><div><h3>บอกวันกับจำนวนแขก</h3><p>โทรหรือทักไลน์ เราตอบกลับว่าว่างหรือไม่ว่างภายในวันเดียวกัน ไม่ต้องกรอกฟอร์มยาว</p></div></div>
+        <div class="step reveal d1"><div><h3>นัดชมสถานที่ฟรี</h3><p>เดินดูของจริงทั้งสามพื้นที่ ชิมอาหารชุดตัวอย่างได้ในวันเดียวกันถ้านัดล่วงหน้า 3 วัน</p></div></div>
+        <div class="step reveal d2"><div><h3>ล็อกวันด้วยมัดจำ 30%</h3><p>ได้ใบเสนอราคาที่แจกแจงทุกรายการ ราคาที่เซ็นแล้วไม่ขยับ แม้ของขึ้นราคาก่อนวันงาน</p></div></div>
+        <div class="step reveal d3"><div><h3>วันงาน มีผู้ดูแลประจำคุณ</h3><p>หนึ่งคนคุมงานตั้งแต่เซ็ตโต๊ะจนแขกกลับ เบอร์ตรงถึงตัว ไม่ต้องผ่านคอลเซ็นเตอร์</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--tint" id="runsheet" aria-labelledby="runsheet-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="kicker"><i aria-hidden="true"></i>วันงานจริง</span>
+        <h2 id="runsheet-title"><span class="w"><span>งานแต่ง</span></span> <span class="w"><span>180</span></span> <span class="w"><span>ท่าน</span></span> <span class="w"><span>หนึ่งวันเดินยังไง</span></span></h2>
+        <svg class="rule" viewBox="0 0 132 8" aria-hidden="true" focusable="false"><use href="#i-icon2"/></svg>
+        <p>นี่คือรันดาวน์จริงของงานหนึ่งที่จัดไปเมื่อเดือนที่แล้ว — เอามาให้ดูเพราะคำถาม "แล้ววันนั้นใครทำอะไรบ้าง" ตอบด้วยตารางง่ายกว่าอธิบาย</p>
+      </div>
+      <ol class="run reveal">
+        <li><span class="t">06:30</span><div><h3>ทีมเซ็ตอัพเข้าพื้นที่</h3><p>ปูผ้า จัดโต๊ะ 18 โต๊ะ ติดตั้งซุ้มดอกไม้และระบบเสียง — ก่อนเจ้าภาพมาถึงสามชั่วโมง</p></div></li>
+        <li><span class="t">08:00</span><div><h3>ห้องเจ้าสาวเปิด</h3><p>ช่างแต่งหน้าและช่างภาพเข้าใช้ได้ มีอาหารเช้าและน้ำเตรียมไว้ให้ทีมของคุณ</p></div></li>
+        <li><span class="t">09:09</span><div><h3>พิธีเช้าที่ลานริมน้ำ</h3><p>ขันหมาก รดน้ำสังข์ ผู้ดูแลงานคุมคิวญาติผู้ใหญ่ตามลำดับที่ซ้อมไว้</p></div></li>
+        <li><span class="t">11:30</span><div><h3>เลี้ยงกลางวันคนช่วยงาน</h3><p>ครัวเสิร์ฟข้าวกล่องให้ทีมงาน ช่างภาพ และวงดนตรี รวมอยู่ในแพ็กเกจแล้ว</p></div></li>
+        <li><span class="t">15:00</span><div><h3>เปลี่ยนห้องเป็นงานเย็น</h3><p>ทีมเดียวกันเก็บลานเช้าและเซ็ตห้องแกรนด์ต่อ — ไม่มีการย้ายผู้รับเหมาเข้าออก</p></div></li>
+        <li><span class="t">17:30</span><div><h3>แขกลงทะเบียน</h3><p>โต๊ะลงทะเบียน 2 จุด ป้ายชื่อโต๊ะพิมพ์ไว้ล่วงหน้า ทีมพาแขกไปนั่งตามผัง</p></div></li>
+        <li><span class="t">18:30</span><div><h3>เปิดงาน อาหารจานแรกออก</h3><p>ครัวออกอาหารพร้อมกันทั้งห้องภายใน 6 นาที ร้อนถึงโต๊ะสุดท้าย</p></div></li>
+        <li><span class="t">21:00</span><div><h3>ตัดเค้ก · เพลงสุดท้าย</h3><p>ทีมเสียงคุมคิววงดนตรีและวิดีโอ ผู้ดูแลงานเดินส่งแขกที่ประตูพร้อมของชำร่วย</p></div></li>
+        <li><span class="t">23:00</span><div><h3>เก็บของ ส่งของคืนเจ้าภาพ</h3><p>ของขวัญ ซองและอุปกรณ์ทั้งหมดเช็กตามรายการ เซ็นรับส่งกันตรงนั้น ไม่ต้องกลับมาเอาวันหลัง</p></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" id="voices" aria-labelledby="voices-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="kicker"><i aria-hidden="true"></i>รีวิวลูกค้า</span>
+        <h2 id="voices-title"><span class="w"><span>คนที่จัดงานที่นี่ไปแล้วพูดถึงอะไร</span></span></h2>
+        <svg class="rule" viewBox="0 0 132 8" aria-hidden="true" focusable="false"><use href="#i-icon2"/></svg>
+      </div>
+      <div class="quotes">
+        <blockquote class="quote reveal">
+          <p class="stars" aria-label="ให้ 5 ดาว">★★★★★</p>
+          <p>ฝนตกหนักตอนบ่ายวันงาน ทีมย้ายพิธีเข้าห้องใหญ่ให้ใน 40 นาที แขกไม่รู้เลยว่ามีแผนเปลี่ยน</p>
+          <footer>คุณพลอย · งานแต่ง 180 ท่าน</footer>
+        </blockquote>
+        <blockquote class="quote reveal d1">
+          <p class="stars" aria-label="ให้ 5 ดาว">★★★★★</p>
+          <p>จัดงานปีใหม่บริษัทสามปีติด ใบกำกับภาษีออกครบทุกครั้ง ฝ่ายบัญชีไม่เคยตีกลับ</p>
+          <footer>คุณธนา · HR บริษัทโลจิสติกส์</footer>
+        </blockquote>
+        <blockquote class="quote reveal d2">
+          <p class="stars" aria-label="ให้ 4 ดาว">★★★★☆</p>
+          <p>ที่จอดรถเต็มเร็วกว่าที่คิดตอนงานใหญ่ แต่มีทีมช่วยจัดคิวรถให้ อาหารร้อนทุกจานจริง</p>
+          <footer>คุณอมร · งานสัมมนา 90 ท่าน</footer>
+        </blockquote>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="faq" aria-labelledby="faq-title">
+    <div class="wrap">
+      <div class="section-head section-head--mid reveal">
+        <span class="kicker"><i aria-hidden="true"></i>คำถามที่พบบ่อย</span>
+        <h2 id="faq-title"><span class="w"><span>เรื่องที่ลูกค้าถามก่อนจองเสมอ</span></span></h2>
+        <svg class="rule" viewBox="0 0 132 8" aria-hidden="true" focusable="false"><use href="#i-icon2"/></svg>
+      </div>
+      <div class="faq reveal">
+        <details><summary>ราคาต่อท่านรวมอะไรบ้าง</summary><p>รวมอาหาร เครื่องดื่ม การจัดโต๊ะ เครื่องเสียงพื้นฐาน และทีมบริการหน้างาน ส่วนดอกไม้ ซุ้ม และแสงเวทีรวมอยู่ในแพ็กเกจงานแต่งเท่านั้น รายการนอกเหนือจากนี้แจกแจงเป็นรายบรรทัดในใบเสนอราคา</p></details>
+        <details><summary>ต้องจองล่วงหน้านานแค่ไหน</summary><p>งานบริษัทขนาด 40–80 ท่าน จองล่วงหน้า 3 สัปดาห์พอ ส่วนงานแต่งเสาร์-อาทิตย์ช่วงพฤศจิกายน–กุมภาพันธ์ ควรล็อกวันล่วงหน้า 6–8 เดือน</p></details>
+        <details><summary>นำอาหารหรือเครื่องดื่มมาเองได้ไหม</summary><p>เครื่องดื่มแอลกอฮอล์นำมาเองได้ คิดค่าเปิดขวดขวดละ 300 บาท ส่วนอาหารต้องออกจากครัวของเราเท่านั้น ยกเว้นเค้กแต่งงานและขนมพิธี</p></details>
+        <details><summary>ฝนตกวันงานกลางแจ้งทำยังไง</summary><p>ทุกงานกลางแจ้งมีแผนสำรองเขียนไว้ในสัญญาตั้งแต่วันเซ็น ว่าจะย้ายเข้าห้องไหนและใช้เวลากี่นาที ไม่มีค่าใช้จ่ายเพิ่มเมื่อต้องย้าย</p></details>
+        <details><summary>ยกเลิกหรือเลื่อนวันได้ไหม</summary><p>เลื่อนได้หนึ่งครั้งโดยไม่มีค่าปรับ ถ้าแจ้งก่อนวันงาน 45 วันขึ้นไป ส่วนการยกเลิกคืนมัดจำ 50% เมื่อแจ้งก่อน 60 วัน</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="facility" aria-labelledby="facility-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="kicker"><i aria-hidden="true"></i>สิ่งที่มีในเวนิว</span>
+        <h2 id="facility-title"><span class="w"><span>ของที่ต้องมี</span></span> <span class="w"><span>เรามีอยู่แล้ว</span></span> <span class="w"><span>ไม่ต้องเช่าเข้ามา</span></span></h2>
+        <svg class="rule" viewBox="0 0 132 8" aria-hidden="true" focusable="false"><use href="#i-icon2"/></svg>
+        <p>ทุกอย่างในรายการนี้อยู่ในตึก ใช้ได้เลยในวันงาน — สิ่งที่ต้องเช่าเข้ามาจะเขียนไว้ในใบเสนอราคาเป็นบรรทัดแยก</p>
+      </div>
+      <div class="facts">
+        <div class="fact reveal"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M2 17.6h20"/><path pathLength="1" d="M4.4 17.6V11l2.2-4.6h10.8L19.6 11v6.6"/><path pathLength="1" d="M4.4 11h15.2"/><circle pathLength="1" cx="7.4" cy="14.4" r="1.2"/><circle pathLength="1" cx="16.6" cy="14.4" r="1.2"/><path pathLength="1" d="M6 17.6v2.4M18 17.6v2.4"/></svg></div><div><b>ที่จอดรถ 60 คัน</b><span>ในรั้วเวนิว ฟรีตลอดงาน · งานเกิน 150 ท่านมีวาเลต์รับรถหน้าซอย</span></div></div>
+        <div class="fact reveal d1"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M4.4 2.8h15.2v18.4H4.4Z"/><path pathLength="1" d="M7.4 5.8h9.2v9.2H7.4Z"/><path pathLength="1" d="M12 17.6v1.6"/></svg></div><div><b>ห้องเจ้าสาว + ห้องเจ้าบ่าว</b><span>มีกระจกเต็มบาน ปลั๊กสำหรับช่างแต่งหน้า 6 จุด และห้องน้ำในตัว</span></div></div>
+        <div class="fact reveal d2"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M13.4 1.8 4.6 13.6h6.4l-1.4 8.6 9-11.8h-6.4Z"/></svg></div><div><b>ไฟสำรองทั้งอาคาร</b><span>เครื่องปั่นไฟติดเองภายใน 8 วินาที ครอบคลุมครัว เสียง และไฟเวที</span></div></div>
+        <div class="fact reveal"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M2.6 9.4a13 13 0 0 1 18.8 0"/><path pathLength="1" d="M6 13a8.4 8.4 0 0 1 12 0"/><path pathLength="1" d="M9.4 16.6a3.7 3.7 0 0 1 5.2 0"/><circle pathLength="1" cx="12" cy="20" r="1.2"/></svg></div><div><b>อินเทอร์เน็ตสองเส้น</b><span>คนละผู้ให้บริการ แยกวงจร สำหรับไลฟ์สดและระบบลงทะเบียน</span></div></div>
+        <div class="fact reveal d1"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M4.4 2.8h15.2v18.4H4.4Z"/><path pathLength="1" d="M12 2.8v18.4"/><path pathLength="1" d="M8.2 9.6 6.4 7.2 4.6 9.6"/><path pathLength="1" d="M15.8 14.4l1.8 2.4 1.8-2.4"/></svg></div><div><b>ลิฟต์และทางลาด</b><span>รถเข็นขึ้นได้ทุกชั้น ห้องน้ำผู้สูงอายุอยู่ติดห้องแกรนด์</span></div></div>
+        <div class="fact reveal d2"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M3.4 8.6h17.2v10.4a2 2 0 0 1-2 2H5.4a2 2 0 0 1-2-2Z"/><path pathLength="1" d="M3.4 12.6h17.2"/><path pathLength="1" d="M7.6 5.4c0-1.4 1.2-1.6 1.2-3s-1.2-1.6-1.2-1.6"/><path pathLength="1" d="M12.4 5.4c0-1.4 1.2-1.6 1.2-3s-1.2-1.6-1.2-1.6"/><path pathLength="1" d="M17.2 5.4c0-1.4 1.2-1.6 1.2-3"/></svg></div><div><b>ครัวร้อนหลังห้อง</b><span>อาหารเดินจากเตาถึงโต๊ะไกลสุด 40 เมตร ไม่ต้องอุ่นซ้ำ</span></div></div>
+        <div class="fact reveal"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M5 10.6h14v10.6H5Z"/><path pathLength="1" d="M8.2 10.6V6.8a3.8 3.8 0 0 1 7.6 0v3.8"/><circle pathLength="1" cx="12" cy="15.6" r="1.4"/></svg></div><div><b>ห้องเก็บของล็อกได้</b><span>เก็บของชำร่วยและซองได้ตั้งแต่ก่อนวันงานหนึ่งวัน</span></div></div>
+        <div class="fact reveal d1"><div class="fact-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M2.6 12.4 12 3.6l9.4 8.8"/><path pathLength="1" d="M2.6 12.4c1.9 0 1.9 2 3.8 2s1.9-2 3.8-2 1.9 2 3.8 2 1.9-2 3.8-2 1.9 2 3.8 2"/><path pathLength="1" d="M7 18.2v2.2M12 18.6v2.6M17 18.2v2.2"/></svg></div><div><b>ผ้าใบกันฝนถาวร</b><span>ลานริมน้ำกางได้ใน 20 นาที ไม่ต้องเช่าเต็นท์เพิ่ม</span></div></div>
+      </div>
+      <div class="travel reveal d1">
+        <h3>การเดินทาง</h3>
+        <ul>
+          <li><b>BTS ทองหล่อ</b> ทางออก 3 แล้วต่อวินหรือเดิน 8 นาที (700 เมตร)</li>
+          <li><b>ทางด่วนเพลินจิต</b> ลงพระราม 4 ตรงเข้าสุขุมวิท xx ประมาณ 10 นาที</li>
+          <li><b>รถบัสแขกต่างจังหวัด</b> จอดในรั้วได้ 2 คัน แจ้งล่วงหน้าเพื่อกันพื้นที่</li>
+          <li><b>ส่งของก่อนวันงาน</b> รับของได้ 09:00–18:00 ทุกวัน มีคนเซ็นรับให้</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="visit" aria-labelledby="visit-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="kicker"><i aria-hidden="true"></i>แวะมาดูของจริง</span>
+        <h2 id="visit-title"><span class="w"><span>สุขุมวิท</span></span> <span class="w"><span>55</span></span> <span class="w"><span>(ทองหล่อ)</span></span> <span class="w"><span>ซอย</span></span> <span class="w"><span>xx</span></span></h2>
+        <svg class="rule" viewBox="0 0 132 8" aria-hidden="true" focusable="false"><use href="#i-icon2"/></svg>
+        <p>เปิดให้ชมสถานที่ทุกวัน 10:00–19:00 (ควรนัดล่วงหน้า เพราะบางช่วงมีงานจริงอยู่ในห้อง) · โทร 02-xxx-xxxx</p>
+      </div>
+      <div class="act reveal d1" style="justify-content:flex-start">
+        <a class="btn btn--dark btn--lg" href="tel:">โทรนัดชมสถานที่</a>
+        <a class="btn btn--line btn--lg" href="https://line.me/R/ti/p/@theterrace.demo">ทักไลน์</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p><strong>เดอะ เทอเรส</strong> · 55/xx ซอยสุขุมวิท xx คลองตันเหนือ วัฒนา กรุงเทพฯ 10110 · 02-xxx-xxxx</p>
+    <p>หน้านี้เป็นงานตัวอย่างของ ตามสั่ง (TarmSung) — เวนิวในภาพเป็นแบรนด์สมมติ</p>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script src="js/quote.js"></script>
+<script src="js/nav-response.js" defer></script>
+<script src="js/scroll-layer.js" defer></script>
+<script src="/work/_demo-badge.js" defer></script>
+</body>
+</html>

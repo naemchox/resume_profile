@@ -1,0 +1,512 @@
+/* สร้างด้วย playbook/freeze-tailwind.mjs — ห้ามแก้มือ แก้ที่ index.html แล้วรันใหม่ */
+*, ::before, ::after { --tw-border-spacing-x: 0; --tw-border-spacing-y: 0; --tw-translate-x: 0; --tw-translate-y: 0; --tw-rotate: 0; --tw-skew-x: 0; --tw-skew-y: 0; --tw-scale-x: 1; --tw-scale-y: 1; --tw-pan-x: ; --tw-pan-y: ; --tw-pinch-zoom: ; --tw-scroll-snap-strictness: proximity; --tw-gradient-from-position: ; --tw-gradient-via-position: ; --tw-gradient-to-position: ; --tw-ordinal: ; --tw-slashed-zero: ; --tw-numeric-figure: ; --tw-numeric-spacing: ; --tw-numeric-fraction: ; --tw-ring-inset: ; --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: rgb(59 130 246 / 0.5); --tw-ring-offset-shadow: 0 0 #0000; --tw-ring-shadow: 0 0 #0000; --tw-shadow: 0 0 #0000; --tw-shadow-colored: 0 0 #0000; --tw-blur: ; --tw-brightness: ; --tw-contrast: ; --tw-grayscale: ; --tw-hue-rotate: ; --tw-invert: ; --tw-saturate: ; --tw-sepia: ; --tw-drop-shadow: ; --tw-backdrop-blur: ; --tw-backdrop-brightness: ; --tw-backdrop-contrast: ; --tw-backdrop-grayscale: ; --tw-backdrop-hue-rotate: ; --tw-backdrop-invert: ; --tw-backdrop-opacity: ; --tw-backdrop-saturate: ; --tw-backdrop-sepia: ; --tw-contain-size: ; --tw-contain-layout: ; --tw-contain-paint: ; --tw-contain-style: ; }
+::backdrop { --tw-border-spacing-x: 0; --tw-border-spacing-y: 0; --tw-translate-x: 0; --tw-translate-y: 0; --tw-rotate: 0; --tw-skew-x: 0; --tw-skew-y: 0; --tw-scale-x: 1; --tw-scale-y: 1; --tw-pan-x: ; --tw-pan-y: ; --tw-pinch-zoom: ; --tw-scroll-snap-strictness: proximity; --tw-gradient-from-position: ; --tw-gradient-via-position: ; --tw-gradient-to-position: ; --tw-ordinal: ; --tw-slashed-zero: ; --tw-numeric-figure: ; --tw-numeric-spacing: ; --tw-numeric-fraction: ; --tw-ring-inset: ; --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: rgb(59 130 246 / 0.5); --tw-ring-offset-shadow: 0 0 #0000; --tw-ring-shadow: 0 0 #0000; --tw-shadow: 0 0 #0000; --tw-shadow-colored: 0 0 #0000; --tw-blur: ; --tw-brightness: ; --tw-contrast: ; --tw-grayscale: ; --tw-hue-rotate: ; --tw-invert: ; --tw-saturate: ; --tw-sepia: ; --tw-drop-shadow: ; --tw-backdrop-blur: ; --tw-backdrop-brightness: ; --tw-backdrop-contrast: ; --tw-backdrop-grayscale: ; --tw-backdrop-hue-rotate: ; --tw-backdrop-invert: ; --tw-backdrop-opacity: ; --tw-backdrop-saturate: ; --tw-backdrop-sepia: ; --tw-contain-size: ; --tw-contain-layout: ; --tw-contain-paint: ; --tw-contain-style: ; }
+*, ::after, ::before { box-sizing: border-box; border-width: 0px; border-style: solid; border-color: rgb(229, 231, 235); }
+::after, ::before { --tw-content: ''; }
+:host, html { line-height: 1.5; text-size-adjust: 100%; tab-size: 4; font-family: "Josefin Sans", sans-serif; font-feature-settings: normal; font-variation-settings: normal; -webkit-tap-highlight-color: transparent; }
+body { margin: 0px; line-height: inherit; }
+hr { height: 0px; color: inherit; border-top-width: 1px; }
+abbr:where([title]) { text-decoration: underline dotted; }
+h1, h2, h3, h4, h5, h6 { font-size: inherit; font-weight: inherit; }
+a { color: inherit; text-decoration: inherit; }
+b, strong { font-weight: bolder; }
+code, kbd, pre, samp { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-feature-settings: normal; font-variation-settings: normal; font-size: 1em; }
+small { font-size: 80%; }
+sub, sup { font-size: 75%; line-height: 0; position: relative; vertical-align: baseline; }
+sub { bottom: -0.25em; }
+sup { top: -0.5em; }
+table { text-indent: 0px; border-color: inherit; border-collapse: collapse; }
+button, input, optgroup, select, textarea { font-family: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-size: 100%; font-weight: inherit; line-height: inherit; letter-spacing: inherit; color: inherit; margin: 0px; padding: 0px; }
+button, select { text-transform: none; }
+button, input:where([type="button"]), input:where([type="reset"]), input:where([type="submit"]) { appearance: button; background-color: transparent; background-image: none; }
+progress { vertical-align: baseline; }
+::-webkit-inner-spin-button, ::-webkit-outer-spin-button { height: auto; }
+[type="search"] { appearance: textfield; outline-offset: -2px; }
+::-webkit-search-decoration { appearance: none; }
+::-webkit-file-upload-button { appearance: button; font: inherit; }
+summary { display: list-item; }
+blockquote, dd, dl, figure, h1, h2, h3, h4, h5, h6, hr, p, pre { margin: 0px; }
+fieldset { margin: 0px; padding: 0px; }
+legend { padding: 0px; }
+menu, ol, ul { list-style: none; margin: 0px; padding: 0px; }
+dialog { padding: 0px; }
+textarea { resize: vertical; }
+input::placeholder, textarea::placeholder { opacity: 1; color: rgb(156, 163, 175); }
+[role="button"], button { cursor: pointer; }
+:disabled { cursor: default; }
+audio, canvas, embed, iframe, img, object, svg, video { display: block; vertical-align: middle; }
+img, video { max-width: 100%; height: auto; }
+[hidden]:where(:not([hidden="until-found"])) { display: none; }
+.pointer-events-none { pointer-events: none; }
+.fixed { position: fixed; }
+.absolute { position: absolute; }
+.relative { position: relative; }
+.inset-0 { inset: 0px; }
+.-bottom-10 { bottom: -2.5rem; }
+.-left-10 { left: -2.5rem; }
+.-right-6 { right: -1.5rem; }
+.-top-6 { top: -1.5rem; }
+.left-0 { left: 0px; }
+.left-3 { left: 0.75rem; }
+.left-8 { left: 2rem; }
+.right-0 { right: 0px; }
+.right-8 { right: 2rem; }
+.top-0 { top: 0px; }
+.top-3 { top: 0.75rem; }
+.z-10 { z-index: 10; }
+.z-50 { z-index: 50; }
+.col-span-12 { grid-column: span 12 / span 12; }
+.col-span-6 { grid-column: span 6 / span 6; }
+.row-span-2 { grid-row: span 2 / span 2; }
+.row-span-3 { grid-row: span 3 / span 3; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+.mb-1 { margin-bottom: 0.25rem; }
+.mb-10 { margin-bottom: 2.5rem; }
+.mb-12 { margin-bottom: 3rem; }
+.mb-16 { margin-bottom: 4rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-20 { margin-bottom: 5rem; }
+.mb-3 { margin-bottom: 0.75rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mb-5 { margin-bottom: 1.25rem; }
+.mb-6 { margin-bottom: 1.5rem; }
+.mb-8 { margin-bottom: 2rem; }
+.mt-1 { margin-top: 0.25rem; }
+.mt-10 { margin-top: 2.5rem; }
+.mt-12 { margin-top: 3rem; }
+.mt-16 { margin-top: 4rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-20 { margin-top: 5rem; }
+.mt-3 { margin-top: 0.75rem; }
+.mt-6 { margin-top: 1.5rem; }
+.mt-8 { margin-top: 2rem; }
+.block { display: block; }
+.flex { display: flex; }
+.grid { display: grid; }
+.hidden { display: none; }
+.h-10 { height: 2.5rem; }
+.h-12 { height: 3rem; }
+.h-2 { height: 0.5rem; }
+.h-20 { height: 5rem; }
+.h-3\.5 { height: 0.875rem; }
+.h-44 { height: 11rem; }
+.h-5 { height: 1.25rem; }
+.h-6 { height: 1.5rem; }
+.h-72 { height: 18rem; }
+.h-9 { height: 2.25rem; }
+.h-\[560px\] { height: 560px; }
+.h-full { height: 100%; }
+.h-px { height: 1px; }
+.min-h-screen { min-height: 100vh; }
+.w-10 { width: 2.5rem; }
+.w-12 { width: 3rem; }
+.w-24 { width: 6rem; }
+.w-3\.5 { width: 0.875rem; }
+.w-32 { width: 8rem; }
+.w-40 { width: 10rem; }
+.w-5 { width: 1.25rem; }
+.w-56 { width: 14rem; }
+.w-6 { width: 1.5rem; }
+.w-9 { width: 2.25rem; }
+.w-full { width: 100%; }
+.w-px { width: 1px; }
+.max-w-2xl { max-width: 42rem; }
+.max-w-\[1500px\] { max-width: 1500px; }
+.max-w-md { max-width: 28rem; }
+.max-w-sm { max-width: 24rem; }
+.max-w-xl { max-width: 36rem; }
+.flex-1 { flex: 1 1 0%; }
+.rotate-180 { --tw-rotate: 180deg; transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y)); }
+.cursor-default { cursor: default; }
+.cursor-pointer { cursor: pointer; }
+.resize-none { resize: none; }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0px, 1fr)); }
+.flex-col { flex-direction: column; }
+.flex-wrap { flex-wrap: wrap; }
+.items-end { align-items: flex-end; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.gap-10 { gap: 2.5rem; }
+.gap-12 { gap: 3rem; }
+.gap-2 { gap: 0.5rem; }
+.gap-3 { gap: 0.75rem; }
+.gap-4 { gap: 1rem; }
+.gap-5 { gap: 1.25rem; }
+.gap-6 { gap: 1.5rem; }
+.gap-8 { gap: 2rem; }
+.gap-px { gap: 1px; }
+.gap-x-6 { column-gap: 1.5rem; }
+.gap-y-3 { row-gap: 0.75rem; }
+.gap-y-8 { row-gap: 2rem; }
+.space-y-3 > :not([hidden]) ~ :not([hidden]) { --tw-space-y-reverse: 0; margin-top: calc(0.75rem * calc(1 - var(--tw-space-y-reverse))); margin-bottom: calc(0.75rem * var(--tw-space-y-reverse)); }
+.space-y-6 > :not([hidden]) ~ :not([hidden]) { --tw-space-y-reverse: 0; margin-top: calc(1.5rem * calc(1 - var(--tw-space-y-reverse))); margin-bottom: calc(1.5rem * var(--tw-space-y-reverse)); }
+.space-y-7 > :not([hidden]) ~ :not([hidden]) { --tw-space-y-reverse: 0; margin-top: calc(1.75rem * calc(1 - var(--tw-space-y-reverse))); margin-bottom: calc(1.75rem * var(--tw-space-y-reverse)); }
+.overflow-hidden { overflow: hidden; }
+.overflow-x-hidden { overflow-x: hidden; }
+.border { border-width: 1px; }
+.border-8 { border-width: 8px; }
+.border-y { border-top-width: 1px; border-bottom-width: 1px; }
+.border-b { border-bottom-width: 1px; }
+.border-t { border-top-width: 1px; }
+.border-cream\/10 { border-color: rgba(245, 241, 234, 0.1); }
+.border-cream\/15 { border-color: rgba(245, 241, 234, 0.15); }
+.border-cream\/20 { border-color: rgba(245, 241, 234, 0.2); }
+.border-gold\/15 { border-color: rgba(201, 169, 97, 0.15); }
+.border-gold\/20 { border-color: rgba(201, 169, 97, 0.2); }
+.border-gold\/30 { border-color: rgba(201, 169, 97, 0.3); }
+.border-gold\/40 { border-color: rgba(201, 169, 97, 0.4); }
+.border-gold\/60 { border-color: rgba(201, 169, 97, 0.6); }
+.border-paper { --tw-border-opacity: 1; border-color: rgb(250 250 249 / var(--tw-border-opacity, 1)); }
+.border-stone\/15 { border-color: rgba(68, 64, 60, 0.15); }
+.border-transparent { border-color: transparent; }
+.bg-coal { --tw-bg-opacity: 1; background-color: rgb(28 25 23 / var(--tw-bg-opacity, 1)); }
+.bg-cream { --tw-bg-opacity: 1; background-color: rgb(245 241 234 / var(--tw-bg-opacity, 1)); }
+.bg-gilded { --tw-bg-opacity: 1; background-color: rgb(168 113 3 / var(--tw-bg-opacity, 1)); }
+.bg-gold { --tw-bg-opacity: 1; background-color: rgb(201 169 97 / var(--tw-bg-opacity, 1)); }
+.bg-gold\/10 { background-color: rgba(201, 169, 97, 0.1); }
+.bg-gold\/40 { background-color: rgba(201, 169, 97, 0.4); }
+.bg-ink { --tw-bg-opacity: 1; background-color: rgb(10 9 8 / var(--tw-bg-opacity, 1)); }
+.bg-ink\/95 { background-color: rgba(10, 9, 8, 0.95); }
+.bg-paper { --tw-bg-opacity: 1; background-color: rgb(250 250 249 / var(--tw-bg-opacity, 1)); }
+.bg-stone\/15 { background-color: rgba(68, 64, 60, 0.15); }
+.bg-transparent { background-color: transparent; }
+.object-cover { object-fit: cover; }
+.p-10 { padding: 2.5rem; }
+.p-3 { padding: 0.75rem; }
+.p-5 { padding: 1.25rem; }
+.p-6 { padding: 1.5rem; }
+.p-8 { padding: 2rem; }
+.px-2\.5 { padding-left: 0.625rem; padding-right: 0.625rem; }
+.px-5 { padding-left: 1.25rem; padding-right: 1.25rem; }
+.px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+.py-12 { padding-top: 3rem; padding-bottom: 3rem; }
+.py-16 { padding-top: 4rem; padding-bottom: 4rem; }
+.py-28 { padding-top: 7rem; padding-bottom: 7rem; }
+.py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.py-5 { padding-top: 1.25rem; padding-bottom: 1.25rem; }
+.py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+.py-7 { padding-top: 1.75rem; padding-bottom: 1.75rem; }
+.pb-10 { padding-bottom: 2.5rem; }
+.pb-20 { padding-bottom: 5rem; }
+.pb-5 { padding-bottom: 1.25rem; }
+.pb-6 { padding-bottom: 1.5rem; }
+.pt-1 { padding-top: 0.25rem; }
+.pt-2 { padding-top: 0.5rem; }
+.pt-28 { padding-top: 7rem; }
+.pt-3 { padding-top: 0.75rem; }
+.pt-6 { padding-top: 1.5rem; }
+.pt-8 { padding-top: 2rem; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-2xl { font-size: 1.5rem; line-height: 2rem; }
+.text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+.text-5xl { font-size: 3rem; line-height: 1; }
+.text-7xl { font-size: 4.5rem; line-height: 1; }
+.text-\[10px\] { font-size: 10px; }
+.text-\[11px\] { font-size: 11px; }
+.text-\[12px\] { font-size: 12px; }
+.text-\[9px\] { font-size: 9px; }
+.text-base { font-size: 1rem; line-height: 1.5rem; }
+.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.text-xs { font-size: 0.75rem; line-height: 1rem; }
+.font-light { font-weight: 300; }
+.uppercase { text-transform: uppercase; }
+.italic { font-style: italic; }
+.leading-\[0\.95\] { line-height: 0.95; }
+.leading-\[1\.0\] { line-height: 1; }
+.leading-none { line-height: 1; }
+.leading-relaxed { line-height: 1.625; }
+.leading-snug { line-height: 1.375; }
+.leading-tight { line-height: 1.25; }
+.tracking-\[0\.25em\] { letter-spacing: 0.25em; }
+.tracking-\[0\.28em\] { letter-spacing: 0.28em; }
+.tracking-\[0\.2em\] { letter-spacing: 0.2em; }
+.tracking-\[0\.32em\] { letter-spacing: 0.32em; }
+.tracking-\[0\.35em\] { letter-spacing: 0.35em; }
+.tracking-\[0\.3em\] { letter-spacing: 0.3em; }
+.tracking-\[0\.45em\] { letter-spacing: 0.45em; }
+.text-burnish { --tw-text-opacity: 1; color: rgb(143 96 0 / var(--tw-text-opacity, 1)); }
+.text-cream { --tw-text-opacity: 1; color: rgb(245 241 234 / var(--tw-text-opacity, 1)); }
+.text-cream\/45 { color: rgba(245, 241, 234, 0.45); }
+.text-cream\/50 { color: rgba(245, 241, 234, 0.5); }
+.text-cream\/55 { color: rgba(245, 241, 234, 0.55); }
+.text-cream\/60 { color: rgba(245, 241, 234, 0.6); }
+.text-cream\/65 { color: rgba(245, 241, 234, 0.65); }
+.text-cream\/70 { color: rgba(245, 241, 234, 0.7); }
+.text-cream\/75 { color: rgba(245, 241, 234, 0.75); }
+.text-cream\/80 { color: rgba(245, 241, 234, 0.8); }
+.text-cream\/85 { color: rgba(245, 241, 234, 0.85); }
+.text-cream\/90 { color: rgba(245, 241, 234, 0.9); }
+.text-cream\/95 { color: rgba(245, 241, 234, 0.95); }
+.text-gilded { --tw-text-opacity: 1; color: rgb(168 113 3 / var(--tw-text-opacity, 1)); }
+.text-gilded\/40 { color: rgba(168, 113, 3, 0.4); }
+.text-gold { --tw-text-opacity: 1; color: rgb(201 169 97 / var(--tw-text-opacity, 1)); }
+.text-gold\/90 { color: rgba(201, 169, 97, 0.9); }
+.text-gold\/95 { color: rgba(201, 169, 97, 0.95); }
+.text-ink { --tw-text-opacity: 1; color: rgb(10 9 8 / var(--tw-text-opacity, 1)); }
+.text-stone { --tw-text-opacity: 1; color: rgb(68 64 60 / var(--tw-text-opacity, 1)); }
+.opacity-\[0\.13\] { opacity: 0.13; }
+.opacity-\[0\.22\] { opacity: 0.22; }
+.shadow-2xl { --tw-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25); --tw-shadow-colored: 0 25px 50px -12px var(--tw-shadow-color); box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow); }
+.outline-none { outline: transparent solid 2px; outline-offset: 2px; }
+.backdrop-blur-md { --tw-backdrop-blur: blur(12px); backdrop-filter: var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia); }
+.transition-colors { transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, -webkit-text-decoration-color; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+.delay-100 { transition-delay: 100ms; }
+.delay-500 { transition-delay: 500ms; }
+.duration-300 { transition-duration: 300ms; }
+.duration-500 { transition-duration: 500ms; }
+.\[writing-mode\:vertical-rl\] { writing-mode: vertical-rl; }
+.hover\:bg-gold:hover { --tw-bg-opacity: 1; background-color: rgb(201 169 97 / var(--tw-bg-opacity, 1)); }
+.hover\:bg-paper:hover { --tw-bg-opacity: 1; background-color: rgb(250 250 249 / var(--tw-bg-opacity, 1)); }
+.hover\:text-cream:hover { --tw-text-opacity: 1; color: rgb(245 241 234 / var(--tw-text-opacity, 1)); }
+.hover\:text-gold:hover { --tw-text-opacity: 1; color: rgb(201 169 97 / var(--tw-text-opacity, 1)); }
+.hover\:text-ink:hover { --tw-text-opacity: 1; color: rgb(10 9 8 / var(--tw-text-opacity, 1)); }
+.hover\:underline:hover { text-decoration-line: underline; }
+.focus\:border-gold:focus { --tw-border-opacity: 1; border-color: rgb(201 169 97 / var(--tw-border-opacity, 1)); }
+.group:hover .group-hover\:border-gold { --tw-border-opacity: 1; border-color: rgb(201 169 97 / var(--tw-border-opacity, 1)); }
+.group:hover .group-hover\:bg-gold\/10 { background-color: rgba(201, 169, 97, 0.1); }
+@media (min-width: 640px) {
+  .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0px, 1fr)); }
+  .sm\:flex-row { flex-direction: row; }
+  .sm\:gap-x-8 { column-gap: 2rem; }
+}
+@media (min-width: 768px) {
+  .md\:col-span-2 { grid-column: span 2 / span 2; }
+  .md\:col-span-3 { grid-column: span 3 / span 3; }
+  .md\:col-span-4 { grid-column: span 4 / span 4; }
+  .md\:col-span-5 { grid-column: span 5 / span 5; }
+  .md\:col-span-7 { grid-column: span 7 / span 7; }
+  .md\:row-span-2 { grid-row: span 2 / span 2; }
+  .md\:block { display: block; }
+  .md\:inline-flex { display: inline-flex; }
+  .md\:grid-cols-12 { grid-template-columns: repeat(12, minmax(0px, 1fr)); }
+  .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0px, 1fr)); }
+  .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0px, 1fr)); }
+  .md\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0px, 1fr)); }
+  .md\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0px, 1fr)); }
+  .md\:flex-row { flex-direction: row; }
+  .md\:items-end { align-items: flex-end; }
+  .md\:justify-between { justify-content: space-between; }
+}
+@media (min-width: 1024px) {
+  .lg\:col-span-2 { grid-column: span 2 / span 2; }
+  .lg\:col-span-5 { grid-column: span 5 / span 5; }
+  .lg\:col-span-6 { grid-column: span 6 / span 6; }
+  .lg\:col-span-7 { grid-column: span 7 / span 7; }
+  .lg\:mb-10 { margin-bottom: 2.5rem; }
+  .lg\:mt-24 { margin-top: 6rem; }
+  .lg\:mt-8 { margin-top: 2rem; }
+  .lg\:flex { display: flex; }
+  .lg\:hidden { display: none; }
+  .lg\:h-48 { height: 12rem; }
+  .lg\:h-\[680px\] { height: 680px; }
+  .lg\:max-w-md { max-width: 28rem; }
+  .lg\:grid-cols-12 { grid-template-columns: repeat(12, minmax(0px, 1fr)); }
+  .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0px, 1fr)); }
+  .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0px, 1fr)); }
+  .lg\:flex-row { flex-direction: row; }
+  .lg\:items-end { align-items: flex-end; }
+  .lg\:justify-end { justify-content: flex-end; }
+  .lg\:justify-between { justify-content: space-between; }
+  .lg\:gap-20 { gap: 5rem; }
+  .lg\:gap-8 { gap: 2rem; }
+  .lg\:p-12 { padding: 3rem; }
+  .lg\:p-6 { padding: 1.5rem; }
+  .lg\:px-12 { padding-left: 3rem; padding-right: 3rem; }
+  .lg\:py-16 { padding-top: 4rem; padding-bottom: 4rem; }
+  .lg\:py-40 { padding-top: 10rem; padding-bottom: 10rem; }
+  .lg\:pb-28 { padding-bottom: 7rem; }
+  .lg\:pt-0 { padding-top: 0px; }
+  .lg\:text-2xl { font-size: 1.5rem; line-height: 2rem; }
+  .lg\:text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+  .lg\:text-5xl { font-size: 3rem; line-height: 1; }
+  .lg\:text-7xl { font-size: 4.5rem; line-height: 1; }
+}
+
+/* ---- ต่อท้ายอัตโนมัติจาก css/after-tailwind.css (แก้ที่ไฟล์นั้น ไม่ใช่ที่นี่) ---- */
+/* บล็อกที่เขียนมือ — freeze-tailwind.mjs จะต่อท้าย css/tailwind.css ให้เองทุกครั้งที่สร้างใหม่
+   แก้ที่ไฟล์นี้ ห้ามแก้ใน tailwind.css (ของที่แปะมือในนั้นจะหายตอนสร้างใหม่)
+   ย้ายออกมาเมื่อ 24/8/26 — เดิมแปะไว้ท้าย tailwind.css ทั้งที่หัวไฟล์เขียนว่าห้ามแก้มือ */
+
+/* ---- §11 ข้อ 5: หัวเว็บหดตอนเลื่อน + ไฮไลต์หัวข้อที่กำลังอ่าน ----------------
+   คลาส .small / a.on สลับโดย js/nav-response.js (ไฟล์เดียวกันทุกเดโม)
+   ตัวเลขความสูงต่างกันได้ตามหัวเว็บเดิมของแต่ละงาน แต่กลไกต้องเป็นตัวเดียวกัน */
+/* หดด้วย padding ไม่ใช่ด้วย height (แก้ 22 ส.ค. 2026 — jek ทักว่าหัวเว็บกระตุกตอนเลื่อน)
+   ของเดิมเขียน  header { transition: height } + header.small { height: 56px !important }
+   ซึ่งไม่ทำงาน: ปกติ header สูงเป็น auto และเบราว์เซอร์ animate จาก auto ไปเลขคงที่ไม่ได้
+   มันกระโดด · ขณะที่ padding ของ "ลูก" ถูกสั่งเป็น 0 ทันทีเพราะ transition ประกาศไว้ที่
+   header ไม่ใช่ที่ลูก ผลคือตัวหนังสือยุบก่อน แล้วกล่องตามมาทีหลัง = อาการค้าง
+   ตอนนี้ให้ padding เป็นตัวหด และ transition อยู่กับตัวที่โดนสั่งจริง ความสูงจึงไหลตามเอง
+   ทุกเดโมใช้บล็อกนี้ชุดเดียวกัน ต่างได้แค่ตัวเลขเวลา/สี — ห้ามกลับไปสั่ง height อีก */
+/* 24/8/26 เอา `transition: padding` ออกจากกฎนี้ (เดิมไล่ 260ms)
+   เหตุผลเต็มอยู่ท้ายไฟล์ — ย่อ: padding เป็น layout property (ผิด DEMO-SPEC S2.3)
+   และแถบที่ถูกย่อคือแถบเดียวกับที่มี backdrop-filter blur(14px) → ทุกเฟรมต้องคำนวณผังใหม่
+   แล้วเบลอพื้นหลังใหม่ทั้งแถบ · ปล่อยให้ความสูงสลับทันที ส่วนสี/ขอบยังไล่ 400ms ตามเดิม */
+header, .site-header { --nav-pad-small: 10px; }  /* เพชรโลโก้หมุน 45° กินที่เกินผัง — ดู after-tailwind.css */
+
+/* >>> nav-shrink · กลไกกลาง "หัวเว็บหดตอนเลื่อน" — แหล่งเดียวของทั้งกอง
+   แก้ที่ playbook/snippets/nav-shrink.css แล้วรัน: node playbook/sync-nav-shrink.mjs
+   ห้ามแก้ก้อนนี้ในไฟล์ปลายทาง — สคริปต์เขียนทับทุกครั้ง
+
+   กติกา (LOG-DEMO §15 · ด่าน playbook/audit-nav.mjs):
+   คลาสสวิตช์ = .small เท่านั้น · หดด้วย "padding ของลูก" เท่านั้น — ห้ามสั่ง height
+   ทำไมห้าม height: แถบหัวสูงเป็น auto เบราว์เซอร์ไล่ auto→เลขคงที่ไม่ได้ มันกระโดด
+   และลูกที่ตั้ง height ตายตัวจะไม่หดตาม แถบเตี้ยกว่าลูก = เกยทันที (summit เกย 20px อยู่เป็นเดือน)
+
+   ใบไหนต้องมีพื้นความสูงขั้นต่ำตอนหด (เช่น The Bed มีเพชรหมุน 45° ที่กินที่เกินผัง)
+   ให้ตั้งค่า --nav-pad-small ของใบนั้นเหนือก้อนนี้ ไม่ใช่เขียนกฎใหม่
+   ไม่ใส่ transition ให้ padding โดยตั้งใจ (24/8/26): padding เป็น layout property
+   ผิด DEMO-SPEC S2.3 และแถบที่หดคือแถบเดียวกับที่มี backdrop-filter = คิดผังใหม่+เบลอใหม่ทุกเฟรม */
+header.small > *, .site-header.small > * {
+  padding-top: var(--nav-pad-small, 0px) !important;
+  padding-bottom: var(--nav-pad-small, 0px) !important;
+  min-height: 0 !important;
+}
+header.small > * > *, .site-header.small > * > * {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  min-height: 0 !important;
+}
+@media (prefers-reduced-motion: reduce) { header, .site-header { transition: none !important; } }
+/* <<< nav-shrink */
+header a.on { border-bottom-color: #C9A961 !important; color: #C9A961 !important; }
+@media (prefers-reduced-motion: reduce) { header { transition: none !important; } }
+
+/* ---- 24/8/26 หัวเว็บหด: เลิกอนิเมต padding -------------------------------------
+   เจ้าของทักว่า "เลื่อนลงนิดหน่อยแล้วหัวข้อกระตุก ก่อนจะเปลี่ยนเป็นเวอร์ชันที่ 2"
+   วัดแล้วในหัวเว็บไม่มีโลโก้สองเวอร์ชันใน DOM เลย ตัวหนังสือชุดเดิมตลอด — สิ่งที่เปลี่ยนคือ
+   แถบเตี้ยลง 84→64px ด้วยการ transition `padding` ของสองชั้นซ้อนกัน (nav 20→0 · shell 0→10)
+   ปัญหา: padding เป็น layout property (ผิด DEMO-SPEC S2.3) และตัวที่ถูกย่อคือแถบเดียวกับ
+   ที่มี `backdrop-filter: blur(14px)` อยู่ → ทุกเฟรมใน 260ms เบราว์เซอร์ต้องคำนวณผังใหม่
+   **แล้วเบลอพื้นหลังใหม่ทั้งแถบ** ซ้อนกันสองงานหนักบนของที่ทับรูปฮีโร่
+   ท่าแก้: ให้แถบเปลี่ยนความสูง**ทันที** ไม่ไล่ทีละเฟรม — 20px คือระยะที่สั้นพอที่การสลับทันที
+   อ่านว่าเด็ดขาด ไม่ใช่กระตุก · ส่วน background/border ยังไล่ 400ms เหมือนเดิม (สีเปลี่ยนได้
+   บน compositor ไม่ต้องคำนวณผัง) จึงยังรู้สึกว่าแถบ "ค่อยๆ ทึบขึ้น" ไม่ได้กระโดดทั้งแถบ */
+
+/* ---- 24/8/26 (แก้รอบสอง) คืน animation ให้แถบหด แต่ย้ายเบลอออกจากตัวที่ย่อ ----------
+   รอบแรกผมตัด transition ทิ้งเลย = แถบสลับทันที เจ้าของทักว่า "ไม่มี animation ให้มัน smooth"
+   ถูกต้อง — โจทย์คือ "ให้ลื่น" ไม่ใช่ "ให้หยุดขยับ"
+   ต้นเหตุที่มันหนักไม่ใช่การไล่ padding เอง แต่คือ **ตัวที่ถูกย่อเป็นตัวเดียวกับที่ใส่
+   backdrop-filter: blur(14px)** → ทุกเฟรมต้องคำนวณผังใหม่ *แล้วเบลอพื้นหลังใหม่ทั้งแถบ*
+   ทับรูปฮีโร่ · ท่าแก้: ให้เบลออยู่บนชั้นของตัวเองที่ **ความสูงคงที่ ไม่ย่อตาม** แล้ว
+   เปลี่ยนเฉพาะ opacity (วิ่งบน compositor) ส่วนกล่องแถบไล่ padding ได้ตามปกติเพราะไม่มีเบลอ
+   ความสูงตอนหด: 64px จอ ≥641px · 58px จอเล็ก (วัดจากของจริงทั้งสามขนาดจอ) */
+header, .site-header,
+header > *, header > * > * {
+  transition: padding 240ms cubic-bezier(.33,0,.3,1);
+}
+.nav-shell { position: relative; }
+.nav-shell::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+  /* 26/8/26 เดิมเป็น height:64px = ความสูงของ "แถบตอนหด" สมัย 24/8/26
+     25/8/26 แถบเลิกหดแล้ว ความสูงจริงกลายเป็น 92px ตลอดเวลา แต่ชั้นพื้นนี้
+     ยังค้างที่ 64px → 28px ล่างของแถบไม่มีพื้นหลัง เนื้อหาข้างหลังทะลุขึ้นมา
+     = "แถบขาวใต้เมนู" ที่เจ้าของส่งภาพมา (วัดแล้ว: shell สูง 92 · ::before สูง 64)
+     ใช้ bottom:0 แทนตัวเลข = พื้นเท่ากับแถบเสมอ ไม่ต้องไล่แก้ตามอีกทุกครั้ง
+     เหตุผลเดิมที่ตรึงความสูงไว้คือกัน backdrop-filter คำนวณใหม่ตอนแถบย่อ —
+     ตอนนี้แถบไม่ย่อแล้ว ความสูงจึงคงที่อยู่ดี ไม่มี transition ผูกกับมัน */
+  background-color: rgba(10, 9, 8, 0.78);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  opacity: 0; transition: opacity 300ms ease; pointer-events: none;
+}
+.nav-shell.scrolled::before { opacity: 1; }
+/* พื้นทึบเดิมย้ายไปอยู่บนชั้น ::before แล้ว ตัวแถบเองต้องใส เดี๋ยวจะทึบซ้อนสองชั้น */
+.nav-shell.scrolled { background-color: transparent !important; }
+/* 26/8/26 ตัดค่า 58px ของจอเล็กทิ้ง — bottom:0 ครอบทุกขนาดจอเองอยู่แล้ว */
+@media (prefers-reduced-motion: reduce) {
+  header, .site-header, header > *, header > * > * { transition: none !important; }
+  .nav-shell::before { transition: none !important; }
+}
+
+/* ---- แถวตัวเลขในบท The Residence: ห้ามตกบรรทัดกลางการลากขอบจอ ----------------
+   24/8/26 เจ้าของทักว่า "ย่อจอแล้วกระตุก" คอลัมน์นี้กว้าง 5/12 ของหน้า พอหน้าต่าง
+   แคบลงต่ำกว่า ~1420px ตัวเลขก้อนสุดท้ายตกบรรทัด แถวสูงจาก 113 → 258px
+   ทั้งหน้าเลื่อนลง 145px กลางการลาก (วัดด้วย playbook/audit-resize.mjs)
+   ตั้งแต่ sm ขึ้นไปห้ามห่อ — สามก้อนกับสองเส้นคั่นรวม ~400px ยังพอดีคอลัมน์ที่แคบสุด
+   ต่ำกว่า sm ปล่อยห่อเหมือนเดิม เพราะโทรศัพท์แคบกว่าแถวจริงๆ และการกระโดดตรง
+   เบรกพอยต์คือการเปลี่ยนเลย์เอาต์ที่ตั้งใจ ไม่ใช่ของที่โผล่กลางทาง */
+@media (min-width: 640px) {
+  .stat-row { flex-wrap: nowrap; }
+}
+
+/* ---- หัวข้อบทในคอลัมน์แคบ: ขนาดตัวอักษรต้องยืดตามคอลัมน์ ---------------------
+   24/8/26 เจ้าของทักว่า "ย่อจอแล้วตัวหนังสือยังขยับ" วัดบน live: หัวข้อ #residence
+   ตั้งขนาดตายตัว 72px (lg:text-7xl) พอคอลัมน์แคบลงมันตัดบรรทัดใหม่เป็นขั้น —
+   5 บรรทัดที่ 1440px → 6 บรรทัดที่ 1240px → 7 บรรทัดที่ 1120px ทุกครั้งคือ +72px
+   ทั้งหน้าเลื่อน (ด่าน audit-resize จัดเป็นข้อเตือนเพราะต่ำกว่าเกณฑ์ตก 120px)
+   ให้ขนาดยืดตามความกว้างจอแทน จำนวนบรรทัดจะคงที่ ตัวอักษรค่อยๆ เล็กลงแทนที่จะ
+   กระโดดทีละบรรทัด · เพดาน 4.5rem = ค่าเดิมของ text-7xl จอใหญ่จึงหน้าตาเท่าเดิม */
+@media (min-width: 1024px) {
+  #residence h2.split { font-size: clamp(3rem, 5vw, 4.5rem); }
+}
+
+/* ---- ขนาดตัวอักษรยืดตามจอทั้งหน้า (แบบเดียวกับ homecraft) --------------------
+   24/8/26 เจ้าของสั่งว่า "ให้ปรับขนาดหน้าต่างแล้วทำงานเหมือน Homecraft"
+   วัดเทียบกันแล้วต่างกันชัด — ไล่ย่อจอ 1440→640: homecraft ขยับ ≥20px แค่ 14 จุด
+   แรงสุด 37px · the-bed 101 จุด แรงสุด 72px เพราะ homecraft ตั้งขนาดตัวอักษรเป็น
+   clamp() ยืดตามจอทุกหัวข้อ (11 จุดในไฟล์เดียว) ส่วนหน้านี้ใช้ขนาดตายตัวของ Tailwind
+   ขนาดตายตัว = พอคอลัมน์แคบลงข้อความตัดบรรทัดใหม่ทีเดียวทั้งบรรทัด ทุกอย่างใต้มันเลื่อน
+   ขนาดยืด = ตัวอักษรค่อยๆ เล็กลงแทน จำนวนบรรทัดคงเดิม ไม่มีอะไรกระโดด
+
+   เพดานของทุกอันตั้งเท่าค่าเดิมเป๊ะ (text-7xl=4.5rem · text-5xl=3rem · text-xl=1.25rem
+   ฯลฯ) จอกว้างจึงเห็นหน้าตาเหมือนเดิมทุกพิกเซล ส่วนพื้นล่างกันไม่ให้เล็กจนอ่านไม่ออก */
+@media (min-width: 1024px) {
+  #residence h2.split,
+  #gallery h2,
+  #contact h2            { font-size: clamp(3rem, 5vw, 4.5rem); }      /* เดิม lg:text-7xl */
+  #suites h2             { font-size: clamp(1.875rem, 3.35vw, 3rem); } /* เดิม lg:text-5xl */
+}
+#voices blockquote       { font-size: clamp(1rem, 1.45vw, 1.25rem); }  /* เดิม text-xl */
+#amenities h3            { font-size: clamp(1.25rem, 1.72vw, 1.5rem); }/* เดิม text-2xl */
+#amenities p.text-lg,
+#residence p.text-lg,
+#location p.text-lg      { font-size: clamp(1rem, 1.28vw, 1.125rem); } /* เดิม text-lg */
+
+/* ระยะขอบในการ์ดก็ต้องยืด ไม่ใช่แค่ตัวอักษร — การ์ดรีวิว/สิ่งอำนวยความสะดวกวางสามใบ
+   ต่อแถว ที่ 1024px การ์ดกว้าง ~290px แต่ขอบใน p-10 กินไปข้างละ 40px เหลือที่ให้
+   ตัวหนังสือแค่ ~210px ข้อความจึงตัดบรรทัดใหม่ถี่มาก (วัดได้ 17 ครั้งในช่วงลากเดียว)
+   ให้ขอบยืดตามจอ ตัวหนังสือได้ที่กว้างขึ้นตอนการ์ดแคบ · เพดาน 2.5rem = p-10 เดิม */
+#voices .grid > figure,
+#amenities .grid > div { padding: clamp(1.5rem, 2.6vw, 2.5rem); }
+
+
+/* ---- ตัวหนังสือทั้งหน้าย่อตามจอด้วย "ปุ่มเดียว" (เฉพาะเดสก์ท็อป) -----------------
+   24/8/26 เจ้าของยังเห็นกระตุกหลังแก้รอบแรก วัดแล้วสาเหตุที่เหลือคือ "ย่อหน้าในการ์ด
+   สามคอลัมน์ตัดบรรทัดใหม่" ซึ่งแก้ทีละก้อนไม่หมด เพราะ Tailwind ตั้งขนาดทุกอย่างเป็น rem
+   ยึดกับ root ตัวเดียว — ย่อ root ตามจอ ทุกอย่าง (ตัวอักษร ระยะขอบ ช่องไฟ) จึงย่อพร้อมกัน
+   ตามสัดส่วนเดิม บรรทัดไม่ต้องตัดใหม่เลย
+
+   วัดจริง (นับจุดที่กล่องขยับ ≥20px ตอนไล่ย่อจอ 1440→640):
+     ก่อนแก้ 101 จุด แรงสุด 72px · แก้รอบแรก(clamp รายก้อน) 52 จุด/46px
+     ใส่ตัวนี้ 25 จุด แรงสุด 35px — homecraft อยู่ที่ 14 จุด/37px
+   ที่ 1440px root = 16px เท่าค่ามาตรฐาน จอกว้างจึงเหมือนเดิมทุกพิกเซล
+   จำกัดไว้ ≥1024px เท่านั้น มือถือคงขนาดมาตรฐาน — ย่อตัวอักษรบนจอเล็กคือทำให้อ่านยากขึ้น
+   ไม่ใช่แก้กระตุก (และไม่มีใครลากขอบหน้าต่างบนมือถืออยู่แล้ว) */
+@media (min-width: 640px) {
+  html { font-size: clamp(0.875rem, 1.11vw, 1rem); }
+}
+
+/* ---- ฮีโร่: ทุกอย่างต้องย่อ "อัตราเดียวตลอด" ตอนลากขอบหน้าต่าง -----------------
+   24/8/26 เจ้าของทักว่าตัวหนังสือในฮีโร่ยังกระตุกตอนเปลี่ยนขนาดหน้าต่าง
+   วัดแล้วตำแหน่งทุกชิ้น "ต่อเนื่อง" ไม่มีกระโดด แต่ **อัตราการย่อเปลี่ยนกะทันหัน**:
+   - .mega เดิม min(11vw, 13.5vh) ที่จอ 1440×900 ตัวคุมคือความสูง หัวข้อจึงนิ่งสนิท
+     ตั้งแต่ 1440 ลงมาถึง ~1120px แล้ว "จู่ๆ เริ่มหดเอง" เพราะสลับไปให้ความกว้างคุม
+   - root font-size ชนพื้น 14px ที่ ~1261px แล้วหยุดย่อ ย่อหน้ากับปุ่มจึงหยุดตามกลางทาง
+   ของที่เริ่ม/หยุดเคลื่อนกลางการลาก ตาอ่านว่า "กระตุก" ถึงตัวเลขจะต่อเนื่องก็ตาม
+
+   ท่าแก้: ให้ทั้งบล็อกผูกกับความกว้างจออย่างเดียวตลอดช่วงที่คนลากจริง
+   - หัวข้อ 8.4vw = 121px ที่ 1440 (เท่าของเดิมเป๊ะ) · คงเพดาน 13.5vh ไว้เท่าเดิม
+     (กฎ "ฮีโร่ต้องจบในจอเดียว") — แต่เพราะ vw ลดจาก 11 เหลือ 8.4 ตัวคุมจึงกลายเป็นความกว้าง
+     ในกรณีปกติ การลากขอบซ้าย-ขวาจึงย่ออัตราเดียวตลอด ไม่มีช่วงนิ่งแล้วจู่ๆ เริ่มหด
+   - ย่อหน้ากับปุ่มใช้ vw เหมือนกัน และคุมความกว้างด้วย em ไม่ใช่ px
+     em ผูกกับขนาดตัวอักษรของตัวเอง = จำนวนตัวอักษรต่อบรรทัดคงที่ ไม่มีวันตัดบรรทัดใหม่ */
+@media (min-width: 640px) {
+  .hero .mega { font-size: max(3.25rem, min(8.4vw, 13.5vh)); }
+  .hero p { font-size: max(0.95rem, 1.25vw); max-width: 37em;   /* = max-w-2xl เดิม (672px ที่ฟอนต์ 18px) แต่เป็น em จึงย่อตามตัวอักษร */ }
+  .hero .hairline { font-size: max(0.625rem, 0.76vw); }
+  .hero a[href="#suites"], .hero a[href="#contact"] { font-size: max(0.625rem, 0.76vw); }
+}

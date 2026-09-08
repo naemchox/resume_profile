@@ -1,0 +1,184 @@
+/* =============================================================================
+   multi.css — ส่วนที่ "เว็บหลายหน้า" ต้องมีเพิ่มจากเว็บหน้าเดียว (The Bed)
+   -----------------------------------------------------------------------------
+   เขียนเป็น CSS ธรรมดา ไม่ใช่คลาส Tailwind: css/tailwind.css ของหน้านี้ถูก "แช่แข็ง"
+   ไว้แล้ว = เก็บเฉพาะคลาสที่หน้าเดิมใช้จริง คลาสใหม่ที่เพิ่มในมาร์กอัปจึงไม่มี CSS
+   รองรับและจะเงียบหายไปโดยไม่มีใครเห็น error สักบรรทัด
+   สีทุกตัวหยิบจากพาเลตต์เดิมของหน้า (ink/cream/gold/paper) ไม่มีสีใหม่
+   gold #C9A961 ใช้เป็นเส้นและตัวอักษรบนพื้นเข้มเท่านั้น — บนพื้นครีมมันวัดได้ 2.61:1
+   ซึ่งต่ำกว่าเกณฑ์ ตามที่คอมเมนต์พาเลตต์ในหน้าเดิมบันทึกไว้ ที่พื้นสว่างใช้ #8F6000
+   ค่า contrast วัดจริงด้วย _contrast.js ในโฟลเดอร์นี้ (22/8/26) ไม่ได้เดาจากค่าความสว่าง:
+     เมนูหน้าเว็บ ปกติ (ครีม 62% บนหมึก)   7.01:1
+     เมนูหน้าเว็บ หน้าปัจจุบัน (ทองบนหมึก) 8.84:1  (เกณฑ์ตัวใหญ่ 3:1)
+     breadcrumb ตัวปกติ / ลิงก์            5.50:1 / 9.15:1
+     คำโปรยหัวหน้าย่อย                     9.20:1
+     คำอธิบายการ์ด #44403C บนกระดาษ        9.84:1
+     ป้ายลิงก์การ์ด #8F6000 บนกระดาษ        5.23:1
+     ป้ายกำกับใน spec #6F6862 บนกระดาษ      5.25:1
+   ทุกคู่ผ่านเกณฑ์ AA — รัน node _contrast.js ซ้ำทุกครั้งที่แตะสี
+   ========================================================================== */
+
+/* ---- แถบเมนูหน้าเว็บ ------------------------------------------------------ */
+/* overflow-x: clip ที่ตัวนอกด้วย เป็นการกันไว้ ไม่ใช่แก้บั๊กที่เกิดแล้ว: แถบนี้มีลิงก์
+   ยื่นพ้นจอโดยตั้งใจ (VOICES ยื่นถึง 430px บนจอ 390px) ตัวในเลื่อนแนวนอนได้อยู่แล้ว
+   แต่การ clip ที่ตัวนอกทำให้ไม่มีทางดันความกว้างของทั้งหน้าได้เลยไม่ว่าจะแก้อะไรทีหลัง
+   หมายเหตุ 22/8/26: ตอนแรกใส่เพราะด่านตรวจฟ้องว่าล้น 3px — ไล่ทุก element แล้วไม่มี
+   ตัวไหนยื่นจริง เป็น false positive ของด่านเอง ซึ่งแก้ที่ด่านไปแล้ว ของชิ้นนี้เก็บไว้
+   เพราะถูกต้องอยู่ดีสำหรับกล่องที่เลื่อนแนวนอน */
+.pagenav { background: #0A0908; border-bottom: 1px solid rgba(201,169,97,.2); max-width: 100%; overflow-x: clip; }
+.pagenav-in {
+  width: 100%; max-width: 1500px; margin-inline: auto; padding-inline: 1.5rem;
+  display: flex; gap: 2rem; overflow-x: auto; scrollbar-width: none;
+}
+.pagenav-in::-webkit-scrollbar { display: none; }
+.pagenav a {
+  flex: none; padding: .9rem 0; white-space: nowrap;
+  font-size: 11px; letter-spacing: .32em; text-transform: uppercase;
+  color: rgba(245,241,234,.62); border-bottom: 1px solid transparent;
+}
+.pagenav a:hover { color: #F5F1EA; }
+.pagenav a[aria-current="page"] { color: #C9A961; border-bottom-color: #C9A961; }
+@media (min-width: 1024px) { .pagenav { display: none; } }   /* จอใหญ่มีเมนูบนหัวแล้ว */
+
+/* เมนูบนหัว/ในเมนูมือถือ ต้องบอกว่าอยู่หน้าไหน — ของที่หน้าเดียวไม่ต้องมี เพราะไม่มี "หน้าอื่น" */
+.nav-link[aria-current="page"], #mobileMenu a[aria-current="page"] { color: #C9A961; }
+
+/* ---- breadcrumb ---------------------------------------------------------- */
+.crumb { background: #1C1917; border-bottom: 1px solid rgba(201,169,97,.15); }
+.crumb ol {
+  max-width: 1500px; margin-inline: auto; padding: .7rem 1.5rem;
+  display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; list-style: none;
+  font-size: 10px; letter-spacing: .24em; text-transform: uppercase; color: rgba(245,241,234,.55);
+}
+.crumb li + li::before { content: "/"; margin-inline-end: .5rem; color: rgba(201,169,97,.5); }
+.crumb a { color: rgba(245,241,234,.75); }
+.crumb a:hover { color: #C9A961; }
+.crumb [aria-current="page"] { color: #C9A961; }
+
+/* ---- หัวหน้าย่อย ---------------------------------------------------------
+   แถบหัวของหน้านี้เป็น position:fixed โปร่งใส ออกแบบมาให้ลอยบนรูปฮีโร่เต็มจอ
+   หน้าย่อยไม่มีฮีโร่เต็มจอ ถ้าไม่มีแถบเข้มรองรับ ตัวอักษรครีมในแถบจะไปอยู่บนพื้น
+   สว่าง = โลโก้กับเมนูหายทั้งแถบ (บทเรียนเดียวกับ the-terrace-multi) */
+.hero--page { background: #0A0908; color: #F5F1EA; padding: 9rem 1.5rem 3.5rem; }
+.hero--page > .wrap { max-width: 1500px; margin-inline: auto; }
+.hero--page .kicker {
+  display: block; font-size: 11px; letter-spacing: .35em;
+  text-transform: uppercase; color: #C9A961; margin-bottom: 1rem;
+}
+.hero--page h1 {
+  font-family: Cinzel, Georgia, serif; font-weight: 400;
+  font-size: clamp(2rem, 5vw, 3.25rem); line-height: 1.12; letter-spacing: .02em;
+}
+.hero--page p {
+  max-width: 62ch; margin-top: 1rem; font-weight: 300;
+  font-size: 1rem; line-height: 1.75; color: rgba(245,241,234,.72);
+}
+@media (min-width: 1024px) { .hero--page { padding: 11rem 3rem 4.5rem; } }
+
+/* ---- การ์ดพาไปหน้าอื่น (หน้าแรก) ------------------------------------------ */
+.hubs { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.hub {
+  display: flex; flex-direction: column; gap: .6rem; padding: 1.75rem;
+  background: #FAFAF9; border: 1px solid rgba(10,9,8,.12); color: #1C1917;
+  transition: border-color .4s ease, transform .4s ease;
+}
+.hub:hover { border-color: #8F6000; transform: translateY(-2px); }
+.hub h3 { font-family: Cinzel, Georgia, serif; font-size: 1.05rem; letter-spacing: .04em; }
+.hub p { font-size: .9rem; font-weight: 300; line-height: 1.7; color: #44403C; }
+.hub span { margin-top: auto; font-size: 11px; letter-spacing: .28em; text-transform: uppercase; color: #8F6000; }
+
+/* ---- หน้ารายละเอียดห้องพัก ------------------------------------------------ */
+.detail { display: grid; gap: 2.5rem; grid-template-columns: 1fr; max-width: 1500px; margin-inline: auto; padding: 4rem 1.5rem; }
+@media (min-width: 1024px) { .detail { grid-template-columns: 1.15fr .85fr; align-items: start; padding-inline: 3rem; } }
+.detail img { width: 100%; height: auto; }
+.detail p { font-weight: 300; line-height: 1.8; color: #44403C; }
+.spec { list-style: none; margin: 0; padding: 0; border-top: 1px solid rgba(10,9,8,.14); }
+.spec li { display: flex; justify-content: space-between; gap: 1.5rem; padding: .8rem 0; border-bottom: 1px solid rgba(10,9,8,.14); font-size: .9rem; font-weight: 300; color: #1C1917; }
+.spec b { font-weight: 500; font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: #6F6862; }
+.suitenav { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 2rem; }
+.btn-gold {
+  display: inline-flex; align-items: center; gap: .75rem; padding: .85rem 1.6rem;
+  border: 1px solid #8F6000; color: #8F6000;
+  font-size: 11px; letter-spacing: .3em; text-transform: uppercase;
+}
+.btn-gold:hover { background: #8F6000; color: #F5F1EA; }
+.btn-ink { border-color: #0A0908; color: #0A0908; }
+.btn-ink:hover { background: #0A0908; color: #F5F1EA; }
+
+/* ---- เมนูท้ายหน้า -------------------------------------------------------- */
+.foot-nav { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 1.5rem; font-size: 11px; letter-spacing: .28em; text-transform: uppercase; }
+.foot-nav a { color: rgba(245,241,234,.7); }
+.foot-nav a:hover { color: #C9A961; }
+
+/* ---- แถวตัวเลขในบท The Residence: ห้ามตกบรรทัดกลางการลากขอบจอ ----------------
+   24/8/26 บั๊กเดียวกับหน้า the-bed (เจ้าของทักว่า "ย่อจอแล้วกระตุก") ด่าน
+   playbook/audit-resize.mjs จับได้ว่าใบหลายหน้าก็เป็นด้วย: ต่ำกว่า ~1420px ตัวเลข
+   ก้อนสุดท้ายตกบรรทัด แถวสูงจาก 113 → 258px ทั้งหน้าเลื่อนลง 145px กลางการลาก
+   ตั้งแต่ sm ขึ้นไปห้ามห่อ · ต่ำกว่านั้นปล่อยห่อเหมือนเดิม (กระโดดตรงเบรกพอยต์ = ตั้งใจ) */
+@media (min-width: 640px) {
+  .stat-row { flex-wrap: nowrap; }
+}
+
+/* ---- หัวข้อบทในคอลัมน์แคบ: ขนาดตัวอักษรต้องยืดตามคอลัมน์ ---------------------
+   24/8/26 บั๊กเดียวกับใบหน้าเดียว — หัวข้อ #residence ตั้งขนาดตายตัว 72px พอคอลัมน์
+   แคบลงมันตัดบรรทัดใหม่เป็นขั้น ทีละ +72px กลางการลากขอบจอ (ด่าน audit-resize
+   วัดได้ 147px ที่ 1240px) ให้ขนาดยืดตามความกว้างจอแทน จำนวนบรรทัดจะคงที่
+   เพดาน 4.5rem = ค่าเดิมของ text-7xl จอใหญ่จึงหน้าตาเท่าเดิมเป๊ะ */
+@media (min-width: 1024px) {
+  #residence h2.split { font-size: clamp(3rem, 5vw, 4.5rem); }
+}
+
+/* ---- ขนาดตัวอักษรยืดตามจอทั้งหน้า (แบบเดียวกับ homecraft) --------------------
+   24/8/26 เจ้าของสั่งว่า "ให้ปรับขนาดหน้าต่างแล้วทำงานเหมือน Homecraft"
+   วัดเทียบกันแล้วต่างกันชัด — ไล่ย่อจอ 1440→640: homecraft ขยับ ≥20px แค่ 14 จุด
+   แรงสุด 37px · the-bed 101 จุด แรงสุด 72px เพราะ homecraft ตั้งขนาดตัวอักษรเป็น
+   clamp() ยืดตามจอทุกหัวข้อ (11 จุดในไฟล์เดียว) ส่วนหน้านี้ใช้ขนาดตายตัวของ Tailwind
+   ขนาดตายตัว = พอคอลัมน์แคบลงข้อความตัดบรรทัดใหม่ทีเดียวทั้งบรรทัด ทุกอย่างใต้มันเลื่อน
+   ขนาดยืด = ตัวอักษรค่อยๆ เล็กลงแทน จำนวนบรรทัดคงเดิม ไม่มีอะไรกระโดด
+
+   เพดานของทุกอันตั้งเท่าค่าเดิมเป๊ะ (text-7xl=4.5rem · text-5xl=3rem · text-xl=1.25rem
+   ฯลฯ) จอกว้างจึงเห็นหน้าตาเหมือนเดิมทุกพิกเซล ส่วนพื้นล่างกันไม่ให้เล็กจนอ่านไม่ออก */
+@media (min-width: 1024px) {
+  #residence h2.split,
+  #gallery h2,
+  #contact h2            { font-size: clamp(3rem, 5vw, 4.5rem); }      /* เดิม lg:text-7xl */
+  #suites h2             { font-size: clamp(1.875rem, 3.35vw, 3rem); } /* เดิม lg:text-5xl */
+}
+#voices blockquote       { font-size: clamp(1rem, 1.45vw, 1.25rem); }  /* เดิม text-xl */
+#amenities h3            { font-size: clamp(1.25rem, 1.72vw, 1.5rem); }/* เดิม text-2xl */
+#amenities p.text-lg,
+#residence p.text-lg,
+#location p.text-lg      { font-size: clamp(1rem, 1.28vw, 1.125rem); } /* เดิม text-lg */
+
+/* ระยะขอบในการ์ดก็ต้องยืด ไม่ใช่แค่ตัวอักษร — การ์ดรีวิว/สิ่งอำนวยความสะดวกวางสามใบ
+   ต่อแถว ที่ 1024px การ์ดกว้าง ~290px แต่ขอบใน p-10 กินไปข้างละ 40px เหลือที่ให้
+   ตัวหนังสือแค่ ~210px ข้อความจึงตัดบรรทัดใหม่ถี่มาก (วัดได้ 17 ครั้งในช่วงลากเดียว)
+   ให้ขอบยืดตามจอ ตัวหนังสือได้ที่กว้างขึ้นตอนการ์ดแคบ · เพดาน 2.5rem = p-10 เดิม */
+#voices .grid > figure,
+#amenities .grid > div { padding: clamp(1.5rem, 2.6vw, 2.5rem); }
+
+/* ---- ตัวหนังสือทั้งหน้าย่อตามจอด้วย "ปุ่มเดียว" (เฉพาะเดสก์ท็อป) -----------------
+   24/8/26 เจ้าของยังเห็นกระตุกหลังแก้รอบแรก วัดแล้วสาเหตุที่เหลือคือ "ย่อหน้าในการ์ด
+   สามคอลัมน์ตัดบรรทัดใหม่" ซึ่งแก้ทีละก้อนไม่หมด เพราะ Tailwind ตั้งขนาดทุกอย่างเป็น rem
+   ยึดกับ root ตัวเดียว — ย่อ root ตามจอ ทุกอย่าง (ตัวอักษร ระยะขอบ ช่องไฟ) จึงย่อพร้อมกัน
+   ตามสัดส่วนเดิม บรรทัดไม่ต้องตัดใหม่เลย
+
+   วัดจริง (นับจุดที่กล่องขยับ ≥20px ตอนไล่ย่อจอ 1440→640):
+     ก่อนแก้ 101 จุด แรงสุด 72px · แก้รอบแรก(clamp รายก้อน) 52 จุด/46px
+     ใส่ตัวนี้ 25 จุด แรงสุด 35px — homecraft อยู่ที่ 14 จุด/37px
+   ที่ 1440px root = 16px เท่าค่ามาตรฐาน จอกว้างจึงเหมือนเดิมทุกพิกเซล
+   จำกัดไว้ ≥1024px เท่านั้น มือถือคงขนาดมาตรฐาน — ย่อตัวอักษรบนจอเล็กคือทำให้อ่านยากขึ้น
+   ไม่ใช่แก้กระตุก (และไม่มีใครลากขอบหน้าต่างบนมือถืออยู่แล้ว) */
+@media (min-width: 640px) {
+  html { font-size: clamp(0.875rem, 1.11vw, 1rem); }
+}
+
+/* ---- ฮีโร่: ย่ออัตราเดียวตลอดตอนลากขอบหน้าต่าง (ชุดเดียวกับใบหน้าเดียว) --------
+   25/8/26 หัวข้อของใบนี้เป็น clamp(3.25rem, 11vw, 11rem) อยู่แล้ว = ผูกกับความกว้าง
+   ล้วน ไม่มีจังหวะสลับตัวคุมเหมือนใบหน้าเดียว จึงไม่ต้องแตะ
+   ที่ต้องแก้คือย่อหน้ากับปุ่ม: คุมความกว้างด้วย em ไม่ใช่ px เพื่อให้จำนวนตัวอักษร
+   ต่อบรรทัดคงที่ ข้อความจึงไม่ตัดบรรทัดใหม่กลางการลาก */
+@media (min-width: 640px) {
+  .hero p { font-size: max(0.95rem, 1.25vw); max-width: 37em; }
+  .hero .hairline { font-size: max(0.625rem, 0.76vw); }
+}

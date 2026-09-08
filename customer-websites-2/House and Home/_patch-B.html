@@ -1,0 +1,213 @@
+<!-- ===================== VARIANT B =====================
+     Prompt (ตัวกลั่น — สูตรเดียวกับ _patch-B.html ของช่างเจมส์):
+       วิเคราะห์ก่อนว่าจืดเพราะอะไร → อย่าเพิ่งเติม animation
+       → ดึงสี/element ที่ "งานจริงมีอยู่แล้วแต่เว็บไม่เคยใช้" จากวัสดุของลูกค้า
+       → motif ของตัวเอง 1 อย่าง ใช้ซ้ำทั้งหน้า → จุดขายแรงสุดเป็นพระเอก
+       → motion เป็นบรรยากาศ ไม่ใช่ fade เหมือนกันทุกอัน
+
+     วินิจฉัย House and Home (ต่างจากเคสเจมส์ 1 ข้อ — ต้องบันทึกไว้):
+       (1) motif **ไม่ใช่ปัญหา** ที่นี่ "หมุดระยะ ⟋——⟋" เป็นของจากวิชาชีพจริง
+           ใช้ซ้ำ 5 ระดับอยู่แล้ว (index.html:436-449) — เจมส์เคยติดตรงนี้
+           เพราะไปยืม motif ใบไม้จากเว็บร้านกัญชา ที่นี่ไม่ได้ยืมใคร
+       (2) ปัญหาจริงคือ **ทั้งหน้าอยู่ในทะเบียนเดียว: "ของที่วาดขึ้น"**
+           ฮีโร่ = ลายเส้น SVG · การ์ด 9 ใบ = glyph วาดเอง · #types = stock
+           เหนือ fold ไม่มีอะไรที่เป็น "ของที่มีอยู่จริง" ให้จับเลยสักชิ้น
+       (3) การ์ดบริการ 9 ใบเท่ากันเป๊ะ ico-tile ทรงเดียวขนาดเดียว
+           + "สอบถามงานนี้ ›" ซ้ำ 9 ครั้ง = สมมาตรเกินกว่าคนทำเว็บจะทำ
+       (4) `01 · 02 · 03 ·` กำกับทุก section — meta ประดับที่ธุรกิจจริงไม่ใส่
+       (5) สีที่ **มีอยู่จริงใน render ของลูกค้าเอง** ไม่เคยถูกหยิบมาใช้:
+           วัดจากภาพจริงในหน้า (canvas sampling, 4 renders):
+             #334c78 · #283956 = ฟ้าพลบค่ำ  |  #6a6566 · #565a67 = ปูน/เหล็ก
+             #9b9686 = ปูนอมทราย
+           เว็บใช้แค่ ครีม + ทอง + navy ที่ chroma .028 (แทบไม่มีสี)
+     ==================================================== -->
+<style>
+:root{
+  /* วัดจาก render ของลูกค้าเองที่อยู่ในหน้า #shots — ไม่ใช่สีที่คิดขึ้นใหม่ */
+  --dusk:      oklch(.418 .080 261);   /* #334c78 ฟ้าพลบค่ำใน render */
+  --dusk-lo:   oklch(.344 .056 261);   /* #283956 เงาของฟ้าเดียวกัน */
+  --dusk-hi:   oklch(.500 .085 261);
+  --concrete:  oklch(.512 .006 4);     /* #6a6566 ปูน/เหล็กในภาพ */
+  --sand:      oklch(.673 .024 93);    /* #9b9686 ปูนอมทราย */
+}
+
+/* ---------- B1 · HERO: หยุดครีม เอาฟ้าพลบค่ำของ render ขึ้นมา ----------
+   ใช้วิธี override token เฉพาะ scope เหมือนที่ .site-footer ทำอยู่แล้ว
+   (index.html:1034) — แต่งที่เดิม ไม่รื้อกลไก */
+.hero{
+  --c-page:      var(--dusk-lo);
+  --c-surface:   color-mix(in oklch, var(--dusk) 62%, black);
+  --c-sunken:    color-mix(in oklch, var(--dusk-lo) 80%, black);
+  --c-border:    color-mix(in oklch, var(--dusk-hi) 45%, transparent);
+  --c-line:      var(--dusk-hi);
+  --c-muted:     oklch(.780 .020 85);
+  --c-ink:       oklch(.960 .008 85);
+  --c-action:    var(--c-gold);
+  --c-action-hi: oklch(.780 .110 95);
+  --c-on-action: oklch(.190 .028 249);
+  background:
+    radial-gradient(120% 95% at 76% 6%, var(--dusk) 0%, transparent 58%),
+    linear-gradient(180deg, var(--dusk-lo), oklch(.245 .045 258));
+  color: var(--c-ink);
+  border-bottom: 1px solid color-mix(in oklch, var(--c-gold) 22%, transparent);
+}
+.hero::before{opacity:.13!important}          /* กริดกระดาษเดิม จางลงบนพื้นเข้ม */
+.hero .btn-secondary{border-color:var(--c-border);color:var(--c-ink)}
+.hero .free-pill{border-color:color-mix(in oklch,var(--c-gold) 55%,transparent)}
+.stats{background:transparent}
+.stat{background:color-mix(in oklch,var(--dusk-lo) 70%,black);
+  border:1px solid color-mix(in oklch,var(--dusk-hi) 35%,transparent)}
+.stat-num{color:var(--c-gold)}
+.stat-label{color:oklch(.780 .020 85)}
+/* ทองมี 2 ramp ในไฟล์นี้: ramp บรอนซ์สำหรับพื้นครีม (ทุก stop เข้มกว่า #A5771F
+   — index.html:1332) กับ ramp สว่างสำหรับพื้น navy (:1320) พอฮีโร่กลายเป็นพื้นเข้ม
+   ramp บรอนซ์ก็ผิดทันที (วัดแล้ว: "วิศวกร" ออกมาน้ำตาลจมพื้น) → สลับเป็น ramp สว่าง
+   ตัวเดียวกับที่ .deep ใช้อยู่ ไม่ได้คิดสีใหม่
+   ต่างจาก .deep แค่ stop เดียว: .deep เริ่มที่ #B98F3C ซึ่งวัดได้ 2.89:1 บนส่วน
+   ที่สว่างที่สุดของฟ้าพลบค่ำ (#334c78) = ต่ำกว่าเพดาน 3:1 ของ large text
+   ยกเป็น #D4B85C → 4.42:1 บนจุดสว่างสุด และ 5.97:1 บนจุดเข้มสุด */
+.hero .h1-hero .accent,
+.hero .stat-num{
+  background:linear-gradient(96deg,#D4B85C 0%,#F7E9A6 38%,#E8CF6E 58%,#D4B85C 100%)!important;
+  /* !important ต้องติดที่ background-clip ด้วย — shorthand `background` รีเซ็ต
+     background-clip เป็น border-box และตัว !important ของ shorthand ชนะ
+     declaration ธรรมดาที่เขียนตามหลัง ผลคือทองถูกทาเต็มกล่อง ตัวหนังสือหาย
+     (เจอตอนสกรีนช็อต: "วิศวกร" กับ stat-num กลายเป็นแท่งทองตัน) */
+  -webkit-background-clip:text!important;background-clip:text!important;
+  color:transparent!important}
+
+/* ---------- B2 · จุดขายแรงสุดเป็นพระเอก ----------
+   เขาขาย "เห็นบ้านจริง ก่อนตอกเสาเข็มต้นแรก" แต่ของที่พิสูจน์ประโยคนั้น
+   (render ของเขาเอง) ถูกฝังไว้ที่ section 04 — ยกขึ้นมาคู่ลายเส้นในฮีโร่
+   ลายเส้นไม่ได้หายไปไหน มันกลายเป็น "แบบ" ที่วางทับ "ของจริง"
+
+   รอบแรกวางเป็น 2 ก้อน (การ์ดรูป + ลายเส้นใต้การ์ด) แล้วมันพัง: บ้านหลังเดียวกัน
+   โผล่สองครั้ง ขนาดพอกัน ลายเส้นลอยไม่มีกรอบ และคอลัมน์ขวายาวจน stat หลุด fold
+   → รวมเป็น **ก้อนเดียว**: กรอบเดียว รูปจริงเต็มกรอบ ลายเส้นวางทับครึ่งซ้าย
+   แล้วจางหายตรงกลาง = อ่านได้ในภาพเดียวว่า "แบบ → ของจริง หลังเดียวกัน" */
+/* max-width 450 = ความกว้างจริงของไฟล์ render (450×300) — วัดแล้วว่าถ้าไม่แคป
+   กรอบจะกว้าง 720px ที่ 768 และ 498px ที่ 1280 คือดันรูปเกิน 1:1 แล้วเบลอ
+   กติกาเดียวกับที่ .shot / .type-shot ใช้อยู่ (IMAGE-CREDITS.md §1) */
+.hero .blueprint{position:relative;isolation:isolate;
+  /* width:100% ต้องมีคู่กับ margin-inline:auto — auto margin ยกเลิก stretch ของ
+     grid item แล้วลูกในกล่องนี้เป็น absolute ทั้งคู่ ไม่มีอะไรให้วัดความกว้าง
+     กรอบเลยยุบเหลือ 3px (เจอตอนวัด) กับดักตัวเดียวกับที่ .split .media เคยเจอ
+     — บันทึกไว้แล้วใน IMAGE-CREDITS.md §3 */
+  width:100%;max-width:450px;margin-inline:auto;
+  aspect-ratio:3/2;border-radius:var(--radius-lg);overflow:hidden;
+  border:1px solid color-mix(in oklch,var(--c-gold) 32%,transparent);
+  box-shadow:0 20px 48px oklch(.10 .03 258/.6)}
+.bp-real{position:absolute;inset:0;margin:0;
+  opacity:0;animation:realIn 1s cubic-bezier(.2,.7,.3,1) .25s forwards}
+.bp-real img{display:block;width:100%;height:100%;object-fit:cover}
+.bp-real figcaption{position:absolute;inset-inline:0;bottom:0;z-index:3;
+  padding:var(--s3) var(--s4);font-size:var(--fs-xs);letter-spacing:.02em;
+  color:oklch(.96 .008 85);
+  background:linear-gradient(to top,oklch(.12 .03 258/.88),transparent)}
+/* ลายเส้น SVG ในฮีโร่ปิดทิ้ง — ไม่ใช่เพราะไม่สวย แต่เพราะ **ซ้ำ**:
+   render ของลูกค้าใบนี้ คือบ้าน 3D ที่ composite อยู่บนกริดแบบก่อสร้างอยู่แล้ว
+   (ดูในรูป: มีเส้นแบบสีฟ้าอยู่หลังตัวบ้าน) วางลายเส้นของเราทับอีกชั้น
+   = บ้านสองหลังคนละสเกลซ้อนกัน + ป้าย "แบบก่อสร้าง + 3D" โผล่สองอัน
+   motif หมุดระยะยังอยู่ครบทุกที่ในหน้า (.dim / .dim-sm / .ticked / โลโก้) */
+.hero .blueprint svg{display:none}
+@keyframes realIn{to{opacity:1}}
+
+/* ---------- B3 · ตัดเลข 01· 02· 03· ออก (JS ตัดข้อความ) ----------
+   หมุดระยะยังอยู่ครบ หายไปแค่ตัวเลขกำกับ */
+.dim > span b{letter-spacing:.02em}
+
+/* ---------- B4 · การ์ดบริการ: เลิกเท่ากันทั้ง 9 ใบ ----------
+   2 ใบที่เป็นรายได้จริง (รับเหมาก่อสร้าง · รีโนเวท) กินสองช่อง มี ico ใหญ่ขึ้น
+   อีก 7 ใบเป็นแถวรอง — และ "สอบถามงานนี้" เหลือเฉพาะ 2 ใบพระเอก */
+@media (min-width:1000px){
+  #services .grid-3{grid-template-columns:repeat(6,1fr)}
+  #services .card{grid-column:span 2}
+  /* 2 ใบพระเอกขึ้นแถวบนสุดเต็มแถว (3+3) ที่เหลือไหลเป็นแถวละ 3 (2+2+2)
+     ถ้าไม่ย้ายขึ้น มันจะไปแทรกกลางแถวแล้วเหลือรูโหว่ 2 ช่องข้างบน — วัดแล้ว */
+  #services .card:nth-child(3),
+  #services .card:nth-child(4){grid-column:span 3;order:-1}
+}
+#services .card:nth-child(3),
+#services .card:nth-child(4){
+  background:linear-gradient(160deg,
+    color-mix(in oklch,var(--c-gold) 7%,var(--c-page)), var(--c-page));
+  border-color:color-mix(in oklch,var(--c-action) 40%,var(--c-border))}
+#services .card:nth-child(3) .ico-tile,
+#services .card:nth-child(4) .ico-tile{width:68px;height:68px}
+#services .card:nth-child(3) .ico-tile svg,
+#services .card:nth-child(4) .ico-tile svg{width:38px;height:38px}
+#services .card:nth-child(3) h3,
+#services .card:nth-child(4) h3{font-size:var(--fs-xl)}
+#services .card:not(:nth-child(3)):not(:nth-child(4)) .card-more{display:none}
+
+/* ---------- B5 · จังหวะหน้า: เลิกให้ทุก section สูงเท่ากัน ----------
+   เดิม section ทุกอันคือ padding-block: var(--s8) ตัวเดียว (index.html:233)
+   13 section จังหวะเดียวกันหมด = ไม่มีจุดพัก */
+#problem{padding-block:var(--s7)}
+#services{padding-block:var(--s10) var(--s9)}
+#types{padding-block:var(--s7)}
+.deep#shots{padding-block:var(--s10)}
+.deep#contact{padding-block:var(--s10)}
+
+/* ---------- B6 · ใช้ของ A ตามที่ได้ผลกับเจมส์ ----------
+   สปอตไลต์ตามเมาส์บนการ์ด + ประกายกวาดปุ่มหลัก (A3 + A6) */
+.card{position:relative;overflow:hidden}
+.card::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;
+  transition:opacity .35s ease;
+  background:radial-gradient(230px circle at var(--mx,50%) var(--my,50%),
+    oklch(.86 .12 95/.20),transparent 62%)}
+.card:hover::after{opacity:1}
+.card:hover{transform:translateY(-5px)}
+.btn-primary{position:relative;overflow:hidden}
+.btn-primary::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(105deg,transparent 40%,oklch(1 0 0/.30) 50%,transparent 60%);
+  transform:translateX(-130%);animation:sweep 5.5s ease-in-out 1.4s infinite}
+@keyframes sweep{0%{transform:translateX(-130%)}18%,100%{transform:translateX(130%)}}
+
+/* ---------- B7 · แถบโทร + CTA ปิดท้าย: ทองบนฟ้าพลบค่ำชุดเดียวกับฮีโร่ ---------- */
+.callbar a.primary{background:var(--c-gold);color:oklch(.19 .028 249)}
+.deep#contact{background:
+  radial-gradient(110% 90% at 22% 4%, var(--dusk) 0%, transparent 62%),
+  linear-gradient(180deg, var(--dusk-lo), oklch(.215 .038 258))}
+
+/* ---------- B8 · reduced-motion ---------- */
+@media (prefers-reduced-motion: reduce){
+  .bp-real{animation:none;opacity:1;transform:none}
+  .btn-primary::after{animation:none}
+}
+</style>
+<script>
+(function(){
+  /* B3 — ตัดเลขนำหน้าใน .dim ("03 · ขอบเขตงาน" → "ขอบเขตงาน") */
+  document.querySelectorAll('.dim > span').forEach(function(s){
+    s.childNodes.forEach(function(n){
+      if (n.nodeType === 3) n.textContent = n.textContent.replace(/^\s*\d+\s*·\s*/, '');
+    });
+  });
+
+  /* B2 — ยก render ของลูกค้า (ของจริงชิ้นเดียวที่หน้านี้มี) ขึ้นมาไว้ในฮีโร่
+     โคลนจาก .shot ใบแรก ไม่โหลดไฟล์เพิ่ม = ไม่เพิ่ม page weight เลย */
+  var src = document.querySelector('#shots .shot img');
+  var bp  = document.querySelector('.hero .blueprint');
+  if (src && bp) {
+    var fig = document.createElement('figure');
+    fig.className = 'bp-real';
+    fig.style.margin = '0';
+    var img = src.cloneNode(true);
+    img.removeAttribute('loading');
+    var cap = document.createElement('figcaption');
+    cap.textContent = 'แบบก่อสร้าง + ภาพ 3D ของหลังเดียวกัน';
+    fig.appendChild(img); fig.appendChild(cap);
+    bp.insertBefore(fig, bp.firstChild);
+  }
+
+  /* B6 — สปอตไลต์ตามเมาส์ (เหมือน A3) */
+  document.querySelectorAll('.card').forEach(function(card){
+    card.addEventListener('pointermove', function(e){
+      var r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', ((e.clientX - r.left) / r.width  * 100) + '%');
+      card.style.setProperty('--my', ((e.clientY - r.top ) / r.height * 100) + '%');
+    });
+  });
+})();
+</script>

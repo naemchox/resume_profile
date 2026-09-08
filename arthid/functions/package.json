@@ -1,0 +1,21 @@
+{
+  "name": "arthid-discord",
+  "description": "Discord interactions endpoint for Arthid — /todo, /project, /poll against the same Firestore the web app uses.",
+  "type": "commonjs",
+  "main": "index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "test": "node test/bot.test.js",
+    "register": "node register.js",
+    "serve": "firebase emulators:start --only functions",
+    "logs": "firebase functions:log --only discord"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.1.0",
+    "tweetnacl": "^1.0.3"
+  },
+  "private": true
+}

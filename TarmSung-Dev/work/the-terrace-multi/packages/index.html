@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="th" class="no-js">
+<head>
+  <meta name="robots" content="noindex,nofollow">
+<meta charset="utf-8">
+<!-- คืนตำแหน่งที่อ่านค้างไว้เอง ไม่รอเบราว์เซอร์ (ที่มา: work/_JANK-REFRESH.md)
+     Safari คืนตำแหน่ง scroll หลังอีเวนต์ load เท่านั้น — วัดแล้ว DCL/load ยังอยู่ที่ y=0
+     ทั้งคู่ คนที่รีเฟรชกลางหน้าจึงเห็น "ฮีโร่แวบ" ตั้งแต่เฟรมแรกจนกว่าไฟล์สุดท้ายจะโหลดจบ
+     (เน็ตช้า = ค้างนานเป็นวินาที) สคริปต์นี้เก็บตำแหน่งไว้เองใน sessionStorage แล้ววาง
+     กลับตั้งแต่เฟรมแรกที่ความสูงหน้าพอ — เร็วกว่ารอ load หลายเท่าและไม่ต้องรอรูป
+     หยุดทันทีถ้าผู้ใช้ขยับเอง (wheel/touch/key/pointer) จะได้ไม่แย่งมือกับคนอ่าน -->
+<script>
+(function () {
+  try {
+    if (!("scrollRestoration" in history)) return;
+    history.scrollRestoration = "manual";
+    var key = "ts:y:" + location.pathname;
+    var want = parseInt(sessionStorage.getItem(key) || "0", 10) || 0;
+    var timer = 0;
+    var save = function () { try { sessionStorage.setItem(key, String(Math.round(window.scrollY))); } catch (e) {} };
+    addEventListener("scroll", function () {
+      if (timer) return;
+      timer = setTimeout(function () { timer = 0; save(); }, 200);
+    }, { passive: true });
+    addEventListener("pagehide", save);
+    /* แถบเมนูต้องไม่ "โผล่" ตอนหน้าเปิดมากลางหน้าอยู่แล้ว (jek 25/8/26 · the-bed)
+       แถบมีสองชั้นที่ไล่เข้าเอง — พื้นทึบบน .nav-shell::before (opacity 300ms) กับเส้นทอง
+       บน border-color (400ms) — พอคืนตำแหน่ง scroll ปุ๊บ สคริปต์แถบเมนูใส่คลาส scrolled
+       ทั้งสองชั้นจึงไล่ให้เห็นทุกครั้งที่รีเฟรช ทั้งที่ผู้ใช้ไม่ได้เลื่อนอะไรเลย
+       ระหว่างช่วงคืนตำแหน่ง จึงปิดทรานซิชันของหัวเว็บไว้ = แถบอยู่ในสถานะสุดท้ายตั้งแต่
+       เฟรมแรก · เปิดคืนทันทีที่ผู้ใช้ขยับเอง (หรืออย่างช้า 900ms) การเลื่อนของจริงจึงยังลื่น */
+    if (want) {
+      var root = document.documentElement;
+      root.className += " nav-instant";
+      var st = document.createElement("style");
+      st.textContent = "html.nav-instant .nav-shell,html.nav-instant .nav-shell::before," +
+        "html.nav-instant .site-header,html.nav-instant header,html.nav-instant header > *," +
+        "html.nav-instant header > * > *{transition:none !important}";
+      (document.head || document.documentElement).appendChild(st);
+      var unlock = function () { root.className = root.className.replace(/\s*nav-instant/, ""); };
+      ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+        addEventListener(ev, unlock, { passive: true, once: true });
+      });
+      setTimeout(unlock, 900);
+    }
+    if (!want || location.hash) return;
+    var stop = false;
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+      addEventListener(ev, function () { stop = true; }, { passive: true, once: true });
+    });
+    var t0 = (performance.now ? performance.now() : 0);
+    var now = function () { return performance.now ? performance.now() : t0; };
+    var done = false;
+    var put = function () {
+      if (stop || done) return true;
+      var el = document.scrollingElement || document.documentElement;
+      if (!el || el.scrollHeight - window.innerHeight < want) return false;   /* หน้ายังสูงไม่พอ ค่อยลองใหม่ */
+      if (Math.round(window.scrollY) !== want) {
+        var prev = el.style.scrollBehavior;      /* html { scroll-behavior: smooth } จะทำให้การวางกลับกลายเป็นการไถ */
+        el.style.scrollBehavior = "auto";
+        window.scrollTo(0, want);
+        el.style.scrollBehavior = prev;
+      }
+      done = Math.round(window.scrollY) === want;
+      /* ใส่สถานะ "เลื่อนแล้ว" ให้หัวเว็บทันทีในจังหวะเดียวกับที่คืนตำแหน่ง — ไม่ต้องรอสคริปต์
+         ของหน้ามันเองซึ่งอยู่ท้าย <body> (วัดแล้วช้ากว่ากันราว 20ms = เห็นแถบเปล่าได้ 1 เฟรม)
+         เกณฑ์คนละค่าเพราะแต่ละที่ตั้งไว้ไม่เท่ากัน: .site-header > 8px · .nav-shell > 40px
+         (ดู js/main.js กับสคริปต์ท้ายหน้าเดโม) สคริปต์ของหน้าจะคำนวณซ้ำเองอยู่แล้ว ค่าจึงตรงกัน */
+      if (done) {
+        var mark = function (sel, cls, min) {
+          if (want <= min) return;
+          var n = document.querySelectorAll(sel);
+          for (var i = 0; i < n.length; i++) n[i].classList.add(cls);
+        };
+        /* หัวเว็บของแต่ละใบใช้คนละคลาสคนละเกณฑ์ (ของเดิมเป็นแบบนั้นมาก่อนแล้ว):
+           .site-header.scrolled >8px (เว็บเรา) · .nav-shell.scrolled >40px (the-bed)
+           .site-header.stuck (the-terrace ใช้ sentinel ไม่ใช่ตัวเลข — 80px คือค่าประมาณ)
+           header.small >120px (homecraft/lumen/glow-clinic ผ่าน js/nav-response.js)
+           เดาพลาดไม่เป็นไร สคริปต์ของหน้าคำนวณทับให้ในเฟรมถัดไป และช่วงนี้ทรานซิชันถูกปิดอยู่
+           การแก้จึงเป็นการสลับทันที ไม่ใช่การไล่สีให้เห็น */
+        mark(".site-header", "scrolled", 8);
+        mark(".nav-shell", "scrolled", 40);
+        mark(".site-header, header[data-header]", "stuck", 80);
+        mark("header, .site-header", "small", 120);
+      }
+      return done;
+    };
+    /* ลองทุกทางที่มาถึงก่อน: setTimeout(0) มักได้ก่อนเฟรมแรกด้วยซ้ำ · rAF ทำงานก่อนวาด
+       · readystatechange/DOMContentLoaded คือจุดที่ body ครบแล้วแน่ๆ
+       เหตุที่ไม่พอถ้าใช้ rAF อย่างเดียว: วัดแล้วบางหน้า (หน้าแรกของเว็บเรา) เฟรมแรก
+       มาก่อนที่ความสูงจะพอ ทำให้เลื่อนไม่ได้ แล้วต้องรอ rAF รอบถัดไป = เห็นหัวเว็บ 1 เฟรม */
+    /* สองสายแยกกัน สายละหนึ่งนัด — ถ้าให้สายเดียวนัดทั้ง setTimeout และ rAF
+       จำนวนนัดจะเพิ่มเป็นสองเท่าทุกรอบ (2^n) ภายในไม่กี่ร้อยมิลลิวินาที */
+    var tick = function () { if (put() || stop) return; if (now() - t0 < 3000) setTimeout(tick, 0); };
+    var frame = function () { if (put() || stop) return; if (now() - t0 < 3000) requestAnimationFrame(frame); };
+    tick();
+    frame();
+    document.addEventListener("readystatechange", put);
+    addEventListener("DOMContentLoaded", put);
+    addEventListener("load", put);
+  } catch (e) {}
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แพ็กเกจจัดงานและเมนูอาหาร พร้อมราคาต่อท่าน | เดอะ เทอเรส</title>
+<meta name="description" content="แพ็กเกจงานแต่ง งานเลี้ยงบริษัท และสัมมนา พร้อมโต๊ะจีน ฿6,900/โต๊ะ บุฟเฟต์ ฿890/ท่าน ค็อกเทล ฿590/ท่าน คิดราคาประเมินงานของคุณได้ในหน้านี้">
+<link rel="canonical" href="https://tarmsung.pages.dev/work/the-terrace-multi/packages/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="แพ็กเกจจัดงานและเมนูอาหาร พร้อมราคาต่อท่าน | เดอะ เทอเรส">
+<meta property="og:description" content="แพ็กเกจงานแต่ง งานเลี้ยงบริษัท และสัมมนา พร้อมโต๊ะจีน ฿6,900/โต๊ะ บุฟเฟต์ ฿890/ท่าน ค็อกเทล ฿590/ท่าน คิดราคาประเมินงานของคุณได้ในหน้านี้">
+<meta property="og:image" content="https://tarmsung.pages.dev/work/the-terrace-multi/img/detail-table.jpg">
+<meta property="og:url" content="https://tarmsung.pages.dev/work/the-terrace-multi/packages/">
+<meta name="twitter:card" content="summary_large_image">
+<script>document.documentElement.classList.replace("no-js","js");</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- preload ฟอนต์หัวเรื่อง (Anuphan) — คู่กับ display=optional ข้างล่าง
+     optional เฉยๆ แปลว่าคนที่เข้าครั้งแรกได้ฟอนต์สำรองทั้งหน้า preload ทำให้ไฟล์
+     มาทันช่วงต้นเกือบทุกครั้ง · มีสองไฟล์เพราะ Google เสิร์ฟ Chrome กับ Safari คนละตัว
+     (เติมอัตโนมัติด้วย playbook/fix-font-flash.mjs) -->
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/anuphan/v6/2sDeZGxYgY7LkLT0mX4Dan29.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/anuphan/v6/2sDeZGxYgY7LkLT0mWoDag.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/anuphan/v6/2sDeZGxYgY7LkLT0mX4Dam--C70lZQ.woff2" />
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600&family=Noto+Sans+Thai:wght@600;700;800&family=Cormorant+Garamond:wght@500;600&display=optional" rel="stylesheet">
+<link rel="stylesheet" href="../css/tokens.css">
+<link rel="stylesheet" href="../css/styles.css">
+<link rel="stylesheet" href="../css/multi.css">
+<style>
+/* =============================================================================
+   รอบ "แก้จืด" ครั้งที่ 2 — 22/8/26 (playbook/PROMPT-JUED.md)
+   ===========================================================================
+   AUDIT ก่อนแก้: ไล่ css/styles.css + tokens.css ซ้ำอีกรอบ (grep rgba alpha ต่ำ,
+   blur, opacity ต่ำ) เจอแค่ .hero-grain (opacity .10, blur 6px บน .slots) ซึ่ง
+   ทั้งคู่จงใจให้จางตามคอมเมนต์เดิมในไฟล์ ไม่ใช่บั๊ก — ไม่แตะ ตรงกับที่ jek วัดมา
+   ว่าความจืดของหน้านี้คือ "นิ่ง" (@keyframes 1 อัน) ไม่ใช่ "ของจาง"
+
+   งานรอบนี้จึงเป็นชั้น 3 ล้วนๆ — หยิบภาษาของเวนิวจัดงานที่ยังไม่ได้ใช้: ไฟอุ่น
+   เหนือรูปฮีโร่ (ของชนิดเดียวกับไฟที่ #story ใช้ keyframe tt-warm เดิม ไม่เขียน
+   กลไกที่สอง), ผ้าม่านเปิดบนรูปห้อง, และการจัดโต๊ะ (เมนูทยอยวางทีละจาน) —
+   ไม่มี fade ทั่วไปเพิ่มสักตัว
+   -------------------------------------------------------------------------- */
+
+/* ---- 1) ไฟอุ่นเหนือรูปฮีโร่ --------------------------------------------------
+   จุดสนใจของภาพฮีโร่คือโคมไฟกับหน้าต่างริมน้ำที่ถูกจัดให้อยู่ขวาของหัวเรื่อง
+   (ดูคอมเมนต์ .hero-media img ด้านบน) ไฟดวงนี้หายใจช้าตรงตำแหน่งนั้น ใช้
+   keyframe เดียวกับไฟที่แถบมืด #story (tt-warm) เพราะเป็นของชนิดเดียวกัน:
+   ไฟอุ่นของเวนิวตอนค่ำ ไม่ใช่ไฟดิสโก้ที่กะพริบเร็ว */
+.hero-glow {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(55% 60% at 72% 38%,
+    color-mix(in oklch, var(--brass-400) 30%, transparent) 0%, transparent 68%);
+}
+.js .hero-glow { animation: tt-warm 11s ease-in-out infinite; }
+
+/* ---- 2) ผ้าม่านเปิดบนรูปห้อง -------------------------------------------------
+   #rooms เดิมรูปสามห้องโผล่มาพร้อมการ์ด (fade+เลื่อนขึ้นเฉยๆ) ตอนนี้มีแผ่นผ้า
+   สีเข้มปิดรูปอยู่ก่อน แล้วเลื่อนเปิดออกทางขวาเหมือนม่านเปิดพื้นที่จัดงาน —
+   ภาษาของเวนิวจัดงานที่ใช้ผ้าม่านจริงในพิธีและซุ้ม ไม่ใช่ fade ทั่วไป */
+.room-media { position: relative; display: block; overflow: hidden; }
+.room-curtain {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(100deg, var(--forest-950) 46%,
+    color-mix(in oklch, var(--forest-950) 55%, transparent) 100%);
+  transform-origin: right; transform: scaleX(1);
+}
+.js .room-curtain { transition: transform 900ms var(--ease); }
+.js .room.in .room-curtain { transform: scaleX(0); }
+.js .room:nth-child(1).in .room-curtain { transition-delay: 650ms; }
+.js .room:nth-child(2).in .room-curtain { transition-delay: 800ms; }
+.js .room:nth-child(3).in .room-curtain { transition-delay: 950ms; }
+
+/* ---- 3) เมนูทยอยวางทีละจาน --------------------------------------------------
+   รายการอาหารในแต่ละชุด (.set li) เดิมโผล่มาพร้อมกันทั้งลิสต์ตอนการ์ดเข้าจอ
+   ตอนนี้ทยอยขึ้นทีละบรรทัดเหมือนพนักงานจัดโต๊ะวางจานทีละจาน — ใช้ตัวเลข
+   ลำดับจานเดิม (counter(dish)) เป็นตัวบอกจังหวะอยู่แล้ว จึงให้ทยอยตามลำดับนั้น */
+.js .set li { opacity: 0; transform: translateY(10px); transition: opacity 420ms var(--ease), transform 420ms var(--ease); }
+.js .set.in li { opacity: 1; transform: none; }
+.js .set.in li:nth-child(1)  { transition-delay: 80ms; }
+.js .set.in li:nth-child(2)  { transition-delay: 130ms; }
+.js .set.in li:nth-child(3)  { transition-delay: 180ms; }
+.js .set.in li:nth-child(4)  { transition-delay: 230ms; }
+.js .set.in li:nth-child(5)  { transition-delay: 280ms; }
+.js .set.in li:nth-child(6)  { transition-delay: 330ms; }
+.js .set.in li:nth-child(7)  { transition-delay: 380ms; }
+.js .set.in li:nth-child(8)  { transition-delay: 430ms; }
+.js .set.in li:nth-child(9)  { transition-delay: 480ms; }
+.js .set.in li:nth-child(10) { transition-delay: 530ms; }
+.js .set.in li:nth-child(11) { transition-delay: 580ms; }
+.js .set.in li:nth-child(12) { transition-delay: 630ms; }
+
+/* ---- 4) ป้าย "จองมากที่สุด" คลี่ออกเหมือนริบบิ้น ----------------------------
+   ป้ายบนการ์ดแพ็กเกจที่ขายดีที่สุดเดิมโผล่มาพร้อมการ์ด ตอนนี้คลี่ออกจากกึ่งกลาง
+   หลังการ์ดตั้งตัวแล้ว เหมือนริบบิ้น/แถบผูกโบว์ในงานเลี้ยง ไม่ใช่ป้ายกระพริบ */
+.js .card .tag { transform: scaleX(0); transition: transform 380ms var(--ease) 520ms; }
+.js .card.in .tag { transform: scaleX(1); }
+
+/* ---- ปิดได้จริงสองทาง: media query ของระบบ และ .still ที่ main.js ติดให้เมื่อ
+   เปิดด้วย ?reduce=1 (ทางที่สคริปต์ถ่ายภาพใช้) ------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .js .hero-glow { animation: none !important; opacity: .8; }
+  .js .room-curtain { transition: none !important; transform: scaleX(0) !important; }
+  .js .set li { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .js .card .tag { transform: scaleX(1) !important; transition: none !important; }
+}
+.still .hero-glow { animation: none !important; opacity: .8; }
+.still .room-curtain { transition: none !important; transform: scaleX(0) !important; }
+.still .set li { opacity: 1 !important; transform: none !important; }
+.still .card .tag { transform: scaleX(1) !important; }
+</style>
+
+<style>
+  @view-transition { navigation: auto; }
+  ::view-transition-old(root) { animation: pg-out 240ms cubic-bezier(.33,0,.3,1) both; }
+  ::view-transition-new(root) { animation: pg-in  380ms cubic-bezier(.33,0,.3,1) both; }
+  @keyframes pg-out { to   { opacity: 0; transform: translateY(-8px); } }
+  @keyframes pg-in  { from { opacity: 0; transform: translateY(10px); } }
+  /* ตัวสำรองของเบราว์เซอร์ที่ไม่มี view transition — เฟดด้วยคลาส */
+  body.is-leaving {
+    opacity: 0; transform: translateY(-8px);
+    transition: opacity 240ms cubic-bezier(.33,0,.3,1), transform 240ms cubic-bezier(.33,0,.3,1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+    body.is-leaving { opacity: 1; transform: none; transition: none; }
+  }
+</style>
+<script>
+(function () {
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce || "startViewTransition" in document) return;   /* เบราว์เซอร์ทำเองแล้ว */
+  /* แคบไว้ก่อน: เฉพาะคลิกซ้ายเปล่าๆ ลิงก์โดเมนเดียวกัน ไม่ใช่แท็บใหม่ ไม่ใช่ดาวน์โหลด
+     ไม่ใช่จุดยึดในหน้าเดียวกัน — cmd-click / กลางคลิก ต้องเปิดแท็บหลังได้ตามปกติ */
+  document.addEventListener("click", function (e) {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var a = e.target.closest && e.target.closest("a[href]");
+    if (!a || a.target === "_blank" || a.hasAttribute("download")) return;
+    var url = new URL(a.href, location.href);
+    if (url.origin !== location.origin) return;
+    if (url.pathname === location.pathname && url.hash) return;
+    e.preventDefault();
+    document.body.classList.add("is-leaving");
+    /* ตั้งเวลาสำรองไว้ด้วย: แท็บที่ถูกซ่อนอยู่จะไม่ยิง transitionend เลย */
+    var gone = false, go = function () { if (!gone) { gone = true; location.href = a.href; } };
+    document.body.addEventListener("transitionend", go, { once: true });
+    setTimeout(go, 300);
+  });
+  /* กลับด้วยปุ่ม Back แล้วเจอหน้าจาง = หน้าถูกคืนจากแคช ทั้งที่ยังใส่คลาสค้างไว้ */
+  addEventListener("pageshow", function () { document.body.classList.remove("is-leaving"); });
+})();
+</script>
+
+</head>
+<body>
+<!-- ไอคอนชุดเดียวของทุกหน้า (คัดจาก work/the-terrace/index.html) — ตัวประกอบหลายหน้า
+     ไม่ฉีดสไปรท์ให้ ทุกหน้าจึงอ้าง #i-icon1..3 ที่ไม่มีตัวจริง 11 จุดต่อหน้า -->
+<svg class="sr-only" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0"><defs>
+  <symbol id="i-icon1" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-icon2" viewBox="0 0 132 8"><path pathLength="1" d="M1 5c22-4 44-4 66 0s44 4 65-1" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-icon3" viewBox="0 0 24 24"><path d="M5 12h13M13 6.5 18.5 12 13 17.5"/></symbol>
+</defs></svg>
+<a class="skip" href="#main">ข้ามไปเนื้อหา</a>
+
+<header class="site-header" data-header>
+  <div class="wrap">
+    <a class="brand" href="../">
+      <b>เดอะ เทอเรส</b><span>The Terrace</span>
+    </a>
+    <nav class="nav-links" aria-label="เมนูหลัก">
+      <a href="../">หน้าแรก</a>
+      <a href="../venue/">สถานที่</a>
+      <a href="../packages/" aria-current="page">แพ็กเกจ & เมนู</a>
+      <a href="../story/">รีวิว & วิธีทำงาน</a>
+      <a href="../contact/">ติดต่อ & นัดชม</a>
+    </nav>
+    <span class="nav-right">
+      <a class="btn btn--outline btn--sm" href="tel:021184499">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 4.5h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4.5 6.7 2 2 0 0 1 6.5 4.5z"/></svg>
+        02-xxx-xxxx</a>
+      <a class="btn btn--brass btn--sm" href="../packages/">ขอใบเสนอราคา
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6.5 18.5 12 13 17.5"/></svg></a>
+    </span>
+  </div>
+</header>
+
+<!-- เมนูมือถือ: .nav-links ของเว็บเดิมเป็น display:none ต่ำกว่าจอ 900px ซึ่งพอรับได้
+     ตอนเป็นหน้าเดียว (ทุกอย่างอยู่ข้างล่างให้เลื่อนหา) แต่พอเป็น 5 หน้า มันแปลว่า
+     คนใช้มือถือไปหน้าอื่นไม่ได้เลยสักหน้า — แถบนี้จึงเป็นของที่ "หลายหน้า" บังคับให้มี
+     ทำเป็นแถบเลื่อนแนวนอน ไม่ใช่เบอร์เกอร์ เพราะมี 5 ปลายทาง ไม่ต้องซ่อน และ
+     ไม่ต้องพึ่ง JS — เมนูที่พังตอน JS ไม่โหลด คือเว็บที่ไปไหนไม่ได้ -->
+<nav class="pagenav" aria-label="เมนูหน้าเว็บ (มือถือ)">
+  <div class="wrap">
+    <a href="../">หน้าแรก</a>
+    <a href="../venue/">สถานที่</a>
+    <a href="../packages/" aria-current="page">แพ็กเกจ & เมนู</a>
+    <a href="../story/">รีวิว & วิธีทำงาน</a>
+    <a href="../contact/">ติดต่อ & นัดชม</a>
+  </div>
+</nav>
+<main id="main">
+
+  <section class="hero hero--page" aria-labelledby="page-title">
+    <div class="wrap">
+      <span class="kicker"><i aria-hidden="true"></i>แพ็กเกจ &amp; เมนู</span>
+      <h1 id="page-title">ราคาบอกไว้ตรงนี้ ไม่ต้องทักมาถาม</h1>
+      <p>เลือกแพ็กเกจ ใส่จำนวนแขก แล้วดูราคาประเมินได้ทันที เมนูทุกชุดปรับรายการได้โดยไม่คิดเพิ่ม</p>
+    </div>
+  </section>
+
+<nav class="crumb" aria-label="เส้นทางหน้าเว็บ">
+  <div class="wrap">
+    <ol>
+      <li><a href="../">หน้าแรก</a></li>
+      <li aria-current="page">แพ็กเกจ & เมนู</li>
+    </ol>
+  </div>
+</nav>
+<section class="svc" id="packages" aria-label="แพ็กเกจจัดงาน">
+    <article class="card reveal">
+      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V4M16 19v-6M21 19H3"/></svg></span>
+      <h3>ประชุม &amp; สัมมนา</h3>
+      <p>ห้องเงียบ อินเทอร์เน็ตสำรอง เบรกสองมื้อ</p>
+      <div class="price"><b>฿690</b><span>/ ท่าน · ครึ่งวัน–เต็มวัน</span></div>
+      <ul>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg>โปรเจกเตอร์ 4K + ไมค์ลอย 4 ตัว</li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg>อาหารว่าง 2 มื้อ + อาหารกลางวัน</li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg>ที่จอดรถฟรี 60 คัน</li>
+      </ul>
+      <a class="go" href="tel:">ดูรายละเอียดแพ็กเกจ
+        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon3"/></svg></a>
+    </article>
+
+    <article class="card card--pick reveal d1">
+      <span class="tag">จองมากที่สุด</span>
+      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="8.5" width="17" height="11" rx="2.5"/><path d="M9 8.5V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2.5M3.5 13h17"/></svg></span>
+      <h3>งานเลี้ยงบริษัท</h3>
+      <p>ปาร์ตี้ปีใหม่ ฉลองยอด งานขอบคุณลูกค้า</p>
+      <div class="price"><b>฿890</b><span>/ ท่าน · เริ่มต้น 40 ท่าน</span></div>
+      <ul>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg>บุฟเฟต์ 12 รายการ + ซุ้มเครื่องดื่ม</li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg>เครื่องเสียง จอ LED และพิธีกร</li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg>ออกใบกำกับภาษีเต็มรูปแบบ</li>
+      </ul>
+      <a class="go" href="tel:">ดูรายละเอียดแพ็กเกจ
+        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon3"/></svg></a>
+    </article>
+
+    <article class="card reveal d2">
+      <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7-4.3-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11.5c0 4.7-7 9-7 9z"/></svg></span>
+      <h3>งานแต่งริมน้ำ</h3>
+      <p>พิธีเช้า–เลี้ยงเย็นในที่เดียว ไม่ต้องย้ายแขก</p>
+      <div class="price"><b>฿1,290</b><span>/ ท่าน · เริ่มต้น 80 ท่าน</span></div>
+      <ul>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg>อาหาร 9 รายการ + เครื่องดื่มไม่อั้น</li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg>ดอกไม้ ซุ้ม และแสงเวที</li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon1"/></svg>เวดดิ้งแพลนเนอร์ประจำงาน</li>
+      </ul>
+      <a class="go" href="tel:">ดูรายละเอียดแพ็กเกจ
+        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon3"/></svg></a>
+    </article>
+  </section>
+<section class="section" id="quote" aria-labelledby="quote-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="kicker"><i aria-hidden="true"></i>คิดให้ดูก่อนโทร</span>
+        <h2 id="quote-title"><span class="w"><span>งานของคุณ</span></span> <span class="w"><span>ราวๆ เท่าไหร่</span></span></h2>
+        <svg class="rule" viewBox="0 0 132 8" aria-hidden="true" focusable="false"><use href="#i-icon2"/></svg>
+        <p>เลื่อนจำนวนแขกแล้วเห็นตัวเลขทันที — เป็นราคาประเมินจากราคาต่อท่านที่ประกาศไว้ ใบเสนอราคาจริงแจกแจงรายบรรทัดอีกที</p>
+      </div>
+
+      <div class="calc reveal" data-calc>
+        <fieldset class="calc-kind">
+          <legend>ประเภทงาน</legend>
+          <label><input type="radio" name="kind" value="meeting" data-rate="690" data-min="1" checked><span>ประชุม &amp; สัมมนา<b>฿690 / ท่าน</b></span></label>
+          <label><input type="radio" name="kind" value="party" data-rate="890" data-min="40"><span>งานเลี้ยงบริษัท<b>฿890 / ท่าน</b></span></label>
+          <label><input type="radio" name="kind" value="wedding" data-rate="1290" data-min="80"><span>งานแต่ง<b>฿1,290 / ท่าน</b></span></label>
+        </fieldset>
+
+        <div class="calc-guests">
+          <label for="guests">จำนวนแขก</label>
+          <output for="guests" data-guests>120</output>
+          <input id="guests" type="range" min="40" max="300" step="10" value="120" data-range>
+          <p class="calc-scale" aria-hidden="true"><span>40</span><span>300 ที่นั่ง</span></p>
+        </div>
+
+        <div class="calc-out" aria-live="polite">
+          <p class="calc-line"><span data-detail>฿690 × 120 ท่าน</span></p>
+          <p class="calc-total"><span>ประเมินทั้งงาน</span><b data-total>฿82,800</b></p>
+          <p class="calc-note" data-note>ราคานี้รวมอาหาร เครื่องดื่ม จัดโต๊ะ เครื่องเสียงพื้นฐาน และทีมดูแลหน้างานแล้ว</p>
+        </div>
+
+        <div class="act">
+          <a class="btn btn--solid" href="tel:">ขอใบเสนอราคาจริง
+            <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-icon3"/></svg></a>
+          <!-- btn--line ไม่ใช่ btn--outline: outline ถูกออกแบบมาให้วางบนรูป (ตัวหนังสือขาว)
+               พอมาอยู่บนพื้นสว่างของการ์ดจะขาวบนขาว หน้านี้มีตัวสำหรับพื้นสว่างอยู่แล้ว -->
+          <a class="btn btn--line" href="../#compare">ดูว่ารวมอะไรบ้าง</a>
+        </div>
+      </div>
+    </div>
+  </section>
+<section class="section" id="menu" aria-labelledby="menu-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="kicker"><i aria-hidden="true"></i>อาหาร</span>
+        <h2 id="menu-title"><span class="w"><span>สามชุดที่สั่งบ่อยที่สุด</span></span> <span class="w"><span>(เลือกสลับรายการได้)</span></span></h2>
+        <svg class="rule" viewBox="0 0 132 8" aria-hidden="true" focusable="false"><use href="#i-icon2"/></svg>
+        <p>ชิมก่อนเซ็นได้ นัดล่วงหน้า 3 วัน ชิมได้ 4 รายการต่อครั้ง ไม่มีค่าใช้จ่ายถ้าจองงานภายใน 30 วันหลังชิม</p>
+      </div>
+      <div class="sets">
+        <article class="set reveal">
+          <header><h3>โต๊ะจีน 9 รายการ</h3><p class="set-price">฿6,900 <span>/ โต๊ะ 10 ท่าน</span></p></header>
+          <ol>
+            <li>ออร์เดิร์ฟรวมมิตร 4 อย่าง</li>
+            <li>หูฉลามน้ำแดง (หรือเป๋าฮื้อน้ำแดงสำหรับงานเจ)</li>
+            <li>กุ้งแม่น้ำเผา</li>
+            <li>ปลาเก๋านึ่งซีอิ๊ว</li>
+            <li>เป็ดปักกิ่งห่อแป้ง</li>
+            <li>ไก่อบเกลือโบราณ</li>
+            <li>ผัดหมี่ฮ่องกงทะเล</li>
+            <li>ซุปเห็ดหอมเต้าหู้ไข่</li>
+            <li>ของหวานตามฤดูกาล</li>
+          </ol>
+          <p class="set-note">งานแต่งเลือกชุดนี้ 7 ใน 10 งาน</p>
+        </article>
+        <article class="set set--pick reveal d1">
+          <span class="tag">สั่งบ่อยที่สุด</span>
+          <header><h3>บุฟเฟต์นานาชาติ 12 รายการ</h3><p class="set-price">฿890 <span>/ ท่าน</span></p></header>
+          <ol>
+            <li>สลัดบาร์ + น้ำสลัด 3 ชนิด</li>
+            <li>ซุปข้นวันละ 2 ชนิด</li>
+            <li>สเต๊กสันคอหมูย่างซอสพริกไทยดำ</li>
+            <li>ไก่อบสมุนไพรทั้งตัว แล่หน้างาน</li>
+            <li>ปลาแซลมอนซอสเลมอนบัตเตอร์</li>
+            <li>สปาเกตตีสองซอส</li>
+            <li>ข้าวผัดปู · ผัดไทยกุ้งสด</li>
+            <li>แกงเขียวหวานไก่ + โรตี</li>
+            <li>ซุ้มก๋วยเตี๋ยวเรือ ลวกสด</li>
+            <li>ผัดผักรวมน้ำมันหอย</li>
+            <li>ของหวานไทย 3 อย่าง + ไอศกรีม</li>
+            <li>ผลไม้ตามฤดูกาล</li>
+          </ol>
+          <p class="set-note">เพิ่มซุ้มสด (ซูชิ / เนื้อย่าง) ซุ้มละ ฿12,000</p>
+        </article>
+        <article class="set reveal d2">
+          <header><h3>ค็อกเทล 8 คำ + เครื่องดื่ม</h3><p class="set-price">฿590 <span>/ ท่าน · 2 ชั่วโมง</span></p></header>
+          <ol>
+            <li>คานาเป้แซลมอนรมควัน</li>
+            <li>บรูสเกตต้ามะเขือเทศโหระพา</li>
+            <li>เกี๊ยวซ่าทอดซอสยูซุ</li>
+            <li>สะเต๊ะไก่จิ้มอาจาด</li>
+            <li>มินิเบอร์เกอร์เนื้อ</li>
+            <li>ทาร์ตเห็ดทรัฟเฟิล</li>
+            <li>ชีสแพลตเตอร์ + ผลไม้</li>
+            <li>ขนมหวานพอดีคำ 2 ชนิด</li>
+          </ol>
+          <p class="set-note">เหมาะกับงานเปิดตัวสินค้าและงานขอบคุณลูกค้าช่วงเย็น</p>
+        </article>
+      </div>
+      <p class="cmp-note reveal d1">แพ้อาหาร อาหารเจ ฮาลาล และเมนูเด็ก แจ้งล่วงหน้า 7 วัน ครัวแยกกระทะให้โดยไม่คิดเพิ่ม</p>
+    </div>
+  </section>
+<section class="section section--tint" id="runsheet" aria-labelledby="runsheet-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <span class="kicker"><i aria-hidden="true"></i>วันงานจริง</span>
+        <h2 id="runsheet-title"><span class="w"><span>งานแต่ง</span></span> <span class="w"><span>180</span></span> <span class="w"><span>ท่าน</span></span> <span class="w"><span>หนึ่งวันเดินยังไง</span></span></h2>
+        <svg class="rule" viewBox="0 0 132 8" aria-hidden="true" focusable="false"><use href="#i-icon2"/></svg>
+        <p>นี่คือรันดาวน์จริงของงานหนึ่งที่จัดไปเมื่อเดือนที่แล้ว — เอามาให้ดูเพราะคำถาม "แล้ววันนั้นใครทำอะไรบ้าง" ตอบด้วยตารางง่ายกว่าอธิบาย</p>
+      </div>
+      <ol class="run reveal">
+        <li><span class="t">06:30</span><div><h3>ทีมเซ็ตอัพเข้าพื้นที่</h3><p>ปูผ้า จัดโต๊ะ 18 โต๊ะ ติดตั้งซุ้มดอกไม้และระบบเสียง — ก่อนเจ้าภาพมาถึงสามชั่วโมง</p></div></li>
+        <li><span class="t">08:00</span><div><h3>ห้องเจ้าสาวเปิด</h3><p>ช่างแต่งหน้าและช่างภาพเข้าใช้ได้ มีอาหารเช้าและน้ำเตรียมไว้ให้ทีมของคุณ</p></div></li>
+        <li><span class="t">09:09</span><div><h3>พิธีเช้าที่ลานริมน้ำ</h3><p>ขันหมาก รดน้ำสังข์ ผู้ดูแลงานคุมคิวญาติผู้ใหญ่ตามลำดับที่ซ้อมไว้</p></div></li>
+        <li><span class="t">11:30</span><div><h3>เลี้ยงกลางวันคนช่วยงาน</h3><p>ครัวเสิร์ฟข้าวกล่องให้ทีมงาน ช่างภาพ และวงดนตรี รวมอยู่ในแพ็กเกจแล้ว</p></div></li>
+        <li><span class="t">15:00</span><div><h3>เปลี่ยนห้องเป็นงานเย็น</h3><p>ทีมเดียวกันเก็บลานเช้าและเซ็ตห้องแกรนด์ต่อ — ไม่มีการย้ายผู้รับเหมาเข้าออก</p></div></li>
+        <li><span class="t">17:30</span><div><h3>แขกลงทะเบียน</h3><p>โต๊ะลงทะเบียน 2 จุด ป้ายชื่อโต๊ะพิมพ์ไว้ล่วงหน้า ทีมพาแขกไปนั่งตามผัง</p></div></li>
+        <li><span class="t">18:30</span><div><h3>เปิดงาน อาหารจานแรกออก</h3><p>ครัวออกอาหารพร้อมกันทั้งห้องภายใน 6 นาที ร้อนถึงโต๊ะสุดท้าย</p></div></li>
+        <li><span class="t">21:00</span><div><h3>ตัดเค้ก · เพลงสุดท้าย</h3><p>ทีมเสียงคุมคิววงดนตรีและวิดีโอ ผู้ดูแลงานเดินส่งแขกที่ประตูพร้อมของชำร่วย</p></div></li>
+        <li><span class="t">23:00</span><div><h3>เก็บของ ส่งของคืนเจ้าภาพ</h3><p>ของขวัญ ซองและอุปกรณ์ทั้งหมดเช็กตามรายการ เซ็นรับส่งกันตรงนั้น ไม่ต้องกลับมาเอาวันหลัง</p></div></li>
+      </ol>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <nav class="foot-nav" aria-label="เมนูท้ายหน้า">
+      <a href="../">หน้าแรก</a>
+      <a href="../venue/">สถานที่</a>
+      <a href="../packages/" aria-current="page">แพ็กเกจ & เมนู</a>
+      <a href="../story/">รีวิว & วิธีทำงาน</a>
+      <a href="../contact/">ติดต่อ & นัดชม</a>
+    </nav>
+    <p><strong>เดอะ เทอเรส</strong> · 55/xx ซอยสุขุมวิท xx คลองตันเหนือ วัฒนา กรุงเทพฯ 10110 · 02-xxx-xxxx</p>
+    <p>หน้านี้เป็นงานตัวอย่างของ ตามสั่ง (TarmSung) — เวนิวในภาพเป็นแบรนด์สมมติ</p>
+  </div>
+</footer>
+
+<script src="../js/main.js"></script>
+<!-- กลไกกลางของ playbook: หัวเว็บหดตอนเลื่อน + ไฮไลต์หัวข้อที่กำลังอ่าน (website.md §11 ข้อ 5)
+     ไฟล์เดียวกันเป๊ะทุกเดโม ห้ามแก้รายชิ้น — ก่อนหน้านี้เดโม 5 หน้าไม่มีไฟล์นี้เพราะถูกตัด
+     ออกมาจากต้นฉบับก่อนที่กลไกนี้จะถูกเพิ่ม = ของชนิดเดียวกันแต่ได้กลไกไม่เท่ากัน -->
+<script src="../js/nav-response.js"></script>
+<script src="../js/quote.js"></script>
+<script src="/work/_demo-badge.js" defer></script>
+</body>
+</html>

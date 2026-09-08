@@ -1,0 +1,2002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>document.documentElement.className+=" js";</script>
+<meta charset="UTF-8" />
+<!-- คืนตำแหน่งที่อ่านค้างไว้เอง ไม่รอเบราว์เซอร์ (ที่มา: work/_JANK-REFRESH.md)
+     Safari คืนตำแหน่ง scroll หลังอีเวนต์ load เท่านั้น — วัดแล้ว DCL/load ยังอยู่ที่ y=0
+     ทั้งคู่ คนที่รีเฟรชกลางหน้าจึงเห็น "ฮีโร่แวบ" ตั้งแต่เฟรมแรกจนกว่าไฟล์สุดท้ายจะโหลดจบ
+     (เน็ตช้า = ค้างนานเป็นวินาที) สคริปต์นี้เก็บตำแหน่งไว้เองใน sessionStorage แล้ววาง
+     กลับตั้งแต่เฟรมแรกที่ความสูงหน้าพอ — เร็วกว่ารอ load หลายเท่าและไม่ต้องรอรูป
+     หยุดทันทีถ้าผู้ใช้ขยับเอง (wheel/touch/key/pointer) จะได้ไม่แย่งมือกับคนอ่าน -->
+<script>
+(function () {
+  try {
+    if (!("scrollRestoration" in history)) return;
+    history.scrollRestoration = "manual";
+    var key = "ts:y:" + location.pathname;
+    var want = parseInt(sessionStorage.getItem(key) || "0", 10) || 0;
+    var timer = 0;
+    var save = function () { try { sessionStorage.setItem(key, String(Math.round(window.scrollY))); } catch (e) {} };
+    addEventListener("scroll", function () {
+      if (timer) return;
+      timer = setTimeout(function () { timer = 0; save(); }, 200);
+    }, { passive: true });
+    addEventListener("pagehide", save);
+    /* แถบเมนูต้องไม่ "โผล่" ตอนหน้าเปิดมากลางหน้าอยู่แล้ว (jek 25/8/26 · the-bed)
+       แถบมีสองชั้นที่ไล่เข้าเอง — พื้นทึบบน .nav-shell::before (opacity 300ms) กับเส้นทอง
+       บน border-color (400ms) — พอคืนตำแหน่ง scroll ปุ๊บ สคริปต์แถบเมนูใส่คลาส scrolled
+       ทั้งสองชั้นจึงไล่ให้เห็นทุกครั้งที่รีเฟรช ทั้งที่ผู้ใช้ไม่ได้เลื่อนอะไรเลย
+       ระหว่างช่วงคืนตำแหน่ง จึงปิดทรานซิชันของหัวเว็บไว้ = แถบอยู่ในสถานะสุดท้ายตั้งแต่
+       เฟรมแรก · เปิดคืนทันทีที่ผู้ใช้ขยับเอง (หรืออย่างช้า 900ms) การเลื่อนของจริงจึงยังลื่น */
+    if (want) {
+      var root = document.documentElement;
+      root.className += " nav-instant";
+      var st = document.createElement("style");
+      st.textContent = "html.nav-instant .nav-shell,html.nav-instant .nav-shell::before," +
+        "html.nav-instant .site-header,html.nav-instant header,html.nav-instant header > *," +
+        "html.nav-instant header > * > *{transition:none !important}";
+      (document.head || document.documentElement).appendChild(st);
+      var unlock = function () { root.className = root.className.replace(/\s*nav-instant/, ""); };
+      ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+        addEventListener(ev, unlock, { passive: true, once: true });
+      });
+      setTimeout(unlock, 900);
+    }
+    if (!want || location.hash) return;
+    var stop = false;
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+      addEventListener(ev, function () { stop = true; }, { passive: true, once: true });
+    });
+    var t0 = (performance.now ? performance.now() : 0);
+    var now = function () { return performance.now ? performance.now() : t0; };
+    var done = false;
+    var put = function () {
+      if (stop || done) return true;
+      var el = document.scrollingElement || document.documentElement;
+      if (!el || el.scrollHeight - window.innerHeight < want) return false;   /* หน้ายังสูงไม่พอ ค่อยลองใหม่ */
+      if (Math.round(window.scrollY) !== want) {
+        var prev = el.style.scrollBehavior;      /* html { scroll-behavior: smooth } จะทำให้การวางกลับกลายเป็นการไถ */
+        el.style.scrollBehavior = "auto";
+        window.scrollTo(0, want);
+        el.style.scrollBehavior = prev;
+      }
+      done = Math.round(window.scrollY) === want;
+      /* ใส่สถานะ "เลื่อนแล้ว" ให้หัวเว็บทันทีในจังหวะเดียวกับที่คืนตำแหน่ง — ไม่ต้องรอสคริปต์
+         ของหน้ามันเองซึ่งอยู่ท้าย <body> (วัดแล้วช้ากว่ากันราว 20ms = เห็นแถบเปล่าได้ 1 เฟรม)
+         เกณฑ์คนละค่าเพราะแต่ละที่ตั้งไว้ไม่เท่ากัน: .site-header > 8px · .nav-shell > 40px
+         (ดู js/main.js กับสคริปต์ท้ายหน้าเดโม) สคริปต์ของหน้าจะคำนวณซ้ำเองอยู่แล้ว ค่าจึงตรงกัน */
+      if (done) {
+        var mark = function (sel, cls, min) {
+          if (want <= min) return;
+          var n = document.querySelectorAll(sel);
+          for (var i = 0; i < n.length; i++) n[i].classList.add(cls);
+        };
+        /* หัวเว็บของแต่ละใบใช้คนละคลาสคนละเกณฑ์ (ของเดิมเป็นแบบนั้นมาก่อนแล้ว):
+           .site-header.scrolled >8px (เว็บเรา) · .nav-shell.scrolled >40px (the-bed)
+           .site-header.stuck (the-terrace ใช้ sentinel ไม่ใช่ตัวเลข — 80px คือค่าประมาณ)
+           header.small >120px (homecraft/lumen/glow-clinic ผ่าน js/nav-response.js)
+           เดาพลาดไม่เป็นไร สคริปต์ของหน้าคำนวณทับให้ในเฟรมถัดไป และช่วงนี้ทรานซิชันถูกปิดอยู่
+           การแก้จึงเป็นการสลับทันที ไม่ใช่การไล่สีให้เห็น */
+        mark(".site-header", "scrolled", 8);
+        mark(".nav-shell", "scrolled", 40);
+        mark(".site-header, header[data-header]", "stuck", 80);
+        mark("header, .site-header", "small", 120);
+      }
+      return done;
+    };
+    /* ลองทุกทางที่มาถึงก่อน: setTimeout(0) มักได้ก่อนเฟรมแรกด้วยซ้ำ · rAF ทำงานก่อนวาด
+       · readystatechange/DOMContentLoaded คือจุดที่ body ครบแล้วแน่ๆ
+       เหตุที่ไม่พอถ้าใช้ rAF อย่างเดียว: วัดแล้วบางหน้า (หน้าแรกของเว็บเรา) เฟรมแรก
+       มาก่อนที่ความสูงจะพอ ทำให้เลื่อนไม่ได้ แล้วต้องรอ rAF รอบถัดไป = เห็นหัวเว็บ 1 เฟรม */
+    /* สองสายแยกกัน สายละหนึ่งนัด — ถ้าให้สายเดียวนัดทั้ง setTimeout และ rAF
+       จำนวนนัดจะเพิ่มเป็นสองเท่าทุกรอบ (2^n) ภายในไม่กี่ร้อยมิลลิวินาที */
+    var tick = function () { if (put() || stop) return; if (now() - t0 < 3000) setTimeout(tick, 0); };
+    var frame = function () { if (put() || stop) return; if (now() - t0 < 3000) requestAnimationFrame(frame); };
+    tick();
+    frame();
+    document.addEventListener("readystatechange", put);
+    addEventListener("DOMContentLoaded", put);
+    addEventListener("load", put);
+  } catch (e) {}
+})();
+</script>
+  <!-- เดโมสาธิต ไม่ใช่ธุรกิจจริง: ห้ามให้เสิร์ชเอนจินเก็บเข้าดัชนี ไม่งั้นจะมีหน้า
+       ที่ดูเหมือนร้านจริง (มีชื่อ ราคา เบอร์โทร) ลอยอยู่บน Google ในชื่อโดเมนของเรา -->
+  <meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SUMMIT — Built for the Wild | Premium Insulated Water Bottles</title>
+  <link rel="canonical" href="https://tarmsung.pages.dev/work/summit/">
+<meta name="description" content="Triple-insulated stainless steel bottles that keep drinks ice-cold for 36 hours and piping hot for 18. Pressure-tested through 40 cycles. Backed by a lifetime promise." />
+<meta name="theme-color" content="#161616" />
+<!-- favicon เป็น data-URI ไม่ใช่ไฟล์แยก เพราะหน้านี้ต้องเป็น index.html ไฟล์เดียวเหมือนเดิม
+     รูปคือตัว S ทับพื้นถ่าน ใช้สี ember #b85c38 ตัวเดียวกับ accent ของเว็บ -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23161616'/%3E%3Cpath d='M9 22.5 L16 8 L23 22.5 L16 18.5 Z' fill='%23b85c38'/%3E%3C/svg%3E" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="SUMMIT" />
+<meta property="og:title" content="SUMMIT — Built for the Wild" />
+<meta property="og:description" content="Triple-insulated stainless steel. Ice-cold for 36 hours, piping hot for 18. Engineered for every summit, every shoreline, every season." />
+<meta property="og:image" content="slideshow1.webp" />
+<meta property="og:image:width" content="1376" />
+<meta property="og:image:height" content="768" />
+<meta name="twitter:card" content="summary_large_image" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Organization","name":"SUMMIT",
+ "description":"Premium insulated drinkware engineered for the outdoors.",
+ "logo":"slideshow1.webp",
+ "sameAs":[]}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- preload ฟอนต์หัวเรื่อง (Oswald) — คู่กับ display=optional ข้างล่าง
+     optional เฉยๆ แปลว่าคนที่เข้าครั้งแรกได้ฟอนต์สำรองทั้งหน้า preload ทำให้ไฟล์
+     มาทันช่วงต้นเกือบทุกครั้ง · มีสองไฟล์เพราะ Google เสิร์ฟ Chrome กับ Safari คนละตัว
+     (เติมอัตโนมัติด้วย playbook/fix-font-flash.mjs) -->
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/oswald/v57/TK3IWkUHHAIjg75cFRf3bXL8LICs1_Fv40pKlN4NNSeSASz7FmlWHYg.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/oswald/v57/TK3IWkUHHAIjg75cFRf3bXL8LICs1_Fv40pKlN4NNSeSASz7FmlWHYjMdZwl.woff2" />
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=optional" rel="stylesheet">
+<style>
+  :root {
+    --bg: #faf7f2;
+    --bg-alt: #efe9dd;
+    --ink: #161616;
+    --ink-soft: #2d2d2d;
+    --muted: #5a5853;
+    --line: #d9d2c4;
+    --accent: #b85c38;
+    --accent-dark: #8f4426;
+    --sand: #c9a961;
+    --navy: #0f2942;
+    --forest: #7fb069;
+    --forest-deep: #4f7a3d;
+    --white: #ffffff;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+  /* nav สูง 72px และ sticky — ไม่มีบรรทัดนี้ ขอบบนของ section ที่คลิกไปหาจะไปจอด
+     ใต้แถบเมนูพอดี (วัดแล้ว: #bottles ไปหยุดที่ top 0 ซึ่งอยู่ใต้ nav ทั้งแถบ) */
+  /* 23/8/26 — เดิมเขียนเป็น section[id] ซึ่งคุมเฉพาะจุดยึดที่เป็น <section> จริงๆ
+     จุดยึดที่เป็น div/แถวอื่นหลุดหมด (วัดได้ #collections จอดที่ 51 ใต้แถบสูง 73)
+     ย้ายมาที่ scroll-padding-top ของ html = คุมทุกจุดยึดในหน้า กลไกเดียวกับเดโมใบอื่น */
+  html { scroll-padding-top: 85px; }   /* nav sticky 73 + 12 */
+
+  body {
+    margin: 0;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, .display {
+    font-family: 'Oswald', 'Inter', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    line-height: 1.05;
+    margin: 0;
+    text-transform: uppercase;
+  }
+
+  img { max-width: 100%; display: block; }
+  a { color: inherit; text-decoration: none; }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; }
+
+  .container {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+
+  /* --- skip link: คนที่ใช้คีย์บอร์ดไม่ต้องกด Tab ผ่านเมนูทุกครั้งที่เข้าหน้า
+     ซ่อนไว้จนกว่าจะโฟกัส แล้วโผล่มาเป็นปุ่มจริงตรงมุมซ้ายบน --- */
+  .skip-link {
+    position: absolute;
+    left: 12px;
+    top: -60px;
+    z-index: 100;
+    background: var(--ink);
+    color: #fff;
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    transition: top 0.15s ease;
+  }
+  .skip-link:focus { top: 12px; }
+
+  /* ============ TOP BAR ============ */
+  .topbar {
+    background: var(--ink);
+    color: #f5f1e8;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 10px 0;
+    text-align: center;
+  }
+  .topbar strong { color: var(--sand); font-weight: 600; }
+
+  /* ============ NAV ============ */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* 26/8/26 เดิม height: 72px ตายตัว — พอแถบถูกสั่งให้เตี้ยลงตอนเลื่อน ลูกไม่หดตาม
+       แถวจึงล้นออกนอกแถบ 20px อยู่เป็นเดือน · ใช้ padding เป็นตัวคุมความสูงแทน
+       เพื่อให้กลไกกลาง (หด padding ของลูก) ทำงานได้ — ห้ามกลับไปสั่ง height */
+    padding-block: 13.5px; min-height: 46px;   /* 46 + 27 = 73px เท่าความสูงเดิม
+       min-height ตรึงแถวไม่ให้ขยับตามฟอนต์ที่โหลดทีหลัง (ก้อนกลางล้างเป็น 0 ตอน .small) */
+  }
+  .logo {
+    font-family: 'Oswald', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--ink);
+  }
+  .logo span { color: var(--accent); }
+  .nav-links {
+    display: flex;
+    gap: 36px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .nav-links a {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    padding: 8px 0;
+    position: relative;
+    transition: color 0.2s ease;
+  }
+  .nav-links a:hover { color: var(--accent); }
+  .nav-links a::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.25s ease;
+  }
+  .nav-links a:hover::after { transform: scaleX(1); }
+
+  .nav-icons { display: flex; gap: 14px; align-items: center; }
+  .icon-btn {
+    /* 44 ไม่ใช่ 40: ต่ำกว่า 44px คือเป้ากดที่นิ้วพลาดได้บนมือถือ
+       แถบ nav สูง 72px จึงยังใส่ได้สบายโดยไม่ต้องขยับอะไรอย่างอื่น */
+    width: 44px; height: 44px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 999px;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  .icon-btn:hover { background: var(--bg-alt); }
+  .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .cart-count {
+    position: absolute;
+    top: -2px;
+    right: -4px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    width: 18px; height: 18px;
+    border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .cart-wrap { position: relative; }
+
+  .mobile-toggle { display: none; }
+
+  /* ============ HERO ============ */
+  .hero {
+    position: relative;
+    height: 88vh;
+    min-height: 620px;
+    max-height: 880px;
+    overflow: hidden;
+    background: #0c0c0c;
+  }
+  .hero-slides {
+    position: absolute;
+    inset: 0;
+  }
+  .hero-slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    overflow: hidden;
+    animation: heroFade 21s infinite cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  .hero-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transform: scale(1.05);
+    animation: heroZoom 21s infinite cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .hero-slide:nth-child(1), .hero-slide:nth-child(1) img { animation-delay: 0s; }
+  .hero-slide:nth-child(2), .hero-slide:nth-child(2) img { animation-delay: 7s; }
+  .hero-slide:nth-child(3), .hero-slide:nth-child(3) img { animation-delay: 14s; }
+
+  /* 3 ใบ รอบ 21 วิ: จาง-เข้า 1.12 วิ (5.33%) ค้างถึง 7 วิ (33.33%) จาง-ออกจบที่ 8.96 วิ (42.67%)
+     ตัวเลขพวกนี้คือของเดิมของรอบ 28 วิ คูณ 4/3 — เวลาจริงต่อใบจึงเท่าเดิมเป๊ะ */
+  @keyframes heroFade {
+    0%     { opacity: 0; }
+    5.33%  { opacity: 1; }
+    33.33% { opacity: 1; }
+    42.67% { opacity: 0; }
+    100%   { opacity: 0; }
+  }
+  @keyframes heroZoom {
+    0%     { transform: scale(1.05); }
+    42.67% { transform: scale(1.18); }
+    100%   { transform: scale(1.18); }
+  }
+
+  .hero-progress {
+    position: absolute;
+    bottom: 32px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    display: flex;
+    gap: 10px;
+  }
+  .hero-progress span {
+    width: 40px;
+    height: 3px;
+    background: rgba(255,255,255,0.55);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-progress span::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    transform: translateX(-101%);
+    animation: progressBar 21s infinite linear;
+  }
+  .hero-progress span:nth-child(1)::after { animation-delay: 0s; }
+  .hero-progress span:nth-child(2)::after { animation-delay: 7s; }
+  .hero-progress span:nth-child(3)::after { animation-delay: 14s; }
+  @keyframes progressBar {
+    0%     { transform: translateX(-101%); }
+    33.33% { transform: translateX(0); }
+    100%   { transform: translateX(0); }
+  }
+
+  .hero::after {
+    content: "";
+    position: absolute; inset: 0;
+    z-index: 1;
+    background: linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.35) 60%, rgba(0,0,0,0.7) 100%);
+  }
+  /* scrim ฝั่งข้อความ — ตัวหนังสือทับท้องฟ้าสว่างของสไลด์ที่ 1 กับ 4 อ่านไม่ออก
+     หรี่เฉพาะแถบซ้ายที่ตัวหนังสืออยู่ ไม่หรี่ทั้งรูป (ตัวขวดฝั่งขวายังสว่างเท่าเดิม)
+     วัดจากพิกเซลจริงด้วย _contrast.mjs + _contrast.py: eyebrow 5.69:1 · ย่อหน้า 11.59:1 */
+  .hero::before {
+    content: "";
+    position: absolute; inset: 0;
+    z-index: 1;
+    background: linear-gradient(90deg, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.60) 34%, rgba(0,0,0,0.12) 62%, rgba(0,0,0,0) 78%);
+  }
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding-bottom: 80px;
+    color: #fff;
+  }
+  .eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--sand);
+    margin-bottom: 18px;
+  }
+  .hero h1 {
+    font-size: clamp(48px, 8vw, 120px);
+    max-width: 900px;
+    margin-bottom: 24px;
+    color: #fff;
+  }
+  .hero p {
+    font-size: 18px;
+    max-width: 540px;
+    color: rgba(255,255,255,0.85);
+    margin: 0 0 36px 0;
+  }
+  .hero-ctas { display: flex; gap: 16px; flex-wrap: wrap; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 32px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+  }
+  .btn-primary {
+    background: #fff;
+    color: var(--ink);
+  }
+  .btn-primary:hover { background: var(--accent); color: #fff; }
+  .btn-outline {
+    background: transparent;
+    color: #fff;
+    border-color: rgba(255,255,255,0.6);
+  }
+  .btn-outline:hover { background: #fff; color: var(--ink); border-color: #fff; }
+  .btn-dark {
+    background: var(--ink);
+    color: #fff;
+  }
+  .btn-dark:hover { background: var(--accent); }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .btn svg { transition: transform 0.2s ease; }
+  .btn:hover svg { transform: translateX(4px); }
+
+  /* ============ SECTION HEAD ============ */
+  section { padding: 96px 0; }
+  .section-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 48px;
+    flex-wrap: wrap;
+  }
+  .section-head h2 {
+    font-size: clamp(36px, 5vw, 64px);
+    color: var(--ink);
+  }
+  .section-head p {
+    color: var(--muted);
+    max-width: 360px;
+    margin: 0;
+    font-size: 15px;
+  }
+  .link-arrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    /* กรอบกดสูง 27px มาก่อน — ดันให้ครบ 44px ด้วย padding บน แล้วหักกลับด้วย margin
+       ลบเท่ากัน เพื่อให้ตัวหนังสือกับเส้นใต้ไม่ขยับจากที่เดิมเลย */
+    padding-top: 17px;
+    margin-top: -17px;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink);
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 4px;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .link-arrow:hover { color: var(--accent); border-color: var(--accent); }
+  .link-arrow svg { transition: transform 0.2s ease; }
+  .link-arrow:hover svg { transform: translateX(4px); }
+
+  /* ============ CATEGORY GRID ============ */
+  .categories {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  .cat-card {
+    position: relative;
+    aspect-ratio: 3/4;
+    overflow: hidden;
+    background: linear-gradient(180deg, #f4eee1 0%, #ede5d2 55%, #d8cdb6 100%);
+    cursor: pointer;
+  }
+  .cat-card img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .cat-card:hover img { transform: scale(1.06); }
+  .cat-card::after {
+    content: "";
+    position: absolute; inset: 0;
+    /* การ์ด Bottles เป็นขวดสีอ่อนบนพื้นครีม พื้นหลังใต้ "SHOP NOW" จึงสว่างเกือบขาว
+       gradient เดิม (transparent 40% -> 0.7) ไม่พอ · หลังเร่ง วัดได้ 11.31:1 */
+    background: linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.45) 58%, rgba(0,0,0,0.90) 100%);
+  }
+  .cat-meta {
+    position: absolute;
+    inset: auto 0 0 0;
+    z-index: 2;
+    padding: 28px 24px;
+    color: #fff;
+  }
+  .cat-meta h3 {
+    font-size: 28px;
+    margin-bottom: 4px;
+  }
+  .cat-meta span {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.95);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+
+  /* ============ PRODUCTS ============ */
+  .products {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+  }
+  .product {
+    background: var(--white);
+    cursor: pointer;
+    transition: transform 0.3s ease;
+  }
+  .product:hover { transform: translateY(-4px); }
+  .product-img {
+    position: relative;
+    aspect-ratio: 1;
+    background: linear-gradient(180deg, #f4eee1 0%, #ede5d2 55%, #d8cdb6 100%);
+    overflow: hidden;
+  }
+  .product-img::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: radial-gradient(ellipse 70% 35% at 50% 96%, rgba(20,18,12,0.32) 0%, rgba(20,18,12,0) 65%);
+  }
+  .product-img img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s ease;
+  }
+  .product:hover .product-img img { transform: scale(1.04); }
+  .badge {
+    position: absolute;
+    top: 16px; left: 16px;
+    background: var(--ink);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 6px 10px;
+    z-index: 2;
+  }
+  .badge.new { background: var(--accent); }
+  .product-info {
+    padding: 20px 4px;
+  }
+  .product-info h4 {
+    font-size: 20px;
+    margin-bottom: 6px;
+    text-transform: none;
+    letter-spacing: 0;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+  }
+  .product-info .meta {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .product-info .price {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .swatches {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .swatch {
+    width: 18px; height: 18px;
+    border-radius: 999px;
+    border: 2px solid var(--white);
+    box-shadow: 0 0 0 1px var(--line);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .swatch:hover { transform: scale(1.15); }
+  .swatches .swatch:first-child {
+    box-shadow: 0 0 0 1.5px var(--ink);
+  }
+
+  /* ============ STORY / SPLIT ============ */
+  .story {
+    background: var(--ink);
+    color: #f3ede2;
+    padding: 0;
+  }
+  .story-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 640px;
+  }
+  .story-img { position: relative; }
+  .story-img img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+  .story-text {
+    position: relative;
+    overflow: hidden;
+    z-index: 0;          /* สร้าง stacking context ให้มาร์กที่ z-index:-1 อยู่หลังตัวหนังสือ
+                            แต่ยังอยู่หน้าพื้นดำของ section */
+    padding: 96px 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .story-text .eyebrow { color: var(--sand); }
+  .story-text h2 {
+    font-size: clamp(40px, 5vw, 72px);
+    color: #fff;
+    margin-bottom: 28px;
+  }
+  .story-text p {
+    font-size: 17px;
+    color: rgba(255,255,255,0.78);
+    margin: 0 0 36px 0;
+    max-width: 480px;
+  }
+
+  /* ============ STATS / FEATURES ============ */
+  .features {
+    background: var(--bg-alt);
+  }
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 48px;
+  }
+  .feature {
+    text-align: left;
+  }
+  .feature-icon {
+    width: 56px; height: 56px;
+    background: var(--ink);
+    color: var(--sand);
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-bottom: 24px;
+  }
+  .feature h4 {
+    font-family: 'Oswald', sans-serif;
+    font-size: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 12px;
+  }
+  .feature p {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0;
+  }
+
+  /* ============ LIFESTYLE BANNER ============ */
+  .banner {
+    position: relative;
+    min-height: 560px;
+    overflow: hidden;
+    padding: 0;
+  }
+  .banner img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+  .banner::after {
+    content: "";
+    position: absolute; inset: 0;
+    /* scrim เดิม (0.65/0.3/0.1) บางเกินสำหรับภาพภูเขากลางวัน
+       หลังเร่ง วัดได้ eyebrow 8.02:1 · ย่อหน้า 12.35:1 */
+    background: linear-gradient(90deg, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.58) 42%, rgba(0,0,0,0.18) 74%, rgba(0,0,0,0.05) 100%);
+  }
+  .banner-content {
+    position: relative;
+    z-index: 2;
+    padding: 120px 0;
+    color: #fff;
+    max-width: 620px;
+  }
+  .banner h2 {
+    font-size: clamp(36px, 5vw, 64px);
+    color: #fff;
+    margin-bottom: 20px;
+  }
+  .banner p {
+    color: rgba(255,255,255,0.88);
+    font-size: 17px;
+    margin: 0 0 36px 0;
+  }
+
+  /* ============ COLLECTION GRID (2 col) ============ */
+  .collections {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .col-card {
+    position: relative;
+    min-height: 480px;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .col-card img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .col-card:hover img { transform: scale(1.04); }
+  .col-card::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.72) 100%);
+  }
+  .col-meta {
+    position: absolute;
+    inset: auto 0 0 0;
+    z-index: 2;
+    padding: 40px;
+    color: #fff;
+  }
+  .col-meta h3 {
+    font-size: 36px;
+    margin-bottom: 8px;
+  }
+  .col-meta p {
+    color: rgba(255,255,255,0.85);
+    margin: 0 0 20px 0;
+    font-size: 14px;
+  }
+
+  /* ============ REVIEWS ============ */
+  .reviews-bg { background: var(--bg-alt); }
+  .review-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .review {
+    background: #fff;
+    padding: 36px 32px;
+  }
+  .stars {
+    display: inline-flex;
+    gap: 2px;
+    color: var(--accent);
+    margin-bottom: 18px;
+  }
+  .review h4 {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .review p {
+    font-size: 14px;
+    color: var(--muted);
+    margin: 0 0 24px 0;
+  }
+  .review .who {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  /* ============ NEWSLETTER ============ */
+  .newsletter {
+    background: var(--ink);
+    color: #fff;
+    text-align: center;
+  }
+  .newsletter h2 {
+    font-size: clamp(36px, 5vw, 64px);
+    color: #fff;
+    margin-bottom: 16px;
+  }
+  .newsletter p {
+    color: rgba(255,255,255,0.75);
+    max-width: 520px;
+    margin: 0 auto 36px;
+    font-size: 16px;
+  }
+  .newsletter-form {
+    display: flex;
+    max-width: 520px;
+    margin: 0 auto;
+    gap: 0;
+    border: 1px solid rgba(255,255,255,0.25);
+  }
+  .newsletter-form input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 18px 22px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 15px;
+    outline: none;
+  }
+  .newsletter-form input::placeholder { color: rgba(255,255,255,0.5); }
+  .newsletter-form input:focus { background: rgba(255,255,255,0.04); }
+  .newsletter-form button {
+    background: var(--accent);
+    color: #fff;
+    padding: 18px 32px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    transition: background 0.2s ease;
+  }
+  .newsletter-form button:hover { background: var(--accent-dark); }
+
+  /* ============ FOOTER ============ */
+  footer {
+    background: #0c0c0c;
+    color: #c9c4ba;
+    padding: 80px 0 32px;
+  }
+  .foot-grid {
+    display: grid;
+    grid-template-columns: 1.4fr repeat(4, 1fr);
+    gap: 48px;
+    margin-bottom: 64px;
+  }
+  .foot-brand .logo {
+    color: #fff;
+    margin-bottom: 16px;
+    display: inline-block;
+  }
+  .foot-brand p {
+    font-size: 14px;
+    color: rgba(255,255,255,0.55);
+    margin: 0 0 24px 0;
+    max-width: 280px;
+  }
+  .socials { display: flex; gap: 12px; }
+  .socials a {
+    width: 44px; height: 44px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(255,255,255,0.18);
+    color: #fff;
+    transition: all 0.2s ease;
+  }
+  .socials a:hover { background: var(--accent); border-color: var(--accent); }
+  .foot-col h5 {
+    font-family: 'Oswald', sans-serif;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #fff;
+    margin: 0 0 20px 0;
+    font-weight: 600;
+  }
+  .foot-col ul {
+    list-style: none;
+    margin: 0; padding: 0;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .foot-col a {
+    font-size: 13px;
+    color: rgba(255,255,255,0.6);
+    transition: color 0.2s ease;
+  }
+  .foot-col a:hover { color: var(--sand); }
+  .foot-bottom {
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+  }
+  .foot-bottom a:hover { color: var(--sand); }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 1024px) {
+    .nav-links { display: none; }
+    .mobile-toggle { display: inline-flex; }
+    /* ปุ่มแฮมเบอร์เกอร์เดิมกดแล้วไม่เกิดอะไรขึ้นเลย — วัดแล้ว display ของ .nav-links
+       เป็น none ทั้งก่อนและหลังกด ที่ <=1024px จึงไม่มีทางไปหา section ไหนได้เลย
+       ปุ่มที่กดแล้วเงียบแย่กว่าไม่มีปุ่ม เพราะคนจะกดซ้ำแล้วคิดว่าเว็บค้าง */
+    .nav.is-open .nav-links {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      position: absolute;
+      left: 0; right: 0; top: 100%;
+      background: var(--bg);
+      border-bottom: 1px solid var(--line);
+      box-shadow: 0 18px 32px rgba(0,0,0,0.10);
+      padding: 4px 24px 16px;
+      z-index: 60;
+    }
+    .nav.is-open .nav-links a {
+      display: block;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 14px;
+    }
+    .nav.is-open .nav-links li:last-child a { border-bottom: 0; }
+    .nav.is-open .nav-links a::after { display: none; }
+    /* ปิด JS = แผงเมนูเปิดไม่ได้ ปุ่มแฮมเบอร์เกอร์จึงกลายเป็นปุ่มหลอก
+       ซ่อนปุ่มแล้วปล่อยลิงก์ให้เรียงต่อกันไปเลย ยังกดไปหาทุก section ได้เหมือนเดิม */
+    html:not(.js) .mobile-toggle { display: none; }
+    html:not(.js) .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 16px;
+    }
+    html:not(.js) .nav-inner { height: auto; flex-wrap: wrap; padding-bottom: 10px; }
+    .categories { grid-template-columns: repeat(2, 1fr); }
+    .products { grid-template-columns: repeat(2, 1fr); }
+    .feature-grid { grid-template-columns: repeat(2, 1fr); gap: 32px; }
+    .story-grid { grid-template-columns: 1fr; }
+    .story-img { min-height: 380px; }
+    .story-text { padding: 64px 32px; }
+    .collections { grid-template-columns: 1fr; }
+    .review-grid { grid-template-columns: 1fr; }
+    .foot-grid { grid-template-columns: 1fr 1fr; gap: 40px; }
+  }
+  @media (max-width: 640px) {
+    section { padding: 64px 0; }
+    .container { padding: 0 18px; }
+    .hero { min-height: 520px; height: 80vh; }
+    .hero-content { padding-bottom: 48px; }
+    .hero-ctas .btn { padding: 14px 22px; font-size: 12px; }
+    .categories { grid-template-columns: 1fr; }
+    .products { grid-template-columns: 1fr 1fr; gap: 16px; }
+    .feature-grid { grid-template-columns: 1fr; }
+    .foot-grid { grid-template-columns: 1fr; }
+    .newsletter-form { flex-direction: column; border: none; gap: 12px; }
+    .newsletter-form input { border: 1px solid rgba(255,255,255,0.25); }
+    .newsletter-form button { width: 100%; }
+    .section-head { flex-direction: column; align-items: flex-start; }
+    .story-text { padding: 48px 20px; }
+    .col-meta { padding: 24px; }
+    .col-meta h3 { font-size: 28px; }
+  }
+
+
+  /* ==================================================================
+     MOTION LAYER — added 2026-08-20, สูตร "แก้เว็บจืด"
+     (playbook/PROMPT-JUED.md — zamil -> Velvet Leaf -> The Bed -> SUMMIT)
+
+     กติกาที่โค้ดข้างล่างนี้ยึด:
+     - ทุก state ตั้งต้นของ animation อยู่ในนี้ ไม่ใช่ใน JS
+     - ทุกอย่างที่ตั้ง opacity:0 ต้องอยู่ใต้ html.js — ปิด JS แล้วหน้าต้องอ่านได้ครบ
+     - transform/opacity เท่านั้น ไม่แตะ layout property
+     ================================================================== */
+
+  /* --- มาร์กประจำแบรนด์: สันเขาซ้อนชั้น 3 ชั้น ใช้ใหญ่ ---
+     เคยเป็นเส้นชั้นความสูง (contour) แต่ contour จริงคือวงซ้อนวง มันเลยอ่านเป็น
+     "ลายนิ้วมือ" ไม่ใช่ภูเขา — เปลี่ยนเป็นเส้นสันเขา ซึ่งเป็นภาษาเดียวกับเส้นคั่น
+     ใต้หัวข้อทุกอันในหน้านี้ (.ridge) แค่ขยายใหญ่ = ทั้งเว็บพูดภาษาเดียว
+     3 ชั้นไล่ระยะใกล้-ไกล เส้นล่างสุดคือสันที่อยู่ใกล้ที่สุด
+     ทุกสันลาดลงจบที่ระดับพื้นของตัวเอง ไม่ใช่วิ่งชนขอบ viewBox แล้วหายไป —
+     เส้นเปิดที่จบกลางอากาศอ่านเป็นเส้นขาด ไม่ใช่ภูเขา
+     ตัวเดียวกันทั้งเว็บ ต่างกันแค่สีกับที่วาง: hero = ขาว, story = ทราย
+     ตั้ง alpha ที่ .16-.22 ไม่ใช่ .04 — บทเรียนจาก The Bed: ทองที่ 4% บนพื้นเกือบดำ
+     คือความสว่างขึ้น ~1% ซึ่งไม่มีอยู่จริงบนจอ */
+  .topo {
+    position: absolute;
+    pointer-events: none;
+    color: currentColor;
+  }
+  .topo path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    /* ยอดเขาเป็นมุมหัก ถ้าไม่ mitre ให้มนปลายจะแหลมเป็นหนามตอนเส้นบาง */
+    stroke-linejoin: round;
+  }
+  .topo--hero {
+    /* จัดขอบขวาให้ตรงกับขอบในของ .container (max-width 1400 + padding 24)
+       ลอยห่างขอบจอเท่ากันทุกด้านจะอ่านเป็น "สติกเกอร์แปะ" ไม่ใช่ส่วนหนึ่งของหน้า */
+    right: max(24px, calc((100% - 1400px) / 2 + 24px));
+    /* วางเทียบกับก้อนตัวหนังสือฝั่งซ้าย ไม่ใช่เทียบขอบล่าง — สองก้อนนี้ถ่วงกัน
+       เป็นสองคอลัมน์: ตัวหนังสือซ้าย มาร์กขวา
+       5% ไม่ใช่ 15%: ที่ 15% มันลอยขึ้นไปคร่อมตัวสินค้าในรูป ต้องนั่งต่ำติดพื้นภาพ
+       เหมือนเงาที่พื้น ไม่ใช่ลอยกลางอากาศ */
+    bottom: 5%;
+    width: min(560px, 42vw);
+    z-index: 2;
+    color: #fff;
+    opacity: 0.22;
+  }
+  .topo--story {
+    z-index: -1;
+    /* ก่อนหน้านี้ตั้งใจให้ล้นมุมซ้ายล่าง ตอนที่มาร์กเป็นวงปิด (contour) — พอเปลี่ยนเป็น
+       เทือกเขาที่ตั้งบนพื้น การล้นขอบจะตัดฐานเขาทิ้ง เหลือแต่ยอดลอย = อ่านเป็นเส้นขาด
+       ของชนิดเดียวกันต้องใช้ท่าเดียวกัน: อยู่ในกรอบครบทั้ง hero และ story */
+    left: 26px; bottom: 26px;
+    width: min(520px, 72%);
+    color: var(--sand);
+    opacity: 0.18;
+  }
+  html.js .topo path {
+    stroke-dasharray: var(--len);
+    stroke-dashoffset: var(--len);
+  }
+  html.js .topo.is-in path {
+    transition: stroke-dashoffset 2.2s cubic-bezier(0.33, 0, 0.15, 1);
+    stroke-dashoffset: 0;
+  }
+  html.js .topo.is-in path:nth-child(2) { transition-delay: 0.12s; }
+  html.js .topo.is-in path:nth-child(3) { transition-delay: 0.24s; }
+  html.js .topo.is-in path:nth-child(4) { transition-delay: 0.36s; }
+  html.js .topo.is-in path:nth-child(5) { transition-delay: 0.48s; }
+
+  /* --- เส้นคั่นใต้หัวข้อ: "วาด" ตัวเองเป็นสันเขา ไม่ใช่ border-bottom ---
+     รูปทรงมาจากตัวแบรนด์ (summit = ยอดเขา) ไม่ใช่เส้นตรงกลางๆ */
+  .ridge { display: block; margin-top: 20px; overflow: visible; }
+  .ridge path {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .ridge--light path { stroke: var(--sand); }
+  html.js .ridge path {
+    stroke-dasharray: var(--len);
+    stroke-dashoffset: var(--len);
+  }
+  html.js .ridge.is-in path {
+    transition: stroke-dashoffset 1.1s cubic-bezier(0.4, 0, 0.2, 1) 0.15s;
+    stroke-dashoffset: 0;
+  }
+
+  /* --- หัวข้อขึ้นทีละคำจากใต้ mask ---
+     ห่อคำด้วย span ซ้อนสองชั้น ช่องว่างระหว่างคำยังเป็น text node จริง
+     => ลากคลุมแล้ว copy ออกมาได้เป็นประโยคปกติ และ screen reader อ่านต่อกันปกติ */
+  html.js .rise .w {
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: bottom;
+    padding-bottom: 0.1em;
+    margin-bottom: -0.1em;
+  }
+  html.js .rise .w > span {
+    display: inline-block;
+    transform: translateY(108%);
+    transition: transform 0.85s cubic-bezier(0.22, 0.8, 0.2, 1);
+  }
+  html.js .rise.is-in .w > span { transform: none; }
+
+  /* --- reveal ทั่วไปของการ์ด (หน่วงเป็นขั้นด้วย --d ที่ JS คำนวณเป็น ms) --- */
+  html.js .reveal {
+    opacity: 0;
+    transform: translateY(26px);
+  }
+  html.js .reveal.is-in {
+    transition: opacity 0.7s ease var(--d, 0ms), transform 0.7s cubic-bezier(0.22, 0.8, 0.2, 1) var(--d, 0ms);
+    opacity: 1;
+    transform: none;
+  }
+
+  /* --- แถบตัวเลข: ตัวเลขวิ่งมา + ระดับน้ำที่ไต่ขึ้นในการ์ด ---
+     ทุกตัวเลขในแถบนี้มีอยู่ในเนื้อหาหน้านี้อยู่แล้ว (hero 36/18, story 40, reviews 14,000)
+     ไม่มีตัวไหนคิดขึ้นใหม่ */
+  .stats {
+    background: var(--ink);
+    color: #f3ede2;
+    padding: 0;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .stat {
+    position: relative;
+    overflow: hidden;
+    padding: 44px 28px 40px;
+    border-left: 1px solid rgba(255,255,255,0.10);
+  }
+  .stat:first-child { border-left: 0; }
+  .stat::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(201,169,97,0.16) 0%, rgba(201,169,97,0.05) 100%);
+    transform: translateY(101%);
+    z-index: 0;
+  }
+  html.js .stat.is-in::before {
+    transition: transform 1.3s cubic-bezier(0.33, 0, 0.15, 1) var(--d, 0ms);
+    transform: none;
+  }
+  .stat > * { position: relative; z-index: 1; }
+  .stat-num {
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(40px, 5vw, 64px);
+    font-weight: 600;
+    line-height: 1;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    align-items: baseline;
+    gap: 2px;
+  }
+  .stat-num .unit { font-size: 0.42em; color: var(--sand); letter-spacing: 0.04em; }
+  .stat-label {
+    margin-top: 14px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    /* #c9a961 บน #161616 — วัดจากพิกเซลจริงได้ 5.80:1 ผ่านเกณฑ์ 4.5:1 ของตัวเล็ก */
+    color: var(--sand);
+  }
+  .stat-sub {
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: rgba(255,255,255,0.62);
+  }
+
+  /* --- ไอคอน feature: น้ำไต่ขึ้นเต็มกล่อง (ภาษาของขวดน้ำ ไม่ใช่ fade ทั่วไป) --- */
+  .feature-icon { position: relative; overflow: hidden; }
+  .feature-icon::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    transform: translateY(101%);
+    z-index: 0;
+  }
+  html.js .feature.is-in .feature-icon::before {
+    transition: transform 0.9s cubic-bezier(0.33, 0, 0.15, 1) var(--d, 0ms);
+    transform: none;
+  }
+  /* ทราย #c9a961 บนส้ม #b85c38 = 2.02:1 — ไอคอนจมหายตอนน้ำขึ้นเต็มกล่อง
+     สลับเป็นขาว: วัดจากพิกเซลจริงได้ 4.34:1 (เกณฑ์ non-text ของ WCAG คือ 3:1) */
+  html.js .feature.is-in .feature-icon {
+    transition: color 0.9s ease var(--d, 0ms);
+    color: #fff;
+  }
+  .feature-icon svg { position: relative; z-index: 1; }
+
+  @media (max-width: 1024px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .stat:nth-child(3) { border-left: 0; }
+    .stat:nth-child(n+3) { border-top: 1px solid rgba(255,255,255,0.10); }
+  }
+  @media (max-width: 640px) {
+    .stat { padding: 32px 18px 30px; }
+    .stat-label { letter-spacing: 0.16em; font-size: 11px; }
+    /* มือถือ: ครึ่งล่างของ hero เป็นตัวหนังสือกับปุ่มเต็มความกว้าง วางมาร์กไว้ตรงนั้น
+       มันจะไปนอนอยู่ใต้ปุ่มพอดี — ย้ายขึ้นครึ่งบนที่เป็นรูปเปล่า (แต่ยังอยู่ในกรอบครบ) */
+    .topo--hero { right: 16px; top: 7%; bottom: auto; width: 72vw; opacity: 0.20; }
+    .topo--story { left: 20px; bottom: 20px; width: 84%; }
+  }
+
+
+  /* --- grain: ทับทั้งหน้าด้วย fractal noise บางๆ ให้พื้นเป็นวัสดุ ไม่ใช่สีเรียบ (ENGINE §1)
+     ใช้ feTurbulence เป็น data-URI แทนไฟล์รูป จะได้ยังเป็น index.html ไฟล์เดียว --- */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.038;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+    /* บั๊กเดิม: heavy-handed rule ข้างบนทำให้ heroFade จบทันทีที่เฟรม 100% = opacity 0
+       ทั้งสี่สไลด์ => คนที่เปิด reduce motion เห็น hero เป็นกล่องดำล้วน
+       แก้: หยุด slideshow แล้วโชว์สไลด์แรกค้างไว้ */
+    .hero-slide { animation: none !important; opacity: 0 !important; }
+    .hero-slide:nth-child(1) { opacity: 1 !important; }
+    .hero-slide img { animation: none !important; transform: none !important; }
+    .hero-progress { display: none; }
+    html.js .rise .w > span,
+    html.js .reveal,
+    html.js .stat::before,
+    html.js .feature .feature-icon::before { transform: none !important; opacity: 1 !important; }
+    html.js .topo path,
+    html.js .ridge path { stroke-dashoffset: 0 !important; }
+  }
+
+
+/* ---- §11 ข้อ 5: หัวเว็บหดตอนเลื่อน + ไฮไลต์หัวข้อที่กำลังอ่าน ----------------
+   คลาส .small / a.on สลับโดย js/nav-response.js (ไฟล์เดียวกันทุกเดโม)
+   ตัวเลขความสูงต่างกันได้ตามหัวเว็บเดิมของแต่ละงาน แต่กลไกต้องเป็นตัวเดียวกัน */
+/* 26/8/26 — ลูกของแถบเคยตั้ง height: 72px ตายตัว ทำให้แถบที่ถูกบังคับเหลือ 52px
+   เตี้ยกว่าลูก = เกย 20px อยู่เป็นเดือน · ย้ายมาใช้กลไกกลาง (หด padding ของลูก)
+   จึงต้องเลิกล็อก height ที่ .nav-inner ด้วย ไม่งั้นลูกไม่ยอมหด — ดูบรรทัด .nav-inner ด้านบน */
+/* >>> nav-shrink · กลไกกลาง "หัวเว็บหดตอนเลื่อน" — แหล่งเดียวของทั้งกอง
+   แก้ที่ playbook/snippets/nav-shrink.css แล้วรัน: node playbook/sync-nav-shrink.mjs
+   ห้ามแก้ก้อนนี้ในไฟล์ปลายทาง — สคริปต์เขียนทับทุกครั้ง
+
+   กติกา (LOG-DEMO §15 · ด่าน playbook/audit-nav.mjs):
+   คลาสสวิตช์ = .small เท่านั้น · หดด้วย "padding ของลูก" เท่านั้น — ห้ามสั่ง height
+   ทำไมห้าม height: แถบหัวสูงเป็น auto เบราว์เซอร์ไล่ auto→เลขคงที่ไม่ได้ มันกระโดด
+   และลูกที่ตั้ง height ตายตัวจะไม่หดตาม แถบเตี้ยกว่าลูก = เกยทันที (summit เกย 20px อยู่เป็นเดือน)
+
+   ใบไหนต้องมีพื้นความสูงขั้นต่ำตอนหด (เช่น The Bed มีเพชรหมุน 45° ที่กินที่เกินผัง)
+   ให้ตั้งค่า --nav-pad-small ของใบนั้นเหนือก้อนนี้ ไม่ใช่เขียนกฎใหม่
+   ไม่ใส่ transition ให้ padding โดยตั้งใจ (24/8/26): padding เป็น layout property
+   ผิด DEMO-SPEC S2.3 และแถบที่หดคือแถบเดียวกับที่มี backdrop-filter = คิดผังใหม่+เบลอใหม่ทุกเฟรม */
+header.small > *, .site-header.small > * {
+  padding-top: var(--nav-pad-small, 0px) !important;
+  padding-bottom: var(--nav-pad-small, 0px) !important;
+  min-height: 0 !important;
+}
+header.small > * > *, .site-header.small > * > * {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  min-height: 0 !important;
+}
+@media (prefers-reduced-motion: reduce) { header, .site-header { transition: none !important; } }
+/* <<< nav-shrink */
+header a.on { border-bottom-color: var(--accent) !important; color: var(--accent) !important; }
+@media (prefers-reduced-motion: reduce) { header { transition: none !important; } }
+
+</style>
+</head>
+<body>
+
+<!-- ไอคอนชุดเดียวของหน้านี้ (สร้างด้วย playbook/make-icons.mjs) -->
+<svg class="sr-only" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0"><defs>
+  <symbol id="i-icon1" viewBox="0 0 24 24"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></symbol>
+  <symbol id="i-icon2" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+  <symbol id="i-icon3" viewBox="0 0 180 18"><path d="M2 16 L34 6 L52 12 L86 2 L112 14 L140 7 L178 16"/></symbol>
+  <symbol id="i-icon4" viewBox="0 0 560 300"><path d="M52 244 L108 166 L152 200 L214 106 L270 174 L326 128 L392 196 L446 156 L508 244"/>
+      <path d="M22 266 L80 214 L146 256 L218 170 L282 228 L348 186 L416 238 L472 202 L530 266"/>
+      <path d="M64 284 L130 238 L190 274 L262 216 L324 264 L390 230 L452 270 L514 242 L548 284"/></symbol>
+</defs></svg>
+<a class="skip-link" href="#bottles">Skip to products</a>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  Free shipping on orders over $50 — <strong>Shop new arrivals</strong>
+</div>
+
+<!-- NAV -->
+<header class="nav">
+  <div class="container nav-inner">
+    <a href="#content" class="logo">SUMM<span>I</span>T</a>
+    <nav>
+      <ul class="nav-links" id="nav-menu">
+        <li><a href="#bottles">Drinkware</a></li>
+        <li><a href="#collections">Collections</a></li>
+        <li><a href="#story">Our Story</a></li>
+        <li><a href="#features">Built For</a></li>
+        <li><a href="#reviews">Reviews</a></li>
+      </ul>
+    </nav>
+    <div class="nav-icons">
+      <button class="icon-btn" aria-label="Search">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      </button>
+      <button class="icon-btn" aria-label="Account">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </button>
+      <div class="cart-wrap">
+        <button class="icon-btn" aria-label="Cart">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+        </button>
+        <span class="cart-count">2</span>
+      </div>
+      <button class="icon-btn mobile-toggle" aria-label="Menu" aria-controls="nav-menu" aria-expanded="false">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="content">
+
+<!-- HERO -->
+<section class="hero" aria-label="Built for the Wild — Trailhead Series">
+  <div class="hero-slides" aria-hidden="true">
+    <div class="hero-slide">
+      <img src="slideshow1.webp" alt="Trailhead 32oz — triple-wall stainless against alpine sunset peaks" width="1376" height="768" loading="eager" fetchpriority="high" decoding="async" />
+    </div>
+    <div class="hero-slide">
+      <img src="slideshow2.webp" alt="Basecamp 24oz — vacuum sealed sand bottle at a forest tent campsite" width="1375" height="768" loading="eager" decoding="async" />
+    </div>
+    <div class="hero-slide">
+      <img src="slideshow3.webp" alt="Crosswind 18oz — matte black sport bottle on a mountain trail" width="1376" height="768" loading="eager" decoding="async" />
+    </div>
+  </div>
+  <svg class="topo topo--hero" viewBox="0 0 560 300" aria-hidden="true" focusable="false"><use href="#i-icon4"/></svg>
+  <div class="hero-progress" aria-hidden="true">
+    <span></span><span></span><span></span>
+  </div>
+  <div class="container hero-content">
+    <span class="eyebrow">New Collection — Trailhead Series</span>
+    <h1>Built for<br/>the Wild.</h1>
+    <p>Triple-insulated stainless steel. Drinks ice-cold for 36 hours, piping hot for 18. Engineered for every summit, every shoreline, every season.</p>
+    <div class="hero-ctas">
+      <a href="#bottles" class="btn btn-primary">
+        Shop Bottles
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-icon2"/></svg>
+      </a>
+      <a href="#story" class="btn btn-outline">Our Story</a>
+    </div>
+  </div>
+</section>
+
+<!-- STATS — ตัวเลขที่หน้านี้พูดไว้แล้ว เอามาให้มัน "วิ่งมา" แทนที่จะนั่งอยู่ในย่อหน้า
+     36 / 18 = จากพารากราฟ hero · 40 = จาก Our Story · 14,000 = จากหัวข้อ Reviews
+     ห้ามเติมตัวเลขที่หน้านี้ไม่ได้พูด -->
+<section class="stats" aria-label="Performance figures">
+  <div class="stat-grid">
+    <div class="stat">
+      <div class="stat-num"><span data-count="36">0</span><span class="unit">HRS</span></div>
+      <div class="stat-label">Ice Cold</div>
+      <p class="stat-sub">Triple-wall vacuum, full day in the sun.</p>
+    </div>
+    <div class="stat">
+      <div class="stat-num"><span data-count="18">0</span><span class="unit">HRS</span></div>
+      <div class="stat-label">Piping Hot</div>
+      <p class="stat-sub">Same wall, same seal, other direction.</p>
+    </div>
+    <div class="stat">
+      <div class="stat-num"><span data-count="40">0</span></div>
+      <div class="stat-label">Test Cycles</div>
+      <p class="stat-sub">Heat, cold and impact before it ships.</p>
+    </div>
+    <div class="stat">
+      <div class="stat-num"><span data-count="14000">0</span><span class="unit">+</span></div>
+      <div class="stat-label">Five-Star Reviews</div>
+      <p class="stat-sub">From the field, not from the office.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CATEGORIES -->
+<section id="bottles" aria-labelledby="h-1">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow" style="color: var(--accent);">Shop By Category</span>
+        <h2 class="rise" id="h-1" style="margin-top: 12px;">Drinkware That Goes the Distance</h2>
+      <svg class="ridge" width="180" height="18" viewBox="0 0 180 18" aria-hidden="true" focusable="false"><use href="#i-icon3"/></svg>
+      </div>
+      <p>From dawn patrols to desert crossings — pick the gear made for your next chapter.</p>
+    </div>
+
+    <div class="categories">
+      <a href="#new" class="cat-card reveal">
+        <img src="bottle-sand.webp" alt="Sand-colored insulated bottle" width="900" height="1350" loading="lazy" decoding="async" style="filter: sepia(0.65) saturate(0.55) hue-rotate(-15deg) brightness(1.28) contrast(0.95);" />
+        <div class="cat-meta">
+          <h3>Bottles</h3>
+          <span>Shop Now
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-icon2"/></svg>
+          </span>
+        </div>
+      </a>
+      <a href="#new" class="cat-card reveal">
+        <img src="cat-sport.webp" alt="Runner sprinting on a road at sunrise" width="900" height="475" loading="lazy" decoding="async" />
+        <div class="cat-meta">
+          <h3>Sport</h3>
+          <span>Shop Now
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-icon2"/></svg>
+          </span>
+        </div>
+      </a>
+      <a href="#new" class="cat-card reveal">
+        <img src="cat-tumblers.webp" alt="Olive insulated tumbler beside a camera and a folded map on a wool jacket" width="900" height="1350" loading="lazy" decoding="async" />
+        <div class="cat-meta">
+          <h3>Tumblers</h3>
+          <span>Shop Now
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-icon2"/></svg>
+          </span>
+        </div>
+      </a>
+      <a href="#new" class="cat-card reveal">
+        <img src="cat-accessories.webp" alt="Grey and rust-orange carabiners clipped together on a sun-warmed rock" width="900" height="596" loading="lazy" decoding="async" />
+        <div class="cat-meta">
+          <h3>Accessories</h3>
+          <span>Shop Now
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-icon2"/></svg>
+          </span>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- NEW ARRIVALS -->
+<section id="new" style="padding-top: 0;" aria-labelledby="h-2">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow" style="color: var(--accent);">New Arrivals</span>
+        <h2 class="rise" id="h-2" style="margin-top: 12px;">The Summer Drop</h2>
+      <svg class="ridge" width="180" height="18" viewBox="0 0 180 18" aria-hidden="true" focusable="false"><use href="#i-icon3"/></svg>
+      </div>
+      <a href="#" class="link-arrow">
+        View All
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-icon2"/></svg>
+      </a>
+    </div>
+
+    <div class="products">
+      <article class="product reveal">
+        <div class="product-img">
+          <span class="badge new">New</span>
+          <img src="prod-trailhead.webp" alt="Stark white insulated bottle, 32oz" width="800" height="800" loading="lazy" decoding="async" />
+        </div>
+        <div class="product-info">
+          <h4>Trailhead 32oz</h4>
+          <div class="meta">Triple-Wall · Stainless</div>
+          <div class="price">$48.00</div>
+          <div class="swatches">
+            <span class="swatch" style="background:#566a4d;" aria-label="Forest Green"></span>
+            <span class="swatch" style="background:#f4f0e8;" aria-label="Sand"></span>
+            <span class="swatch" style="background:#1c1c1c;" aria-label="Black"></span>
+            <span class="swatch" style="background:#0f2942;" aria-label="Navy"></span>
+            <span class="swatch" style="background:#b85c38;" aria-label="Rust"></span>
+          </div>
+        </div>
+      </article>
+
+      <article class="product reveal">
+        <div class="product-img">
+          <span class="badge">Bestseller</span>
+          <img src="bottle-sand.webp" alt="Sand-colored insulated water bottle" width="900" height="1350" loading="lazy" decoding="async" style="filter: sepia(0.65) saturate(0.55) hue-rotate(-15deg) brightness(1.28) contrast(0.95);" />
+        </div>
+        <div class="product-info">
+          <h4>Basecamp 24oz</h4>
+          <div class="meta">Vacuum Sealed · Leak-Proof</div>
+          <div class="price">$42.00</div>
+          <div class="swatches">
+            <span class="swatch" style="background:#566a4d;" aria-label="Forest Green"></span>
+            <span class="swatch" style="background:#1c1c1c;" aria-label="Black"></span>
+            <span class="swatch" style="background:#c9a961;" aria-label="Sand"></span>
+            <span class="swatch" style="background:#5f6f52;" aria-label="Olive"></span>
+          </div>
+        </div>
+      </article>
+
+      <article class="product reveal">
+        <div class="product-img">
+          <span class="badge new">New</span>
+          <img src="prod-crosswind.webp" alt="Matte black insulated reusable water bottle, minimalist design" width="800" height="1422" loading="lazy" decoding="async" />
+        </div>
+        <div class="product-info">
+          <h4>Crosswind 18oz</h4>
+          <div class="meta">Sport Cap · One-Hand Open</div>
+          <div class="price">$36.00</div>
+          <div class="swatches">
+            <span class="swatch" style="background:#566a4d;" aria-label="Forest Green"></span>
+            <span class="swatch" style="background:#e8b53c;" aria-label="Sunrise"></span>
+            <span class="swatch" style="background:#b85c38;" aria-label="Rust"></span>
+            <span class="swatch" style="background:#ffffff;" aria-label="White"></span>
+          </div>
+        </div>
+      </article>
+
+      <article class="product reveal">
+        <div class="product-img">
+          <img src="prod-ridgeline.webp" alt="Steel water bottle with carrying loop" width="800" height="1200" loading="lazy" decoding="async" />
+        </div>
+        <div class="product-info">
+          <h4>Ridgeline 40oz</h4>
+          <div class="meta">Day-Trip Capacity · Wide Mouth</div>
+          <div class="price">$54.00</div>
+          <div class="swatches">
+            <span class="swatch" style="background:#566a4d;" aria-label="Forest Green"></span>
+            <span class="swatch" style="background:#cfcfcf;" aria-label="Steel"></span>
+            <span class="swatch" style="background:#1c1c1c;" aria-label="Black"></span>
+            <span class="swatch" style="background:#0f2942;" aria-label="Navy"></span>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- STORY -->
+<section id="story" class="story" aria-labelledby="h-3">
+  <div class="story-grid">
+    <div class="story-img">
+      <img src="story.webp" alt="Climber drinking from insulated bottle on a ridge" width="1400" height="930" loading="lazy" decoding="async" />
+    </div>
+    <div class="story-text">
+      <svg class="topo topo--story" viewBox="0 0 560 300" aria-hidden="true" focusable="false"><use href="#i-icon4"/></svg>
+      <span class="eyebrow">Our Story</span>
+      <h2 class="rise" id="h-3">Engineered Where the Pavement Ends.</h2>
+      <svg class="ridge ridge--light" width="180" height="18" viewBox="0 0 180 18" aria-hidden="true" focusable="false"><use href="#i-icon3"/></svg>
+      <p>SUMMIT was born on a ridgeline at 11,000 feet, when a cheap bottle froze solid before noon. We took it home, took it apart, and built something better. Today every bottle is pressure-tested through 40 cycles of heat, cold, and impact before it leaves the line.</p>
+      <p>Built by people who actually use it. Backed by a lifetime promise.</p>
+      <a href="#" class="btn btn-primary" style="align-self: flex-start;">
+        Read The Story
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-icon2"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" class="features" aria-labelledby="h-4">
+  <div class="container">
+    <div class="section-head" style="margin-bottom: 64px;">
+      <div>
+        <span class="eyebrow" style="color: var(--accent);">Why SUMMIT</span>
+        <h2 class="rise" id="h-4" style="margin-top: 12px;">Performance,<br/>Period.</h2>
+      <svg class="ridge" width="180" height="18" viewBox="0 0 180 18" aria-hidden="true" focusable="false"><use href="#i-icon3"/></svg>
+      </div>
+      <p>Every detail tested in the field. No shortcuts, no plastic taste, no compromise.</p>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature reveal">
+        <div class="feature-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h6"/><path d="M22 12h-6"/><path d="M12 2v6"/><path d="M12 22v-6"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+        <h4>36 Hours Cold</h4>
+        <p>Triple-wall vacuum insulation locks ice solid through a full day in the sun.</p>
+      </div>
+      <div class="feature reveal">
+        <div class="feature-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h.01"/><path d="M15 12h.01"/><path d="M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"/><path d="M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1"/></svg>
+        </div>
+        <h4>18-8 Stainless</h4>
+        <p>Restaurant-grade steel. No leaching, no rust, no metallic aftertaste — ever.</p>
+      </div>
+      <div class="feature reveal">
+        <div class="feature-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h4>Lifetime Promise</h4>
+        <p>If it fails for any reason, we'll replace it. No receipts, no questions, no fine print.</p>
+      </div>
+      <div class="feature reveal">
+        <div class="feature-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        </div>
+        <h4>1M Bottles Saved</h4>
+        <p>Every SUMMIT replaces ~1,200 single-use plastic bottles in its lifetime.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LIFESTYLE BANNER -->
+<section class="banner" aria-labelledby="h-5">
+  <img src="banner.webp" alt="Mountain landscape at golden hour" width="1600" height="1067" loading="lazy" decoding="async" />
+  <div class="container">
+    <div class="banner-content">
+      <span class="eyebrow">The Trailhead Series</span>
+      <h2 class="rise" id="h-5">Where You Go,<br/>It Goes.</h2>
+      <svg class="ridge ridge--light" width="180" height="18" viewBox="0 0 180 18" aria-hidden="true" focusable="false"><use href="#i-icon3"/></svg>
+      <p>Salt spray. Granite dust. Subzero mornings. The new Trailhead Series is the toughest gear we've ever made — and we made it to disappear into the kit you already trust.</p>
+      <a href="#new" class="btn btn-primary">
+        Shop The Series
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-icon2"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- COLLECTIONS -->
+<section id="collections" aria-labelledby="h-6">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow" style="color: var(--accent);">Featured Collections</span>
+        <h2 class="rise" id="h-6" style="margin-top: 12px;">Find Your Gear.</h2>
+      <svg class="ridge" width="180" height="18" viewBox="0 0 180 18" aria-hidden="true" focusable="false"><use href="#i-icon3"/></svg>
+      </div>
+      <a href="#" class="link-arrow">
+        All Collections
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-icon2"/></svg>
+      </a>
+    </div>
+
+    <div class="collections">
+      <a href="#new" class="col-card reveal">
+        <img src="collection-camp.webp" alt="Camping setup with bottle near a fire" width="1400" height="933" loading="lazy" decoding="async" />
+        <div class="col-meta">
+          <span class="eyebrow">Collection 01</span>
+          <h3>The Camp Kit</h3>
+          <p>Built for fireside mornings and frost-tipped tents.</p>
+          <span class="link-arrow" style="color:#fff; border-color:#fff;">
+            Shop Camp
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-icon2"/></svg>
+          </span>
+        </div>
+      </a>
+      <a href="#new" class="col-card reveal">
+        <img src="collection-water.webp" alt="River with kayak at golden hour" width="1400" height="933" loading="lazy" decoding="async" />
+        <div class="col-meta">
+          <span class="eyebrow">Collection 02</span>
+          <h3>The Water Kit</h3>
+          <p>Float-tested, salt-resistant, paddle-ready.</p>
+          <span class="link-arrow" style="color:#fff; border-color:#fff;">
+            Shop Water
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-icon2"/></svg>
+          </span>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- REVIEWS -->
+<section id="reviews" class="reviews-bg" aria-labelledby="h-7">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow" style="color: var(--accent);">From the Field</span>
+        <h2 class="rise" id="h-7" style="margin-top: 12px;">14,000+ Five-Star Reviews</h2>
+      <svg class="ridge" width="180" height="18" viewBox="0 0 180 18" aria-hidden="true" focusable="false"><use href="#i-icon3"/></svg>
+      </div>
+      <a href="#" class="link-arrow">
+        Read More
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-icon2"/></svg>
+      </a>
+    </div>
+
+    <div class="review-grid">
+      <article class="review reveal">
+        <div class="stars" aria-label="5 out of 5 stars">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><use href="#i-icon1"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><use href="#i-icon1"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><use href="#i-icon1"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><use href="#i-icon1"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><use href="#i-icon1"/></svg>
+        </div>
+        <h4>Survived a 14er — twice.</h4>
+        <p>"Dropped it down a scree field in the Tetons. Came back with three new dents and ice water still inside. This thing is unreal."</p>
+        <div class="who">— Maya R., Bozeman MT</div>
+      </article>
+
+      <article class="review reveal">
+        <div class="stars" aria-label="5 out of 5 stars">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><use href="#i-icon1"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><use href="#i-icon1"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><use href="#i-icon1"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><use href="#i-icon1"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><use href="#i-icon1"/></svg>
+        </div>
+        <h4>Finally, no metal taste.</h4>
+        <p>"I've owned six 'premium' bottles. This is the only one my coffee doesn't taste weird in. The lid seal is perfect too."</p>
+        <div class="who">— Alex T., Portland OR</div>
+      </article>
+
+      <article class="review reveal">
+        <div class="stars" aria-label="5 out of 5 stars">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><use href="#i-icon1"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><use href="#i-icon1"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><use href="#i-icon1"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><use href="#i-icon1"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><use href="#i-icon1"/></svg>
+        </div>
+        <h4>Worth every dollar.</h4>
+        <p>"I've taken this through 11 countries. It just works. Insulation is real, lid is bombproof, and the matte finish still looks new."</p>
+        <div class="who">— Jordan K., Brooklyn NY</div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- NEWSLETTER -->
+<section class="newsletter" aria-labelledby="h-8">
+  <div class="container">
+    <span class="eyebrow" style="color: var(--sand);">Join The Crew</span>
+    <h2 class="rise" id="h-8" style="margin-top: 12px;">Field Notes, Drops &amp; First Tracks.</h2>
+      <svg class="ridge ridge--light" width="180" height="18" viewBox="0 0 180 18" aria-hidden="true" focusable="false"><use href="#i-icon3"/></svg>
+    <p>Get a head start on new releases, restocks, and stories from the trail. No spam — just the good stuff.</p>
+    <form class="newsletter-form" onsubmit="event.preventDefault(); this.querySelector('button').textContent='Subscribed';">
+      <label for="email" style="position:absolute; left:-9999px;">Email address</label>
+      <input id="email" type="email" placeholder="Enter your email" required />
+      <button type="submit">Subscribe</button>
+    </form>
+  </div>
+</section>
+
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a href="#" class="logo">SUMM<span>I</span>T</a>
+        <p>Premium insulated drinkware engineered for the outdoors. Built once, built right.</p>
+        <div class="socials">
+          <a href="#" aria-label="Instagram">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+          </a>
+          <a href="#" aria-label="YouTube">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17"/><path d="m10 15 5-3-5-3z"/></svg>
+          </a>
+          <a href="#" aria-label="TikTok">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>
+          </a>
+          <a href="#" aria-label="X">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l11.733 16h4.267l-11.733 -16z"/><path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="foot-col">
+        <h5>Shop</h5>
+        <ul>
+          <li><a href="#">Bottles</a></li>
+          <li><a href="#">Tumblers</a></li>
+          <li><a href="#">Sport</a></li>
+          <li><a href="#">Accessories</a></li>
+          <li><a href="#">Gift Cards</a></li>
+        </ul>
+      </div>
+
+      <div class="foot-col">
+        <h5>Support</h5>
+        <ul>
+          <li><a href="#">Shipping</a></li>
+          <li><a href="#">Returns</a></li>
+          <li><a href="#">Warranty</a></li>
+          <li><a href="#">FAQ</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+
+      <div class="foot-col">
+        <h5>Company</h5>
+        <ul>
+          <li><a href="#">Our Story</a></li>
+          <li><a href="#">Sustainability</a></li>
+          <li><a href="#">Field Journal</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Press</a></li>
+        </ul>
+      </div>
+
+      <div class="foot-col">
+        <h5>Pro Program</h5>
+        <ul>
+          <li><a href="#">Ambassadors</a></li>
+          <li><a href="#">Outfitters</a></li>
+          <li><a href="#">Corporate Gifts</a></li>
+          <li><a href="#">Wholesale</a></li>
+          <li><a href="#">Custom Engraving</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="foot-bottom">
+      <span>© 2026 SUMMIT Outfitters. All rights reserved.</span>
+      <div style="display:flex; gap:24px;">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Accessibility</a>
+        <a href="#">Cookies</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+<script>
+/* ==================================================================
+   MOTION — สูตร "แก้เว็บจืด" (playbook/PROMPT-JUED.md)
+   ทุก reveal ยิงด้วย IntersectionObserver ไม่ผูกกับ scroll event:
+   ของที่อยู่บนจอแรกต้องขึ้นเองแม้ผู้ใช้ไม่เลื่อนเลย — และมันจะรอดตอนเทสด้วยมือด้วย
+   ================================================================== */
+(function () {
+  "use strict";
+  /* ?reduce=1 = test hook สำหรับ headless: เครื่องมือตรวจสั่งเปิดโหมดลดการเคลื่อนไหว
+     ของระบบปฏิบัติการเองไม่ได้ ถ้าไม่มีสวิตช์นี้ก็ตรวจเคสนี้อัตโนมัติไม่ได้เลย
+     ฝั่ง CSS (@media prefers-reduced-motion) ยังทำงานของมันตามปกติแยกกัน
+     ส่วนการหยุด hero ของ hook นี้ทำในนี้แทน จะได้ไม่ต้องก๊อปกฎ CSS ไว้สองที่แล้วลืมแก้ตาม */
+  var reduce = (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+            || /[?&]reduce=1(&|$)/.test(location.search);
+
+  /* ---- 1. หัวข้อ: ห่อทีละคำ เว้นวรรคยังเป็น text node จริง => copy ออกมาได้ปกติ ---- */
+  function splitWords(el) {
+    var nodes = [].slice.call(el.childNodes);
+    nodes.forEach(function (node) {
+      if (node.nodeType !== 3) return;                 // <br> และ element อื่นปล่อยไว้
+      var frag = document.createDocumentFragment();
+      node.nodeValue.split(/(\s+)/).forEach(function (tok) {
+        if (!tok) return;
+        if (/^\s+$/.test(tok)) { frag.appendChild(document.createTextNode(tok)); return; }
+        var outer = document.createElement("span");
+        outer.className = "w";
+        var inner = document.createElement("span");
+        inner.textContent = tok;
+        outer.appendChild(inner);
+        frag.appendChild(outer);
+      });
+      el.replaceChild(frag, node);
+    });
+    // หน่วงทีละคำ ให้ประโยคไล่ขึ้นแทนที่จะโผล่พร้อมกันทั้งบรรทัด
+    [].slice.call(el.querySelectorAll(".w > span")).forEach(function (sp, i) {
+      sp.style.transitionDelay = (i * 55) + "ms";
+    });
+  }
+  [].slice.call(document.querySelectorAll(".rise")).forEach(splitWords);
+
+  /* ---- 2. เส้นที่ "วาด" ตัวเอง: ความยาวจริงของ path ส่งเป็น px ไม่ใช่ % ---- */
+  [].slice.call(document.querySelectorAll(".ridge path, .topo path")).forEach(function (path) {
+    var len = Math.ceil(path.getTotalLength());
+    path.style.setProperty("--len", len + "px");
+  });
+
+  /* ---- 3. หน่วงเป็นขั้นในกลุ่มเดียวกัน ---- */
+  function stagger(sel, step) {
+    var groups = {};
+    [].slice.call(document.querySelectorAll(sel)).forEach(function (el) {
+      var key = el.parentNode;
+      groups[key] = groups[key] || [];
+      var i = groups[key].length;
+      groups[key].push(el);
+      el.style.setProperty("--d", (i * step) + "ms");
+    });
+  }
+  stagger(".reveal", 90);
+  stagger(".stat", 110);
+
+  /* ---- 4. ตัวเลขที่วิ่งมา ---- */
+  function fmt(n) { return n >= 1000 ? n.toLocaleString("en-US") : String(n); }
+  function countUp(el) {
+    var target = parseInt(el.getAttribute("data-count"), 10);
+    if (!isFinite(target)) return;
+    if (reduce) { el.textContent = fmt(target); return; }
+    var dur = 1400, t0 = null;
+    function tick(t) {
+      if (t0 === null) t0 = t;
+      var k = Math.min(1, (t - t0) / dur);
+      var eased = 1 - Math.pow(1 - k, 3);
+      el.textContent = fmt(Math.round(target * eased));
+      if (k < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  /* ---- 5. ปลายทางเมื่อปิด motion: ตั้งค่าให้เองทั้งฝั่ง JS ไม่ใช่หวังพึ่ง CSS อย่างเดียว ---- */
+  var watched = ".rise, .reveal, .stat, .ridge, .topo, .feature";
+  if (reduce) {
+    [].slice.call(document.querySelectorAll(".hero-slide, .hero-slide img")).forEach(function (el) {
+      el.style.animation = "none";
+      if (el.tagName === "IMG") el.style.transform = "none";
+      else el.style.opacity = "0";
+    });
+    var first = document.querySelector(".hero-slide");
+    if (first) first.style.opacity = "1";
+    var prog = document.querySelector(".hero-progress");
+    if (prog) prog.style.display = "none";
+    [].slice.call(document.querySelectorAll(watched)).forEach(function (el) {
+      el.classList.add("is-in");
+    });
+    [].slice.call(document.querySelectorAll("[data-count]")).forEach(countUp);
+    return;
+  }
+
+  /* ---- 6. IntersectionObserver ---- */
+  if (!("IntersectionObserver" in window)) {
+    [].slice.call(document.querySelectorAll(watched)).forEach(function (el) { el.classList.add("is-in"); });
+    [].slice.call(document.querySelectorAll("[data-count]")).forEach(countUp);
+    return;
+  }
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      var el = e.target;
+      io.unobserve(el);
+      // ยกขึ้น compositor เฉพาะตอนที่มันกำลังวิ่ง แล้วปลดทิ้ง
+      el.style.willChange = "transform, opacity";
+      el.classList.add("is-in");
+      [].slice.call(el.querySelectorAll("[data-count]")).forEach(countUp);
+      setTimeout(function () { el.style.willChange = ""; }, 2600);
+    });
+  }, { rootMargin: "0px 0px 0px 0px", threshold: 0 });
+
+  [].slice.call(document.querySelectorAll(watched)).forEach(function (el) { io.observe(el); });
+
+  /* observer ไม่ยิงในแท็บที่ซ่อนอยู่หรือหน้าที่ถูก prerender ไว้ — คนที่เปิดมาเจอ
+     หน้าว่างเปล่าทั้งจอแรก. กันด้วยการวัด rect เองรอบเดียวตอนโหลด:
+     อะไรที่อยู่ในจอตั้งแต่แรกให้เผยทันที ไม่ต้องรอ callback */
+  function firstPaint() {
+    var h = window.innerHeight || document.documentElement.clientHeight;
+    [].slice.call(document.querySelectorAll(watched)).forEach(function (el) {
+      if (el.classList.contains("is-in")) return;
+      var r = el.getBoundingClientRect();
+      if (r.top < h && r.bottom > 0) {
+        io.unobserve(el);
+        el.classList.add("is-in");
+        [].slice.call(el.querySelectorAll("[data-count]")).forEach(countUp);
+      }
+    });
+  }
+  requestAnimationFrame(firstPaint);
+})();
+
+/* ---- เมนูมือถือ ----
+   แยกเป็นก้อนของตัวเอง ไม่รวมกับก้อน motion ข้างบน: ถ้าก้อนนั้นพังกลางทาง
+   (เช่นเบราว์เซอร์เก่าไม่รู้จักอะไรสักอย่าง) เมนูต้องยังกดได้อยู่ */
+(function () {
+  "use strict";
+  var nav = document.querySelector(".nav");
+  var btn = nav && nav.querySelector(".mobile-toggle");
+  var menu = document.getElementById("nav-menu");
+  if (!nav || !btn || !menu) return;
+
+  function set(open) {
+    nav.classList.toggle("is-open", open);
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  btn.addEventListener("click", function () {
+    set(!nav.classList.contains("is-open"));
+  });
+  // กดลิงก์แล้วต้องปิดเอง ไม่งั้นแผงจะบังหัวข้อที่เพิ่งเลื่อนไปหา
+  menu.addEventListener("click", function (e) {
+    if (e.target.closest("a")) set(false);
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") set(false);
+  });
+  // ลากจอกลับมากว้าง แล้วเมนูเดสก์ท็อปโผล่มา แผงที่ค้างเปิดอยู่จะซ้อนกันสองชั้น
+  window.addEventListener("resize", function () {
+    if (window.innerWidth > 1024) set(false);
+  });
+})();
+</script>
+<script src="js/nav-response.js" defer></script>
+<script src="/work/_demo-badge.js" defer></script>
+</body>
+</html>

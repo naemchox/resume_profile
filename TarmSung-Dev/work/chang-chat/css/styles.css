@@ -1,0 +1,657 @@
+/* =============================================================================
+   อู่ช่างชัด — styles (เรียงตามลำดับ section ในหน้า)
+   ทุกระยะหยิบจาก --space-* ตัวเดียวกัน ห้ามตั้ง margin เอง (ENGINE §1b ข้อ 9)
+   ========================================================================== */
+
+/* ---- base ---------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: calc(var(--header-h) + 12px); }
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: 400 1rem/1.7 var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+/* grain อยู่บน body ชั้นเดียว ไม่ทับซ้อนหลายชั้น — บนพื้นมืดเกรนซ้อนกัน 2 ชั้น
+   จะกลายเป็นฝุ่นสว่างจนอ่านเป็นสัญญาณรบกวน (ลองแล้วที่ opacity .05 × 2) */
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: 0;
+  background-image: var(--grain); pointer-events: none; opacity: .9;
+}
+body > * { position: relative; z-index: 1; }
+
+img, svg { max-width: 100%; display: block; }
+a { color: var(--color-brand); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.05; margin: 0; letter-spacing: -.01em; }
+h1 { font-size: clamp(2.4rem, 6vw, 4.2rem); font-weight: 700; }
+h2 { font-size: clamp(1.6rem, 3.2vw, 2.5rem); }
+p { margin: 0; }
+.mono { font-family: var(--font-mono); font-feature-settings: "tnum" 1; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+
+.wrap { width: min(100% - 2.5rem, 1180px); margin-inline: auto; }
+.narrow { max-width: 62ch; }
+
+:focus-visible {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 3px; border-radius: var(--radius-sm);
+}
+.skip {
+  position: absolute; left: var(--space-4); top: -100px; z-index: 60;
+  background: var(--color-brand); color: var(--color-on-brand);
+  padding: var(--space-2) var(--space-4); border-radius: var(--radius-sm); font-weight: 600;
+}
+.skip:focus { top: var(--space-2); }
+
+/* ---- ลายเซ็น 1: หมุดสามสี ------------------------------------------------
+   กลไกเดียวใช้ทุกที่ในหน้า (bullet ในลิสต์ · จุดบนใบตรวจ · จุดบนไทม์ไลน์ ·
+   โลโก้ · favicon) ของชนิดเดียวกันต้องใช้กลไกเดียวกัน ไม่ใช่เขียนใหม่รายจุด */
+.pip {
+  --pip: var(--color-text-muted);
+  display: inline-block; flex: none;
+  width: 10px; height: 10px; border-radius: var(--radius-pill);
+  background: var(--pip);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pip) 22%, transparent);
+}
+.pip--ok   { --pip: var(--color-ok); }
+.pip--warn { --pip: var(--color-warn); }
+.pip--bad  { --pip: var(--color-bad); }
+.pip--idle { --pip: var(--graphite-400); box-shadow: none; }
+
+/* ---- ลายเซ็น 2: แถบเตือนเหลือง-ดำ ---------------------------------------- */
+.hazard-rule { height: 10px; background: var(--hazard); opacity: .8; }
+
+/* ---- ปุ่ม ---------------------------------------------------------------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  padding: .85rem 1.5rem; border: 1px solid transparent; border-radius: var(--radius-sm);
+  font: 600 1rem/1 var(--font-body); text-decoration: none; cursor: pointer;
+  transition: transform 160ms var(--ease), background-color 160ms var(--ease), border-color 160ms var(--ease);
+}
+.btn--primary { background: var(--color-brand); color: var(--color-on-brand); }
+.btn--primary:hover { background: color-mix(in srgb, var(--color-brand) 86%, #fff); }
+.btn--ghost { border-color: var(--color-line); color: var(--color-text); background: color-mix(in srgb, var(--color-bg) 70%, transparent); }
+.btn--ghost:hover { border-color: var(--color-brand); color: var(--color-brand); }
+.btn--sm { padding: .6rem 1rem; font-size: .92rem; }
+.btn--block { display: flex; width: 100%; }
+.btn:active { transform: translateY(1px); }
+
+/* ---- header -------------------------------------------------------------- */
+.site-header {
+  position: sticky; top: 0; z-index: 50;
+  background: color-mix(in srgb, var(--color-bg) 92%, transparent);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);   /* Safari ก่อน 18 ต้องมีพรีฟิกซ์ ไม่งั้นแถบทึบทับเนื้อหา */
+  border-bottom: 3px solid transparent;
+  border-image: var(--hazard) 3;   /* แถบเตือนเป็นขอบล่างของ header เอง */
+}
+.nav { display: flex; align-items: center; gap: var(--space-5); min-height: var(--header-h); }
+.brand { display: flex; align-items: center; gap: var(--space-3); color: var(--color-text); text-decoration: none; }
+.mark { display: inline-flex; flex-direction: column; gap: 3px; padding: 5px 4px; background: var(--color-well); border-radius: var(--radius-sm); }
+.mark .pip { width: 7px; height: 7px; box-shadow: none; }
+.brand-name { font: 600 1.12rem/1.1 var(--font-display); }
+.brand-name small { display: block; font: 500 .72rem/1.4 var(--font-mono); letter-spacing: .16em; color: var(--color-text-muted); }
+.nav-links { display: flex; gap: var(--space-5); margin-inline-start: auto; }
+.nav-links a { color: var(--color-text-muted); text-decoration: none; font-size: .93rem; white-space: nowrap; }
+.nav-links a:hover { color: var(--color-brand); }
+.burger { display: none; }
+
+/* ---- hero ---------------------------------------------------------------- */
+.hero { position: relative; overflow: hidden; isolation: isolate; }
+.hero-photo {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  object-position: 60% 50%; z-index: -2;
+}
+/* รูปฉากหลังมืดอยู่แล้ว จึงคลุมแค่พอให้ตัวหนังสือติดเกณฑ์ ไม่ทับจนรูปหาย
+   วัดแล้ว: ขาวกระดูกบนพื้นที่คลุมด้วยไล่เฉด = 15.74:1 เท่ากับบนพื้นหน้าปกติ */
+.hero::after {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background:
+    /* 22/8/26 เปลี่ยนรูปฮีโร่เป็น "ช่างกำลังส่องตรวจใต้ท้องรถ" (ของเดิมเป็นภาพล้อรถ
+       ที่มีโลโก้ยี่ห้อยุโรปเด่นกลางจอ ซึ่งไม่ใช่สารของหน้านี้) รูปใหม่สว่างกว่าเดิม
+       จึงต้องวัดผ้าคลุมใหม่ทั้งหมด ไม่ใช่ยกค่าเดิมมาใช้:
+       วัดจุดสว่างที่สุดในโซนที่ตัวหนังสือทับ (ซ้าย 55% ของรูป) เทียบกับขาวกระดูก
+       ได้ 3.92:1 ที่ผ้าคลุม 82% = ตกเกณฑ์ · ขยับเป็น 88% ได้ 5.23:1 = ผ่าน
+       ตัวเลขสองตัวนี้มาจากสคริปต์วัดจริง ไม่ได้เดาจากสายตา — อย่าลดกลับไป 82% */
+    linear-gradient(100deg, var(--color-bg) 6%, color-mix(in srgb, var(--color-bg) 88%, transparent) 46%, color-mix(in srgb, var(--color-bg) 14%, transparent) 80%),
+    linear-gradient(to top, var(--color-bg), transparent 34%);
+}
+.hero-inner {
+  display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, .85fr);
+  gap: var(--space-8); align-items: center;
+  padding-block: clamp(3rem, 8vw, 6rem);
+  min-height: min(78vh, 640px);
+}
+.kicker {
+  font: 600 .78rem/1.4 var(--font-mono); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--color-brand); margin-bottom: var(--space-3);
+}
+.lede { color: var(--color-text-muted); font-size: 1.06rem; margin-top: var(--space-4); }
+.lede strong { color: var(--color-text); font-weight: 600; }
+.hero-cta { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-6); }
+
+/* ---- ลายเซ็น 3: แผ่นมาตรวัด --------------------------------------------- */
+.gauge {
+  background: var(--color-well); border: 1px solid var(--color-line);
+  border-radius: var(--radius-md); padding: var(--space-5);
+  display: grid; gap: var(--space-4);
+  /* ร่องบนหน้าปัด: เส้นบางถี่ๆ ให้รู้สึกเป็นแผงพลาสติกในรถ ไม่ใช่กล่องขาว */
+  background-image: repeating-linear-gradient(to bottom, rgba(255,255,255,.028) 0 1px, transparent 1px 4px);
+}
+.gauge-row { display: grid; grid-template-columns: 3.4rem 1fr; gap: var(--space-4); align-items: center; }
+.gauge-row + .gauge-row { border-top: 1px solid var(--color-line-soft); padding-top: var(--space-4); }
+.gauge .num, .gauge-zero {
+  font: 600 2.1rem/1 var(--font-mono); color: var(--color-brand);   /* 9.49:1 บนพื้นหน้าปัด */
+  text-align: right;
+}
+.gauge-lb { font-size: .84rem; line-height: 1.5; color: var(--color-text-muted); }
+
+/* ---- โครง section -------------------------------------------------------- */
+.section { padding-block: clamp(3.5rem, 8vw, 6.5rem); }
+.section--well { background: color-mix(in srgb, var(--color-well) 60%, var(--color-bg)); }
+.section h2 + .lede { margin-top: var(--space-4); }
+.note { margin-top: var(--space-4); font-size: .84rem; color: var(--color-text-muted); }
+.fine { margin-top: var(--space-3); font-size: .8rem; color: var(--color-text-muted); }
+
+/* ---- 1. ใบเสนอราคา ------------------------------------------------------- */
+.grid-quote { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: clamp(2rem, 5vw, 4rem); align-items: start; }
+.rules { list-style: none; margin: var(--space-6) 0 0; padding: 0; display: grid; gap: var(--space-4); }
+.rules li, .wr-list li {
+  position: relative; padding-inline-start: calc(10px + var(--space-4));
+  color: var(--color-text-muted);
+}
+/* หมุดลอยชิดซ้ายแทนการทำ grid — <li> พวกนี้มีลูก 3 ตัว (หมุด + คำนำ + ข้อความยาว)
+   grid 2 คอลัมน์จะดันข้อความไปอยู่คอลัมน์กว้าง 10px แล้วตัดคำทีละคำ (เจอจริง 22/8/26) */
+.rules li > .pip, .wr-list li > .pip { position: absolute; left: 0; top: .62rem; }
+.rules b { color: var(--color-text); }
+
+.qsheet {
+  background: var(--color-surface); border: 1px solid var(--color-line);
+  border-radius: var(--radius-md); overflow: hidden;
+}
+.qsheet-head { padding: var(--space-5); border-bottom: 1px dashed var(--color-line); }
+.qsheet-no { font: 600 .8rem/1 var(--font-mono); letter-spacing: .1em; color: var(--color-brand); }
+.qsheet-meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); margin: var(--space-4) 0 0; }
+.qsheet-meta dt { font-size: .8rem; color: var(--color-text-muted); }
+.qsheet-meta dd { margin: 2px 0 0; font-size: .92rem; font-weight: 500; }
+.plate {
+  display: inline-block; padding: 1px 8px; border: 1px solid var(--color-brand);
+  border-radius: var(--radius-sm); color: var(--color-brand); font-weight: 600; letter-spacing: .04em;
+}
+.qsheet-lines { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.qsheet-lines th, .qsheet-lines td { padding: .62rem var(--space-5); text-align: left; }
+.qsheet-lines thead th { font: 600 .8rem/1 var(--font-mono); letter-spacing: .08em; color: var(--color-text-muted); text-transform: uppercase; }
+.qsheet-lines td.mono, .qsheet-lines tfoot td { text-align: right; }
+.qsheet-lines thead th:not(:first-child) { text-align: right; }
+.qsheet-lines tbody tr + tr td { border-top: 1px solid var(--color-line-soft); }
+.qsheet-lines tfoot { border-top: 1px dashed var(--color-line); }
+.qsheet-lines tfoot th { font-weight: 500; color: var(--color-text-muted); font-size: .86rem; }
+.qsheet-total th, .qsheet-total td { font-size: 1.25rem; font-weight: 600; color: var(--color-brand); padding-top: 0; }
+.qsheet-foot { display: flex; gap: var(--space-4); align-items: center; padding: var(--space-5); border-top: 1px solid var(--color-line); background: var(--color-surface-alt); }
+.stamp {
+  flex: none; text-align: center; font-size: .74rem; font-weight: 600; line-height: 1.3;
+  color: var(--color-ok); border: 2px solid var(--color-ok); border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3); rotate: -4deg;   /* ตราปั๊มไม่เคยตรง */
+}
+.stamp .mono { font-size: .78rem; font-weight: 500; }
+.qsheet-note { font-size: .8rem; color: var(--color-text-muted); }
+
+/* ---- 2. เครื่องมือประเมินราคา -------------------------------------------- */
+.tool {
+  margin-top: var(--space-6);
+  display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr);
+  gap: var(--space-6); align-items: start;
+}
+.pickset { border: 0; margin: 0; padding: 0; }
+.pickset + .pickset { margin-top: var(--space-5); }
+.pickset legend { padding: 0 0 var(--space-3); font: 600 .78rem/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--color-text-muted); }
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.chip {
+  min-height: 44px;   /* เขตกดขั้นต่ำของนิ้ว — audit-mobile จับที่ 44px */
+  padding: .6rem 1rem; border: 1px solid var(--color-line); border-radius: var(--radius-pill);
+  background: transparent; color: var(--color-text-muted);
+  font: 500 .92rem/1 var(--font-body); cursor: pointer;
+  transition: border-color 160ms var(--ease), color 160ms var(--ease), background-color 160ms var(--ease);
+}
+.chip:hover { border-color: var(--color-brand); color: var(--color-text); }
+.chip.is-on { background: var(--color-brand); border-color: var(--color-brand); color: var(--color-on-brand); }
+.tool-out {
+  display: block; background: var(--color-well); border: 1px solid var(--color-line);
+  border-radius: var(--radius-md); padding: var(--space-5);
+}
+.out-lb { font: 600 .8rem/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--color-text-muted); }
+.out-price { font: 600 clamp(1.9rem, 4vw, 2.6rem)/1.1 var(--font-mono); color: var(--color-brand); margin-top: var(--space-3); }
+.out-price i { font: 500 .9rem/1 var(--font-body); font-style: normal; color: var(--color-text-muted); }
+.out-meta { margin: var(--space-5) 0 0; display: grid; gap: var(--space-4); }
+.out-meta dt { font-size: .8rem; color: var(--color-text-muted); }
+.out-meta dd { margin: 3px 0 0; font-size: .92rem; }
+.out-fine { margin: var(--space-4) 0 var(--space-4); font-size: .78rem; color: var(--color-text-muted); }
+
+/* ---- 3. ใบตรวจ 30 จุด ---------------------------------------------------- */
+.inspect-grid { margin-top: var(--space-8); display: grid; grid-template-columns: minmax(0, .62fr) minmax(0, 1fr); gap: clamp(2rem, 5vw, 4rem); align-items: start; }
+.cardiag { margin: 0; color: var(--color-line); }
+.cardiag svg { width: min(100%, 260px); margin-inline: auto; }
+.cardiag figcaption { margin-top: var(--space-4); font-size: .8rem; color: var(--color-text-muted); }
+.dot { transform-origin: center; }
+.dot--ok   { fill: var(--color-ok); }
+.dot--warn { fill: var(--color-warn); }
+.dot--bad  { fill: var(--color-bad); }
+
+.tally { display: flex; flex-wrap: wrap; gap: var(--space-5); align-items: center; padding-bottom: var(--space-4); border-bottom: 1px solid var(--color-line); }
+.tally span { display: inline-flex; align-items: center; gap: var(--space-2); font-size: .88rem; color: var(--color-text-muted); }
+.tally .num { font: 600 1.5rem/1 var(--font-mono); color: var(--color-text); }
+.sheet { list-style: none; margin: 0; padding: 0; }
+.row {
+  display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: var(--space-4);
+  align-items: baseline; padding: .72rem 0; border-bottom: 1px solid var(--color-line-soft);
+}
+.row .pip { transform: translateY(2px); }
+.row b { font-weight: 500; }
+.row-note { font-size: .85rem; color: var(--color-text-muted); text-align: right; }
+.row--bad b { color: var(--color-bad); font-weight: 600; }
+.row--bad .row-note { color: var(--color-bad); }
+.row--warn .row-note { color: var(--color-warn); }
+
+.shot { margin: var(--space-8) 0 0; }
+.shot img { width: 100%; height: auto; border-radius: var(--radius-md); border: 1px solid var(--color-line); }
+.shot figcaption { margin-top: var(--space-3); font-size: .84rem; color: var(--color-text-muted); }
+.shot--inline { margin-top: var(--space-6); }
+
+/* ---- 4. ไทม์ไลน์สถานะ ---------------------------------------------------- */
+.tl { list-style: none; margin: var(--space-8) 0 0; padding: 0; display: grid; gap: 0; }
+.tl li {
+  position: relative; display: grid;
+  grid-template-columns: 10px 4.6rem minmax(0, 1fr);
+  gap: var(--space-4); align-items: start;
+  padding: var(--space-4) 0 var(--space-5);
+}
+/* เส้นเชื่อมลากจากหมุดของแถวนี้ไปหมุดถัดไป — วาดบนคอลัมน์แรกให้ตรงกลางหมุด
+   (หมุดกว้าง 10px จึงเริ่มที่ 4.5px ไม่ใช่ 50%) */
+.tl li:not(:last-child)::before {
+  content: ""; position: absolute; left: 4.5px; top: 1.9rem; bottom: -.35rem;
+  width: 1px; background: var(--color-line);
+}
+.tl .pip { margin-top: 1.25rem; }
+.tl-t { font: 500 .82rem/1 var(--font-mono); color: var(--color-text-muted); margin-top: 1.05rem; }
+.tl-h { font: 600 1.05rem/1.4 var(--font-display); }
+.tl-d { grid-column: 3; font-size: .9rem; color: var(--color-text-muted); }
+.tl-badge {
+  display: inline-block; margin-inline-start: var(--space-2);
+  padding: 2px 10px; border-radius: var(--radius-pill);
+  background: var(--color-brand); color: var(--color-on-brand);
+  font: 600 .72rem/1.6 var(--font-body);
+}
+.tl-now { background: color-mix(in srgb, var(--color-brand) 7%, transparent); border-radius: var(--radius-md); padding-inline: var(--space-4); margin-inline: calc(var(--space-4) * -1); }
+.tl li:not(.tl-done):not(.tl-now) .tl-h { color: var(--color-text-muted); font-weight: 500; }
+
+/* ---- 5. ตารางเทียบอะไหล่ ------------------------------------------------- */
+.grid-parts { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: clamp(2rem, 5vw, 4rem); align-items: start; }
+.table-scroll { overflow-x: auto; }
+.cmp { width: 100%; min-width: 520px; border-collapse: collapse; font-size: .92rem; }
+.cmp caption { text-align: left; font-size: .82rem; color: var(--color-text-muted); padding-bottom: var(--space-4); }
+.cmp th, .cmp td { padding: .8rem var(--space-4); text-align: left; vertical-align: top; border-bottom: 1px solid var(--color-line-soft); }
+.cmp thead th { font: 600 .82rem/1 var(--font-display); color: var(--color-text); border-bottom: 1px solid var(--color-line); }
+.cmp thead th:nth-child(3) { color: var(--color-brand); }   /* OEM = ตัวที่อู่แนะนำจริง */
+.cmp tbody th { font-weight: 500; color: var(--color-text-muted); white-space: nowrap; }
+.cmp td { color: var(--color-text); }
+
+/* ---- 6. ใบรับประกัน ------------------------------------------------------ */
+.section--warranty { padding-block: clamp(2.5rem, 6vw, 4.5rem); }
+.wr-card {
+  background: var(--color-surface); border: 1px solid var(--color-line);
+  border-radius: var(--radius-md); padding: clamp(1.5rem, 4vw, var(--space-8));
+  /* กรอบแถบเตือนรอบใบ — ตั้งใจให้ครบสี่ด้าน อ่านเป็นขอบใบรับประกัน ไม่ใช่การ์ดทั่วไป
+     (border-image กินความกว้างจาก border-width จึงต้องประกาศเท่ากันทุกด้าน) */
+  border: 3px solid transparent; border-image: var(--hazard) 3;
+}
+.wr-card h2 { margin-top: var(--space-3); }
+.wr-list { list-style: none; margin: var(--space-6) 0 0; padding: 0; display: grid; gap: var(--space-4); max-width: 78ch; }
+.wr-list b { color: var(--color-text); }
+
+/* ---- 7. ฟอร์ม + แผนผัง --------------------------------------------------- */
+.grid-book { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: clamp(2rem, 5vw, 4rem); align-items: start; }
+.form { margin-top: var(--space-6); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.f-row { display: grid; gap: var(--space-2); }
+.f-row--full, .f-actions, .fine { grid-column: 1 / -1; }
+.form label { font-size: .82rem; color: var(--color-text-muted); }
+.form input, .form textarea {
+  width: 100%; padding: .78rem var(--space-4);
+  background: var(--color-well); color: var(--color-text);
+  border: 1px solid var(--color-line); border-radius: var(--radius-sm);
+  font: 400 .95rem/1.5 var(--font-body);
+}
+.form input::placeholder, .form textarea::placeholder { color: var(--graphite-400); }
+.form input:focus-visible, .form textarea:focus-visible { border-color: var(--color-brand); }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.f-actions { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; margin-top: var(--space-2); }
+.f-msg { font-size: .88rem; color: var(--color-text-muted); }
+.f-msg[data-state="ok"]  { color: var(--color-ok); }
+.f-msg[data-state="err"] { color: var(--color-bad); }
+.btn[aria-busy="true"] { opacity: .7; pointer-events: none; }
+
+.visit { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-md); padding: var(--space-5); }
+.map { width: 100%; height: auto; border-radius: var(--radius-sm); background: var(--color-well); }
+.m-road { fill: var(--graphite-700); }
+.m-dash { stroke: var(--graphite-400); stroke-width: 2; stroke-dasharray: 10 12; }
+.m-dash--thin { stroke-width: 1.5; stroke-dasharray: 7 9; }
+.m-blk  { fill: var(--graphite-600); }
+.m-us   { fill: var(--color-brand); }
+.m-way  { stroke: var(--color-brand); stroke-width: 2; stroke-dasharray: 3 3; }
+.m-pin  { fill: var(--color-bad); stroke: var(--color-well); stroke-width: 2; }
+.m-lb   { font: 500 11px var(--font-body); fill: var(--color-text-muted); }
+.m-lb--c { text-anchor: middle; }
+.m-lb--ink { fill: var(--color-on-brand); font-weight: 600; }
+.visit-meta { display: grid; gap: var(--space-4); margin: var(--space-5) 0 0; }
+.visit-meta dt { font-size: .8rem; color: var(--color-text-muted); }
+.visit-meta dd { margin: 2px 0 0; font-size: .92rem; }
+/* เบอร์โทรบนมือถือคือของที่ถูกกดจริง ไม่ใช่ข้อความ — ขยายเขตกดให้ครบนิ้ว */
+.visit-meta a { display: inline-block; padding-block: .5rem; }
+
+/* ---- footer -------------------------------------------------------------- */
+.site-footer { border-top: 1px solid var(--color-line); padding-block: var(--space-8); background: var(--color-well); }
+.foot { display: grid; gap: var(--space-3); }
+.foot-brand { display: flex; align-items: center; gap: var(--space-3); font: 600 1.05rem/1 var(--font-display); }
+.foot-brand small { font: 500 .72rem/1 var(--font-mono); letter-spacing: .16em; color: var(--color-text-muted); }
+.foot-lines { font-size: .88rem; color: var(--color-text-muted); }
+.foot-demo { max-width: 84ch; font-size: .78rem; line-height: 1.6; color: var(--color-text-muted); border-top: 1px solid var(--color-line-soft); padding-top: var(--space-4); }
+.foot-demo b { color: var(--color-brand); }
+
+/* ---- แถบลอยล่าง (มือถือ) ------------------------------------------------- */
+.orderbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 45;
+  display: none; gap: var(--space-3); padding: var(--space-3) var(--space-4);
+  padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--color-bg) 94%, transparent);
+  border-top: 1px solid var(--color-line);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
+.orderbar .btn { flex: 1; min-height: 44px; }
+/* main.js ถอด hidden ออกตอนเริ่ม — ต้องมีกฎนี้เพราะ display:flex ใน media query
+   ชนะ UA stylesheet ของ [hidden] แถบจะโผล่ค้างตอน JS ยังไม่รัน */
+.orderbar[hidden] { display: none; }
+
+/* ---- MOTION (ENGINE §2) --------------------------------------------------
+   start state ทั้งหมด gate ใต้ html.js — JS ไม่รัน = หน้ายังอ่านได้ครบ */
+.js .reveal { opacity: 0; transform: translateY(20px); transition: opacity 1100ms cubic-bezier(.33,0,.3,1), transform 1100ms cubic-bezier(.33,0,.3,1); }
+.js .reveal--left  { transform: translateX(-20px); }
+.js .reveal--right { transform: translateX(20px); }
+.js .reveal--scale { transform: scale(.97); }
+.js .reveal.in { opacity: 1; transform: none; }
+.js .d1 { transition-delay: 90ms; }
+.js .d2 { transition-delay: 180ms; }
+.js .d3 { transition-delay: 270ms; }
+
+/* จุดตรวจไล่ติดทีละจุดตามลำดับที่ช่างเดินตรวจจริง (หน้า → ห้องเครื่อง → ใต้ท้อง
+   → หลัง → ท้าย) ไม่ใช่ไล่ตามลำดับใน DOM เฉยๆ — ลำดับคือเนื้อหา ไม่ใช่เอฟเฟกต์ */
+.js .cardiag .dot { transform: scale(0); transition: transform 420ms var(--ease); }
+/* end state เขียนเป็น none ไม่ใช่ scale(1) — ค่าเท่ากันแต่ none บอกชัดว่า
+   "กลับไปที่ตำแหน่งจริง" และเครื่องตรวจอ่านออกว่านี่ไม่ใช่ start state ที่ค้าง */
+.js .cardiag.in .dot { transform: none; }
+.js .cardiag.in .dot:nth-child(1) { transition-delay: 160ms; }
+.js .cardiag.in .dot:nth-child(2) { transition-delay: 300ms; }
+.js .cardiag.in .dot:nth-child(5) { transition-delay: 440ms; }
+.js .cardiag.in .dot:nth-child(6) { transition-delay: 580ms; }
+.js .cardiag.in .dot:nth-child(7) { transition-delay: 720ms; }
+.js .cardiag.in .dot:nth-child(3) { transition-delay: 860ms; }
+.js .cardiag.in .dot:nth-child(4) { transition-delay: 1000ms; }
+.js .cardiag.in .dot:nth-child(8) { transition-delay: 1140ms; }
+
+/* แถบลอยล่างเลื่อนขึ้นมาจากใต้ขอบ ไม่ fade (ของกว้างเต็มจอห้าม fade — ENGINE §2) */
+.js .orderbar { transform: translateY(110%); transition: transform 320ms var(--ease); }
+.js .orderbar.up { transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* ต้องเคลียร์ "ทุก" start state ไม่ใช่แค่ลด duration — ของที่ค้างอยู่ที่
+     scale(0)/translateY(110%) จะไม่มีวันโผล่ถ้าเคลียร์ไม่ครบ */
+  .js .reveal, .js .reveal--left, .js .reveal--right, .js .reveal--scale,
+  .js .cardiag .dot {
+    opacity: 1 !important; transform: none !important;
+    transition: none !important; animation: none !important;
+  }
+  /* แถบลอยล่างเป็นข้อยกเว้นที่ตั้งใจ: translateY(110%) ของมันไม่ใช่ start state ของ
+     อนิเมชัน แต่คือ "สถานะซ่อน" ที่ JS สลับด้วยคลาส .up ตามตำแหน่งการเลื่อน
+     ถ้าเคลียร์ transform ทิ้งเหมือนตัวอื่น แถบจะโผล่ค้างตั้งแต่บนสุดของหน้า
+     และไปบังปุ่มในฮีโร่ (วัดแล้วบนจอ 390 เมื่อ 22/8/26) — จึงตัดแค่อนิเมชันพอ */
+  .js .orderbar { transition: none !important; }
+}
+/* ทางที่สอง: ?reduce=1 ติดคลาส .still ให้ (สคริปต์ถ่ายภาพใช้ทางนี้) */
+.still .reveal, .still .reveal--left, .still .reveal--right, .still .reveal--scale,
+.still .cardiag .dot {
+  opacity: 1 !important; transform: none !important; transition: none !important;
+}
+.still .orderbar { transition: none !important; }   /* เหตุผลเดียวกับบล็อกข้างบน */
+
+/* ---- responsive ---------------------------------------------------------- */
+@media (max-width: 1040px) {
+  .hero-inner { grid-template-columns: 1fr; gap: var(--space-6); }
+  .gauge { max-width: 30rem; }
+  .grid-quote, .grid-parts, .grid-book, .inspect-grid, .tool { grid-template-columns: 1fr; }
+  .cardiag svg { width: min(100%, 220px); }
+}
+@media (max-width: 820px) {
+  .burger {
+    display: grid; gap: 4px; margin-inline-start: auto; padding: 14px 12px;   /* = 44x44 */
+    background: transparent; border: 1px solid var(--color-line); border-radius: var(--radius-sm); cursor: pointer;
+  }
+  .burger span { display: block; width: 20px; height: 2px; background: var(--color-text); }
+  .nav-links {
+    position: absolute; left: 0; right: 0; top: 100%;
+    display: none; flex-direction: column; gap: 0;
+    background: var(--color-bg); border-bottom: 1px solid var(--color-line);
+    padding: var(--space-3) var(--space-5) var(--space-5);
+  }
+  .nav-links.open { display: flex; }
+  .nav-links a { padding: .7rem 0; border-bottom: 1px solid var(--color-line-soft); }
+  .nav-cta { display: none; }
+  .site-header { position: sticky; }
+  .orderbar { display: flex; }
+  /* กันแถบลอยทับเนื้อหาท้ายหน้า */
+  .site-footer { padding-bottom: calc(var(--space-8) + 4.5rem); }
+  h1 { font-size: clamp(2.1rem, 9vw, 3rem); }
+  .hero-inner { min-height: 0; padding-block: var(--space-8); }
+  .qsheet-lines th, .qsheet-lines td { padding-inline: var(--space-4); }
+  .qsheet-foot { flex-direction: column; align-items: flex-start; }
+  .tl li { grid-template-columns: 10px 1fr; }
+  .tl-t { grid-column: 2; margin-top: 0; }
+  .tl-h { grid-column: 2; }
+  .tl-d { grid-column: 2; }
+  .form { grid-template-columns: 1fr; }
+  .row { grid-template-columns: 10px 1fr; }
+  .row-note { grid-column: 2; text-align: left; }
+}
+
+/* =============================================================================
+   รอบแก้ตามกฎ §11 ของ website.md ("ห้ามหน้าเดียวซ้ำ 11 รอบ" ตั้ง 22/8/26)
+   ---------------------------------------------------------------------------
+   ต้นเหตุ: หน้านี้ถูก build จาก ENGINE + BRIEF โดยไม่ได้เปิดกฎชุดนี้ ผลคือทุกส่วน
+   ใช้ทรงหัวข้อเดียวกันรวด 7 ส่วน · แถบเตือนโผล่ 5 จุด · มีเอฟเฟกต์เฉพาะตัวแค่ส่วนเดียว
+   · แถบนำทางนิ่งสนิท = ตกกฎ 3 ข้อจาก 6 ทั้งที่ verify.mjs ขึ้น "ตก 0"
+   (เครื่องตรวจไม่เห็นกฎที่ไม่ได้เขียนเป็นโค้ด — ดู ENGINE §4b)
+   ========================================================================== */
+
+/* ---- ข้อ 1: ทรงหัวข้อ 3 แบบ สลับกันไม่ให้ติดกันเกิน 2 ส่วน ---------------- */
+/* A = ชิดซ้ายธรรมดา (kicker + h2 ลอยๆ) ใช้ที่ส่วน 01 · 04 · 07 — ไม่ต้องมีคลาส */
+
+/* B = กึ่งกลาง: ใช้ตอนที่ประโยคหัวข้อ "เป็นคำประกาศ" ไม่ใช่คำอธิบาย
+      (03 เขียว/เหลือง/แดง · 06 รับประกัน) */
+.head--center { text-align: center; }
+.head--center .lede { margin-inline: auto; }
+/* ใบรับประกันใช้ทรง B เหมือนกัน แต่จัดกลางเฉพาะ "หัว" ของใบ ไม่ใช่ทั้งใบ —
+   รอบแรกใส่ head--center ที่ตัวการ์ดแล้วข้อความในลิสต์ถูกจัดกลางตามไปด้วย
+   หมุดที่ลอยชิดซ้ายเลยหลุดห่างจากประโยคของตัวเอง (เห็นในภาพถ่ายรอบตรวจ) */
+.wr-card > .kicker, .wr-card > h2, .wr-card > .note { text-align: center; }
+.wr-card > .note { max-width: 70ch; margin-inline: auto; }
+.wr-list { margin-inline: auto; }
+
+/* C = หัวข้อคู่เนื้อหาเป็น 2 คอลัมน์ ใช้ที่ 02 · 05 ซึ่งเนื้อหานำยาวพอจะยืนเป็นคอลัมน์เอง */
+.head--split {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(1.5rem, 4vw, 3.5rem); align-items: end;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-line);
+}
+.head--split .lede { margin-top: 0; }
+
+/* ---- ข้อ 4: แถบภาพเต็มความกว้าง = พื้นหลังเปลี่ยนอีกหนึ่งครั้งกลางหน้า ------
+   ฮีโร่ภาพ → กราไฟต์ → บ่อเข้ม → แถบภาพ → กราไฟต์ ให้ตาแบ่งบทได้โดยไม่ต้องพึ่งเส้นคั่น
+   (เส้นคั่นแถบเตือนถูกจำกัดไว้ 3 จุดตามข้อ 2 แล้ว) */
+.band-shot { position: relative; margin: 0; }
+.band-shot img { width: 100%; height: clamp(220px, 34vw, 420px); object-fit: cover; object-position: 50% 62%; }
+/* ขอบบน-ล่างจางหายเข้าพื้นเว็บ ไม่ใช่สี่เหลี่ยมแปะกลางหน้า (ENGINE §1b ข้อ 6) */
+.band-shot::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to bottom, var(--color-bg), transparent 22% 62%, color-mix(in srgb, var(--color-bg) 96%, transparent));
+}
+.band-shot figcaption {
+  position: absolute; left: 0; right: 0; bottom: var(--space-5); z-index: 1;
+  font-size: .88rem; color: var(--color-text);
+  text-shadow: 0 1px 12px var(--color-bg);   /* วัดแล้ว 15.74:1 กับพื้นที่ไล่เฉดคลุมอยู่ */
+}
+
+/* ---- ข้อ 5: แถบนำทางตอบสนองการเลื่อน (หด + ไฮไลต์หัวข้อที่กำลังอ่าน) ------
+   §11 เรียกสองอย่างนี้ว่า "มาตรฐานขั้นต่ำ ไม่ใช่ของแถม" */
+/* transition ต้องอยู่กับตัวที่ค่าจริงเปลี่ยน — ของหดคือ .nav (min-height) ไม่ใช่ .site-header
+   เดิมประกาศไว้ที่ตัวนอกอย่างเดียว ค่าที่ .nav จึงกระโดด (แก้ 22 ส.ค. 2026 อาการเดียวกับ The Bed) */
+.site-header { transition: background-color 260ms var(--ease); }
+/* 26/8/26 ย้ายมาใช้กลไกกลาง — เดิมหดด้วย min-height ของ .nav ใบเดียวในกอง
+   (ก้อน >>> nav-shrink ท้ายไฟล์เป็นตัวหดจริง · .nav ตั้ง min-height ฐานไว้ที่ --header-h
+   ก้อนกลางล้างเป็น 0 แล้วให้ padding ของลูกเป็นตัวคุมความสูงตอนหดแทน) */
+.site-header { --nav-pad-small: 7px; }
+.site-header.small .brand-name { font-size: 1rem; }
+.site-header.small .brand-name small { opacity: 0; }   /* wordmark ย่อยหายก่อน ชื่อไทยอยู่ต่อ */
+.brand-name small { transition: opacity 220ms var(--ease); }
+.nav-links a { position: relative; }
+/* ขีดใต้หัวข้อที่กำลังอ่าน โตจากซ้ายไปขวา ไม่ใช่ fade เข้ามาทั้งเส้น */
+.nav-links a::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -6px; height: 2px;
+  background: var(--color-brand); transform: scaleX(0); transform-origin: left;
+  transition: transform 240ms var(--ease);
+}
+.nav-links a.on { color: var(--color-text); }
+.nav-links a.on::after { transform: none; }
+
+/* ---- ข้อ 3: เอฟเฟกต์เฉพาะตัวของแต่ละส่วน (ต้อง ≥3 ส่วน) -------------------
+   ทุกอันต้องเป็น "ภาษาของอู่" ไม่ใช่เอฟเฟกต์ทั่วไป:
+   1) จุดตรวจไล่ติดตามลำดับที่ช่างเดินตรวจ (ประกาศไว้ข้างบนแล้ว — ส่วน 03)
+   2) ตราปั๊ม "ลูกค้าอนุมัติแล้ว" กดลงบนใบราคา (ส่วน 01)
+   3) เส้นเวลาของงานซ่อมยืดลงมาทีละขั้น แล้วหมุดของขั้นนั้นค่อยติด (ส่วน 04)
+   4) ตัวเลขราคาหมุนเหมือนหน้าปัดตอนเปลี่ยนอาการ (ส่วน 02 — อยู่ใน estimate.js) */
+
+/* 2) ตราปั๊มลงบนกระดาษ: ลอยสูงกว่าแล้วกดลง ไม่ใช่จางเข้ามา
+      (rotate อยู่คนละพร็อพกับ transform อยู่แล้ว มุมเอียง -4deg จึงไม่หายตอนรีเซ็ต) */
+.js .qsheet .stamp { transform: scale(1.35) translateY(-10px); opacity: 0; transition: transform 460ms var(--ease), opacity 300ms var(--ease); }
+.js .qsheet.in .stamp { transform: none; opacity: 1; transition-delay: 700ms; }
+
+/* 3) เส้นเวลาที่ "เดิน" จริง — ท่อนเส้นยืดลงก่อน แล้วหมุดของขั้นถัดไปค่อยติดตามหลัง
+      อ่านเป็นรถที่ค่อยๆ ขยับผ่านช่องซ่อม ไม่ใช่ลิสต์ที่โผล่มาพร้อมกันทั้งก้อน */
+.js .tl li:not(:last-child)::before { transform: scaleY(0); transform-origin: top; transition: transform 520ms var(--ease); }
+.js .tl.in li:not(:last-child)::before { transform: none; }
+.js .tl .pip { transform: scale(0); transition: transform 320ms var(--ease); }
+.js .tl.in .pip { transform: none; }
+.js .tl.in li:nth-child(1)::before { transition-delay: 120ms; }
+.js .tl.in li:nth-child(1) .pip { transition-delay: 60ms; }
+.js .tl.in li:nth-child(2)::before { transition-delay: 380ms; }
+.js .tl.in li:nth-child(2) .pip { transition-delay: 320ms; }
+.js .tl.in li:nth-child(3)::before { transition-delay: 640ms; }
+.js .tl.in li:nth-child(3) .pip { transition-delay: 580ms; }
+.js .tl.in li:nth-child(4)::before { transition-delay: 900ms; }
+.js .tl.in li:nth-child(4) .pip { transition-delay: 840ms; }
+.js .tl.in li:nth-child(5) .pip { transition-delay: 1100ms; }
+.js .tl.in li:nth-child(6) .pip { transition-delay: 1240ms; }
+
+/* 4) ตัวเลขราคาหมุนเหมือนหน้าปัด — ตอนค่าเปลี่ยน ตัวเลขเก่าถูกดันขึ้นไปพ้นกรอบ
+      แล้วตัวใหม่ไถขึ้นมาแทน (transform ล้วน ไม่ fade แผ่นใหญ่ — ENGINE §2) */
+.out-price span { display: inline-block; overflow: hidden; vertical-align: bottom; }
+.js .out-price span.roll { animation: cc-roll 420ms var(--ease); }
+@keyframes cc-roll {
+  0%   { transform: translateY(0); }
+  49%  { transform: translateY(-70%); opacity: 0; }
+  50%  { transform: translateY(70%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* กฎ §11 ข้อ 6: ของใหม่ทุกอันต้องปิดได้หมด ไม่ใช่แค่ลดความเร็ว
+     ต้องเคลียร์ทั้ง qsheet · tl · nav-links · out-price ไม่งั้นตราปั๊มกับหมุดค้างหายถาวร */
+  .js .qsheet .stamp, .js .tl li::before, .js .tl .pip,
+  .js .out-price span, .nav-links a::after, .site-header {
+    transform: none !important; opacity: 1 !important;
+    transition: none !important; animation: none !important;
+  }
+  .nav-links a.on::after { transform: none !important; }
+}
+.still .qsheet .stamp, .still .tl li::before, .still .tl .pip, .still .out-price span {
+  transform: none !important; opacity: 1 !important; transition: none !important; animation: none !important;
+}
+
+@media (max-width: 1040px) {
+  .head--split { grid-template-columns: 1fr; align-items: start; gap: var(--space-4); }
+}
+
+/* ---- §11 ข้อ 3 รอบสอง: เอฟเฟกต์ต้องเป็น "คนละชนิด" ไม่ใช่คนละค่าของชนิดเดียว ----
+   check-demo-rules.mjs วัดชนิดของเอฟเฟกต์จริงบนหน้า แล้วนับได้ 2 ชนิด เพราะตราปั๊ม
+   เส้นเวลา และหมุด ล้วนเป็น transition ของ transform เหมือนกันหมด — ผ่านตาคนแต่ไม่ผ่าน
+   เกณฑ์ "อย่างน้อย 3 ส่วนมีเอฟเฟกต์เฉพาะตัว" จริงๆ เพิ่มอีกสองชนิดที่เป็นภาษาของอู่:
+
+   ก) ใบตรวจ "พิมพ์" ออกมาทีละแถว — wipe ด้วย clip-path จากซ้ายไปขวา เหมือนกระดาษ
+      ที่ค่อยๆ ไถออกจากเครื่องพิมพ์ในห้องรับรถ (ไม่ใช่ fade ซึ่งเป็นท่ากลางๆ ของทุกเว็บ) */
+.js .sheet .row { clip-path: inset(0 100% 0 0); transition: clip-path 620ms var(--ease); }
+.js .sheet-wrap.in .row { clip-path: inset(0 0 0 0); }
+.js .sheet-wrap.in .row:nth-child(1) { transition-delay: 120ms; }
+.js .sheet-wrap.in .row:nth-child(2) { transition-delay: 220ms; }
+.js .sheet-wrap.in .row:nth-child(3) { transition-delay: 320ms; }
+.js .sheet-wrap.in .row:nth-child(4) { transition-delay: 420ms; }
+.js .sheet-wrap.in .row:nth-child(5) { transition-delay: 520ms; }
+.js .sheet-wrap.in .row:nth-child(6) { transition-delay: 620ms; }
+.js .sheet-wrap.in .row:nth-child(7) { transition-delay: 720ms; }
+.js .sheet-wrap.in .row:nth-child(8) { transition-delay: 820ms; }
+.js .sheet-wrap.in .row:nth-child(9) { transition-delay: 920ms; }
+
+/* ข) ป้าย "ตอนนี้อยู่ขั้นนี้" เต้นเป็นจังหวะเหมือนไฟสถานะบนแผงในห้องช่าง
+      อันเดียวในหน้าที่ขยับตลอด — ของที่ขยับตลอดหลายจุดพร้อมกันอ่านเป็นแบนเนอร์โฆษณา */
+.tl-badge { animation: cc-live 2.2s ease-in-out infinite; }
+@keyframes cc-live {
+  0%, 62%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand) 55%, transparent); }
+  76%           { box-shadow: 0 0 0 7px color-mix(in srgb, var(--color-brand) 0%, transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js .sheet .row { clip-path: none !important; transition: none !important; }
+  .tl-badge { animation: none !important; }
+}
+.still .sheet .row { clip-path: none !important; transition: none !important; }
+.still .tl-badge { animation: none !important; }
+
+
+/* >>> nav-shrink · กลไกกลาง "หัวเว็บหดตอนเลื่อน" — แหล่งเดียวของทั้งกอง
+   แก้ที่ playbook/snippets/nav-shrink.css แล้วรัน: node playbook/sync-nav-shrink.mjs
+   ห้ามแก้ก้อนนี้ในไฟล์ปลายทาง — สคริปต์เขียนทับทุกครั้ง
+
+   กติกา (LOG-DEMO §15 · ด่าน playbook/audit-nav.mjs):
+   คลาสสวิตช์ = .small เท่านั้น · หดด้วย "padding ของลูก" เท่านั้น — ห้ามสั่ง height
+   ทำไมห้าม height: แถบหัวสูงเป็น auto เบราว์เซอร์ไล่ auto→เลขคงที่ไม่ได้ มันกระโดด
+   และลูกที่ตั้ง height ตายตัวจะไม่หดตาม แถบเตี้ยกว่าลูก = เกยทันที (summit เกย 20px อยู่เป็นเดือน)
+
+   ใบไหนต้องมีพื้นความสูงขั้นต่ำตอนหด (เช่น The Bed มีเพชรหมุน 45° ที่กินที่เกินผัง)
+   ให้ตั้งค่า --nav-pad-small ของใบนั้นเหนือก้อนนี้ ไม่ใช่เขียนกฎใหม่
+   ไม่ใส่ transition ให้ padding โดยตั้งใจ (24/8/26): padding เป็น layout property
+   ผิด DEMO-SPEC S2.3 และแถบที่หดคือแถบเดียวกับที่มี backdrop-filter = คิดผังใหม่+เบลอใหม่ทุกเฟรม */
+header.small > *, .site-header.small > * {
+  padding-top: var(--nav-pad-small, 0px) !important;
+  padding-bottom: var(--nav-pad-small, 0px) !important;
+  min-height: 0 !important;
+}
+header.small > * > *, .site-header.small > * > * {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  min-height: 0 !important;
+}
+@media (prefers-reduced-motion: reduce) { header, .site-header { transition: none !important; } }
+/* <<< nav-shrink */

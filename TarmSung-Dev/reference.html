@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="th" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+<!-- คืนตำแหน่งที่อ่านค้างไว้เอง ไม่รอเบราว์เซอร์ (ที่มา: work/_JANK-REFRESH.md)
+     Safari คืนตำแหน่ง scroll หลังอีเวนต์ load เท่านั้น — วัดแล้ว DCL/load ยังอยู่ที่ y=0
+     ทั้งคู่ คนที่รีเฟรชกลางหน้าจึงเห็น "ฮีโร่แวบ" ตั้งแต่เฟรมแรกจนกว่าไฟล์สุดท้ายจะโหลดจบ
+     (เน็ตช้า = ค้างนานเป็นวินาที) สคริปต์นี้เก็บตำแหน่งไว้เองใน sessionStorage แล้ววาง
+     กลับตั้งแต่เฟรมแรกที่ความสูงหน้าพอ — เร็วกว่ารอ load หลายเท่าและไม่ต้องรอรูป
+     หยุดทันทีถ้าผู้ใช้ขยับเอง (wheel/touch/key/pointer) จะได้ไม่แย่งมือกับคนอ่าน -->
+<script>
+(function () {
+  try {
+    if (!("scrollRestoration" in history)) return;
+    history.scrollRestoration = "manual";
+    var key = "ts:y:" + location.pathname;
+    var want = parseInt(sessionStorage.getItem(key) || "0", 10) || 0;
+    var timer = 0;
+    var save = function () { try { sessionStorage.setItem(key, String(Math.round(window.scrollY))); } catch (e) {} };
+    addEventListener("scroll", function () {
+      if (timer) return;
+      timer = setTimeout(function () { timer = 0; save(); }, 200);
+    }, { passive: true });
+    addEventListener("pagehide", save);
+    /* แถบเมนูต้องไม่ "โผล่" ตอนหน้าเปิดมากลางหน้าอยู่แล้ว (jek 25/8/26 · the-bed)
+       แถบมีสองชั้นที่ไล่เข้าเอง — พื้นทึบบน .nav-shell::before (opacity 300ms) กับเส้นทอง
+       บน border-color (400ms) — พอคืนตำแหน่ง scroll ปุ๊บ สคริปต์แถบเมนูใส่คลาส scrolled
+       ทั้งสองชั้นจึงไล่ให้เห็นทุกครั้งที่รีเฟรช ทั้งที่ผู้ใช้ไม่ได้เลื่อนอะไรเลย
+       ระหว่างช่วงคืนตำแหน่ง จึงปิดทรานซิชันของหัวเว็บไว้ = แถบอยู่ในสถานะสุดท้ายตั้งแต่
+       เฟรมแรก · เปิดคืนทันทีที่ผู้ใช้ขยับเอง (หรืออย่างช้า 900ms) การเลื่อนของจริงจึงยังลื่น */
+    if (want) {
+      var root = document.documentElement;
+      root.className += " nav-instant";
+      var st = document.createElement("style");
+      st.textContent = "html.nav-instant .nav-shell,html.nav-instant .nav-shell::before," +
+        "html.nav-instant .site-header,html.nav-instant header,html.nav-instant header > *," +
+        "html.nav-instant header > * > *{transition:none !important}";
+      (document.head || document.documentElement).appendChild(st);
+      var unlock = function () { root.className = root.className.replace(/\s*nav-instant/, ""); };
+      ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+        addEventListener(ev, unlock, { passive: true, once: true });
+      });
+      setTimeout(unlock, 900);
+    }
+    if (!want || location.hash) return;
+    var stop = false;
+    ["wheel", "touchstart", "keydown", "pointerdown"].forEach(function (ev) {
+      addEventListener(ev, function () { stop = true; }, { passive: true, once: true });
+    });
+    var t0 = (performance.now ? performance.now() : 0);
+    var now = function () { return performance.now ? performance.now() : t0; };
+    var done = false;
+    var put = function () {
+      if (stop || done) return true;
+      var el = document.scrollingElement || document.documentElement;
+      if (!el || el.scrollHeight - window.innerHeight < want) return false;   /* หน้ายังสูงไม่พอ ค่อยลองใหม่ */
+      if (Math.round(window.scrollY) !== want) {
+        var prev = el.style.scrollBehavior;      /* html { scroll-behavior: smooth } จะทำให้การวางกลับกลายเป็นการไถ */
+        el.style.scrollBehavior = "auto";
+        window.scrollTo(0, want);
+        el.style.scrollBehavior = prev;
+      }
+      done = Math.round(window.scrollY) === want;
+      /* ใส่สถานะ "เลื่อนแล้ว" ให้หัวเว็บทันทีในจังหวะเดียวกับที่คืนตำแหน่ง — ไม่ต้องรอสคริปต์
+         ของหน้ามันเองซึ่งอยู่ท้าย <body> (วัดแล้วช้ากว่ากันราว 20ms = เห็นแถบเปล่าได้ 1 เฟรม)
+         เกณฑ์คนละค่าเพราะแต่ละที่ตั้งไว้ไม่เท่ากัน: .site-header > 8px · .nav-shell > 40px
+         (ดู js/main.js กับสคริปต์ท้ายหน้าเดโม) สคริปต์ของหน้าจะคำนวณซ้ำเองอยู่แล้ว ค่าจึงตรงกัน */
+      if (done) {
+        var mark = function (sel, cls, min) {
+          if (want <= min) return;
+          var n = document.querySelectorAll(sel);
+          for (var i = 0; i < n.length; i++) n[i].classList.add(cls);
+        };
+        /* หัวเว็บของแต่ละใบใช้คนละคลาสคนละเกณฑ์ (ของเดิมเป็นแบบนั้นมาก่อนแล้ว):
+           .site-header.scrolled >8px (เว็บเรา) · .nav-shell.scrolled >40px (the-bed)
+           .site-header.stuck (the-terrace ใช้ sentinel ไม่ใช่ตัวเลข — 80px คือค่าประมาณ)
+           header.small >120px (homecraft/lumen/glow-clinic ผ่าน js/nav-response.js)
+           เดาพลาดไม่เป็นไร สคริปต์ของหน้าคำนวณทับให้ในเฟรมถัดไป และช่วงนี้ทรานซิชันถูกปิดอยู่
+           การแก้จึงเป็นการสลับทันที ไม่ใช่การไล่สีให้เห็น */
+        mark(".site-header", "scrolled", 8);
+        mark(".nav-shell", "scrolled", 40);
+        mark(".site-header, header[data-header]", "stuck", 80);
+        mark("header, .site-header", "small", 120);
+      }
+      return done;
+    };
+    /* ลองทุกทางที่มาถึงก่อน: setTimeout(0) มักได้ก่อนเฟรมแรกด้วยซ้ำ · rAF ทำงานก่อนวาด
+       · readystatechange/DOMContentLoaded คือจุดที่ body ครบแล้วแน่ๆ
+       เหตุที่ไม่พอถ้าใช้ rAF อย่างเดียว: วัดแล้วบางหน้า (หน้าแรกของเว็บเรา) เฟรมแรก
+       มาก่อนที่ความสูงจะพอ ทำให้เลื่อนไม่ได้ แล้วต้องรอ rAF รอบถัดไป = เห็นหัวเว็บ 1 เฟรม */
+    /* สองสายแยกกัน สายละหนึ่งนัด — ถ้าให้สายเดียวนัดทั้ง setTimeout และ rAF
+       จำนวนนัดจะเพิ่มเป็นสองเท่าทุกรอบ (2^n) ภายในไม่กี่ร้อยมิลลิวินาที */
+    var tick = function () { if (put() || stop) return; if (now() - t0 < 3000) setTimeout(tick, 0); };
+    var frame = function () { if (put() || stop) return; if (now() - t0 < 3000) requestAnimationFrame(frame); };
+    tick();
+    frame();
+    document.addEventListener("readystatechange", put);
+    addEventListener("DOMContentLoaded", put);
+    addEventListener("load", put);
+  } catch (e) {}
+})();
+</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+  <title>อ้างอิงผลงาน — ตามสั่ง (TarmSung)</title>
+  <meta name="description" content="ผลงานจริงของตามสั่ง ทุกชิ้นมีภาพหน้าจอและลิงก์ให้กดเข้าไปลองเอง ทั้งแอปที่ใช้งานอยู่จริงและงานเว็บไซต์ที่ออกแบบและพัฒนาเองทั้งหมด" />
+  <meta name="theme-color" content="#d63a00" />
+  <!-- URL จริงคือ netlify (วัด 19/8/26: tarmsung.dev → 000, netlify → 200) — เหตุผลเต็มอยู่ใน
+       index.html ตรงจุดเดียวกัน ย้ายโดเมนเมื่อไหร่ต้องแก้พร้อมกันทั้ง 2 ไฟล์ -->
+  <link rel="canonical" href="https://tarmsung.pages.dev/reference.html" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="th_TH" />
+  <meta property="og:title" content="อ้างอิงผลงาน — ตามสั่ง (TarmSung)" />
+  <meta property="og:description" content="ผลงานจริงทุกชิ้น มีภาพหน้าจอและลิงก์ให้กดลองเอง" />
+  <meta property="og:url" content="https://tarmsung.pages.dev/reference.html" />
+  <meta property="og:image" content="https://tarmsung.pages.dev/assets/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="ตามสั่ง — อ้างอิงผลงาน" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="อ้างอิงผลงาน — ตามสั่ง (TarmSung)" />
+  <meta name="twitter:description" content="ผลงานจริงทุกชิ้น มีภาพหน้าจอและลิงก์ให้กดลองเอง" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- preload ฟอนต์หัวเรื่อง (Anuphan) — คู่กับ display=optional ข้างล่าง
+     optional เฉยๆ แปลว่าคนที่เข้าครั้งแรกได้ฟอนต์สำรองทั้งหน้า preload ทำให้ไฟล์
+     มาทันช่วงต้นเกือบทุกครั้ง · มีสองไฟล์เพราะ Google เสิร์ฟ Chrome กับ Safari คนละตัว
+     (เติมอัตโนมัติด้วย playbook/fix-font-flash.mjs) -->
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/anuphan/v6/2sDeZGxYgY7LkLT0mX4Dan29.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/anuphan/v6/2sDeZGxYgY7LkLT0mWoDag.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin
+      href="https://fonts.gstatic.com/s/anuphan/v6/2sDeZGxYgY7LkLT0mX4Dam--C70lZQ.woff2" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anuphan:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=optional" />
+
+  <link rel="stylesheet" href="css/tokens.css?v=78" />
+  <link rel="stylesheet" href="css/styles.css?v=216" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=1" />
+  <link rel="icon" href="data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'><path%20d='M15.00,3.40%20C16.58,3.40%2018.73,3.50%2020.50,4.20%20C22.27,4.90%2024.25,6.23%2025.60,7.60%20C26.95,8.97%2028.43,10.77%2028.60,12.40%20C28.77,14.03%2026.37,15.93%2026.60,17.40%20C26.83,18.87%2030.33,19.87%2030.00,21.20%20C29.67,22.53%2026.50,24.17%2024.60,25.40%20C22.70,26.63%2020.80,28.13%2018.60,28.60%20C16.40,29.07%2013.47,28.77%2011.40,28.20%20C9.33,27.63%207.50,26.50%206.20,25.20%20C4.90,23.90%203.90,22.03%203.60,20.40%20C3.30,18.77%204.47,17.03%204.40,15.40%20C4.33,13.77%202.70,12.20%203.20,10.60%20C3.70,9.00%206.10,6.87%207.40,5.80%20C8.70,4.73%209.73,4.60%2011.00,4.20%20C12.27,3.80%2013.42,3.40%2015.00,3.40%20Z'%20fill='%23fdf7ef'%20stroke='%230e0705'%20stroke-width='1.3'/><circle%20cx='18.4'%20cy='13.2'%20r='5.2'%20fill='%23e84400'/></svg>" />
+
+<script>
+  /* Same pre-paint theme write as index.html. This page does not load js/main.js —
+     that file builds the home page's reel, nav spy and order bar against markup
+     this page does not have — so the theme has to be resolved inline or a
+     dark-theme visitor gets a white flash and then stays white. The only script
+     here besides this one is the reveal observer at the end of <body><!-- ไอคอนชุดเดียวของหน้านี้ (สร้างด้วย playbook/make-icons.mjs) -->
+<svg class="sr-only" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0"><defs>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M7 17 17 7M9 7h8v8"/></symbol>
+</defs></svg>
+.
+     localStorage is wrapped: it throws (not returns null) under Safari's
+     "Block All Cookies". */
+  var t = null;
+  try { t = localStorage.getItem("ts-theme"); } catch (e) {}
+  if (t !== "light" && t !== "dark") {
+    t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  document.documentElement.setAttribute("data-theme", t);
+
+  /* The loading screen is opt-in per session, and the decision has to be made
+     here, before the first paint: a screen that appears one frame after the page
+     has already shown itself is worse than no screen at all. js/loader.js only
+     takes it away again — with scripting off this class is never written and
+     .ld stays display:none, so nobody can be shut behind it. */
+  /* Every load, jek's call (20/8/26). It was once per session first — the reasoning
+     being that someone clicking through four pages should be greeted once — but
+     the screen is the kitchen opening, and a kitchen opens every time you walk in.
+     One line to put the session gate back if that ever reads as a delay:
+       if (!sessionStorage.getItem("ts-served")) ...add("loading")   (wrapped in
+     try/catch — Safari's "Block All Cookies" throws on read rather than returning
+     null). Nothing else in the mechanism depends on which of the two it is. */
+  document.documentElement.classList.add("loading");
+
+  /* One gate for every entrance on the page. Anything that animates on arrival —
+     the hero rise, the work cards, the reference grid — has to wait behind the
+     loading screen, or it plays out against the back of a sheet of paper and the
+     page is already static by the time anyone sees it. Defined here, in the one
+     script that runs on every page before anything else, so the home page and the
+     reference page cannot end up with two different ideas of when the page begins.
+     No loading screen (returning visitor, no JS gate written) = runs at once. */
+  window.tsCurtain = function (fn) {
+    if (!document.documentElement.classList.contains("loading")) { fn(); return; }
+    var ran = false;
+    var go = function () { if (ran) return; ran = true; fn(); };
+    document.addEventListener("ts:served", go);
+    setTimeout(go, 5000);   // past the loader's own 4s cap: nothing waits forever
+  };
+
+
+  /* The reveal system in styles.css is gated on .js for exactly one reason: an
+     .reveal starts at opacity 0, so a page that never switches it on would show
+     nothing at all. Written here rather than at the bottom because the class has
+     to be on <html> BEFORE the first paint — added later, the cards paint solid
+     and then blink out to start their entrance. Scripting off = no class = the
+     page is plain HTML that renders. See the observer at the end of <body>. */
+  document.documentElement.classList.add("js");
+</script>
+
+<style>
+  /* Page-local only. Everything visual that already exists — .card.work, .thumb,
+     .preview, .tag, .live-badge, .work-grid — is reused from styles.css so this
+     sheet cannot drift away from the site it represents. That now includes the
+     entrance: the cards carry .reveal / .reveal--scale and take their timing from
+     styles.css exactly as the home page's work cards do — only the observer that
+     switches them on is local (bottom of <body>), because main.js is built around
+     markup this page does not have. The hover preview below is here for the same
+     reason: the home page plays it from main.js, but that code is bound to
+     .reel .slide, which exists only on the arc. */
+  .ref-top { padding-block: var(--space-6) var(--space-4); }
+  .ref-back {
+    display: inline-flex; align-items: center; gap: var(--space-2);
+    color: var(--color-text-muted); text-decoration: none;
+    font-size: var(--text-sm); font-weight: var(--weight-semibold);
+    /* วัดได้ 103x24 (audit-mobile 22/8/26) — ลิงก์นำทางเดี่ยวๆ ต้องได้ 44px ตาม
+       WCAG 2.5.8 ต่างจากลิงก์ที่แทรกอยู่กลางประโยค (เช่น "ติดต่อตามสั่ง" ท้ายหน้า)
+       ซึ่งข้อกำหนดยกเว้นให้ เพราะขยายแล้วบรรทัดจะฉีกออกจากกัน
+       ตัวหนังสือไม่ขยับ: กล่องสูงขึ้นรอบข้อความที่จัดกึ่งกลางอยู่แล้ว แล้วหักลบด้วย
+       margin-block ติดลบ ให้ระยะห่างจากของข้างบน/ล่างเท่าเดิมทุกพิกเซล */
+    min-height: 44px; margin-block: -10px;
+  }
+  .ref-back:hover { color: var(--color-brand); }
+  .ref-group { margin-bottom: var(--space-8); }
+  .ref-group > h2 { font-size: var(--text-2xl); margin-bottom: var(--space-2); }
+  .ref-group > p.ref-lead { color: var(--color-text-muted); margin-bottom: var(--space-5); max-width: 65ch; }
+
+  /* The evidence line under each title: who did what, and with what. Kept as text
+     rather than logo chips — a logo wall says "we know of it", a sentence says
+     "we shipped it". */
+  .ref-meta {
+    margin-top: var(--space-3); padding-top: var(--space-3);
+    border-top: 1px solid var(--color-border);
+    display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2);
+    font-size: var(--text-xs); color: var(--color-text-muted);
+  }
+  .ref-meta b { color: var(--color-text); font-weight: var(--weight-semibold); }
+  .ref-meta .sep { opacity: .45; }
+
+  /* A card with no live URL is a <div>, not an <a> — an anchor with no href is
+     not focusable and reads as a broken link to a screen reader. It keeps the
+     same frame so the sheet stays one grid, and says in words why there is no
+     button to press. */
+  .card.work.is-offline { cursor: default; }
+  .card.work.is-offline:hover { transform: none; box-shadow: var(--shadow-sm); border-color: var(--color-border); }
+  .card.work.is-offline .preview { filter: saturate(.72) brightness(.96); }
+  .ref-why {
+    display: inline-block; margin-top: var(--space-2);
+    font-size: var(--text-xs); font-weight: var(--weight-semibold);
+    color: var(--color-brand);
+  }
+
+  .ref-note {
+    margin-top: var(--space-7); padding: var(--space-5);
+    border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+    background: var(--color-surface-2, var(--color-surface));
+    font-size: var(--text-sm); color: var(--color-text-muted); line-height: 1.75;
+  }
+  .ref-note b { color: var(--color-text); }
+
+  /* Printing this sheet is a real path — clients forward PDFs internally. Drop
+     the hover-only softening so the screenshots print at full strength, and
+     print the URL after each link so a paper copy is still usable. */
+  @media print {
+    .ref-back, .ref-note { display: none; }
+    .work .preview { filter: none; }
+    .card.work { break-inside: avoid; }
+    .work-grid { grid-template-columns: repeat(2, 1fr); }
+    a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 10px; word-break: break-all; }
+  }
+
+  /* ---- การ์ดเล่นตัวเองตอนชี้ --------------------------------------------
+     กลไกเดียวกับ .reel ในหน้าแรก (css/styles.css) แต่หน้านี้ไม่โหลด js/main.js
+     ตัวจริงที่นั่นผูกกับ .reel .slide ซึ่งหน้านี้ไม่มี จึงต้องมีสำเนาที่นี่
+     ภาพนิ่งใต้คลิปไม่เคยถูกถอด: เครื่องสัมผัส ผู้ที่ปิดอนิเมชัน และเบราว์เซอร์ที่
+     ปฏิเสธ autoplay ยังเห็นภาพเดิมทุกกรณี */
+  .work .shot-reel, .work .shot-page {
+    position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0;
+    object-fit: cover; object-position: top center; display: block; pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--dur-mid) var(--ease-out), transform var(--dur-mid) var(--ease-out);
+  }
+  /* โผล่ตอนเฟรมจริงเฟรมแรกถูกวาด ไม่ใช่ตอนสั่ง play() — วิดีโอที่ยัง buffer
+     อยู่จะเป็นแผ่นดำทับภาพที่มันควรมาแทน */
+  .work[data-reel-on="1"] .shot-reel { opacity: 1; }
+  .work .shot-page[data-on="1"] { opacity: 1; transition-duration: var(--dur-slow); }
+  /* ซูมตามภาพนิ่งที่อยู่ข้างใต้ ไม่งั้นสองชั้นขยับคนละระยะตอน hover */
+  .work:hover .shot-reel, .work:focus-visible .shot-reel,
+  .work:hover .shot-page, .work:focus-visible .shot-page { transform: scale(1.035); }
+  @media (hover: none) { .work .shot-reel, .work .shot-page { display: none; } }
+</style>
+  <script src="js/loader.js?v=34" defer></script>
+</head>
+
+<body>
+
+  <!-- ============================ LOADING SCREEN ============================
+       The ScoreUp shape — ring, mark, wordmark, shuttle bar — in this site's ink.
+       Gated on html.loading (see the head script) and taken away by js/loader.js.
+       The other variant, the order ticket printing out of the rail, is parked in
+       _archive/loading-ticket.html; its CSS is still live in styles.css.
+       Everything visible is aria-hidden: the one line a screen reader gets is the
+       .sr-only status, because a wordmark and a bar read aloud are noise. -->
+  <div class="ld ld--orb" id="ld" role="status" aria-live="polite">
+    <p class="sr-only">กำลังเปิดครัว กรุณารอสักครู่</p>
+    <div class="ld-stack" aria-hidden="true">
+      <div class="ld-orb">
+        <img class="ld-egg" src="assets/emoji/1f373-anim.webp?v=1" width="78" height="78" alt="" decoding="async" fetchpriority="high">
+        <span class="ld-mark"><svg viewBox="0 0 32 32" focusable="false" aria-hidden="true"><path class="egg-white" d="M15.00,3.40 C16.58,3.40 18.73,3.50 20.50,4.20 C22.27,4.90 24.25,6.23 25.60,7.60 C26.95,8.97 28.43,10.77 28.60,12.40 C28.77,14.03 26.37,15.93 26.60,17.40 C26.83,18.87 30.33,19.87 30.00,21.20 C29.67,22.53 26.50,24.17 24.60,25.40 C22.70,26.63 20.80,28.13 18.60,28.60 C16.40,29.07 13.47,28.77 11.40,28.20 C9.33,27.63 7.50,26.50 6.20,25.20 C4.90,23.90 3.90,22.03 3.60,20.40 C3.30,18.77 4.47,17.03 4.40,15.40 C4.33,13.77 2.70,12.20 3.20,10.60 C3.70,9.00 6.10,6.87 7.40,5.80 C8.70,4.73 9.73,4.60 11.00,4.20 C12.27,3.80 13.42,3.40 15.00,3.40 Z"/><circle class="yolk" cx="18.4" cy="13.2" r="5.2"/></svg></span>
+      </div>
+      <div class="ld-name">ตามสั่ง<small>web &amp; app studio</small></div>
+      <div class="ld-track"><i></i></div>
+    </div>
+    <p class="ld-msg" aria-hidden="true">กำลังเปิดครัว<span>.</span><span>.</span><span>.</span></p>
+  </div>
+  <a class="skip-link" href="#main">ข้ามไปยังเนื้อหาหลัก</a>
+
+  <main id="main">
+    <div class="container ref-top">
+      <a class="ref-back" href="index.html">
+        <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+        กลับหน้าแรก
+      </a>
+    </div>
+
+    <section class="section" aria-labelledby="ref-title">
+      <div class="container">
+        <div class="section-head left reveal">
+          <span class="eyebrow">อ้างอิงผลงาน</span>
+          <h1 id="ref-title">ของจริงทุกชิ้น ดูคลิปหน้าจริงได้เลย</h1>
+          <p>
+            ผลงานทั้งหมดข้างล่างนี้ ตามสั่งลงมือทำเองตั้งแต่ออกแบบ เขียนโค้ด จนถึงดีพลอยขึ้นออนไลน์
+            ไม่มีชิ้นไหนซื้อเทมเพลตมาแปะ — แตะการ์ดไหนก็ได้ (หรือเอาเมาส์ชี้บนคอม) จะเห็นคลิปหน้านั้นถูกเลื่อนจริง
+            ภาพที่เห็นคือหน้าจอจริงของงานนั้น ณ วันที่ทำหน้านี้
+          </p>
+        </div>
+
+        <!-- ---------------- 1. shipped, running right now ---------------- -->
+        <div class="ref-group">
+          <h2>งานเว็บไซต์ (งานสาธิต)</h2>
+          <p class="ref-lead">เว็บที่เราออกแบบและเขียนเองทั้งหมดเพื่อแสดงระดับงาน — แบรนด์ในทุกชิ้นเป็นของสมมติ</p>
+
+          <div class="work-grid">
+
+            <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูภาพและคลิปของผลงาน: ครัวบ้านสวน — เว็บร้านอาหารไทย" data-reel="krua-baansuan" data-reel-v="16">
+              <div class="thumb">
+                <span class="tag">งานสาธิต · เว็บร้านอาหาร · 1 หน้า</span>
+                <img class="preview" src="assets/work/krua-baansuan.webp?v=7" alt="หน้าแรกเว็บร้านอาหารครัวบ้านสวน มีภาพสำรับกับข้าวไทย หัวเรื่องภาษาไทย และปุ่มจองโต๊ะ" width="1440" height="900" loading="lazy" decoding="async">
+              </div>
+              <div class="work-body">
+                <span class="work-no" aria-hidden="true"></span>
+                <h3>ครัวบ้านสวน — เว็บร้านอาหารไทย</h3>
+                <p>หน้าเดียวจบสำหรับร้านอาหาร: ภาพบรรยากาศ → เมนูแนะนำพร้อมราคา → ที่ตั้งและเวลาเปิด ปุ่มโทรจองโต๊ะกับแอดไลน์อยู่ในระยะนิ้วโป้งตลอดหน้า</p>
+                <span class="ref-why">แบรนด์สมมติ สร้างขึ้นเพื่อโชว์ระดับงาน ไม่ใช่งานลูกค้า</span>
+                <div class="ref-meta"><b>ทำเอง:</b> วางเนื้อหา · ดีไซน์ · โค้ด <span class="sep">·</span> <b>เทค:</b> HTML/CSS/JS ล้วน, token 3 ชั้น, ปรับตามจอ, ผ่านสคริปต์ตรวจ &quot;ตก 0&quot;</div>
+                <a class="work-live" href="work/krua-baansuan/" aria-label="เปิดงานสาธิตของ ครัวบ้านสวน">เปิดงานสาธิต<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+              </div>
+                          <div class="shots">
+                <img src="assets/work/pages/krua-baansuan-1.webp?v=4" alt="ช่วงบนของหน้า — krua-baansuan" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/krua-baansuan-2.webp?v=8" alt="ช่วงกลางของหน้า — krua-baansuan" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/krua-baansuan-3.webp?v=8" alt="ช่วงล่างของหน้า — krua-baansuan" width="760" height="475" loading="lazy" decoding="async">
+              </div>
+            </div>
+
+            <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูภาพและคลิปของผลงาน: Homecraft Design &amp; Build — เว็บรับเหมาก่อสร้าง/รีโนเวท" data-reel="homecraft" data-reel-v="16">
+              <div class="thumb">
+                <span class="tag">งานสาธิต · เว็บรับเหมาก่อสร้าง · 1 หน้า</span>
+                <img class="preview" src="assets/work/homecraft.webp?v=5" alt="หน้าแรกเว็บ Homecraft Design &amp; Build แสดงหัวเรื่องรับเหมาก่อสร้าง ปุ่มโทร และภาพบ้านหลังใหญ่" width="1440" height="900" loading="lazy" decoding="async">
+              </div>
+              <div class="work-body">
+                <span class="work-no" aria-hidden="true"></span>
+                <h3>Homecraft Design &amp; Build — เว็บรับเหมาก่อสร้าง/รีโนเวท</h3>
+                <p>เว็บหน้าเดียว 9 บล็อก ไล่จากปัญหาที่เจ้าของบ้านเจอจริง → ขอบเขตงาน 8 บริการ → ประเภทงาน → ราคา → คำถามที่พบบ่อย → ปุ่มโทร/แอดไลน์ ไฟล์เดียวจบ รูปฝังในไฟล์ ไม่มี build step</p>
+                <span class="ref-why">แบรนด์สมมติ สร้างขึ้นเพื่อโชว์ระดับงาน ไม่ใช่งานลูกค้า</span>
+                <div class="ref-meta"><b>ทำเอง:</b> เก็บข้อมูลธุรกิจ · เขียนเนื้อหา · ดีไซน์ · โค้ด · ไอคอน 9 ตัววาดเอง <span class="sep">·</span> <b>เทค:</b> HTML/CSS/JS ล้วน, ไฟล์เดียว, ปรับตามจอ, มาตรฐานการเข้าถึง a11y</div>
+                <a class="work-live" href="work/homecraft/" aria-label="เปิดงานสาธิตของ Homecraft">เปิดงานสาธิต<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+              </div>
+                          <div class="shots">
+                <img src="assets/work/pages/homecraft-1.webp?v=4" alt="ช่วงบนของหน้า — homecraft" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/homecraft-2.webp?v=6" alt="ช่วงกลางของหน้า — homecraft" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/homecraft-3.webp?v=5" alt="ช่วงล่างของหน้า — homecraft" width="760" height="475" loading="lazy" decoding="async">
+              </div>
+            </div>
+
+            <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูภาพหกหน้าของผลงาน: โกลว์ คลินิก — เว็บคลินิกผิวพรรณ" data-pages="glow-clinic-multi-1,glow-clinic-multi-2,glow-clinic-multi-3,glow-clinic-multi-4,glow-clinic-multi-5,glow-clinic-multi-6">
+              <div class="thumb">
+                <span class="tag">งานสาธิต · เว็บคลินิกความงาม · 5 หน้า</span>
+                <img class="preview" src="assets/work/glow-clinic-multi.webp?v=1" alt="หน้าแรกเว็บโกลว์ คลินิก ฉบับหลายหน้า มีเมนูชี้ไปหน้าแยกกัน 14 หน้า" width="1440" height="900" loading="lazy" decoding="async">
+              </div>
+              <div class="work-body">
+                <span class="work-no" aria-hidden="true"></span>
+                <h3>โกลว์ คลินิก — เว็บคลินิกผิวพรรณ</h3>
+                <p>เว็บคลินิกแบบ 8 หน้าหลักจริง แยก URL ของตัวเองทุกหน้า: หน้าแรก · โปรแกรมทั้งหมด · โปรโมชั่นเดือนนี้ · เครื่องมือและความรู้ · รีวิวจากคนไข้ · คนหล่อสวยที่มาประจำ · แพทย์ผู้ตรวจ · ที่ตั้งและนัดหมาย และโปรแกรมรักษาอีก 6 หน้า หน้าละหนึ่งตัว (งอกจากแม่แบบเดียวกัน) (จำนวนครั้ง เวลา วันพักฟื้น ราคา) ผังหน้าชุดนี้มาจากการเปิดนับเว็บคลินิกไทยจริง 5 เจ้า ไม่ใช่จากการเดา · จุดที่ไม่มีเจ้าไหนทำ: เลือกจาก &quot;ปัญหาผิวที่มี&quot; แล้วเห็นเลยว่าต้องทำกี่ครั้ง พักฟื้นกี่วัน รวมเท่าไหร่ โดยไม่ต้องทักไลน์ถาม</p>
+                <span class="ref-why">แบรนด์สมมติ สร้างขึ้นเพื่อโชว์ระดับงาน ไม่ใช่งานลูกค้า</span>
+                <div class="ref-meta"><b>ทำเอง:</b> วางเนื้อหา · ดีไซน์ · โค้ด <span class="sep">·</span> <b>เทค:</b> HTML/CSS/JS ล้วน, ประกอบจากเปลือกร่วมด้วยสคริปต์กลางตัวเดียวกับเดโมหลายหน้าใบอื่น, URL แบบโฟลเดอร์ใช้ได้ทุกโฮสต์, ผ่านสคริปต์ตรวจ &quot;ตก 0&quot;</div>
+                <a class="work-live" href="work/glow-clinic-multi/" aria-label="เปิดงานสาธิตของ โกลว์ คลินิก">เปิดงานสาธิต<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+              </div>
+                          <div class="shots">
+                <img src="assets/work/pages/glow-clinic-multi-1.webp?v=1" alt="หน้าแรก — โกลว์ คลินิก ฉบับหลายหน้า" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/glow-clinic-multi-2.webp?v=1" alt="หน้าโปรแกรมทั้งหมด — โกลว์ คลินิก ฉบับหลายหน้า" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/glow-clinic-multi-3.webp?v=1" alt="หน้าโปรโมชั่นเดือนนี้ — โกลว์ คลินิก ฉบับหลายหน้า" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/glow-clinic-multi-4.webp?v=1" alt="หน้าเครื่องมือและความรู้ — โกลว์ คลินิก ฉบับหลายหน้า" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/glow-clinic-multi-5.webp?v=1" alt="หน้าคนหล่อสวยที่มาประจำ — โกลว์ คลินิก ฉบับหลายหน้า" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/glow-clinic-multi-6.webp?v=1" alt="หน้ารีวิวจากคนไข้ — โกลว์ คลินิก ฉบับหลายหน้า" width="760" height="475" loading="lazy" decoding="async">
+              </div>
+            </div>
+
+            <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูภาพห้าหน้าของผลงาน: เดอะ เทอเรส — เวนิวจัดงานแต่งและงานเลี้ยง" data-pages="the-terrace-multi-1,the-terrace-multi-2,the-terrace-multi-3,the-terrace-multi-4,the-terrace-multi-5">
+              <div class="thumb">
+                <span class="tag">งานสาธิต · เว็บเวนิวจัดงาน · 5 หน้า</span>
+                <img class="preview" src="assets/work/the-terrace-multi.webp?v=1" alt="หน้าแรกเว็บเดอะ เทอเรส ฉบับหลายหน้า มีเมนูชี้ไปห้าหน้าแยกกัน" width="1440" height="900" loading="lazy" decoding="async">
+              </div>
+              <div class="work-body">
+                <span class="work-no" aria-hidden="true"></span>
+                <h3>เดอะ เทอเรส — เวนิวจัดงานแต่งและงานเลี้ยง</h3>
+                <p>เว็บเวนิวแบบ 5 หน้าจริงที่มี URL ของตัวเอง หน้าละ title/description/OG แยกกัน มีหน้ารายละเอียดรายห้อง breadcrumb และ sitemap ให้ Google เก็บครบทุกหน้า</p>
+                <span class="ref-why">แบรนด์สมมติ สร้างขึ้นเพื่อโชว์ระดับงาน ไม่ใช่งานลูกค้า</span>
+                <div class="ref-meta"><b>ทำเอง:</b> วางเนื้อหา · ดีไซน์ · โค้ด <span class="sep">·</span> <b>เทค:</b> HTML/CSS/JS ล้วน, ประกอบจากเปลือกร่วมด้วยสคริปต์ (header/เมนู/footer อยู่ที่เดียว), URL แบบโฟลเดอร์ใช้ได้ทุกโฮสต์, ผ่านสคริปต์ตรวจ &quot;ตก 0&quot;</div>
+                <a class="work-live" href="work/the-terrace-multi/" aria-label="เปิดงานสาธิตของ เดอะ เทอเรส">เปิดงานสาธิต<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+              </div>
+                          <div class="shots">
+                <img src="assets/work/pages/the-terrace-multi-1.webp?v=1" alt="หน้าแรก — เดอะ เทอเรส ฉบับ 5 หน้า" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/the-terrace-multi-2.webp?v=1" alt="หน้าสถานที่ — เดอะ เทอเรส ฉบับ 5 หน้า" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/the-terrace-multi-3.webp?v=1" alt="หน้าแพ็กเกจและเมนู — เดอะ เทอเรส ฉบับ 5 หน้า" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/the-terrace-multi-4.webp?v=1" alt="หน้ารีวิวและวิธีทำงาน — เดอะ เทอเรส ฉบับ 5 หน้า" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/the-terrace-multi-5.webp?v=1" alt="หน้าติดต่อ — เดอะ เทอเรส ฉบับ 5 หน้า" width="760" height="475" loading="lazy" decoding="async">
+              </div>
+            </div>
+
+            <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูภาพและคลิปของผลงาน: อู่ช่างชัด — เว็บอู่ซ่อมรถยนต์" data-reel="chang-chat" data-reel-v="7">
+              <div class="thumb">
+                <span class="tag">งานสาธิต · เว็บอู่ซ่อมรถ · 1 หน้า</span>
+                <img class="preview" src="assets/work/chang-chat.webp?v=2" alt="หน้าแรกเว็บอู่ช่างชัด พื้นมืด ภาพช่างใช้ประแจปอนด์ขันล้อ หัวเรื่อง รู้ราคาก่อนเราแตะรถ และแผ่นตัวเลขสามบรรทัด" width="1440" height="900" loading="lazy" decoding="async">
+              </div>
+              <div class="work-body">
+                <span class="work-no" aria-hidden="true"></span>
+                <h3>อู่ช่างชัด — เว็บอู่ซ่อมรถยนต์</h3>
+                <p>หน้าเดียวที่แก้ความกลัวเรื่องเดียวของเจ้าของรถ คือกลัวราคาบานปลาย — กดเลือกอาการรถกับกลุ่มรถแล้วได้ช่วงราคาจริงทันทีโดยไม่ต้องโทรถาม ต่อด้วยใบเสนอราคาที่แยกค่าแรงกับค่าอะไหล่ทุกบรรทัด ใบตรวจ 30 จุดแบบเขียว-เหลือง-แดง และหน้าติดตามสถานะรถว่าซ่อมถึงขั้นไหนแล้ว</p>
+                <span class="ref-why">แบรนด์สมมติ สร้างขึ้นเพื่อโชว์ระดับงาน ไม่ใช่งานลูกค้า</span>
+                <div class="ref-meta"><b>ทำเอง:</b> วางเนื้อหา · ดีไซน์ · โค้ด <span class="sep">·</span> <b>เทค:</b> HTML/CSS/JS ล้วน, token 3 ชั้น, เครื่องมือประเมินราคาเขียนเอง, ปรับตามจอ, ผ่านสคริปต์ตรวจ &quot;ตก 0&quot;</div>
+                <a class="work-live" href="work/chang-chat/" aria-label="เปิดงานสาธิตของ อู่ช่างชัด">เปิดงานสาธิต<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+              </div>
+                          <div class="shots">
+                <img src="assets/work/pages/chang-chat-1.webp?v=2" alt="ช่วงบนของหน้า — chang-chat" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/chang-chat-2.webp?v=2" alt="ช่วงกลางของหน้า — chang-chat" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/chang-chat-3.webp?v=3" alt="ช่วงล่างของหน้า — chang-chat" width="760" height="475" loading="lazy" decoding="async">
+              </div>
+            </div>
+
+            <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูภาพและคลิปของผลงาน: The Bed — เว็บที่พักหรู" data-reel="the-bed" data-reel-v="19">
+              <div class="thumb">
+                <span class="tag">งานสาธิต · อสังหาริมทรัพย์ · 1 หน้า</span>
+                <img class="preview" src="assets/work/the-bed.webp?v=8" alt="หน้าแรกเว็บ The Bed ภาพอาคารเต็มจอ พร้อมเมนูที่ชี้ไปแต่ละส่วนในหน้าเดียว" width="1440" height="900" loading="lazy" decoding="async">
+              </div>
+              <div class="work-body">
+                <span class="work-no" aria-hidden="true"></span>
+                <h3>The Bed — เว็บที่พักหรู</h3>
+                <p>เว็บนำเสนอที่พักและอสังหาริมทรัพย์แบบหน้าเดียวจบ — ภาพอาคารเต็มจอ ไล่ดูห้องแต่ละแบบ สิ่งอำนวยความสะดวก และเสียงผู้อยู่อาศัย ปิดท้ายด้วยปุ่มนัดเข้าชม ที่พักมีเรื่องเดียวจะเล่าและปลายทางเดียวคือ &quot;โทรมานัดดูห้อง&quot; หน้าเดียวที่แน่นจึงทำงานได้ดีกว่าแยกเป็นหลายหน้า</p>
+                <span class="ref-why">แบรนด์สมมติ สร้างขึ้นเพื่อโชว์ระดับงาน ไม่ใช่งานลูกค้า</span>
+                <div class="ref-meta"><b>ทำเอง:</b> วางเนื้อหา · ดีไซน์ · โค้ด <span class="sep">·</span> <b>เทค:</b> Tailwind แช่แข็งเป็นไฟล์นิ่ง, ฮีโร่ parallax บนเส้นทาง compositor, วัด contrast จริงทุกคู่สี, ผ่านสคริปต์ตรวจ &quot;ตก 0&quot;</div>
+                <a class="work-live" href="work/the-bed/" aria-label="เปิดงานสาธิตของ The Bed">เปิดงานสาธิต<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+              </div>
+            </div>
+
+            <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูภาพและคลิปของผลงาน: VELVET LEAF — เว็บร้านบูทีคหน้าเดียว" data-reel="velvet-leaf" data-reel-v="16">
+              <div class="thumb">
+                <span class="tag">งานสาธิต · ร้านค้าหน้าเดียว · 1 หน้า</span>
+                <img class="preview" src="assets/work/velvet-leaf.webp?v=7" alt="หน้าแรกเว็บ VELVET LEAF แสดงชื่อร้าน ภาพหน้าร้าน และเวลาเปิดทำการ" width="1440" height="900" loading="lazy" decoding="async">
+              </div>
+              <div class="work-body">
+                <span class="work-no" aria-hidden="true"></span>
+                <h3>VELVET LEAF — เว็บร้านบูทีคหน้าเดียว</h3>
+                <p>เว็บร้านครบในหน้าเดียว: หน้าร้าน เรื่องราวแบรนด์ เมนูสินค้าพร้อมราคา เวลาทำการ และแผนที่ ต่อด้วยระบบเลือกสินค้าใส่ตะกร้าไว้ก่อนไปหน้าร้าน พร้อมด่านยืนยันอายุตามกฎหมายก่อนเข้าเว็บ</p>
+                <span class="ref-why">ร้านสมมติ ทำไว้สาธิต — เนื้อหาและสินค้าไม่ใช่ของร้านจริง</span>
+                <div class="ref-meta"><b>ทำเอง:</b> ดีไซน์ · โค้ด · จัดหน้าข้อมูลสินค้า <span class="sep">·</span> <b>เทค:</b> React, Vite, Tailwind CSS, TypeScript</div>
+                <a class="work-live" href="work/velvet-leaf/" aria-label="เปิดงานสาธิตของ VELVET LEAF">เปิดงานสาธิต<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+              </div>
+                          <div class="shots">
+                <img src="assets/work/pages/velvet-leaf-1.webp?v=5" alt="ช่วงบนของหน้า — velvet-leaf" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/velvet-leaf-2.webp?v=5" alt="ช่วงกลางของหน้า — velvet-leaf" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/velvet-leaf-3.webp?v=6" alt="ช่วงล่างของหน้า — velvet-leaf" width="760" height="475" loading="lazy" decoding="async">
+              </div>
+            </div>
+
+            <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูภาพและคลิปของผลงาน: Lumen — เว็บ SaaS เอฟเฟกต์ WebGL" data-reel="lumen" data-reel-v="18">
+              <div class="thumb">
+                <span class="tag">งานสาธิต · SaaS · WebGL · 1 หน้า</span>
+                <img class="preview" src="assets/work/lumen.webp?v=5" alt="หน้าเว็บ Lumen แสดงเอฟเฟกต์แสงแบบ WebGL" width="1440" height="900" loading="lazy" decoding="async">
+              </div>
+              <div class="work-body">
+                <span class="work-no" aria-hidden="true"></span>
+                <h3>Lumen — เว็บซอฟต์แวร์ สมัครใช้ออนไลน์</h3>
+                <p>หน้าเว็บขายซอฟต์แวร์ที่ใช้เอฟเฟกต์แสงแบบ WebGL เป็นตัวเล่าคุณค่าสินค้า พร้อมตารางราคาและส่วนคำถามที่พบบ่อย</p>
+                <span class="ref-why">แบรนด์สมมติ สร้างขึ้นเพื่อโชว์ระดับงาน ไม่ใช่งานลูกค้า</span>
+                <div class="ref-meta"><b>เหมาะกับ:</b> ซอฟต์แวร์ ระบบสมาชิกรายเดือน <span class="sep">·</span> <b>เทค:</b> WebGL, เว็บล้วน</div>
+                <a class="work-live" href="work/lumen/" aria-label="เปิดงานสาธิตของ Lumen">เปิดงานสาธิต<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+              </div>
+                          <div class="shots">
+                <img src="assets/work/pages/lumen-1.webp?v=6" alt="ช่วงบนของหน้า — lumen" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/lumen-2.webp?v=5" alt="ช่วงกลางของหน้า — lumen" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/lumen-3.webp?v=6" alt="ช่วงล่างของหน้า — lumen" width="760" height="475" loading="lazy" decoding="async">
+              </div>
+            </div>
+
+            <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูภาพห้าหน้าของผลงาน: GAMEDOCK — ร้านเกมออนไลน์ พร้อมระบบหลังร้าน" data-pages="gamedock-1,gamedock-2,gamedock-3,gamedock-4,gamedock-5">
+              <div class="thumb">
+                <span class="tag">งานสาธิต · ร้านค้าออนไลน์ + หลังบ้าน · 5 หน้า</span>
+                <img class="preview" src="assets/work/gamedock.webp?v=4" alt="หน้าแรกร้านเกม GAMEDOCK บนพื้นสีเข้ม มีแถบค้นหาและการ์ดสินค้าเรียงเป็นกริด" width="1440" height="900" loading="lazy" decoding="async">
+              </div>
+              <div class="work-body">
+                <span class="work-no" aria-hidden="true"></span>
+                <h3>GAMEDOCK — ร้านเกมออนไลน์ พร้อมระบบหลังร้าน</h3>
+                <p>ร้านขายเกมและเครื่องเกมที่กดใช้ได้จริงทั้งเส้น — ค้นหาและกรองตามเครื่องได้จริง สินค้าทุกชิ้นมีหน้าของตัวเองพร้อมตัวเลือกเวอร์ชัน เลือกสินค้า ใส่ตะกร้า กรอกที่อยู่ เลือกวิธีจ่ายเงิน แล้วออเดอร์เข้าไปโผล่ในระบบหลังร้านทันที เจ้าของร้านล็อกอินเข้าไป แก้ชื่อ ราคา และจำนวนคงเหลือได้เอง กดบันทึกแล้วหน้าร้านเปลี่ยนตามทันทีโดยไม่ต้องเรียกคนทำเว็บ มีระบบสมาชิกให้ลูกค้าดูประวัติการสั่งซื้อและสถานะพัสดุของตัวเอง (ลองระบบหลังร้านได้ที่ /admin.html บัญชีทดลอง demo / demo) <b>ขอบเขต:</b> ระบบหลังบ้านแก้เนื้อหารวมอยู่ในแพ็กเกจ ฿9,900 ส่วนตะกร้า ระบบชำระเงิน และระบบสมาชิก คิดเพิ่มตามฟังก์ชันที่สั่ง ตกลงราคาก่อนทำเสมอ <b>ข้อจำกัดของงานสาธิต:</b> ใบนี้เก็บออเดอร์และบัญชีสมาชิกไว้ในเบราว์เซอร์ของเครื่องที่เปิดดู ยังไม่ได้ต่อฐานข้อมูลบนเซิร์ฟเวอร์ เปิดคนละเครื่องจึงไม่เห็นออเดอร์เดียวกัน — งานจริงต่อฐานข้อมูลให้ ข้อมูลอยู่กลางและเห็นตรงกันทุกเครื่อง</p>
+                <div class="ref-meta"><b>เหมาะกับ:</b> ร้านค้าออนไลน์ ร้านที่ต้องแก้ราคา/สต็อกเองบ่อย <span class="sep">·</span> <b>เทค:</b> เว็บล้วน, ระบบตะกร้า, หลังบ้านแก้สินค้า, ระบบสมาชิก</div>
+                <a class="work-live" href="work/gamedock/" aria-label="เปิดงานสาธิตของ GAMEDOCK">เปิดงานสาธิต<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+              </div>
+              <div class="shots">
+                <img src="assets/work/pages/gamedock-1.webp?v=3" alt="หน้าแรกร้าน GAMEDOCK — แถบค้นหาและสินค้าแนะนำ" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/gamedock-2.webp?v=4" alt="แถวลดราคาวันนี้และกริดสินค้า — GAMEDOCK" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/gamedock-3.webp?v=3" alt="หน้าสินค้ารายตัว มีตัวเลือกเวอร์ชันและรีวิว — GAMEDOCK" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/gamedock-4.webp?v=1" alt="หน้าตะกร้าและชำระเงิน — GAMEDOCK" width="760" height="475" loading="lazy" decoding="async">
+                <img src="assets/work/pages/gamedock-5.webp?v=1" alt="ระบบหลังร้าน แก้ราคาและสต็อกเองได้ — GAMEDOCK" width="760" height="475" loading="lazy" decoding="async">
+              </div>
+            </div>
+
+          
+          </div>
+        </div>
+
+        <!-- ---------------- 2. websites ---------------- -->
+        <div class="ref-group">
+          <h2>แอปของเราเอง ที่ใช้งานอยู่จริง</h2>
+          <p class="ref-lead">สองตัวนี้ไม่ใช่งานสาธิต — เป็นแอปที่เราสร้างและใช้เองทุกวัน
+            มีคนเข้าใช้ได้จริงตอนนี้ ไม่ใช่ภาพนิ่งหรือไฟล์ดีไซน์</p>
+
+          <div class="work-grid">
+
+            <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูคลิปและภาพจอแอปของผลงาน: Ijek — เว็บแอปฝึกวินัยตัวเอง" data-reel="ijek" data-reel-v="12">
+              <div class="thumb">
+                <span class="tag">แอปของเราเอง · PWA</span>
+                <!-- ป้ายนี้เคยเขียนว่า "ใช้งานได้จริง" ซึ่งไม่จริงอีกแล้ว: ลิงก์พาไปหน้าขายของ
+                     ส่วนตัวแอปอยู่ที่ /train และต้องเข้าสู่ระบบด้วยกูเกิลก่อน คนที่กดจากหน้านี้
+                     คือลูกค้าที่กำลังเช็คว่าเราทำเองจริงไหม — ป้ายที่สัญญาเกินจริงหนึ่งใบ
+                     ทำให้ทั้งหน้าน่าสงสัยไปด้วย (ตรวจเจอ 21/8/26) -->
+                <img class="preview" src="assets/work/ijek.webp?v=7" alt="หน้าจอแอป Ijek แสดงแดชบอร์ดเป้าหมายและสถิติการฝึก" width="1280" height="800" loading="lazy" decoding="async">
+              </div>
+              <div class="work-body">
+                <span class="work-no" aria-hidden="true"></span>
+                <h3>Ijek — เว็บแอปฝึกวินัยตัวเอง</h3>
+                <p>ตั้งเป้าหมาย บันทึกผลรายวัน และดูสถิติย้อนหลัง ติดตั้งลงมือถือได้เหมือนแอปจริง เปิดใช้ได้ตอนเน็ตหลุด ข้อมูลซิงก์ข้ามเครื่อง</p>
+                <div class="ref-meta"><b>ทำเอง:</b> ดีไซน์ · โค้ด · ฐานข้อมูล · ดีพลอย <span class="sep">·</span> <b>เทค:</b> เว็บแอป, PWA + Service Worker, Cloudflare Workers</div>
+                <!-- 22/8/26 (jek: "การ์ด Ijek กับ ScoreUp ไม่มีป้าย มีแต่คลิปกับรูป") — การ์ดอีกเก้าใบ
+                     บนหน้านี้ทุกใบจบด้วยป้ายพาไปของจริง สองใบนี้ไม่มี คนดูจึงเห็นคลิปสวยๆ
+                     แล้วตัน ไม่มีทางพิสูจน์ว่ามันเปิดได้จริง ป้ายใช้คลาส/กลไกเดียวกับอีกเก้าใบ
+                     (reel-video.js ดักคลิกที่ a.work-live เพื่อหยุดคลิปก่อนเปลี่ยนหน้า)
+                     target=_blank เพราะเป็นเว็บนอกบ้าน ไม่ใช่หน้าในเว็บนี้เหมือนอีกเก้าใบ -->
+                <a class="work-live" href="https://withered-block-4669.monmon7735.workers.dev" target="_blank" rel="noopener" aria-label="เปิดแอป Ijek ตัวจริงในแท็บใหม่">เปิดแอปจริง<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+              </div>
+            </div>
+
+            <div class="card work card--hover reveal reveal--scale is-locked" role="button" tabindex="0" aria-label="ดูคลิปและภาพจอแอปของผลงาน: ScoreUp — แอปติว TOEIC" data-reel="scoreup" data-reel-v="7">
+              <div class="thumb">
+                <span class="tag">แอปของเราเอง · การศึกษา</span>
+                <img class="preview" src="assets/work/scoreup.webp?v=8" alt="หน้าแดชบอร์ดแอป ScoreUp แสดงกราฟจุดอ่อนรายทักษะและคะแนนคาดการณ์" width="1280" height="800" loading="lazy" decoding="async">
+              </div>
+              <div class="work-body">
+                <span class="work-no" aria-hidden="true"></span>
+                <h3>ScoreUp — แอปติว TOEIC</h3>
+                <p>แดชบอร์ดวัดจุดอ่อนรายทักษะ คลังข้อสอบพร้อมเฉลย ระบบ XP และลีก บันทึกผลสอบลงชีตให้ผู้ดูแลดูย้อนหลังได้ ใช้ออฟไลน์และติดตั้งลงมือถือได้</p>
+                <div class="ref-meta"><b>ทำเอง:</b> ดีไซน์ · โค้ด · คลังข้อสอบ · ระบบหลังบ้าน <span class="sep">·</span> <b>เทค:</b> เว็บแอป, PWA, Firebase Auth, Google Sheets</div>
+                <!-- ป้ายใบนี้ไม่ใช่ลิงก์ไปแอป เพราะที่อยู่เดิม (scoreup-jek2026.netlify.app)
+                     ตอบ 404 อยู่จริง ณ 22/8/26 — วัดแล้ว ไม่ใช่เดา ป้ายที่พาไปหน้า 404
+                     แย่กว่าไม่มีป้าย เพราะพิสูจน์ตรงข้ามกับที่หน้านี้อ้าง
+                     ใช้กลไก/คลาสเดียวกับอีกสิบใบ ต่างแค่ปลายทางเป็นช่องติดต่อ และมี
+                     --ask กำกับไว้ให้รู้ว่าเป็นข้อยกเว้นที่ตั้งใจ ไม่ใช่ของหลุด
+                     พอ ScoreUp มีที่อยู่สาธารณะอีกครั้ง ให้เปลี่ยนกลับเป็นลิงก์ตรง
+                     แล้วลบ --ask ทิ้ง (PORTFOLIO.md "ต้องอัปเดตเมื่อไหร่" ก็เขียนไว้ข้อเดียวกัน) -->
+                <a class="work-live work-live--ask" href="index.html#contact" aria-label="นัดดู ScoreUp แบบสาธิตสด ผ่านช่องติดต่อ">นัดดูสด (กำลังย้ายโฮสต์)<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-external"/></svg></a>
+              </div>
+                        </div>
+
+          
+          </div>
+        </div>
+
+        <p class="ref-note">
+          <b>ทำไมไม่มีคำว่า “ผลงานส่วนใหญ่อยู่ภายใต้ NDA”</b><br>
+          เพราะเราเปิดให้ดูได้หมดจริงๆ ทุกชิ้นบนหน้านี้มีคลิปหน้าจริงกับภาพเต็มหน้าให้ดูเดี๋ยวนี้ ไม่ต้องเชื่อคำบรรยาย
+          และถ้าคุณจ้างเรา งานของคุณก็จะขึ้นหน้านี้ได้ก็ต่อเมื่อคุณอนุญาตเท่านั้น
+          <br><br>
+          อยากได้แบบไหน ทักมาคุยได้เลย — <a href="index.html#contact">ติดต่อตามสั่ง</a>
+        </p>
+
+      </div>
+    </section>
+  </main>
+
+<script>
+  /* Scroll reveal — the TRIGGER only. Every millisecond and every curve still comes
+     from styles.css (.reveal, .reveal--scale, reveal-pop), the same rules the home
+     page's work cards run on, so the two pages cannot drift into two different
+     entrances. What is local is only the part js/main.js does for the home page and
+     this page cannot borrow: main.js builds the hero reel, the nav spy and the order
+     bar against markup that does not exist here.
+
+     Same numbers as main.js on purpose — threshold ~0 so a tall card and a short one
+     start at the same LINE rather than at the same fraction of themselves, and a
+     negative bottom margin so a block waits until its top has crossed 82% of the
+     viewport: far enough in that you watch it arrive, early enough that it is never
+     still moving when it reaches the middle of the screen.
+
+     .settled is not decoration: .card.work's hover lift is written for
+     `.settled:hover`, because a hover transform landing mid-entrance warps the card.
+     It is added when the element genuinely has nothing animating on it any more —
+     getAnimations() reports the CSS animation the reveal runs on, which a transitionend
+     listener would miss. */
+  (function () {
+    var reveals = document.querySelectorAll(".reveal");
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce || !("IntersectionObserver" in window)) {
+      // Nothing animates, so nothing has to finish first: hover is live immediately.
+      Array.prototype.forEach.call(reveals, function (el) { el.classList.add("in", "settled"); });
+      return;
+    }
+    var settle = function (el) {
+      var done = function () { el.classList.add("settled"); };
+      if (!el.getAnimations) { setTimeout(done, 1400); return; }   // Safari < 13.1
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          var running = el.getAnimations();
+          if (!running.length) { done(); return; }
+          Promise.all(running.map(function (a) { return a.finished.catch(function () {}); })).then(done);
+        });
+      });
+    };
+    var reveal = function (el) { el.classList.add("in"); settle(el); };
+
+    /* ตาข่ายกันพลาดชุดเดียวกับ js/main.js (หน้านี้ไม่ได้โหลดไฟล์นั้น จึงต้องมีของตัวเอง —
+       ของชนิดเดียวกันต้องกันแบบเดียวกัน): ถ้าออบเซิร์ฟเวอร์ไม่ยิงเลย (Safari คืนหน้าจาก
+       bfcache · รีเฟรชค้างกลางหน้า · แท็บถูกพักแล้วปลุก) ของที่อยู่ในจอจะค้างที่
+       opacity 0 = การ์ดว่างเปล่า (jek รายงาน 21/8/26) กวาดซ้ำหลังโหลด 2 วิ และตอนหน้า
+       ถูกคืนจากแคช/กลับมาเห็นอีกครั้ง */
+    var sweepReveals = function () {
+      Array.prototype.forEach.call(document.querySelectorAll(".reveal:not(.in)"), function (el) {
+        var r = el.getBoundingClientRect();
+        if (r.bottom > 0 && r.top < window.innerHeight) reveal(el);
+      });
+    };
+    setTimeout(sweepReveals, 2000);
+    window.addEventListener("pageshow", function (e) { if (e.persisted) setTimeout(sweepReveals, 100); });
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) setTimeout(sweepReveals, 300); });
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        reveal(e.target);
+        io.unobserve(e.target);   // reveal once and stay revealed
+      });
+    }, { threshold: 0.01, rootMargin: "0px 0px -18% 0px" });
+
+    // Anything already on screen is revealed by MEASUREMENT, not by waiting for
+    // the observer — the same guard main.js has carried for the home page, and
+    // the reason it has it: an IntersectionObserver does not run while the tab is
+    // hidden. Middle-click "ผลงานทั้งหมด" on the home page and this one loads in a
+    // background tab; every card above the fold was arriving at opacity 0 and
+    // staying there until the browser next rendered the page. Measured (0.82 of a
+    // screen) it is the same line the observer uses, so the two cannot disagree.
+    var begin = function () {
+      Array.prototype.forEach.call(reveals, function (el) {
+        var r = el.getBoundingClientRect();
+        if (r.top < window.innerHeight * 0.82 && r.bottom > 0) reveal(el);
+        else io.observe(el);
+      });
+    };
+    // Behind the loading screen if one is up — same gate as main.js uses for the
+    // home page, so a first-visit landing here does not spend its entrance on the
+    // back of the ticket. See window.tsCurtain in the head.
+    if (window.tsCurtain) window.tsCurtain(begin); else begin();
+  })();
+</script>
+
+<!-- ---- การ์ดเล่นตัวเองตอนชี้ ------------------------------------------------
+     เว็บ = เล่นคลิปที่หน้านั้นถูกเลื่อนจากหัวถึงท้าย (assets/work/reel/)
+     แอป = สลับจอทีละใบ เพราะแอปไม่มี fold ให้เลื่อนผ่าน (assets/work/pages/)
+     กฎเดียวกับหน้าแรก: ไม่โหลดอะไรจนกว่าตัวชี้จะมาถึงการ์ด และไม่ถอดภาพนิ่งทิ้ง
+     ต่างจาก main.js ตรงที่นี่ใส่ทั้ง mp4 และ webm เป็น <source> สองอัน เผื่อคลิป
+     ที่ถ่ายจากเครื่องที่ไม่มี h264 — เบราว์เซอร์เลือกอันที่เล่นได้เอง -->
+<script src="js/reel-video.js?v=9"></script>
+<script>
+  (() => {
+    const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const OK = !REDUCED && matchMedia("(hover: hover)").matches;
+    if (!OK) return;
+
+    const PAGE_HOLD = 1600, PAGE_FADE = 400;   // เท่ากับ main.js และ --dur-slow
+    const flips = new WeakMap();
+
+    /* แยก "สร้าง + เริ่มโหลด" ออกจาก "เล่น" — ครึ่งแรกคือสิ่งที่ตัวอุ่นระยะใกล้เรียก
+       (window.reelVideo.warmNear) กลไกเดียวกับ js/main.js ไม่ใช่ของสองชุด */
+    function ensureReel(card) {
+      const base = card.dataset.reel;
+      if (!base) return null;
+      const thumb = card.querySelector(".thumb");
+      let v = thumb.querySelector(".shot-reel");
+      if (!v) {
+        v = document.createElement("video");
+        v.className = "shot-reel";
+        v.muted = true;          // property ไม่ใช่ attribute — Safari อ่านตัวนี้
+        v.loop = true;
+        v.playsInline = true;    // ไม่งั้น iPadOS ลากไปเล่นเต็มจอ
+        v.preload = "auto";
+        v.tabIndex = -1;
+        v.setAttribute("aria-hidden", "true");
+        /* ที่อยู่ไฟล์ + ประตูบัฟเฟอร์ + เช็ค :hover ใช้กลไกกลาง js/reel-video.js
+           ร่วมกับหน้าแรก (21/8/26) เดิมหน้านี้เขียนเองแยก ผลคือเคยเรียง mp4 ไว้ก่อน
+           webm อยู่พักหนึ่ง = ลากไฟล์ใหญ่กว่าหน้าแรกเงียบๆ และประตูที่นี่มีแค่
+           อีเวนต์ `playing` ไม่มีเงื่อนไขบัฟเฟอร์ คลิปจึงโผล่ช้ากว่าหน้าแรก */
+        window.reelVideo.attach(v, base, card.dataset.reelV);
+        window.reelVideo.wire(v, card);
+        thumb.appendChild(v);
+      }
+      return v;
+    }
+
+    function playReel(card) {
+      const v = ensureReel(card);
+      if (!v) return;
+      window.reelVideo.hold(v);   // กลับมาชี้ก่อนหมดเวลา = ยกเลิกการปล่อยทิ้ง
+      v.play().catch(() => { /* autoplay ถูกปฏิเสธ — ภาพนิ่งอยู่ต่อ ไม่มีอะไรพัง */ });
+    }
+
+    function stopReel(card) {
+      const v = card.querySelector(".shot-reel");
+      if (!v) return;
+      card.dataset.reelOn = "0";
+      v.pause();
+      v.currentTime = 0;        // รอบหน้าเริ่มที่หน้าแรกของเว็บ ไม่ใช่กลางฟุตเตอร์
+      window.reelVideo.release(v);   // คืนหน่วยความจำหลังเมาส์ออก — เหตุผลอยู่ในไฟล์นั้น
+    }
+
+    function playPages(card) {
+      const names = (card.dataset.pages || "").split(",").filter(Boolean);
+      if (!names.length) return;
+      /* การ์ดที่มีคลิปแล้ว ห้ามพลิกภาพซ้อนทับ — ตั้งแต่ Ijek มีคลิปของตัวเอง (21/8/26)
+         การ์ดใบหนึ่งมีได้ทั้ง data-reel และ data-pages พร้อมกัน ตัวจัดการฝั่งหน้าแรก
+         (js/main.js) เลือกคลิปก่อนอยู่แล้ว หน้านี้ต้องเลือกแบบเดียวกัน ไม่งั้นวิดีโอ
+         กับภาพพลิกจะเล่นทับกันบนการ์ดใบเดียว */
+      if (card.dataset.reel) return;
+      const thumb = card.querySelector(".thumb");
+      let frames = Array.prototype.slice.call(thumb.querySelectorAll(".shot-page"));
+      if (!frames.length) {
+        frames = names.map((name) => {
+          const img = document.createElement("img");
+          img.className = "shot-page";
+          img.src = "assets/work/pages/" + name + ".webp";
+          img.alt = "";
+          img.decoding = "async";
+          img.setAttribute("aria-hidden", "true");
+          // จอที่ไฟล์ไม่มา ถอนตัวออกจากรอบหมุน แทนที่จะโชว์ภาพแตก
+          img.addEventListener("error", () => { img.dataset.dead = "1"; });
+          thumb.appendChild(img);
+          return img;
+        });
+      }
+      const state = flips.get(card) || { id: 0, i: 0 };
+      if (state.id) return;
+      state.id = setInterval(() => {
+        const live = frames.filter((f) => f.dataset.dead !== "1");
+        if (!live.length) return;
+        state.i = (state.i + 1) % (live.length + 1);   // ตำแหน่ง 0 คือภาพนิ่งเอง
+        live.forEach((f, k) => { f.dataset.on = k === state.i - 1 ? "1" : "0"; });
+      }, PAGE_HOLD + PAGE_FADE);
+      flips.set(card, state);
+    }
+
+    function stopPages(card) {
+      const state = flips.get(card);
+      if (!state) return;
+      clearInterval(state.id);
+      state.id = 0; state.i = 0;
+      card.querySelectorAll(".shot-page").forEach((f) => { f.dataset.on = "0"; });
+    }
+
+    document.querySelectorAll(".card.work[data-reel], .card.work[data-pages]").forEach((card) => {
+      const play = () => { playReel(card); playPages(card); };
+      const stop = () => { stopReel(card); stopPages(card); };
+      card.addEventListener("pointerenter", play);
+      card.addEventListener("pointerleave", stop);
+      card.addEventListener("focus", play);      // คีย์บอร์ดก็ได้พรีวิวเหมือนกัน
+      card.addEventListener("blur", stop);
+    });
+
+    /* การ์ดหน้านี้อยู่นิ่ง = ไม่มีการอุ่นโดยบังเอิญเหมือนโค้งในฮีโร่ ผูกตัวอุ่นให้ */
+    window.reelVideo.prefetchInView(
+      [...document.querySelectorAll(".card.work[data-reel]")], ensureReel);
+  })();
+</script>
+
+<!-- หน้าต่างดูผลงาน: กล่อง มาร์กอัป และตรรกะทั้งหมดอยู่ใน js/peek.js
+     ไฟล์เดียวกับที่หน้าแรกโหลด การ์ดหน้าตาเดียวกันสองหน้าจึงกดแล้วได้ผลเดียวกัน -->
+<script src="js/peek.js?v=32" defer></script>
+<!-- เครื่องวัดความหนืด เปิดด้วย ?perf เท่านั้น ไม่ใส่ = สคริปต์ออกทันที ไม่มีต้นทุน -->
+<script src="js/perf-probe.js?v=3" defer></script>
+</body>
+</html>

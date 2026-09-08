@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:;" />
+    <title>Gloss</title>
+    <link rel="stylesheet" href="../shared/pos-badge.css" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <!-- Sidebar, not a tab strip. This window is 1400px wide and the navigation was a row of
+           seven words across the top — a shape borrowed from the pill's 344px panel, where it was
+           the only option. A rail puts the destinations in a column where a wide window has room
+           going spare, gives each one an icon you can aim at, and leaves the header line free for
+           what the window is actually holding. (jek, 2026-08-02, ref. Wispr Flow) -->
+      <!-- macOS only (see .is-mac in styles.css): the strip the hidden title bar left behind. -->
+      <div class="mac-drag" aria-hidden="true"></div>
+      <aside class="rail">
+        <div class="rail-head">
+          <!-- Collapse the rail to icons. Every app with a rail has this button, in this corner,
+               because a rail is a permanent tax on width and sometimes you want the pane instead:
+               a long history row, the Guide's pictures, a wide Insights grid. Icons stay, so it is
+               a narrowing rather than a disappearance — you never lose your place. -->
+          <button class="rail-toggle" id="railToggle" data-i18n-title="tip.rail" title="Collapse the sidebar" aria-label="Collapse the sidebar">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M10 4v16"/></svg>
+          </button>
+          <span class="rail-brand">Gloss</span>
+        </div>
+        <nav class="tabs" id="tabs">
+          <button class="tab active" data-tab="today" data-i18n="tab.today" data-ic="today">Today</button>
+          <button class="tab" data-tab="review" data-i18n="tab.review" data-ic="review">Review</button>
+          <button class="tab" data-tab="words" data-i18n="tab.words" data-ic="words">Words</button>
+          <button class="tab" data-tab="calendar" data-i18n="tab.calendar" data-ic="calendar">Calendar</button>
+          <button class="tab" data-tab="insights" data-i18n="tab.insights" data-ic="insights">Insights</button>
+          <button class="tab" data-tab="guide" data-i18n="tab.guide" data-ic="guide">Guide</button>
+        </nav>
+        <!-- Plan and Settings are not destinations you visit while working — they sit at the foot,
+             the way every app with a rail puts them. -->
+        <nav class="tabs rail-foot">
+          <button class="tab" data-tab="plan" data-i18n="tab.plan" data-ic="plan">Plan</button>
+          <button class="tab" data-tab="settings" data-i18n="tab.settings" data-ic="settings">Settings</button>
+        </nav>
+        <p class="rail-stat hdr-stat" id="hdrStat">No words saved yet</p>
+      </aside>
+      <main class="content" id="content">
+        <!-- The page names itself. With a tab strip the active tab WAS the title; a rail puts the
+             navigation in the corner of your eye instead, so the content has to say what it is.
+             Wispr Flow does the same — rail on the left, the page's own name at the top of the
+             pane, actions beside it. -->
+        <header class="page-head"><h1 id="pageTitle">Today</h1></header>
+        <div class="pane">
+        <!-- TODAY — the landing page. What a session gave you is the only thing anyone wants to see
+             on opening this window, and it used to be a CARD at the top of Insights that hid itself
+             entirely on a day with no words. A page that hides is indistinguishable from a page that
+             was never built: jek asked where it had gone (2026-08-02) about a feature he had asked
+             for himself. So it is its own tab, first and default, and it NEVER disappears — an empty
+             day shows the last day that wasn't, faded, as the thing to beat. -->
+        <section class="panel" id="panel-today">
+          <!-- The day's numbers, kept as ONE block. They used to be scattered across the full width
+               of the window — the streak exiled to the far right, the captures/words rows and the
+               action button at opposite ends of a 1400px row — so nothing read as belonging to
+               anything else. Capped width, because a summary that stretches is a summary you have to
+               scan. (jek, 2026-08-02) -->
+          <div class="today-band">
+            <div class="today-band-top">
+              <div>
+                <span class="today-kicker" id="todayNote"></span>
+                <p class="today-count"><b id="todayCount">0</b> <span id="todayCountLbl"></span></p>
+                <!-- Only rendered when the two scopes would show different words, i.e. when today
+                     holds more than one sitting. A switch between two identical lists is a control
+                     that does nothing, which is worse than no control. -->
+                <div class="today-scope" id="todayScope" hidden>
+                  <button class="scope-btn on" data-scope="session" type="button" data-i18n="today.scopeSession">Last session</button>
+                  <button class="scope-btn" data-scope="day" type="button" data-i18n="today.scopeDay">All day</button>
+                </div>
+              </div>
+              <!-- Only shown once there IS a run going: "0 day streak" is a discouraging thing to
+                   print at someone on the day they start. -->
+              <div class="today-streak" id="todayStreak" hidden>
+                <b id="todayStreakN">0</b><span id="todayStreakLbl"></span>
+              </div>
+            </div>
+            <div class="today-foot" id="todayFoot">
+              <div class="ins-rows today-rows" id="todayRows"></div>
+              <button class="ins-cta today-cta" id="todayCta"></button>
+            </div>
+          </div>
+
+          <!-- The words, as cards carrying the SENTENCE each one came from. The sentence was already
+               stored on every entry and was being spent on a title tooltip — invisible, and the one
+               thing that makes a word stick. A row of bare chips also left two thirds of the window
+               empty, which is what made this page look unfinished. -->
+          <!-- Picking. The band's button reviews the whole sitting in one press, which is the right
+               default; this is the other half — the sitting had 30 words and you want the 8 that
+               matter. Not a second tab: this page ALREADY is the list of what you just collected,
+               and a tab that showed the same cards with tick boxes would be the same page twice. -->
+          <div class="pick-bar" id="pickBar" hidden>
+            <button class="pick-toggle" id="pickToggle" type="button" data-i18n="pick.choose">Choose words</button>
+            <div class="pick-tools" id="pickTools" hidden>
+              <span class="pick-count" id="pickCount"></span>
+              <button class="pick-lnk" id="pickAll" type="button" data-i18n="pick.all">All</button>
+              <button class="pick-lnk" id="pickNone" type="button" data-i18n="pick.none">None</button>
+              <button class="pick-lnk" id="pickCancel" type="button" data-i18n="pick.cancel">Cancel</button>
+              <button class="pick-go" id="pickGo" type="button"></button>
+            </div>
+          </div>
+
+          <div class="today-words" id="todayWords"></div>
+
+          <!-- The empty day. Not a lock and not a blank: the cards above are the REAL ones from the
+               last day you collected, faded — the reward shown, not hidden behind a padlock. -->
+          <div class="today-empty" id="todayEmpty" hidden>
+            <p class="today-empty-line" id="todayEmptyLine"></p>
+            <p class="today-empty-tip" data-i18n="today.tip">Tap ★ on a word in a translation card to collect it.</p>
+          </div>
+
+          <!-- The launcher. Deliberately NOT a "are you sure?" — the button that opens this already
+               said what it would do, and a yes/no over it would be a click that decides nothing.
+               What it carries instead is the choice Review otherwise makes for you behind a setting:
+               which of the three ways to practise, with the count each one can actually fill (Usage
+               only works on words whose sentence still contains them, so it can be smaller than the
+               list you picked, and finding that out AFTER starting is the annoying way to learn it). -->
+          <div class="sheet-veil" id="startVeil" hidden>
+            <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="startH">
+              <h2 class="sheet-h" id="startH"></h2>
+              <p class="sheet-sub" id="startSub"></p>
+              <div class="sheet-modes" id="startModes"></div>
+              <div class="sheet-foot">
+                <button class="sheet-cancel" id="startCancel" type="button" data-i18n="pick.cancel">Cancel</button>
+                <button class="sheet-go" id="startGo" type="button"></button>
+              </div>
+            </div>
+          </div>
+        </section>
+        <!-- Calendar — how many NEW words each day gave you. Insights answers "how much, in total";
+             this answers "when", which is the question you ask when you are trying to keep a habit
+             rather than to admire a total. Built from the ts every vocab entry already carries, so it
+             is a lens over the same data and not another thing to keep in sync. -->
+        <section class="panel" id="panel-calendar" hidden>
+          <div class="cal-head">
+            <button class="cal-nav" id="calPrev" type="button" aria-label="Previous month">‹</button>
+            <div class="cal-title" id="calTitle"></div>
+            <button class="cal-nav" id="calNext" type="button" aria-label="Next month">›</button>
+            <div class="cal-sum" id="calSum"></div>
+          </div>
+          <div class="cal-dow" id="calDow"></div>
+          <div class="cal-grid" id="calGrid"></div>
+          <div class="cal-day" id="calDay" hidden>
+            <div class="cal-day__head" id="calDayHead"></div>
+            <div class="cal-day__list" id="calDayList"></div>
+          </div>
+        </section>
+
+        <!-- Insights — what all that snipping added up to. Every number here is derived from
+             stats.json (per-day tally kept by main) + the live vocab list; nothing is estimated. -->
+        <section class="panel" id="panel-insights">
+          <div class="ins-empty" id="insEmpty" data-i18n-html="ins.empty" hidden></div>
+
+          <div class="ins" id="insBody" hidden>
+            <div class="ins-grid-3">
+              <!-- READ: the vanity number — how much foreign text you've actually got through -->
+              <div class="ins-card">
+                <div class="ins-big" id="insWords">0</div>
+                <div class="ins-label" data-i18n="ins.wordsRead">WORDS READ</div>
+                <div class="ins-hr"></div>
+                <div class="ins-rows" id="insScripts"></div>
+              </div>
+
+              <!-- KEPT: saved vs recognised, as an arc — the one number that means "I'm learning" -->
+              <div class="ins-card ins-card-mid">
+                <div class="ins-big" id="insSaved">0</div>
+                <div class="ins-label" data-i18n="ins.collected">WORDS COLLECTED</div>
+                <div class="ins-gauge">
+                  <svg viewBox="0 0 120 66" width="150" height="82" aria-hidden="true">
+                    <path class="gauge-track" d="M10 60 A50 50 0 0 1 110 60" />
+                    <path class="gauge-fill" id="gaugeFill" d="M10 60 A50 50 0 0 1 110 60" />
+                  </svg>
+                  <div class="ins-gauge-text">
+                    <div class="ins-gauge-cap" data-i18n="ins.known">Known</div>
+                    <div class="ins-gauge-num" id="insKnownPct">0%</div>
+                  </div>
+                </div>
+                <div class="ins-gauge-sub" id="insKnownSub">0 of 0 words seen 5+ times</div>
+              </div>
+
+              <!-- PACE: days played, plus the only action this page should ever push you toward -->
+              <div class="ins-card">
+                <div class="ins-big" id="insDays">0</div>
+                <div class="ins-label" data-i18n="ins.daysPlayed">DAYS PLAYED WITH GLOSS</div>
+                <div class="ins-hr"></div>
+                <div class="ins-rows" id="insPace"></div>
+                <button class="ins-cta" id="insCta" disabled>Nothing due</button>
+              </div>
+            </div>
+
+            <div class="ins-grid-2">
+              <!-- HOW: snip vs typed vs live captions — mirrors the pill's three ways in -->
+              <div class="ins-card">
+                <div class="ins-card-head">
+                  <h2 class="ins-h2" data-i18n="ins.howCapture">How you capture</h2>
+                  <span class="ins-note" id="insCapTotal"></span>
+                </div>
+                <div class="ins-bars" id="insBars"></div>
+              </div>
+
+              <!-- STREAK: the day grid. Built from stats.json, so it outlives history's 300-row cap -->
+              <div class="ins-card">
+                <div class="ins-card-head">
+                  <h2 class="ins-h2" id="insStreak">0 day streak</h2>
+                  <span class="ins-note" id="insStreakBest">LONGEST | 0</span>
+                </div>
+                <div class="ins-heat" id="insHeat"></div>
+                <div class="ins-heat-key">
+                  <span data-i18n="ins.less">Less</span>
+                  <i class="hl l0"></i><i class="hl l1"></i><i class="hl l2"></i><i class="hl l3"></i><i class="hl l4"></i>
+                  <span data-i18n="ins.more">More</span>
+                  <span class="ins-heat-today" data-i18n="ins.today">▢ today</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- THE YEAR: twelve columns, one per month. This is the only number on the page that is
+                 NOT recounted from the collection you currently hold — it comes from stats.months,
+                 the ledger main.js writes on each accepted collection, so a year total can never
+                 shrink because you tidied up your word list in March. Calendar owns "this month"
+                 (it has the day grid to back it up); this card owns the year, and neither repeats
+                 the other's number. -->
+            <div class="ins-card ins-card-wide" id="insYearCard" hidden>
+              <div class="ins-card-head">
+                <h2 class="ins-h2" id="insYearHead">Collected in 2026</h2>
+                <span class="ins-note" id="insYearNote"></span>
+              </div>
+              <div class="yr" id="insYear"></div>
+              <div class="yr-foot">
+                <button class="yr-nav" id="insYearPrev" type="button" aria-label="Previous year">‹</button>
+                <span class="yr-total" id="insYearTotal"></span>
+                <button class="yr-nav" id="insYearNext" type="button" aria-label="Next year">›</button>
+              </div>
+            </div>
+
+            <!-- MET AGAIN: the words the game keeps throwing at you — highest-value study list -->
+            <div class="ins-card ins-card-wide" id="insTopCard" hidden>
+              <div class="ins-card-head">
+                <h2 class="ins-h2" data-i18n="ins.keepMeeting">Words you keep meeting</h2>
+                <span class="ins-note" data-i18n="ins.timesSeen">TIMES SEEN</span>
+              </div>
+              <div class="ins-top" id="insTop"></div>
+            </div>
+          </div>
+        </section>
+        <!-- Review — SRS flashcards, built like ScoreUp's: a Study/Test switch, the toolbar row,
+             a card that flips in 3D, prev/next that peek without grading, and grade buttons labelled
+             with the interval srs.js would actually give. Test mode asks the same due words as
+             multiple choice, with distractors pulled from the rest of your collection. -->
+        <section class="panel" id="panel-review" hidden>
+          <!-- Opening the tab IS starting the review — there's nothing to decide on a gate screen
+               (jek, 2026-07-30). This state only shows when there is genuinely nothing due. -->
+          <div class="review-start" id="reviewEmpty" hidden>
+            <div class="review-start-count" data-i18n="rv.nothingDue">Nothing due right now</div>
+            <button class="review-start-btn" id="reviewWordsBtn" data-i18n="rv.seeWords">See your words</button>
+          </div>
+
+          <div class="fc" id="reviewView" hidden>
+            <!-- The plan rail. A sitting the user built in the launcher runs as an ordered set of
+                 stages — meet the words, then be asked to produce them — and without this you could
+                 not tell stage two from a fresh review that happened to start. Hidden entirely when
+                 there is no plan, so the ordinary "open Review and go" path is unchanged. -->
+            <div class="fc-plan" id="fcPlan" hidden></div>
+            <div class="fc-toolbar">
+              <div class="fc-mode" id="fcMode">
+                <button class="on" data-mode="study" type="button" data-i18n="rv.study">Study</button>
+                <button data-mode="test" type="button" data-i18n="rv.test">Test</button>
+                <button data-mode="usage" type="button" data-i18n="rv.usage" data-i18n-title="rv.usageTip" title="Put the word back in the sentence you met it in">Usage</button>
+                <button data-mode="write" type="button" data-i18n="rv.write" data-i18n-title="rv.writeTip" title="Use the word yourself, in a new situation — the AI marks it">Write</button>
+                <button data-mode="recall" type="button" data-i18n="rv.recall" data-i18n-title="rv.recallTip" title="A sentence with a gap — find which of this sitting's words fills it">Recall</button>
+                <button data-mode="card" type="button" data-i18n="rv.card2" data-i18n-title="rv.cardTip" title="What the word is like to use — collocations, register, the mistake to avoid">Card</button>
+              </div>
+              <label class="fc-opt" id="fcReverseWrap">
+                <input type="checkbox" id="fcReverse" />
+                <span id="fcReverseLabel" data-i18n="rv.meaningFirst">Meaning first</span>
+              </label>
+              <button class="fc-tool" id="fcShuffle" type="button" data-i18n="rv.shuffle" data-i18n-title="rv.shuffleTip" title="Shuffle the cards still to come">Shuffle</button>
+            </div>
+
+            <div class="fc-stats" id="fcStats"></div>
+
+            <!-- CARD mode. The other three modes test whether the word is in your head; this one is
+                 the part of "knowing a word" that testing cannot reach — who it keeps company with,
+                 how formal it sounds, the mistake your first language walks you into, and one more
+                 sentence from a different world so the word is not welded to the single game line
+                 you met it in. Fetched once per word and stored on the entry, so it costs one call
+                 ever, not one per study session. -->
+            <!-- WRITE. Study, Test and Usage all ask the same question in different clothes: is the word
+                 in your head? None can tell you whether you can PUT it somewhere new, which is the rung
+                 where a word stops being recognised and starts being owned. The AI marks rather than
+                 praises — the one thing ELSA gets right is that unscored encouragement teaches nothing. -->
+            <div class="wr" id="writeCard" hidden>
+              <div class="wr-head">
+                <h2 class="wr-word" id="wrWord"></h2>
+                <span class="wr-mean" id="wrMean"></span>
+              </div>
+              <p class="wr-situation" id="wrSituation"></p>
+              <textarea class="wr-input" id="wrInput" rows="2" data-i18n-ph="wr.ph" placeholder="Write one sentence using the word…"></textarea>
+              <button class="wr-go" id="wrGo" data-i18n="wr.check">Check it</button>
+              <div class="wr-out" id="wrOut" hidden>
+                <p class="wr-verdict" id="wrVerdict"></p>
+                <ul class="wr-notes" id="wrNotes"></ul>
+                <p class="wr-better" id="wrBetter"></p>
+              </div>
+            </div>
+
+            <div class="lex" id="lexCard" hidden>
+              <div class="lex-head">
+                <h2 class="lex-word" id="lexWord"></h2>
+                <span class="lex-mean" id="lexMean"></span>
+                <button class="lex-speak" id="lexSpeak" type="button" title="Say it">▶</button>
+              </div>
+              <p class="lex-src" id="lexSrc"></p>
+              <div class="lex-rows" id="lexRows"></div>
+              <p class="lex-state" id="lexState" hidden></p>
+            </div>
+            <div class="fc-bar"><div class="fc-bar-fill" id="fcBar"></div></div>
+
+            <div class="fc-scene">
+              <div class="fc-card" id="reviewCard">
+                <div class="fc-face">
+                  <span class="fc-tag" id="fcSeenF"></span>
+                  <span class="fc-idx" id="fcIdxF"></span>
+                  <div class="fc-word" id="reviewWord"></div>
+                  <button class="fc-speak" id="reviewSpeak" data-i18n-title="rv.speak" title="Play pronunciation">▶︎</button>
+                  <div class="fc-hint" data-i18n-html="rv.flipHint">click, or press <kbd>Space</kbd>, to flip</div>
+                </div>
+                <div class="fc-face back">
+                  <span class="fc-tag" id="fcSeenB"></span>
+                  <span class="fc-idx" id="fcIdxB"></span>
+                  <div class="fc-bword" id="fcBWord"></div>
+                  <div class="fc-meaning" id="reviewMeaning"></div>
+                  <div class="fc-reading" id="reviewReading"></div>
+                  <div class="fc-senses" id="fcSenses" hidden></div>
+                  <!-- The dictionary's own definition, saved with the word (wordStudyDetail in
+                       main.js). It is the one thing a collected word could never say for itself:
+                       the Thai gloss tells you WHICH word it is, this tells you what it MEANS —
+                       and for a word the dictionary has no Thai for at all (`capability`) it is
+                       the only real answer on the card. English on purpose: it is the source
+                       language's own definition, not a translation of anything. -->
+                  <div class="fc-defs" id="fcDefs" hidden></div>
+                  <div class="fc-src" id="reviewSrc"></div>
+                </div>
+              </div>
+            </div>
+
+
+            <button class="fc-show" id="fcShow" type="button" data-i18n="rv.show">Show answer</button>
+            <div class="fc-grades" id="reviewRate">
+              <button class="gbtn again" id="rateAgain"><span data-i18n="rv.again">✕ Again</span><small id="iAgain"></small></button>
+              <button class="gbtn hard" id="rateHard"><span data-i18n="rv.hard">◔ Hard</span><small id="iHard"></small></button>
+              <button class="gbtn good" id="rateGood"><span data-i18n="rv.good">✓ Good</span><small id="iGood"></small></button>
+              <button class="gbtn easy" id="rateEasy"><span data-i18n="rv.easy">✓✓ Easy</span><small id="iEasy"></small></button>
+            </div>
+            <div class="fc-keys" id="fcKeys" data-i18n="rv.keys">1 again · 2 good · 3 easy</div>
+            <div class="fc-nav" id="fcNav">
+              <button class="fc-navbtn" id="fcPrev" type="button" data-i18n-title="rv.prev" title="Previous card (←)">←</button>
+              <span class="fc-navhint" id="fcNavHint" data-i18n="rv.navHint">tap the card to flip · ← → to look around</span>
+              <button class="fc-navbtn" id="fcNext" type="button" data-i18n-title="rv.next" title="Skip to the next card (→)">→</button>
+            </div>
+
+            <!-- Test mode: recognition instead of self-rating. Answering grades the card for you.
+                 Usage mode reuses this same block — the prompt becomes the sentence the word was
+                 actually met in, with the word cut out, and the options are words instead of
+                 meanings. Nothing here is generated: the sentence is the entry's own `src`. -->
+            <div class="fc-quiz" id="fcQuiz">
+              <div class="q-word" id="qWord"></div>
+              <div class="q-sub" id="qSub"></div>
+              <div class="q-mean" id="qMean" hidden></div>
+              <!-- RECALL only, and ABOVE the options on purpose: six options push a row below this
+                   one off a short window, and a hint you have to scroll to find is a hint nobody
+                   uses. It also belongs to the question rather than to the answers.
+                   Usage tells you which word it is by only offering four; this mode offers the whole
+                   sitting, so being stuck is a real state and needs a way out that is not "guess and
+                   take the hit". Three rungs, each costing a little less credit: the meaning, then
+                   the shape, then half the wrong answers. -->
+              <div class="q-hint" id="qHint" hidden>
+                <button class="q-hint-btn" id="qHintBtn" type="button"></button>
+                <span class="q-hint-out" id="qHintOut"></span>
+              </div>
+              <div class="q-opts" id="qOpts"></div>
+              <button class="q-next" id="qNext" type="button" data-i18n="rv.next2" hidden>Next →</button>
+              <div class="q-note" id="qNote" data-i18n="rv.quizNote" hidden>Collect at least 4 words and Test mode can build choices.</div>
+            </div>
+
+            <div class="fc-done" id="reviewDone" hidden>
+              <div class="review-done-msg" id="doneMsg" data-i18n="rv.done">All caught up ✓</div>
+              <div class="done-stats" id="doneStats"></div>
+              <div class="done-again" id="doneAgain" hidden></div>
+              <!-- Between stages this replaces the exit, so finishing stage one hands you stage two
+                   instead of congratulating you and stopping. -->
+              <button class="q-next done-next" id="planNext" type="button" hidden></button>
+              <button class="review-back" id="reviewBackBtn" data-i18n="rv.back">Back to Insights</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Words — one tab, two lists behind a segment: what you kept (vocab) and everything the
+             app has ever read (history). They were separate tabs and read as two different apps. -->
+        <section class="panel" id="panel-words" hidden>
+          <div class="seg" id="wordSeg">
+            <button class="seg-btn on" data-seg="vocab" data-i18n="w.collected">Collected</button>
+            <button class="seg-btn" data-seg="history" data-i18n="w.all">All translations</button>
+          </div>
+
+          <div class="ins-card ins-card-wide" id="vocabCard">
+            <div class="ins-card-head">
+              <h2 class="ins-h2" data-i18n="w.collectedHead">Collected words</h2>
+              <span class="ins-note" id="vocabNote"></span>
+            </div>
+            <!-- Not dates: nobody recalls a word as "the one I saved on Tuesday" (jek, 2026-07-30).
+                 The axes that matter for a study list are what's due, what keeps coming up, and
+                 what's new — all three already on each entry (srs.due / seen / ts). -->
+            <div class="sortbar" id="vocabSort">
+              <button class="sort-btn on" data-sort="new" type="button" data-i18n="w.sortNew">Newest</button>
+              <button class="sort-btn" data-sort="seen" type="button" data-i18n="w.sortSeen">Most met</button>
+              <button class="sort-btn" data-sort="due" type="button" data-i18n="w.sortDue">Due first</button>
+            </div>
+            <div class="wlist" id="vocabList"></div>
+          </div>
+
+          <div class="ins-card ins-card-wide" id="historyCard" hidden>
+            <div class="ins-card-head">
+              <h2 class="ins-h2" data-i18n="w.allHead">All translations</h2>
+              <span class="ins-note" id="histNote"></span>
+            </div>
+            <div class="wlist" id="log"></div>
+          </div>
+        </section>
+
+
+        <!-- Plan — what you're on and what the other one gives you. No checkout: PRO here means your
+             own Claude key, billed to you by Anthropic, so the page states that plainly instead of
+             showing a subscribe button that leads nowhere. Same key field as the pill's Settings. -->
+
+        <!-- GUIDE — the five things nobody finds on their own. Each one is a PICTURE of the app doing
+             it over a scene, not a paragraph describing it: every item here is invisible until
+             someone shows you (a hold-modifier gesture, a tappable word, a whole mode behind one
+             button), which is exactly the class of feature that dies unused no matter how well it
+             works. Same scene recipe as the website shot — soft lights, nothing to read, the overlay
+             drawn at its real proportions on top. (jek, 2026-08-02) -->
+        <section class="panel" id="panel-guide" hidden>
+          <p class="guide-lead" data-i18n="guide.lead">Seven things the app does that you would never guess were there.</p>
+
+          <article class="tut">
+            <div class="tut-shot">
+              <p class="tut-src">「<span class="tut-boxed">扉の奥に何かがいる</span>」</p>
+              <span class="tut-keycap">⌃⌥</span>
+            </div>
+            <div class="tut-txt">
+              <h2 data-i18n="guide.snip.h">Hold two keys and drag over the text</h2>
+              <p data-i18n="guide.snip.p">Anywhere on screen, in any app, without leaving the game. Let go and the translation appears where you drew the box.</p>
+              <p class="tut-key"><b>⌃⌥</b> <span data-i18n="guide.snip.k">hold, then drag</span> · <b>⌘⇧S</b> <span data-i18n="guide.snip.k2">if you prefer a shortcut</span></p>
+            </div>
+          </article>
+
+          <article class="tut">
+            <div class="tut-shot">
+              <div class="tut-stack">
+                <div class="tut-glass tut-card">
+                  <p class="tut-th">มีบางอย่างอยู่หลังประตูบานนั้น</p>
+                  <p class="tut-en">Something is <span class="tut-word">behind</span> that door.</p>
+                </div>
+                <span class="tut-bubble"><b>behind · prep</b> ข้างหลัง <i>★</i></span>
+              </div>
+            </div>
+            <div class="tut-txt">
+              <h2 data-i18n="guide.word.h">Tap any word in the card</h2>
+              <p data-i18n="guide.word.p">You get that one word's meaning on its own — and a star. Starred words become your collection, and everything in Today and Review is built from it.</p>
+              <p class="tut-key">★ <span data-i18n="guide.word.k">saves it to Vocab</span></p>
+            </div>
+          </article>
+
+          <article class="tut">
+            <div class="tut-shot">
+              <div class="tut-glass tut-cc">
+                <p class="tut-cc-src">Something is behind that door.</p>
+                <p class="tut-cc-th">มีบางอย่างอยู่หลังประตูบานนั้น</p>
+              </div>
+            </div>
+            <div class="tut-txt">
+              <h2 data-i18n="guide.cc.h">Live subtitles for a strip of the screen</h2>
+              <p data-i18n="guide.cc.p">Point it once at where the dialogue appears and it keeps translating on its own — a subtitle bar for a game that has none.</p>
+              <p class="tut-key"><span data-i18n="guide.cc.k">The CC button on the pill</span></p>
+            </div>
+          </article>
+
+          <article class="tut">
+            <div class="tut-shot tut-shot--flat">
+              <div class="tut-today">
+                <span class="tut-today-k" data-i18n="ins.todayNote">THIS SESSION</span>
+                <p class="tut-today-n"><b>8</b> <span data-i18n="today.collected">words collected today</span></p>
+                <div class="tut-tw">
+                  <div><b>reckon</b> <span>คิดว่า</span><em>“I reckon we should head back…”</em></div>
+                  <div><b>dwindle</b> <span>ลดน้อยลง</span><em>“Our supplies dwindle every day…”</em></div>
+                </div>
+                <span class="tut-cta">▶ Usage 6</span>
+              </div>
+            </div>
+            <div class="tut-txt">
+              <h2 data-i18n="guide.today.h">The words you met today, back in their sentences</h2>
+              <p data-i18n="guide.today.p">Today is the first tab in this window. It ends in Usage — the same sentence you met the word in, with the word blanked out. That is why starring is worth doing.</p>
+              <p class="tut-key"><span data-i18n="guide.today.k">Today → ▶ Usage</span></p>
+            </div>
+          </article>
+
+          <article class="tut">
+            <div class="tut-shot">
+              <div class="tut-glass tut-pill tut-pill--faded"><span class="tut-dot"></span><span>EN&nbsp;→&nbsp;TH</span></div>
+              <div class="tut-glass tut-tab"><span class="tut-dot"></span></div>
+            </div>
+            <div class="tut-txt">
+              <h2 data-i18n="guide.pill.h">Decide how much of it you ever see</h2>
+              <p data-i18n="guide.pill.p">Visible, Faded, or Tucked — which parks it off the edge as a sliver until you need it, from the moment the app starts. The settings page shows you each one over a scene before you pick.</p>
+              <p class="tut-key"><span data-i18n="guide.pill.k">Pill settings → Gameplay → Pill style</span></p>
+            </div>
+          </article>
+
+          <article class="tut">
+            <div class="tut-shot tut-shot--flat">
+              <div class="tut-glass tut-typebar"><span data-i18n="guide.type.ph">reckon</span><i>↵</i></div>
+              <div class="tut-peek">
+                <b>คิดว่า</b>
+                <span>reckon · verb</span>
+              </div>
+            </div>
+            <div class="tut-txt">
+              <h2 data-i18n="guide.type.h">Type it when the screen can't be read</h2>
+              <p data-i18n="guide.type.p">Handwritten, stylised, or a word you heard rather than saw — type it into the pill and the meaning fills in as you go. No OCR involved, so nothing can be misread.</p>
+              <p class="tut-key"><b>⌘⇧T</b> <span data-i18n="guide.type.k">from anywhere</span></p>
+            </div>
+          </article>
+
+          <article class="tut">
+            <!-- Invisibility cannot be drawn — so it is drawn as a comparison. Two halves of the same
+                 moment: what your eyes get, and what the recording gets. -->
+            <div class="tut-shot tut-split">
+              <div class="tut-half">
+                <span class="tut-half-lbl" data-i18n="guide.rec.eyes">on your screen</span>
+                <div class="tut-glass tut-pill"><span class="tut-dot"></span><span>EN&nbsp;→&nbsp;TH</span></div>
+              </div>
+              <div class="tut-half">
+                <span class="tut-half-lbl" data-i18n="guide.rec.video">in the recording</span>
+                <span class="tut-rec">● REC</span>
+              </div>
+            </div>
+            <div class="tut-txt">
+              <h2 data-i18n="guide.rec.h">Vanish from screen recordings</h2>
+              <p data-i18n="guide.rec.p">One switch and the overlay stops appearing in captures and screen shares — still there for you, gone from the video. Stream a game in a language you don't read without the translations following you into the recording.</p>
+              <p class="tut-key"><span data-i18n="guide.rec.k">Pill settings → Display → Hide from capture</span></p>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel" id="panel-plan" hidden>
+          <div class="ins">
+            <div class="plan-now" id="planNow">
+              <span class="plan-now-cap" data-i18n="pl.your">YOUR PLAN</span>
+              <span class="plan-now-name" id="planName">FREE</span>
+              <span class="plan-now-note" id="planNote"></span>
+            </div>
+            <!-- Filled by renderPlan from settings.quota. Same line the pill shows, for the same
+                 reason: the free AI allowance is finite and silent, and a reader who cannot see it
+                 running down finds out by hitting the wall. -->
+            <div class="plan-quota" id="planQuota" hidden></div>
+
+            <div class="ins-grid-2">
+              <div class="ins-card plan-card" id="planFree">
+                <div class="ins-card-head">
+                  <h2 class="ins-h2" data-i18n="pl.free">Free</h2>
+                  <span class="ins-note" id="freeBadge"></span>
+                </div>
+                <ul class="plan-list">
+                  <li data-i18n-html="pl.f1">Unlimited snip &amp; translate</li>
+                  <li data-i18n="pl.f2">Apple Vision OCR (macOS), Tesseract on Windows</li>
+                  <li data-i18n="pl.f3">Live subtitles (CC) + voice input</li>
+                  <li data-i18n="pl.f4">Word collection, SRS review, Insights</li>
+                </ul>
+                <div class="plan-foot" data-i18n="pl.freeFoot">Translations come from the free public endpoint. Nothing to pay, nothing to sign up for.</div>
+              </div>
+
+              <div class="ins-card plan-card plan-pro" id="planPro">
+                <div class="ins-card-head">
+                  <h2 class="ins-h2">Pro <span class="plan-tag">✦ AI</span></h2>
+                  <span class="ins-note" id="proBadge"></span>
+                </div>
+                <ul class="plan-list">
+                  <li data-i18n="pl.p1">Full cards — pronunciation, meaning, word forms, an example sentence</li>
+                  <li data-i18n="pl.p2">OCR rescue: when Vision can't read it, Claude reads the image</li>
+                  <li data-i18n="pl.p3">★ pulls the words worth keeping out of a sentence for you</li>
+                  <li data-i18n="pl.p4">No ALL-CAPS blind spots (FESTERING translates, not echoes)</li>
+                </ul>
+                <!-- Two doors, in the order most readers want them: buy the bundle, or bring your own
+                     key. The key field alone used to be the whole Pro card, which quietly said Pro was
+                     for people who already have an Anthropic account. Same button and same URL as the
+                     pill's Settings — one source (settings.buyUrl), so there is one thing to change. -->
+                <button class="plan-buy" id="planBuy" data-i18n="pl.buy" hidden>Get Gloss — ฿149 once</button>
+                <div class="plan-or" data-i18n="pl.or">or bring your own Claude key</div>
+                <div class="plan-key">
+                  <input type="password" id="planKey" placeholder="sk-ant-…" autocomplete="off" spellcheck="false" />
+                  <button id="planKeySave" data-i18n="pl.save">Save</button>
+                </div>
+                <div class="plan-foot" id="planKeyMsg" data-i18n-html="pl.keyFoot"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Settings — STUDY settings only. Translation, languages, shortcuts and CC belong to the pill's
+             ⚙ and are deliberately not duplicated here: two places to set one thing is two truths.
+             Every row states what it does, not what it's called (jek asked for easy to understand). -->
+        <section class="panel" id="panel-settings" hidden>
+          <div class="ins">
+            <div class="ins-card ins-card-wide">
+              <div class="ins-card-head">
+                <h2 class="ins-h2" data-i18n="st.studying">Studying</h2>
+                <span class="ins-note" data-i18n="st.savedAuto">SAVED AS YOU CHANGE THEM</span>
+              </div>
+              <div class="set-list">
+                <label class="set-row">
+                  <span class="set-text"><span data-i18n-html="st.gradA">Count a word as <b>known</b> after I've met it</span>
+                    <input type="number" id="setGrad" min="2" max="50" step="1" /> <span data-i18n="st.gradB">times</span>
+                  </span>
+                  <span class="set-note" id="setGradNote"></span>
+                </label>
+                <label class="set-row">
+                  <span class="set-text"><span data-i18n="st.capA">Hand me at most</span>
+                    <input type="number" id="setCap" min="0" max="200" step="5" /> <span data-i18n="st.capB">cards in one review</span>
+                  </span>
+                  <span class="set-note" data-i18n="st.capNote">0 = everything that's due, however many that is</span>
+                </label>
+                <label class="set-row set-toggle">
+                  <input type="checkbox" id="setReverse" />
+                  <span class="set-text" data-i18n-html="st.reverse">Ask the <b>meaning first</b> — you recall the word (harder)</span>
+                  <span class="set-switch"></span>
+                </label>
+                <label class="set-row set-toggle">
+                  <input type="checkbox" id="setTest" />
+                  <span class="set-text" data-i18n-html="st.test">Open Review in <b>Test</b> (multiple choice) instead of Study</span>
+                  <span class="set-switch"></span>
+                </label>
+                <label class="set-row set-toggle">
+                  <input type="checkbox" id="setSpeak" />
+                  <span class="set-text" data-i18n="st.speak">Say the word out loud when a card flips</span>
+                  <span class="set-switch"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="ins-card ins-card-wide">
+              <div class="ins-card-head">
+                <h2 class="ins-h2" data-i18n-html="st.wordsHist">Words &amp; history</h2>
+              </div>
+              <div class="set-list">
+                <label class="set-row">
+                  <span class="set-text"><span data-i18n="st.orderBy">Order Collected words by</span>
+                    <select id="setSort">
+                      <option value="new" data-i18n="st.oNew">Newest first</option>
+                      <option value="seen" data-i18n="st.oSeen">Most met first</option>
+                      <option value="due" data-i18n="st.oDue">Due for review first</option>
+                    </select>
+                  </span>
+                </label>
+                <label class="set-row">
+                  <span class="set-text"><span data-i18n="st.keepA">Keep the last</span>
+                    <input type="number" id="setHist" min="20" max="2000" step="20" /> <span data-i18n="st.keepB">translations</span>
+                  </span>
+                  <span class="set-note" data-i18n="st.keepNote">Older ones drop off. Collected words are never dropped.</span>
+                </label>
+              </div>
+              <!-- A setting this window READS but does not own — the pill's ⚙ is the single owner. It is
+                   here because jek went looking for the language and did not find it (2026-08-02); a second
+                   control would be two owners of one value, which is how settings drift apart. -->
+              <!-- The one thing here that cannot be regenerated is the word list, and it lives in a single
+                   file. This is the backup — to Anki, which these users already run and which already has
+                   accounts, sync and a phone app, rather than to an account of ours. -->
+              <div class="set-row set-row--ro">
+                <span class="set-text" data-i18n="st.backup">Back up your words</span>
+                <button class="set-btn" id="exportVocabBtn" data-i18n="st.backupBtn">Export to Anki</button>
+              </div>
+              <div class="set-row set-row--ro">
+                <span class="set-text" data-i18n="st.lang">App language</span>
+                <span class="set-ro" id="setLangRO"></span>
+              </div>
+              <div class="set-foot" data-i18n="st.foot">Translation, languages, shortcuts and live captions live on the pill's ⚙ — they change what the app does while you play, not how you study.</div>
+            </div>
+          </div>
+        </section>
+        </div>
+      </main>
+    </div>
+    <script src="i18n.js"></script>
+    <script src="../shared/pos-badge.js"></script>
+    <script src="../shared/vocab-model.js"></script>
+    <script src="../shared/srs.js"></script>
+    <script src="../shared/tts.js"></script>
+    <script src="index.js"></script>
+  </body>
+</html>

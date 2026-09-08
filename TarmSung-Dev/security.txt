@@ -1,0 +1,5 @@
+# ถ้าคุณเจอช่องโหว่บนเว็บนี้ ช่วยบอกเราตรงนี้ก่อนเผยแพร่ที่อื่น — เราตอบทุกฉบับ
+Contact: mailto:tarmsungdev@gmail.com
+Preferred-Languages: th, en
+Canonical: https://tarmsung.pages.dev/security.txt
+Expires: 2027-08-21T00:00:00.000Z

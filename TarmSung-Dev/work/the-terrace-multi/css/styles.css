@@ -1,0 +1,618 @@
+/* =============================================================================
+   เดอะ เทอเรส — base → หัวเว็บ → ฮีโร่ → แพ็กเกจ → ส่วนล่างของหน้า
+
+   ทุกบล็อกข้างล่างที่มีคู่กันในแบบร่าง design/pc-terrace.html ถูกยกมาด้วยค่าเดิม
+   (ขนาด ระยะ เงา สัดส่วน) สิ่งที่เพิ่มคือสองอย่างที่แบบร่างไม่มีเพราะมันเป็นภาพ
+   จอเดียว: หน้าที่เลื่อนได้จริงต้องมีส่วนล่าง และต้องอ่านได้บนมือถือ
+   ส่วนล่างจึงถูกวาดด้วยภาษาเดียวกับหัวหน้า ไม่ใช่ยืมชีตของเดโมใบอื่นมาแปะ
+   ========================================================================== */
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: 88px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  font-family: var(--font-b); font-size: var(--t-md); line-height: 1.65;
+  color: var(--text); background: var(--bg);
+  -webkit-font-smoothing: antialiased; overflow-x: hidden;
+}
+/* เกรนทั้งหน้า วางเป็นชั้นบนสุดที่กดไม่โดน ทับได้ทั้งพื้นครีมและแถบเข้ม */
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: 50; pointer-events: none;
+  background-image: var(--grain); mix-blend-mode: multiply; opacity: .55;
+}
+img { display: block; max-width: 100%; height: auto; }
+a { color: inherit; text-decoration: none; }
+h1, h2, h3 { font-family: var(--font-d); line-height: 1.2; }
+ul { list-style: none; padding: 0; }
+/* ไทยไม่มีช่องว่างระหว่างคำ เบราว์เซอร์จึงตัดกลางคำได้ — คำไหนต้องอยู่ครบใส่ .nb */
+.nb { white-space: nowrap; }
+svg { fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.skip { position: absolute; left: -9999px; top: 0; z-index: 99; background: var(--surface); padding: var(--s3) var(--s4); }
+.skip:focus { left: 0; }
+
+.wrap { width: min(100% - 2rem, 1200px); margin-inline: auto; }
+
+/* ---- ปุ่ม (ชุดเดียวทั้งหน้า ตามแบบร่าง) ------------------------------------ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s2);
+  border-radius: var(--btn-radius); font-weight: 600; white-space: nowrap;
+  font-family: var(--font-b); border: 1px solid transparent; cursor: pointer;
+  transition: transform 160ms var(--ease), box-shadow 160ms var(--ease);
+}
+.btn svg { width: 1.05em; height: 1.05em; flex: none; }
+.btn:active { transform: translateY(1px); }
+.btn--sm { font-size: var(--t-sm); padding: 10px var(--s4); min-height: 40px; }
+.btn--lg { font-size: var(--t-md); padding: 14px var(--s5); min-height: 48px; }
+.btn--brass { background: var(--accent); color: var(--forest-950); box-shadow: var(--e1); }
+.btn--solid { background: var(--paper); color: var(--forest-950); box-shadow: var(--e2); }
+.btn--dark  { background: var(--action); color: var(--on-action); box-shadow: var(--e1); }
+.btn--outline { border-color: rgba(254,253,252,.55); color: var(--on-photo); }
+.btn--line { border-color: var(--line); color: var(--text); background: var(--surface); }
+
+/* ---- หัวเว็บ ---------------------------------------------------------------
+   ในแบบร่างหัวเว็บลอยทับรูปโดยไม่มีพื้น (position:absolute บนฮีโร่สูง 500px)
+   ของจริงต้องอยู่กับที่ตอนเลื่อนด้วย จึงเป็น sticky ที่เริ่มต้นโปร่งใสทับรูป แล้ว
+   ค่อยได้พื้นครีมเมื่อเลื่อนพ้นฮีโร่ (js/main.js เติมคลาส .stuck ให้) — สีและ
+   ระยะทุกตัวยังเป็นของแบบร่าง */
+.site-header {
+  position: sticky; top: 0; z-index: 20;
+  /* 26/8/26 เลิกตั้ง height ให้แถบ — ความสูงต้องมาจาก padding ของลูก ไม่งั้นกลไกกลาง
+     (หด padding ของลูก) ไม่มีผลอะไรเลย แถบก็ไม่หดทั้งที่คลาส .small ติดแล้ว
+     ตัวเลขเลือกให้ความสูงตอนไม่หดเท่าเดิมเป๊ะ · ห้ามกลับไปสั่ง height */
+  --nav-pad-small: 5px;
+  display: flex; align-items: center; color: var(--on-photo);
+  transition: background 240ms var(--ease), color 240ms var(--ease), box-shadow 240ms var(--ease);
+}
+.site-header .wrap { display: flex; align-items: center; gap: var(--s7);
+  padding-block: 15px; min-height: 46px;
+   /* min-height ตรึงความสูงแถวไม่ให้ขึ้นกับฟอนต์ที่โหลดทีหลัง — เดิมความสูงมาจาก height ของแถบ
+      พอย้ายมาใช้ padding อย่างเดียว แถบเลยขยับตอนฟอนต์มาถึง (audit-firstpaint จับได้ 26/8/26)
+      ก้อนกลางล้าง min-height เป็น 0 ตอน .small อยู่แล้ว จึงไม่ขวางการหด */
+}   /* 46 + 30 = 76px เท่าเดิม */
+.site-header.stuck { background: var(--surface); color: var(--text); box-shadow: var(--e1); }
+.brand { display: flex; flex-direction: column; line-height: 1.05; }
+.brand b { font-family: var(--font-d); font-weight: 700; font-size: var(--t-lg); letter-spacing: .02em; }
+.brand span {
+  font-family: var(--font-s); font-size: var(--t-sm); letter-spacing: .28em; text-transform: uppercase;
+  color: rgba(254,253,252,.72);
+}
+.site-header.stuck .brand span { color: var(--text-muted); }
+.nav-links { display: none; gap: var(--s5); font-size: var(--t-sm); font-weight: 500; color: rgba(254,253,252,.86); }
+.site-header.stuck .nav-links { color: var(--text-muted); }
+.nav-links a { padding: var(--s2) 0; border-bottom: 2px solid transparent; }
+.nav-links a:hover { border-bottom-color: var(--accent); }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: var(--s4); font-size: var(--t-sm); }
+.nav-right .btn--outline { display: none; }
+.site-header.stuck .btn--outline { border-color: var(--line); color: var(--text); }
+
+/* ---- ฮีโร่ ----------------------------------------------------------------- */
+.hero { position: relative; margin-top: -76px; overflow: hidden; }
+.hero-media { position: absolute; inset: 0; }
+/* รูปกว้างเกินกรอบแล้วดันไปทางซ้าย เหมือนแบบร่าง: จุดสนใจของภาพ (โคมไฟกับหน้าต่าง
+   ริมน้ำ) จะได้อยู่ขวาของหัวเรื่อง ไม่ถูกตัวหนังสือทับ */
+.hero-media img {
+  width: 120%; max-width: none; margin-left: -19%; height: 100%; object-fit: cover;
+  filter: saturate(1.06) contrast(1.04);
+}
+/* เกรนบางๆ ทับรูป: ไล่สีล้วนๆ บนภาพถ่ายจะดูเป็นพลาสติก เกรนทำให้มันเป็น "ภาพ" */
+.hero-grain {
+  position: absolute; inset: 0; z-index: 1; opacity: .10; mix-blend-mode: overlay; pointer-events: none;
+  background-image: radial-gradient(rgba(10,23,16,1) 1px, transparent 1px);
+  background-size: 3px 3px;
+}
+/* ม่านสองชั้น ไม่ใช่ผ้าดำผืนเดียวคลุมทั้งรูป ซึ่งจะฆ่ารายละเอียดของสถานที่ที่เป็น
+   สินค้าจริงๆ ของธุรกิจนี้: ชั้นบนสำหรับเมนู ชั้นล่างสำหรับตัวหนังสือ */
+.hero::after {
+  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(10,23,16,.62) 0%, rgba(10,23,16,.12) 26%),
+    linear-gradient(0deg,   rgba(10,23,16,.78) 0%, rgba(10,23,16,.20) 44%, rgba(10,23,16,0) 62%);
+}
+.hero-copy {
+  position: relative; z-index: 2; text-align: center; color: var(--on-photo);
+  padding: calc(76px + var(--s8)) 0 var(--s9);
+  max-width: 900px; margin-inline: auto;
+}
+.kicker {
+  display: inline-flex; align-items: center; gap: var(--s2);
+  font-size: var(--t-sm); font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--accent-soft);
+}
+.kicker i { width: 22px; height: 1px; background: currentColor; display: block; }
+.hero h1 {
+  font-weight: 800; font-size: var(--t-3xl); line-height: 1.2; letter-spacing: -.015em;
+  margin-top: var(--s3); text-shadow: 0 2px 24px rgba(10,23,16,.5);
+}
+.hero h1 em { font-style: normal; color: var(--accent-soft); }
+.lede {
+  font-size: var(--t-md); line-height: 1.6; margin: var(--s4) auto 0; max-width: 56ch;
+  color: rgba(254,253,252,.84);
+}
+.act { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s3); margin-top: var(--s5); }
+.slots {
+  display: inline-flex; align-items: center; gap: var(--s2); margin-top: var(--s4);
+  background: rgba(10,23,16,.42); border: 1px solid rgba(254,253,252,.28);
+  color: var(--paper); font-size: var(--t-sm); font-weight: 600;
+  padding: var(--s1) var(--s4); border-radius: var(--btn-radius);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.slots i {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--accent-soft); display: block; flex: none;
+  box-shadow: 0 0 0 3px rgba(226,190,131,.35);
+}
+
+/* ---- การ์ดแพ็กเกจ ----------------------------------------------------------
+   ราคาต่อท่านอยู่หน้าแรก ไม่ใช่หลังฟอร์ม "สอบถามราคา" — เวนิวส่วนใหญ่ซ่อนไว้
+   คนจัดงานจึงต้องทักไปสิบที่กว่าจะรู้ว่าที่ไหนอยู่ในงบ หน้านี้ตอบก่อนถูกถาม */
+.svc { position: relative; z-index: 3; display: grid; gap: var(--s5); padding-inline: var(--s4); }
+.card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--card-radius);
+  box-shadow: var(--e3); padding: var(--s5); position: relative;
+}
+.card .ic {
+  width: 38px; height: 38px; border-radius: 11px; background: var(--forest-100);
+  color: var(--forest-700); display: grid; place-items: center;
+}
+.card .ic svg { width: 19px; height: 19px; }
+.card h2, .card h3 { font-family: var(--font-d); font-weight: 700; font-size: var(--t-lg); margin-top: var(--s3); }
+.card > p { font-size: var(--t-sm); color: var(--text-muted); line-height: 1.6; margin-top: var(--s1); }
+.card .price {
+  display: flex; align-items: baseline; gap: var(--s2);
+  margin-top: var(--s4); padding-top: var(--s4); border-top: 1px solid var(--line);
+}
+.card .price b { font-family: var(--font-d); font-weight: 700; font-size: var(--t-2xl); color: var(--forest-900); line-height: 1; }
+.card .price span { font-size: var(--t-sm); color: var(--text-faint); }
+.card ul { margin-top: var(--s3); display: flex; flex-direction: column; gap: var(--s2); }
+.card li { display: flex; gap: var(--s2); align-items: flex-start; font-size: var(--t-sm); color: var(--text-muted); }
+.card li svg { width: 15px; height: 15px; color: var(--accent); flex: none; margin-top: 3px; stroke-width: 2.2; }
+.card .go {
+  display: flex; align-items: center; gap: var(--s2);
+  margin-top: var(--s4); padding-top: var(--s3); border-top: 1px solid var(--line);
+  font-size: var(--t-sm); font-weight: 600; color: var(--forest-900);
+}
+.card .go svg { width: 15px; height: 15px; stroke-width: 2; }
+/* ใบที่คนจองมากที่สุดถูกยกออกมาหนึ่งใบ — ไม่ใช่ทำให้อีกสองใบจางลง
+   (ของที่ยังขายอยู่ห้ามทำให้ดูเหมือนของที่เลิกขาย) */
+.card--pick { border-color: var(--accent); box-shadow: var(--e3), 0 0 0 3px var(--accent-wash); }
+.card--pick::before {
+  content: ""; position: absolute; left: var(--s5); right: var(--s5); top: 0; height: 3px;
+  border-radius: 0 0 3px 3px; background: linear-gradient(90deg, var(--accent-soft), var(--accent));
+}
+.card .tag {
+  position: absolute; top: -13px; left: 50%; translate: -50% 0;
+  background: var(--accent); color: var(--forest-950);
+  font-size: var(--t-xs); font-weight: 700; letter-spacing: .04em;
+  padding: var(--s1) var(--s3); border-radius: var(--btn-radius); white-space: nowrap;
+}
+
+/* ---- แถบตัวเลข ------------------------------------------------------------- */
+.bar {
+  display: grid; gap: var(--s4); text-align: center;
+  margin-top: var(--s6); padding-block: var(--s5);
+  background: var(--surface); border-block: 1px solid var(--line);
+  font-size: var(--t-sm); color: var(--text-muted);
+}
+.bar div { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.bar b { font-family: var(--font-d); font-weight: 700; font-size: var(--t-lg); color: var(--text); line-height: 1.1; }
+.bar .stars { color: var(--accent); letter-spacing: .08em; }
+.bar .sep { display: none; }
+
+/* ---- ส่วนที่เหลือของหน้า ---------------------------------------------------- */
+.section { padding-block: var(--s8); }
+.section-head { max-width: 52ch; margin-bottom: var(--s6); }
+.section-head .kicker { color: var(--link); }
+.section-head h2 { font-weight: 800; font-size: var(--t-2xl); letter-spacing: -.01em; margin-top: var(--s2); }
+.section-head p { color: var(--text-muted); margin-top: var(--s3); }
+/* เส้นทองใต้หัวเรื่อง: เส้นถูก "ลาก" ไม่ใช่ "ติดขึ้นมา" — border-bottom วาดไม่ได้
+   มีแต่ปรากฏ ใช้ SVG กับ stroke-dashoffset จึงเป็นเส้นที่เดินจริง */
+.rule { display: block; width: 132px; height: 8px; margin-top: var(--s3); color: var(--accent); }
+.js .rule { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 900ms var(--ease) 120ms; }
+.js .reveal.in .rule, .js .rule.in { stroke-dashoffset: 0; }
+
+.rooms { display: grid; gap: var(--s5); }
+.room { background: var(--surface); border: 1px solid var(--line); border-radius: var(--card-radius); overflow: hidden; box-shadow: var(--e1); }
+.room img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+.room-body { padding: var(--s4) var(--s5) var(--s5); }
+.room h3 { font-weight: 700; font-size: var(--t-lg); }
+.room p { color: var(--text-muted); font-size: var(--t-sm); line-height: 1.6; margin-top: var(--s2); }
+.room .meta { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); margin-top: var(--s3); font-size: var(--t-sm); font-weight: 600; color: var(--link); }
+
+/* แถบเข้ม: จุดพักสายตาเดียวของหน้า และเป็นที่เดียวที่แบรนด์พูดถึงตัวเอง */
+.band { background: var(--forest-950); color: var(--paper); padding-block: var(--s8); text-align: center; position: relative; overflow: hidden; }
+.band h2 { font-weight: 800; font-size: var(--t-2xl); }
+.band p { color: rgba(254,253,252,.82); margin-top: var(--s4); max-width: 62ch; margin-inline: auto; }
+.band .act { margin-top: var(--s5); }
+.band .rule { margin-inline: auto; color: var(--accent-soft); }
+/* ตราประทับซุ้มระเบียงตัวใหญ่หลังข้อความ — ที่เดียวที่โลโก้ถูกใช้ขนาดใหญ่ */
+.band-mark { position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: 420px; height: 420px; color: rgba(226,190,131,.13); pointer-events: none; }
+/* .13 ไม่ใช่ .09 — วัดจริงตาม WCAG: 9% ทองบนไม้เข้มได้ 1.18:1 ส่วนตราชามของ
+   ครัวบ้านสวนซึ่งเป็นของชนิดเดียวกัน (มาร์กแบรนด์ใช้ใหญ่เป็นภาพพื้นหลัง) วัดได้
+   1.27:1 — ใบนี้จางกว่าเพื่อนโดยไม่มีเหตุผล ที่ 13% ได้ 1.29:1 เท่ากันทั้งชุด */
+
+.steps { display: grid; gap: var(--s4); counter-reset: step; }
+.step {
+  display: grid; grid-template-columns: 44px 1fr; gap: var(--s4); align-items: start;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--card-radius); padding: var(--s4);
+}
+.step::before {
+  counter-increment: step; content: counter(step);
+  width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--forest-950); color: var(--paper); font-family: var(--font-d); font-weight: 700;
+}
+.step h3 { font-size: var(--t-md); font-weight: 700; }
+.step p { font-size: var(--t-sm); color: var(--text-muted); line-height: 1.6; margin-top: 2px; }
+
+.quotes { display: grid; gap: var(--s4); }
+.quote { background: var(--surface); border: 1px solid var(--line); border-radius: var(--card-radius); padding: var(--s5); }
+.quote .stars { color: var(--accent); letter-spacing: .08em; }
+.quote p + p { margin-top: var(--s3); font-size: var(--t-sm); color: var(--text-muted); line-height: 1.7; }
+.quote footer { margin-top: var(--s4); font-size: var(--t-sm); font-weight: 600; color: var(--link); }
+
+.faq { display: grid; gap: var(--s2); }
+.faq details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--field-radius); }
+.faq summary { cursor: pointer; list-style: none; padding: var(--s4) var(--s5); font-weight: 600; display: flex; justify-content: space-between; gap: var(--s4); }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; color: var(--accent); font-weight: 700; }
+.faq details[open] summary::after { content: "–"; }
+.faq p { padding: 0 var(--s5) var(--s5); color: var(--text-muted); font-size: var(--t-sm); line-height: 1.7; }
+
+.site-footer { padding-block: var(--s6); font-size: var(--t-sm); color: var(--text-muted); border-top: 1px solid var(--line); }
+.site-footer strong { color: var(--text); }
+
+/* ---- reveal (start state ถูก gate ใต้ html.js เสมอ — JS พังเมื่อไหร่หน้าต้องยังอ่านได้) */
+/* เขียน 1100ms เป็นตัวเลขตรงๆ ไม่ใช่ var(): ด่านตรวจ playbook/verify.mjs อ่าน
+   ค่าจากไฟล์ ไม่ได้รันเบราว์เซอร์ ตัวแปรจึงทำให้มันมองไม่เห็นแล้วไปจับ 180ms
+   ของ .d2 มาแทน — ค่าเดียวกับ --dur-reveal ทุกประการ */
+.js .reveal { opacity: 0; transform: translateY(18px); transition: opacity 1100ms var(--ease), transform 1100ms var(--ease); }
+.js .reveal.in { opacity: 1; transform: none; }
+.js .d1 { transition-delay: 90ms; }
+.js .d2 { transition-delay: 180ms; }
+.js .d3 { transition-delay: 270ms; }
+@media (prefers-reduced-motion: reduce) {
+  .js .reveal, .js .reveal.in { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .js .rule { stroke-dashoffset: 0 !important; transition: none !important; }
+}
+.still .reveal { opacity: 1 !important; transform: none !important; }
+.still .rule { stroke-dashoffset: 0 !important; }
+
+
+/* =============================================================================
+   บล็อกที่เพิ่มรอบ 21/8/26 — ตารางเทียบแพ็กเกจ, เมนู, รันดาวน์วันงาน, สิ่งอำนวย
+   ความสะดวก. เหตุผลที่เพิ่ม: หน้านี้จบที่ 5 จอ ขณะที่เดโมใบยาว (The Bed, Lumen)
+   อยู่ที่ 11 จอ — คนที่กดเข้ามาจากพอร์ตเทียบสองใบนี้ในหน้าเดียวกัน หน้าที่สั้น
+   กว่าครึ่งอ่านออกทันทีว่าทำน้อยกว่า ทั้งที่ธุรกิจจริงมีเรื่องต้องตอบมากกว่านั้น
+   ========================================================================== */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+           overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.section--tint { background: linear-gradient(180deg, rgba(246,234,209,.42), rgba(246,234,209,.18)); }
+
+/* ตารางเทียบ — บนมือถือมันคือการ์ดสามใบซ้อนกัน ไม่ใช่ตารางที่ต้องเลื่อนข้าง
+   (ตารางที่เลื่อนข้างบนมือถือ = คนอ่านหัวคอลัมน์ไม่เจอแล้วเลิกอ่าน) */
+.cmp table { width: 100%; border-collapse: collapse; }
+.cmp thead { display: none; }
+.cmp tbody tr { display: block; background: var(--surface); border: 1px solid var(--line);
+                border-radius: var(--card-radius); padding: var(--s4) var(--s5); margin-bottom: var(--s3); box-shadow: var(--e1); }
+.cmp tbody th { display: block; text-align: left; font-size: var(--t-md); font-weight: 700; margin-bottom: var(--s2); }
+.cmp tbody td { display: flex; justify-content: space-between; gap: var(--s4); align-items: center;
+                padding: 6px 0; font-size: var(--t-sm); color: var(--text-muted); border-top: 1px solid var(--line); }
+/* margin auto ดันป้ายไปซ้ายสุด: ช่องที่มีทั้งเครื่องหมายถูกและข้อความ (เช่น
+   "✓ + เวดดิ้งแพลนเนอร์") มีลูกสามตัวในแถวเดียว space-between จะกระจายให้
+   เครื่องหมายไปลอยกลางช่องแทนที่จะอยู่ติดข้อความของมันเอง */
+.cmp tbody td::before { content: attr(data-l); color: var(--text-faint); margin-inline-end: auto; }
+.cmp td b { color: var(--text); font-weight: 700; }
+.cmp td svg { width: 20px; height: 20px; fill: none; stroke: var(--link); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.cmp .no { color: var(--text-faint); }
+.cmp-note { margin-top: var(--s4); font-size: var(--t-sm); color: var(--text-muted); }
+
+/* เมนูอาหาร */
+.sets { display: grid; gap: var(--s4); }
+.set { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--card-radius);
+       padding: var(--s5); box-shadow: var(--e1); }
+.set--pick { border-color: var(--accent); box-shadow: var(--e2); }
+.set .tag { position: absolute; top: calc(var(--s4) * -1); left: var(--s5); background: var(--accent); color: var(--forest-950);
+            font-size: var(--t-xs); font-weight: 700; padding: 6px 12px; border-radius: 999px; }
+.set h3 { font-family: var(--font-d); font-size: var(--t-lg); font-weight: 700; }
+.set-price { color: var(--text); font-weight: 700; font-size: var(--t-xl); margin-top: var(--s1); }
+.set-price span { font-size: var(--t-sm); font-weight: 400; color: var(--text-faint); }
+.set ol { list-style: none; margin: var(--s4) 0 0; padding: 0; counter-reset: dish; }
+.set li { counter-increment: dish; display: flex; gap: var(--s3); padding: 7px 0; border-top: 1px solid var(--line);
+          font-size: var(--t-sm); color: var(--text-muted); }
+.set li::before { content: counter(dish, decimal-leading-zero); color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+.set-note { margin-top: var(--s4); font-size: var(--t-sm); color: var(--link); }
+
+/* รันดาวน์วันงาน */
+.run { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.run li { display: grid; grid-template-columns: 76px 1fr; gap: var(--s4); padding: var(--s4) 0; border-top: 1px solid var(--line); }
+.run li:first-child { border-top: 0; }
+.run .t { font-family: var(--font-d); font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
+.run h3 { font-size: var(--t-md); font-weight: 700; }
+.run p { font-size: var(--t-sm); color: var(--text-muted); line-height: 1.7; margin-top: 2px; }
+
+/* สิ่งอำนวยความสะดวก + การเดินทาง */
+.facts { display: grid; gap: var(--s3); }
+.fact { background: var(--surface); border: 1px solid var(--line); border-radius: var(--field-radius); padding: var(--s4) var(--s5); }
+.fact b { display: block; font-size: var(--t-md); }
+.fact span { display: block; margin-top: var(--s1); font-size: var(--t-sm); color: var(--text-muted); line-height: 1.6; }
+.travel { margin-top: var(--s5); background: var(--forest-950); color: var(--brass-100); border-radius: var(--card-radius); padding: var(--s5) var(--s5) var(--s6); }
+.travel h3 { font-family: var(--font-d); font-size: var(--t-lg); font-weight: 700; color: var(--paper); }
+.travel ul { list-style: none; margin: var(--s3) 0 0; padding: 0; }
+.travel li { padding: 9px 0; border-top: 1px solid rgba(246,234,209,.16); font-size: var(--t-sm); line-height: 1.7; }
+.travel li b { color: var(--brass-400); }
+
+/* =============================================================================
+   จอกว้าง — ตรงนี้คือจุดที่หน้าเว็บกลายเป็นแบบร่าง: ฮีโร่สูง 500px การ์ดสามใบ
+   เรียงแถวเดียวแล้วยกขึ้นไปทับขอบล่างของรูป 56px ใบกลางยกอีก 12px
+   ========================================================================== */
+@media (min-width: 900px) {
+  .nav-links { display: flex; }
+  .nav-right .btn--outline { display: inline-flex; }
+  .hero-copy { padding: calc(76px + var(--s7)) 0 var(--s9); min-height: 500px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .hero h1 { font-size: var(--t-5xl); }
+  .lede { font-size: var(--t-lg); }
+  .svc { grid-template-columns: repeat(3, 340px); justify-content: center; margin-top: -56px; padding-inline: var(--s7); align-items: start; }
+  .card--pick { margin-top: -12px; }
+  .bar { grid-auto-flow: column; justify-content: center; align-items: center; gap: var(--s7); }
+  .bar div { flex-direction: row; align-items: baseline; gap: var(--s2); }
+  .bar .sep { display: block; width: 1px; height: 22px; background: var(--line); }
+  .section { padding-block: var(--s9); }
+  .section-head h2 { font-size: var(--t-4xl); }
+  .band h2 { font-size: var(--t-4xl); }
+  .rooms { grid-template-columns: repeat(3, 1fr); }
+  .steps { grid-template-columns: repeat(4, 1fr); }
+  .quotes { grid-template-columns: repeat(3, 1fr); }
+  .faq { max-width: 860px; }
+  .cmp thead { display: table-header-group; }
+  .cmp tbody tr { display: table-row; background: none; border: 0; border-radius: 0; padding: 0; margin: 0; box-shadow: none; }
+  .cmp tbody tr:nth-child(odd) { background: rgba(255,255,255,.55); }
+  /* ต้องเจาะ tbody ให้ครบเหมือนกฎฝั่งมือถือ ไม่งั้นกฎมือถือ (.cmp tbody td)
+     ชนะกฎนี้ด้วยความจำเพาะ แล้วตารางบนจอคอมจะกองเป็นคอลัมน์เดียว */
+  .cmp tbody th, .cmp tbody td, .cmp thead th { display: table-cell; padding: var(--s3) var(--s4);
+     border-top: 1px solid var(--line); text-align: left; vertical-align: middle; }
+  .cmp tbody td { font-size: var(--t-sm); }
+  .cmp thead th { font-size: var(--t-sm); color: var(--text-muted); font-weight: 700; border-top: 0; }
+  .cmp thead th span { display: block; color: var(--text); font-size: var(--t-lg); font-weight: 800; }
+  .cmp tbody td::before { content: none; }
+  .cmp tbody th { margin: 0; font-size: var(--t-sm); }
+  .sets { grid-template-columns: repeat(3, 1fr); align-items: start; }
+  .run li { grid-template-columns: 110px 1fr; gap: var(--s5); }
+  .run .t { font-size: var(--t-lg); }
+  .facts { grid-template-columns: repeat(4, 1fr); }
+  .travel { display: grid; grid-template-columns: 220px 1fr; gap: var(--s5); align-items: start; padding: var(--s6); }
+  .travel ul { margin-top: 0; }
+}
+/* ระหว่างมือถือกับจอคอม: การ์ดสามใบเรียงแถวเดียวไม่พอกว้าง แต่กองซ้อนกันก็เสียของ */
+@media (min-width: 620px) and (max-width: 899px) {
+  .svc { grid-template-columns: repeat(2, 1fr); }
+  .svc > :last-child { grid-column: 1 / -1; max-width: 340px; justify-self: center; }
+  .rooms, .quotes, .steps { grid-template-columns: repeat(2, 1fr); }
+  .sets, .facts { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ===========================================================================
+   รอบ "แก้จืด" — 21/8/26
+   ===========================================================================
+   AUDIT ก่อนแก้ (วัดทั้ง 9 ไซต์ในชุดผลงานพร้อมกัน ไม่ได้ดูใบนี้ใบเดียว):
+   หน้านี้ไม่ได้จืดแบบเดียวกับครัวบ้านสวน/โกลว์/Parcela — สามใบนั้นจืดเพราะ
+   ทั้งครึ่งล่างมีความสว่างระดับเดียว ส่วนใบนี้มีแถบมืด forest-950 ที่ #story
+   อยู่แล้ว มีรูป 5 ใบ และมี SVG 39 ชิ้น สิ่งที่ไม่มีคือ **การเคลื่อนไหว**:
+   @keyframes = 0 อันเดียว เป็นไซต์เดียวในชุดที่เป็นศูนย์ (homecraft 23 ·
+   velvet-leaf 12 · lumen 6 · the-bed 4)
+
+   ของที่เพิ่มจึงเป็น motion อย่างเดียว และหยิบจากภาษาของเวนิวจัดงานเท่านั้น:
+   เส้นเวลาของวันงานที่ลากตัวเอง · ไฟอุ่นในห้องตอนค่ำที่หายใจ · ลายเส้นของ
+   ของที่เวนิวมีอยู่แล้ว — ไม่มี fade ทั่วไปเพิ่มสักตัว
+   -------------------------------------------------------------------------- */
+
+/* ---- เส้นเวลาวันงานที่ลากตัวเอง -------------------------------------------
+   #runsheet คือรันดาวน์จริงของงานหนึ่งวัน 06:30 → 23:00 ซึ่งเป็นสิ่งที่เจ้าภาพ
+   อยากรู้ที่สุดและเป็นของที่เวนิวอื่นไม่กล้าเอามาโชว์ เดิมมันคือ <ol> ที่มีเส้นคั่น
+   แนวนอนเฉยๆ ตอนนี้มีเส้นเวลาแนวตั้งลากลงมาตามที่ไถ และหมุดของแต่ละชั่วโมง
+   ติดขึ้นทีละดวง = อ่านเป็น "วันที่กำลังเดิน" ไม่ใช่ตาราง */
+.run { position: relative; }
+.run::before {
+  content: ""; position: absolute; left: 76px; top: 0; bottom: 0; width: 2px;
+  background: linear-gradient(var(--accent), color-mix(in oklch, var(--accent) 20%, transparent));
+  transform-origin: top; border-radius: 2px;
+}
+.js .run::before { transform: scaleY(0); transition: transform 2200ms var(--ease) 200ms; }
+.js .run.in::before { transform: scaleY(1); }
+.run li { position: relative; }
+/* หมุดชั่วโมง: วงกลมกลวงบนเส้น ไม่ใช่จุดทึบ — ป้ายบอกเวลาบนแผนงานจริงเป็นวงกลม
+   ที่เขียนทับได้ และกลวงทำให้เส้นเวลาที่ลากอยู่ยังมองเห็นทะลุ */
+.run li::after {
+  content: ""; position: absolute; left: 76px; top: calc(var(--s4) + .42em);
+  translate: calc(-50% + 1px) 0; width: 11px; height: 11px; border-radius: 50%;
+  background: var(--bg); border: 2px solid var(--accent); box-sizing: border-box;
+}
+.js .run li::after { transform: scale(0); transition: transform 420ms var(--ease); }
+.js .run.in li::after { transform: scale(1); }
+/* ดีเลย์ไล่ทีละดวงให้ทันเส้นที่กำลังลาก — 9 ชั่วโมงบนเส้นที่ใช้เวลา 2,200ms
+   จึงเว้นดวงละ ~230ms ไม่ใช่ตัวเลขสุ่ม */
+.js .run.in li:nth-child(1)::after { transition-delay: 260ms; }
+.js .run.in li:nth-child(2)::after { transition-delay: 490ms; }
+.js .run.in li:nth-child(3)::after { transition-delay: 720ms; }
+.js .run.in li:nth-child(4)::after { transition-delay: 950ms; }
+.js .run.in li:nth-child(5)::after { transition-delay: 1180ms; }
+.js .run.in li:nth-child(6)::after { transition-delay: 1410ms; }
+.js .run.in li:nth-child(7)::after { transition-delay: 1640ms; }
+.js .run.in li:nth-child(8)::after { transition-delay: 1870ms; }
+.js .run.in li:nth-child(9)::after { transition-delay: 2100ms; }
+
+/* ---- ไฟอุ่นในห้องตอนค่ำ ----------------------------------------------------
+   แถบมืด #story คือประโยคเรื่องครัวของตัวเอง และเป็นจุดเดียวของหน้าที่เป็นเวลาค่ำ
+   ไฟดวงนี้หายใจช้ามาก (11 วินาทีต่อรอบ) เพราะไฟงานเลี้ยงจริงไม่กะพริบ —
+   ที่กะพริบคือไฟดิสโก้ ซึ่งไม่ใช่ของขายของเวนิวจัดงานแต่ง */
+.band::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: radial-gradient(62% 72% at 50% 42%,
+              color-mix(in oklch, var(--brass-400) 22%, transparent) 0%, transparent 70%);
+}
+/* `> .wrap` ไม่ใช่ `> *` — วัดแล้ว: .band-mark เป็น position:absolute อยู่ก่อน
+   ถ้าเขียน `> *` มันจะถูกทับเป็น relative แล้วกลายเป็นบล็อก 420x420 ในสายเนื้อหา
+   ดันแถบสูงขึ้นเกือบเท่าตัวโดยที่ครึ่งบนว่างเปล่า */
+.band > .wrap { position: relative; z-index: 1; }
+.band-mark { z-index: 0; }
+.js .band.in::after, .js .band:has(.reveal.in)::after { animation: tt-warm 11s ease-in-out infinite; }
+@keyframes tt-warm {
+  0%, 100% { opacity: .55; }
+  50%      { opacity: 1; }
+}
+
+/* ---- ลายเส้นของที่เวนิวมีอยู่แล้ว ------------------------------------------
+   #facility 8 กล่องเป็นตัวหนังสือล้วน ทั้งที่เป็นบล็อกที่ตอบคำถาม "ต้องเช่าอะไร
+   เพิ่มไหม" ซึ่งเป็นเงินของเจ้าภาพโดยตรง ลายเส้นเป็นของแต่ละข้อจริง ไม่ใช่
+   ไอคอนติ๊กถูกแปดอันเหมือนกัน — ใช้กลไกวาดเส้นเดียวกับ .rule ของหน้านี้
+   (stroke-dasharray + dashoffset + pathLength="1") ไม่ได้เขียนกลไกที่สอง */
+.fact { display: grid; grid-template-columns: 38px 1fr; gap: var(--s4); align-items: start; }
+.fact-ico { width: 38px; height: 38px; color: var(--accent); }
+.fact-ico svg { display: block; width: 100%; height: auto; }
+.js .fact-ico path, .js .fact-ico circle, .js .fact-ico rect { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.js .fact.in .fact-ico path, .js .fact.in .fact-ico circle, .js .fact.in .fact-ico rect {
+  transition: stroke-dashoffset 900ms var(--ease) 120ms; stroke-dashoffset: 0;
+}
+
+/* ปิดได้จริงสองทาง: ค่าระบบของผู้ใช้ และ .still ที่ main.js ติดให้เมื่อเจอ ?reduce=1
+   ซึ่งเป็นทางที่สคริปต์ถ่ายภาพใช้ทุกครั้ง — เขียนแต่ media query อย่างเดียวไม่พอ */
+@media (prefers-reduced-motion: reduce) {
+  .js .run::before, .js .run.in::before { transform: scaleY(1) !important; transition: none !important; }
+  .js .run li::after, .js .run.in li::after { transform: scale(1) !important; transition: none !important; }
+  .js .band::after, .js .band.in::after { animation: none !important; opacity: .8 !important; }
+  .js .fact-ico path, .js .fact-ico circle, .js .fact-ico rect {
+    stroke-dashoffset: 0 !important; transition: none !important; }
+}
+.still .run::before { transform: scaleY(1) !important; transition: none !important; }
+.still .run li::after { transform: scale(1) !important; transition: none !important; }
+.still .band::after { animation: none !important; opacity: .8 !important; }
+.still .fact-ico path, .still .fact-ico circle, .still .fact-ico rect {
+  stroke-dashoffset: 0 !important; transition: none !important; }
+
+/* ---- หัวข้อขึ้นทีละคำ -------------------------------------------------------
+   ชั้นที่ 3 ของ PROMPT-JUED ระบุไว้ตรงๆ ว่า "หัวข้อ section ให้ขึ้นทีละคำ" —
+   รอบแรก (21/8/26) ทำแต่ motion ที่คิดขึ้นเองสำหรับเวนิว แล้วข้ามข้อนี้ไป
+   วัดแล้วก่อนแก้: the-terrace มี span.w 0 จุด เทียบ krua 11 · glow 12
+   คือของชนิดเดียวกันในชุดผลงานเดียวกันแต่ทำไม่เหมือนกัน
+
+   ห่อ span ซ้อนสองชั้น: ชั้นนอกเป็นหน้าต่าง overflow:hidden ชั้นในเลื่อนขึ้น
+   ข้อความยังเป็นข้อความปกติ ลากคัดลอกออกไปได้เป็นประโยคเดียว */
+h2 .w { display: inline-block; overflow: hidden; vertical-align: bottom; }
+h2 .w > span { display: inline-block; }
+.js h2 .w > span { transform: translateY(105%); transition: transform 760ms var(--ease); }
+.js .reveal.in h2 .w > span, .js h2.reveal.in .w > span,
+.js .section-head.reveal.in h2 .w > span { transform: none; }
+.js h2 .w:nth-child(1) > span { transition-delay: 40ms; }
+.js h2 .w:nth-child(2) > span { transition-delay: 120ms; }
+.js h2 .w:nth-child(3) > span { transition-delay: 200ms; }
+.js h2 .w:nth-child(4) > span { transition-delay: 280ms; }
+.js h2 .w:nth-child(5) > span { transition-delay: 360ms; }
+.js h2 .w:nth-child(6) > span { transition-delay: 440ms; }
+@media (prefers-reduced-motion: reduce) {
+  .js h2 .w > span { transform: none !important; transition: none !important; }
+}
+.still h2 .w > span { transform: none !important; transition: none !important; }
+
+/* =============================================================================
+   ตัวคิดราคาต่อหัว — เครื่องมือที่มีแต่หน้าเวนิวต้องมี
+   ใช้ token ชุดเดิมของหน้านี้ทั้งหมด (ปุ่มเม็ดยา รัศมีการ์ด ทองบนเขียวป่า) เพราะ
+   แบบร่างที่อนุมัติแล้วคือสเปกของหน้านี้ ของใหม่ต้องพูดสำเนียงเดิม ไม่ใช่มาตั้งสำเนียงใหม่
+   ========================================================================== */
+.calc {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--card-radius);
+  padding: clamp(1.25rem, 4vw, 2rem); display: grid; gap: 1.5rem; box-shadow: var(--e1, none);
+}
+.calc-kind { border: 0; padding: 0; margin: 0; display: grid; gap: .6rem; }
+.calc-kind legend { font-size: .84rem; color: var(--text-muted); padding: 0 0 .5rem; }
+.calc-kind label { cursor: pointer; }
+.calc-kind input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.calc-kind span {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  min-height: 52px; padding: .8rem 1.1rem;
+  border: 1px solid var(--line); border-radius: var(--field-radius);
+  background: var(--bg); color: var(--text);
+  transition: border-color .18s, background-color .18s;
+}
+.calc-kind span b { font-family: var(--font-display, inherit); color: var(--accent); }
+.calc-kind label:hover span { border-color: var(--accent); }
+.calc-kind input:checked + span { border-color: var(--action); background: var(--action); color: var(--on-action); }
+.calc-kind input:checked + span b { color: var(--accent-soft); }
+.calc-kind input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+.calc-guests { display: grid; gap: .5rem; }
+.calc-guests label { font-size: .84rem; color: var(--text-muted); }
+.calc-guests output {
+  font-family: var(--font-display, inherit); font-size: clamp(2rem, 7vw, 3rem);
+  line-height: 1; font-variant-numeric: tabular-nums;
+}
+.calc-guests output::after { content: " ท่าน"; font-size: .9rem; color: var(--text-muted); }
+/* แถบเลื่อนต้องสูงพอกด — 44px คือเกณฑ์เดียวกับปุ่มทั้งเว็บ */
+.calc-guests input[type="range"] { width: 100%; height: 44px; accent-color: var(--action); cursor: pointer; }
+.calc-scale { display: flex; justify-content: space-between; font-size: .76rem; color: var(--text-faint); }
+
+.calc-out { border-top: 1px solid var(--line); padding-top: 1.25rem; display: grid; gap: .35rem; }
+.calc-line { font-size: .9rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.calc-total { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.calc-total span { font-size: .9rem; color: var(--text-muted); }
+.calc-total b {
+  font-family: var(--font-display, inherit); font-size: clamp(1.8rem, 6vw, 2.6rem);
+  color: var(--accent); font-variant-numeric: tabular-nums;
+}
+.calc-note { font-size: .84rem; color: var(--text-muted); }
+.calc .act { margin-top: .25rem; }
+/* ไม่มี JS = ไม่ต้องโชว์เครื่องคิดเลขที่กดไม่ได้ ส่วนที่เหลือของหน้ายังครบเหมือนเดิม */
+html:not(.js) #quote { display: none; }
+
+@media (min-width: 820px) {
+  .calc { grid-template-columns: 1fr 1fr; align-items: start; }
+  .calc-kind { grid-row: span 2; }
+  .calc .act { grid-column: 1 / -1; }
+}
+/* เกณฑ์ 44px / 12.5px ของ audit-mobile — ปุ่มในการ์ดคิดราคาสูงแค่ 28px เพราะ .btn
+   ตัวเปล่าไม่ได้กำหนดความสูง (ในฮีโร่มี .btn--lg คุมให้) ส่วน .go กับ .tag เป็นของเดิม
+   ที่ตกเกณฑ์อยู่ก่อนแล้ว แก้พร้อมกันเพราะเป็นข้อเดียวกัน (หน้าครัวบ้านสวน/โกลว์
+   แก้เรื่องเดียวกันไปแล้ว 21/8/26) */
+.calc .btn { min-height: 44px; }
+.calc-scale { font-size: 12.5px; }
+.go { min-height: 44px; display: inline-flex; align-items: center; gap: .4rem; }
+.card .tag, .set .tag { font-size: 12.5px; }
+
+
+/* ---- §11 ข้อ 5: หัวเว็บหดตอนเลื่อน + ไฮไลต์หัวข้อที่กำลังอ่าน ----------------
+   คลาส .small / a.on สลับโดย js/nav-response.js (ไฟล์เดียวกันทุกเดโม)
+   ตัวเลขความสูงต่างกันได้ตามหัวเว็บเดิมของแต่ละงาน แต่กลไกต้องเป็นตัวเดียวกัน */
+/* >>> nav-shrink · กลไกกลาง "หัวเว็บหดตอนเลื่อน" — แหล่งเดียวของทั้งกอง
+   แก้ที่ playbook/snippets/nav-shrink.css แล้วรัน: node playbook/sync-nav-shrink.mjs
+   ห้ามแก้ก้อนนี้ในไฟล์ปลายทาง — สคริปต์เขียนทับทุกครั้ง
+
+   กติกา (LOG-DEMO §15 · ด่าน playbook/audit-nav.mjs):
+   คลาสสวิตช์ = .small เท่านั้น · หดด้วย "padding ของลูก" เท่านั้น — ห้ามสั่ง height
+   ทำไมห้าม height: แถบหัวสูงเป็น auto เบราว์เซอร์ไล่ auto→เลขคงที่ไม่ได้ มันกระโดด
+   และลูกที่ตั้ง height ตายตัวจะไม่หดตาม แถบเตี้ยกว่าลูก = เกยทันที (summit เกย 20px อยู่เป็นเดือน)
+
+   ใบไหนต้องมีพื้นความสูงขั้นต่ำตอนหด (เช่น The Bed มีเพชรหมุน 45° ที่กินที่เกินผัง)
+   ให้ตั้งค่า --nav-pad-small ของใบนั้นเหนือก้อนนี้ ไม่ใช่เขียนกฎใหม่
+   ไม่ใส่ transition ให้ padding โดยตั้งใจ (24/8/26): padding เป็น layout property
+   ผิด DEMO-SPEC S2.3 และแถบที่หดคือแถบเดียวกับที่มี backdrop-filter = คิดผังใหม่+เบลอใหม่ทุกเฟรม */
+header.small > *, .site-header.small > * {
+  padding-top: var(--nav-pad-small, 0px) !important;
+  padding-bottom: var(--nav-pad-small, 0px) !important;
+  min-height: 0 !important;
+}
+header.small > * > *, .site-header.small > * > * {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  min-height: 0 !important;
+}
+@media (prefers-reduced-motion: reduce) { header, .site-header { transition: none !important; } }
+/* <<< nav-shrink */
+header a.on { border-bottom-color: var(--accent) !important; color: var(--accent) !important; }
+@media (prefers-reduced-motion: reduce) { header { transition: none !important; } }
+
+/* ---- §11 ข้อ 1: สลับทรงหัวข้อ (22/8/26) ------------------------------------
+   วัดแล้วได้ทรงเดียวรวด 7 ส่วนติดกัน — จัดกึ่งกลางสามส่วนที่หัวข้อเป็นคำถามหรือคำประกาศ
+   (เทียบแพ็กเกจ · ขั้นตอนสี่ขั้น · คำถามที่ถามก่อนจอง) สลับกับส่วนที่ชิดซ้ายเหมือนเดิม
+   แถบเล่าเรื่อง #story ที่กึ่งกลางอยู่แล้วเป็นทรงที่สาม */
+.section-head--mid { max-width: 62ch; margin-inline: auto; text-align: center; }
+.section-head--mid .rule { margin-inline: auto; }
+.section-head--mid .kicker { justify-content: center; }

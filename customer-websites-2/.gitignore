@@ -1,0 +1,17 @@
+# macOS Finder metadata — not project work, and it leaks a directory
+# listing if it ever reaches a web host. See Maya Green/SECURITY.md §7.1.
+.DS_Store
+
+# Never commit dependencies or secrets.
+node_modules/
+.env
+
+# Python bytecode from the palette/build helpers — machine-specific and
+# regenerated on every run.
+__pycache__/
+*.pyc
+
+# ไฟล์สำรองที่สร้างระหว่างแก้งาน ไม่ต้องเข้า repo (ประวัติอยู่ใน git อยู่แล้ว)
+House and Home/index.backup-*.html
+House and Home/index.backup2-*.html
+House and Home/index.shrunk-*.html

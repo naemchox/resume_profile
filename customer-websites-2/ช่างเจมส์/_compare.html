@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ช่างเจมส์ — A vs B</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+       background:#0f1115;color:#e8eaee;height:100vh;display:flex;flex-direction:column}
+  header{display:flex;gap:1rem;align-items:center;padding:.6rem 1rem;background:#171a21;
+         border-bottom:1px solid #262b36;flex:0 0 auto}
+  header b{font-size:.95rem}
+  .sel{display:flex;gap:.35rem}
+  button{background:#222735;color:#cfd4de;border:1px solid #333a4a;border-radius:6px;
+         padding:.35rem .7rem;cursor:pointer;font:inherit}
+  button.on{background:#e07b28;border-color:#e07b28;color:#1a1206;font-weight:600}
+  label{display:flex;align-items:center;gap:.35rem;color:#9aa3b2}
+  .panes{flex:1;display:flex;min-height:0}
+  .pane{flex:1;display:flex;flex-direction:column;min-width:0;border-right:1px solid #262b36}
+  .pane:last-child{border-right:0}
+  .cap{padding:.4rem .8rem;background:#12151b;border-bottom:1px solid #262b36;
+       font-size:.8rem;letter-spacing:.02em;color:#9aa3b2}
+  .cap b{color:#fff}
+  .cap.a b{color:#7fb3ff}.cap.b b{color:#ffa257}
+  iframe{flex:1;width:100%;border:0;background:#fff}
+</style>
+</head>
+<body>
+<header>
+  <b>ช่างเจมส์ — เทียบ 2 prompt</b>
+  <div class="sel" id="left"></div>
+  <span style="color:#4a5263">|</span>
+  <div class="sel" id="right"></div>
+  <label><input type="checkbox" id="sync" checked> เลื่อนพร้อมกัน</label>
+</header>
+<div class="panes">
+  <div class="pane">
+    <div class="cap a" id="capL"></div>
+    <iframe id="fL" src="index-A.html"></iframe>
+  </div>
+  <div class="pane">
+    <div class="cap b" id="capR"></div>
+    <iframe id="fR" src="index-B.html"></iframe>
+  </div>
+</div>
+<script>
+const SRC = {
+  o: {file:'index.html',   label:'<b>ORIGINAL</b> — ของที่มีอยู่ตอนนี้'},
+  a: {file:'index-A.html', label:'<b>A</b> — "add more animation or graphic to make it creative" (prompt ที่คุณพิมพ์จริง)'},
+  b: {file:'index-B.html', label:'<b>B</b> — วินิจฉัยก่อน → motif ของตัวเอง → สีจากรูปลูกค้า (prompt ตัวกลั่น)'}
+};
+function buildSel(hostId, side, current){
+  const host = document.getElementById(hostId); host.innerHTML='';
+  Object.keys(SRC).forEach(k=>{
+    const btn=document.createElement('button');
+    btn.textContent=k.toUpperCase(); btn.className = k===current?'on':'';
+    btn.onclick=()=>load(side,k);
+    host.appendChild(btn);
+  });
+}
+function load(side,k){
+  const f = side==='L'?fL:fR, cap = side==='L'?capL:capR;
+  f.src = SRC[k].file; cap.innerHTML = SRC[k].label;
+  buildSel(side==='L'?'left':'right', side, k);
+  (side==='L'?state:state).cur[side]=k;
+}
+const state={cur:{L:'a',R:'b'}};
+load('L','a'); load('R','b');
+
+/* synced scroll — same origin, so we can read the frames */
+let lock=false;
+function hook(f, other){
+  try{
+    const w=f.contentWindow;
+    w.addEventListener('scroll',()=>{
+      if(!sync.checked||lock) return;
+      lock=true;
+      const d=w.document.documentElement;
+      const ratio=w.scrollY/Math.max(1,d.scrollHeight-w.innerHeight);
+      const ow=other.contentWindow, od=ow.document.documentElement;
+      ow.scrollTo(0, ratio*(od.scrollHeight-ow.innerHeight));
+      requestAnimationFrame(()=>lock=false);
+    },{passive:true});
+  }catch(e){}
+}
+[fL,fR].forEach(f=>f.addEventListener('load',()=>hook(f, f===fL?fR:fL)));
+</script>
+</body>
+</html>

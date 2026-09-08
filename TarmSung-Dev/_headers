@@ -1,0 +1,52 @@
+# แคชของนิ่ง — ทำไมต้องมีไฟล์นี้
+#
+# วัดเมื่อ 20/8/26: Cloudflare Pages ตอบทุกไฟล์ด้วย
+#   cache-control: public, max-age=0, must-revalidate
+# แปลว่าคลิปผลงาน 6MB ถูกยิงถามใหม่ทุกครั้งที่เปิดหน้า และเบราว์เซอร์เอาของใน
+# ดิสก์มาใช้ทันทีไม่ได้ — คนกดการ์ดผลงานจึงนั่งมองจอดำรอโหลดซ้ำแล้วซ้ำอีก
+# (Pages ยังไม่ตอบ Range request กับไฟล์พวกนี้ด้วย: ขอ 1KB แรกก็ส่งมาทั้ง 6MB
+#  ลากแถบเวลาในหน้าต่างดูผลงานจึงต้องรอครบไฟล์ก่อนเสมอ — บีบไฟล์ให้เล็กคือทาง
+#  แก้ที่เราคุมได้ ส่วน Range เป็นของฝั่ง Pages)
+#
+# กฎที่ต้องอยู่คู่กับไฟล์นี้ — immutable = เบราว์เซอร์จะไม่ถามซ้ำอีกหนึ่งปี:
+#   ทุก URL ของ css/js/รูป/คลิป ต้องมี ?v=<เลข> และต้องบวกเลขทุกครั้งที่แก้ไฟล์
+#   ลืมบวก = คนที่เคยเข้าเว็บค้างอยู่กับของเก่าทั้งปี ไม่ใช่แค่รอบเดียว
+#   (playbook/deploy.mjs มีด่านตรวจข้อนี้ให้แล้ว ปล่อยไม่ผ่านถ้าลืม)
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/css/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/js/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# ---- ด่านความปลอดภัยระดับหัวข้อความ (เพิ่ม 21/8/26 หลังตรวจเรื่องโดนแฮก) --------
+# เว็บนี้เป็นไฟล์นิ่งล้วน ไม่มีฐานข้อมูล ไม่มีหน้าล็อกอิน ช่องโจมตีแบบคลาสสิก
+# (SQL injection, brute force หน้าแอดมิน) จึงไม่มีตั้งแต่แรก สิ่งที่ยังเหลือคือ
+# การเอาหน้าเราไปใส่ iframe แล้วหลอกให้คนกด กับสคริปต์แปลกปลอมที่หลุดเข้ามา
+# ทางหน้าเดโม — สามบรรทัดนี้ปิดสองเรื่องนั้นให้เท่าที่หัวข้อความทำได้
+#   frame-ancestors 'self' = ห้ามเว็บอื่นเอาหน้าเราไปฝังใน iframe (กัน clickjacking)
+#   X-Frame-Options        = ตัวเดียวกันสำหรับเบราว์เซอร์เก่าที่ยังไม่อ่าน CSP
+#   Permissions-Policy     = ปิดสิทธิ์กล้อง/ไมค์/ตำแหน่ง ที่เว็บนี้ไม่เคยขอใช้เลย
+# ยังไม่ใส่ CSP เต็มรูป (script-src) เพราะหน้าเดโมสองหน้าดึง Tailwind จาก CDN อยู่
+# ถ้าเลิกใช้ CDN นั้นเมื่อไหร่ ค่อยล็อก script-src ได้ทั้งไซต์
+# CSP เต็มรูปทำได้แล้ว (21/8/26) หลังหน้า work/lumen เลิกดึงตัวคอมไพล์ Tailwind จาก
+# CDN — ตอนนี้ไม่มีหน้าไหนในไซต์โหลดสคริปต์จากโดเมนอื่นเลย script-src จึงล็อกเป็น
+# 'self' ได้ ถ้าวันหนึ่ง CDN ไหนถูกแทรกโค้ด มันก็รันบนโดเมนเราไม่ได้อีกต่อไป
+#   'unsafe-inline' ยังต้องมีสำหรับ <script> ที่ฝังในหน้า (ธีม ฟอร์ม เดโม) เพราะ
+#   โฮสต์ไฟล์นิ่งออก nonce ต่อคำขอไม่ได้ — แต่สิ่งที่กันได้จริงคือ "สคริปต์จาก
+#   โดเมนอื่น" ซึ่งคือช่องที่เราเพิ่งปิดไป
+#   fonts.googleapis/gstatic = ฟอนต์ของหน้าเดโม · www.google.com = แผนที่ใน
+#   work/the-bed · blob: ใน media-src = คลิปที่สร้างจาก object URL
+/*
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; frame-src https://www.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'
+  Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=()
+
+# บังคับให้เบราว์เซอร์คุยกับเว็บนี้ผ่าน https เท่านั้นเป็นเวลาหนึ่งปี แม้จะพิมพ์ http เอง
+# (กันการถูกดักแก้ระหว่างทางบนเน็ตสาธารณะ) ไม่ใส่ includeSubDomains/preload เพราะ
+# โดเมนนี้เป็นของแถม pages.dev — ผลจะลามไปโดเมนอื่นที่เราไม่ได้เป็นเจ้าของไม่ได้
+/*
+  Strict-Transport-Security: max-age=31536000

@@ -1,0 +1,38 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": "public",
+    "predeploy": [
+      "node -e \"const fs=require('fs');fs.mkdirSync('public',{recursive:true});fs.copyFileSync('talk.html','public/index.html')\""
+    ],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      }
+    ]
+  },
+  "functions": {
+    "source": "functions",
+    "predeploy": []
+  }
+}

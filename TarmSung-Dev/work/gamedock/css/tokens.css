@@ -1,0 +1,52 @@
+/* GAMEDOCK — design tokens
+   ร้านเกม/เครื่องเกมออนไลน์ · ตัวแทนแพ็กเกจ ฿9,900 (เว็บ + หลังบ้าน + ร้านค้า + สมาชิก)
+
+   ทำไม dark-only: ร้านเกมทุกเจ้าที่คนไทยใช้จริง (Steam, PS Store, Xbox, Epic)
+   เป็นพื้นมืดหมด เพราะปกเกมคือรูปสีจัดบนพื้นดำ พื้นขาวจะกลืนงานศิลป์
+   จนกริดสินค้าดูเป็นใบปลิว — นี่คือการเลือก ไม่ใช่การละเว้น theme สว่าง */
+:root {
+  /* ---- พื้น ---- */
+  --ink:        #080a10;   /* พื้นนอกสุด */
+  --bg:         #0d1018;   /* พื้นหน้าเว็บ */
+  --surface:    #151a26;   /* การ์ด */
+  --surface-2:  #1e2536;   /* การ์ดซ้อน / input */
+  --surface-3:  #2a3248;   /* hover */
+  --line:       #262e42;
+  --line-soft:  #1b2130;
+
+  /* ---- ตัวอักษร ---- */
+  --text:       #e9edf7;
+  --text-dim:   #a3adc4;
+  --text-mute:  #6f7a93;
+
+  /* ---- สีแบรนด์ ---- */
+  --brand:      #7b5cff;   /* ม่วงไฟฟ้า = ปุ่มหลัก/ลิงก์ */
+  --brand-hi:   #9b83ff;
+  --brand-dim:  rgba(123,92,255,.14);
+  --accent:     #00e0a4;   /* เขียวมิ้นต์ = ของแท้/ประกัน/ส่งฟรี */
+  --accent-dim: rgba(0,224,164,.13);
+  --hot:        #ff3d63;   /* แดง = ลดราคา/แฟลชเซล */
+  --hot-dim:    rgba(255,61,99,.14);
+  --gold:       #ffc453;   /* ดาวรีวิว */
+
+  /* ---- ระยะ ---- */
+  --s1: .25rem;  --s2: .5rem;   --s3: .75rem;  --s4: 1rem;
+  --s5: 1.5rem;  --s6: 2rem;    --s7: 3rem;    --s8: 4.5rem;
+
+  /* ---- ตัวหนังสือ ---- */
+  --font-display: "Kanit", system-ui, sans-serif;
+  --font-body: "Noto Sans Thai", system-ui, -apple-system, sans-serif;
+  --font-emoji: "Noto Color Emoji", sans-serif;
+  --t-xs: .75rem; --t-sm: .8125rem; --t-md: .9375rem;
+  --t-lg: 1.125rem; --t-xl: 1.5rem; --t-2xl: clamp(1.6rem, 3.4vw, 2.35rem);
+  --t-hero: clamp(2rem, 5.2vw, 3.4rem);
+
+  /* ---- อื่นๆ ---- */
+  --r-sm: 6px; --r: 10px; --r-lg: 16px; --r-full: 999px;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.34);
+  --shadow-lg: 0 24px 60px rgba(0,0,0,.55);
+  --dur: .18s; --dur-mid: .28s;
+  --ease: cubic-bezier(.2,.7,.3,1);
+  --wrap: 1320px;   /* กว้างแบบ marketplace ไม่ใช่ 1100 แบบเว็บบริษัท */
+  --header-h: 116px;
+}

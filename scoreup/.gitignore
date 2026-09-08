@@ -1,0 +1,19 @@
+.DS_Store
+.netlify/
+*.log
+node_modules/
+_logocmp.html
+_logotest.html
+scoreup-BACKUP-*.html
+Netlify/
+
+# Playwright test screenshots
+su_*.png
+Screenshot*.png
+
+# local safety copies / generated review pages
+*.BACKUP-*.js
+*.BACKUP-*.html
+scoreup.BACKUP-*
+p5-review.html
+p34-review.html

@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1920px;height:1080px;overflow:hidden;background:#12100e;
+  font-family:"Anuphan","Noto Sans Thai",sans-serif;color:#fff}
+.stage{position:relative;width:1920px;height:1080px;overflow:hidden;
+  background:
+   radial-gradient(120% 90% at 50% 108%, rgba(255,122,46,.42) 0%, rgba(255,90,20,.16) 34%, rgba(0,0,0,0) 66%),
+   radial-gradient(70% 60% at 50% 12%, rgba(255,160,90,.10) 0%, rgba(0,0,0,0) 70%),
+   linear-gradient(180deg,#1a1512 0%,#100d0b 55%,#0b0908 100%);}
+/* เกรนกระดาษ: ปกนี้เป็น "ใบสั่งที่พิมพ์ออกมา" ไม่ใช่จอโฮโลแกรม พื้นจึงมีเนื้อ
+   ไม่ใช่ไล่สีเกลี้ยง — และไม่มีลำแสงเฉียง ซึ่งเป็นของที่ปกคู่แข่งทุกใบมี */
+.grain{position:absolute;inset:0;opacity:.045;mix-blend-mode:overlay;
+ background-image:radial-gradient(#fff 1px,transparent 1px);background-size:3px 3px}
+.grid{position:absolute;inset:0;opacity:.20;
+ background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+ background-size:96px 96px;
+ -webkit-mask-image:radial-gradient(70% 60% at 50% 42%,#000 0%,transparent 78%)}
+.vig{position:absolute;inset:0;background:radial-gradient(120% 100% at 50% 50%,transparent 45%,rgba(0,0,0,.55) 100%)}
+
+/* ---- brand mark ---- */
+.brand{position:absolute;left:70px;top:52px;display:flex;align-items:center;gap:14px;z-index:9}
+.brand .tk{width:60px;height:60px;display:grid;place-items:center;background:none;box-shadow:none;
+ filter:drop-shadow(0 6px 22px rgba(255,120,45,.45))}
+.brand .tk svg{width:100%;height:100%;display:block;overflow:visible}
+.brand .tk .egg-white{fill:oklch(0.985 0.010 75);stroke:oklch(0.14 0.015 50);stroke-width:1.3;stroke-linejoin:round}
+.brand .tk .yolk{fill:oklch(0.72 0.18 42)}
+.brand b{font-size:29px;font-weight:700;letter-spacing:.5px}
+.brand span{display:block;font-size:13px;color:#d9c9bd;letter-spacing:3px;font-weight:500;margin-top:-2px}
+
+/* ---- ป้ายราคา มุมขวาบน = ป้ายกระดาษฉีก ---------------------------------
+   เดิมเป็นการ์ดกระจกเบลอ ซึ่ง DESIGN-KITCHEN.md ห้ามไว้ตรงๆ (glassmorphism) และ
+   มันคือหน้าตาเดียวกับปกโฆษณาทุกใบในหมวดนี้ ของแบรนด์นี้คือ "ใบสั่ง/ใบเสร็จ":
+   กระดาษครีม หมึกถ่าน ขอบฉีกเป็นรอยปรุ เส้นประ ไม่มีเงาฟุ้ง
+
+   ตัวเลขคือพื้นจริงจากหน้าราคา (TS-01 ฿3,500+) คง "+" ไว้เพราะเว็บอธิบายว่า
+   "+" คือของที่สั่งเพิ่ม */
+.tag{position:absolute;right:70px;top:50px;z-index:9;transform:rotate(-2deg);
+ background:#f7f0e4;color:#241d18;text-align:center;padding:15px 32px 26px;border-radius:3px;
+ box-shadow:0 20px 46px rgba(0,0,0,.6);
+ /* ขอบล่างปรุเป็นรอยฉีก */
+ -webkit-mask:radial-gradient(circle 8px at 50% 100%,#0000 98%,#000 100%) 0 0/20px 100%}
+.tag .e{display:block;font-size:19px;letter-spacing:2.5px;font-weight:600;color:#7a6a5c}
+.tag b{display:block;font-family:"Noto Sans Thai","Anuphan",sans-serif;font-weight:900;
+ font-size:60px;line-height:1.02;margin-top:1px;letter-spacing:-1px;color:#241d18}
+.tag b i{font-style:normal;font-size:.5em;vertical-align:.55em;margin-left:1px;color:#dc5a1b}
+.tag .d{display:block;margin-top:9px;padding-top:9px;border-top:1.5px dashed rgba(36,29,24,.3);
+ font-size:17px;font-weight:600;color:#5d5045}
+
+/* ---- desktop + phones ---- */
+/* ย่อกลุ่มอุปกรณ์ 10% โดยยึดขอบบน: ก้นกลุ่มยกขึ้น ~76px ได้พื้นใต้เครื่องจาก
+   52px เป็น ~128px ซึ่งเป็นเงื่อนไขเดียวที่ทำให้ "เงาสะท้อนแบบกระจก" เป็นไปได้
+   เงาที่สั้นกว่า 1 ใน 5 ของตัวเครื่องจะอ่านเป็นรอยเปื้อน ไม่ใช่เงาสะท้อน
+   ยอมแลกขนาดเครื่อง 10% เพราะการยิงหน้ามือถือใหม่ที่ 320 ได้ตัวหนังสือใหญ่ขึ้น
+   1.22 เท่ามาแล้ว สุทธิยังใหญ่กว่าเดิม */
+.phones{position:absolute;left:0;right:0;top:0;height:1080px;
+ transform:scale(.9);transform-origin:50% 0}
+
+/* laptop */
+/* ไม่มีขาตั้ง: จอวางอยู่บนพื้นตรงๆ จึงต้องลงมา 48px เท่ากับความสูงที่คอ+ฐาน
+   เคยกิน ไม่งั้นมันจะลอยค้างอยู่ที่เดิมโดยไม่มีอะไรรองรับ และเส้นฐานของกลุ่ม
+   (จอ+มือถือสี่เครื่อง) จะขาดไปหนึ่งชั้น */
+.mac{-webkit-box-reflect:below 1px linear-gradient(transparent 73%,rgba(0,0,0,1));
+ --rot:0deg;position:absolute;left:50%;transform:translateX(-50%);bottom:350px;width:960px;z-index:2}
+/* Same body as the phones, down to the gradient stops: one aluminium recipe for
+   every device on the cover. It was drawn separately before — slightly different
+   angle, softer hairlines — and read as a screen borrowed from another mockup.
+   The chin is deeper than the sides because that is what a display has. */
+.mac .lid{position:relative;--bez:11px;border-radius:22px;padding:var(--bez) var(--bez) 30px;
+ background:
+  linear-gradient(118deg,
+    #b9aa9c 0%, #6a5f57 3%, #2e2a27 9%, #1b1917 22%,
+    #161413 50%, #1c1a18 74%, #2f2b28 88%, #7d7167 96%, #c0b1a2 100%);
+ box-shadow:
+  inset 0 0 0 1px rgba(255,255,255,.30),
+  inset 0 0 0 2.5px rgba(0,0,0,.55),
+  0 2px 1px rgba(255,255,255,.10),
+  0 46px 110px rgba(0,0,0,.75),
+  0 0 90px rgba(255,120,45,.16)}
+/* the maker's dot on the chin — the phones have their island, this has this */
+.mac .lid::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:12px;
+ width:7px;height:7px;border-radius:50%;background:rgba(255,122,46,.55);
+ box-shadow:0 0 10px rgba(255,122,46,.5)}
+.mac .cam{display:none}
+.mac .scr{border-radius:11px;overflow:hidden;background:#0b0908;position:relative;
+ box-shadow:inset 0 0 0 1px rgba(0,0,0,.85)}
+.mac .notch{position:absolute;left:50%;transform:translateX(-50%);top:0;width:10%;height:21px;
+ background:#0b0a09;border-radius:0 0 8px 8px;z-index:4}
+.mac .bar2{height:44px;background:#1b1917;display:flex;align-items:center;gap:9px;padding:0 16px;border-bottom:1px solid rgba(255,255,255,.07)}
+.mac .dot{width:11px;height:11px;border-radius:50%;background:#3a3532}
+.mac .url{margin-left:14px;flex:1;max-width:420px;height:22px;border-radius:99px;background:#262220;
+ display:flex;align-items:center;padding:0 12px;font-size:12px;color:#b9aaa1;letter-spacing:.4px}
+.mac .scr img{width:100%;display:block}
+/* the phones' glare, same angle and same warm lift at the foot of the glass */
+.mac .glare{position:absolute;inset:0;pointer-events:none;z-index:3;
+ background:linear-gradient(205deg,rgba(255,255,255,.13) 0%,rgba(255,255,255,.02) 26%,rgba(255,255,255,0) 42%),
+            linear-gradient(0deg,rgba(10,6,4,.45) 0%,rgba(0,0,0,0) 26%)}
+/* thin bottom edge of the panel, where a laptop's wedge base used to be */
+.mac .foot{position:relative;height:9px;width:100.4%;left:-0.2%;
+ background:linear-gradient(180deg,#8b7f74 0%,#3d3733 18%,#232120 55%,#141211 100%);
+ border-radius:0 0 10px 10px}
+/* เงาพื้น อยู่ใต้ขอบล่างของจอ (จุดที่แตะพื้นตอนนี้) ไม่ใช่ใต้ฐานที่ไม่มีแล้ว
+   แคบและชิดกว่าเดิม เพราะของที่วางแนบพื้นทอดเงาสั้นกว่าของที่ยกบนขา */
+.mac::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:-16px;width:64%;height:26px;
+ z-index:-2;
+ background:radial-gradient(50% 50% at 50% 50%,rgba(0,0,0,.70) 0%,rgba(0,0,0,0) 72%);filter:blur(9px)}
+
+/* phones in front */
+
+/* ---- พื้นใต้อุปกรณ์ ------------------------------------------------------
+   เคยใช้ box-reflect แล้วพัง audit สามข้อ:
+   1. มือถือทุกเครื่องหมุน 2-4 องศา box-reflect หมุนภาพสะท้อนตามไปทางเดียวกัน
+      แต่เงาบนพื้นจริงต้องเอียง "กลับด้าน" มันเลยดูผิดโดยบอกไม่ถูกว่าผิดตรงไหน
+   2. จอคอมสะท้อนคางจอกับจุดส้มบนคางลงไปด้วย กลายเป็นจุดส้มลอยอยู่ใต้จอเฉยๆ
+   3. ที่ว่างใต้อุปกรณ์ถึงพาดหัวมีแค่ ~26px ภาพสะท้อนจึงโดนตัดเป็นขอบแข็ง
+      แล้วไปกองเป็นคราบน้ำตาลหลังตัวหนังสือ
+
+   แทนด้วยเงาสัมผัสพื้น: วงรีมืดใต้ขอบล่างของแต่ละเครื่อง + แถบพื้นมันบางๆ
+   ที่ระดับฐานของกลุ่ม อ่านเป็น "วางอยู่บนพื้นมัน" เหมือนกัน แต่ไม่มีเรขาคณิต
+   ให้ผิด และไม่กินที่ลงไปถึงพาดหัว */
+/* เคยมี .floor = แผ่น "พื้นมัน" พาดขวางจอ ถอดออกแล้ว: ตัวมันเป็นกล่องสี่เหลี่ยม
+   ไล่สีจากขอบบน ขอบบนนั้นจึงกลายเป็นเส้นตรงพาดผ่านทั้งภาพ อ่านเป็น "ขอบโต๊ะ"
+   ที่ไม่มีอยู่จริง เงาสะท้อนไม่ต้องมีพื้นรองรับ ตัวมันเองบอกอยู่แล้วว่ามีพื้น */
+.ph::before{content:"";position:absolute;left:-16%;right:-16%;bottom:-22px;height:36px;z-index:-1;
+ background:radial-gradient(50% 50% at 50% 50%,rgba(0,0,0,.8) 0%,rgba(0,0,0,0) 70%);filter:blur(7px)}
+/* สะท้อนทั้งเครื่อง ไม่ใช่แค่ภาพหน้าจอ — ขอบอะลูมิเนียมกับเงาวาวคือสิ่งที่ทำให้
+   คนอ่านออกว่านั่นคือ "เงาของมือถือ" รอบก่อนสะท้อนแค่ไฟล์ภาพจึงได้แค่รอยสี
+   ไล่จาง 22% ล่างของเครื่อง ≈ 96px */
+.ph{-webkit-box-reflect:below 1px linear-gradient(transparent 71%,rgba(0,0,0,.82));
+ position:absolute;--bez:7px;border-radius:var(--r);padding:var(--bez);
+ background:
+  linear-gradient(118deg,
+    #b9aa9c 0%, #6a5f57 3%, #2e2a27 9%, #1b1917 22%,
+    #161413 50%, #1c1a18 74%, #2f2b28 88%, #7d7167 96%, #c0b1a2 100%);
+ box-shadow:
+  inset 0 0 0 1px rgba(255,255,255,.30),
+  inset 0 0 0 2.5px rgba(0,0,0,.55),
+  0 2px 1px rgba(255,255,255,.10),
+  0 34px 74px rgba(0,0,0,.75),
+  0 0 46px rgba(255,120,45,.16);}
+.ph i{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--bez) + 0.9%);
+ width:31%;height:4.2%;background:#000;border-radius:99px;z-index:4;
+ box-shadow:inset 0 0 0 .5px rgba(255,255,255,.06)}
+/* ภาพมือถือยิงที่ viewport 320x671 ไม่ใช่ 390x844 — 320 คือความกว้างมือถือจริง
+   ที่แคบที่สุด (iPhone SE) เลย์เอาต์ของลูกค้าจึงยัง reflow ถูกต้อง ไม่ได้ซูมภาพ
+   แต่ตัวหนังสือใหญ่ขึ้น 1.22 เท่าเทียบกับกรอบ และ 671 = สัดส่วนหน้าจอในกรอบพอดี
+   (320/0.477) จึงเห็นแค่ hero โดยไม่มีด้านไหนโดนตัด — ลองซูมด้วย object-view-box
+   มาก่อนแล้ว มันกินขอบซ้ายขวาไปด้วยเพราะภาพกับกรอบสัดส่วนเท่ากันอยู่แล้ว
+   ไม่ได้ไปแก้เว็บลูกค้า เว็บพวกนั้นเป็นงานที่ส่งไปแล้ว */
+.ph img{width:100%;height:calc(100% - 30px);margin-top:30px;object-fit:cover;object-position:top center;
+ border-radius:0 0 calc(var(--r) - var(--bez)) calc(var(--r) - var(--bez));display:block}
+/* หน้าเว็บเริ่มใต้แถบสถานะ เหมือนบนเครื่องจริง ไม่งั้น Dynamic Island ทับโลโก้ร้าน */
+.ph .top{position:absolute;left:var(--bez);right:var(--bez);top:var(--bez);height:30px;
+ background:#0b0a09;border-radius:calc(var(--r) - var(--bez)) calc(var(--r) - var(--bez)) 0 0;z-index:1}
+.ph::after{content:"";position:absolute;inset:var(--bez);border-radius:calc(var(--r) - var(--bez));z-index:2;
+ box-shadow:inset 0 0 0 1px rgba(0,0,0,.85);
+ background:linear-gradient(205deg,rgba(255,255,255,.13) 0%,rgba(255,255,255,.02) 26%,rgba(255,255,255,0) 42%),
+            linear-gradient(0deg,rgba(10,6,4,.45) 0%,rgba(0,0,0,0) 26%)}
+/* side buttons: one rail each side, the gaps drawn with hard gradient stops */
+.ph b{position:absolute;width:2.5px;z-index:1}
+.ph .bl{left:-2.5px;top:19%;height:33%;border-radius:2px 0 0 2px;
+ background:linear-gradient(180deg,
+   #7b6f66 0 13%, transparent 13% 25%,
+   #7b6f66 25% 58%, transparent 58% 66%,
+   #7b6f66 66% 100%)}
+.ph .br{right:-2.5px;top:29%;height:15%;border-radius:0 2px 2px 0;background:#7b6f66}
+.p1{--r:29px;width:199px;height:430px;left:150px;bottom:368px;--rot:-4deg;transform:rotate(var(--rot));z-index:3}
+.p2{--r:32px;width:222px;height:480px;left:352px;bottom:322px;--rot:-2deg;transform:rotate(var(--rot));z-index:5}
+.p4{--r:32px;width:222px;height:480px;right:352px;bottom:322px;--rot:2deg;transform:rotate(var(--rot));z-index:5}
+.p5{--r:29px;width:199px;height:430px;right:150px;bottom:368px;--rot:4deg;transform:rotate(var(--rot));z-index:3}
+
+/* ---- headline ---- */
+.copy{position:absolute;left:0;right:0;bottom:150px;text-align:center;z-index:6}
+h1{font-family:"Noto Sans Thai","Anuphan",sans-serif;font-weight:900;font-size:118px;line-height:1.16;
+ letter-spacing:.5px;
+ background:linear-gradient(180deg,#ffffff 34%,#ffd9bd 74%,#ffab6b 100%);
+ -webkit-background-clip:text;background-clip:text;color:transparent;
+ filter:drop-shadow(0 10px 34px rgba(255,110,40,.55)) drop-shadow(0 2px 0 rgba(0,0,0,.35));
+ padding-bottom:8px}
+h1 em{font-style:normal;
+ background:linear-gradient(180deg,#ffc98f 20%,#ff7a2e 100%);
+ -webkit-background-clip:text;background-clip:text;color:transparent}
+
+
+/* ---- กรอบตั๋วรอบข้อความล่าง ---------------------------------------------
+   ใบสั่งกลับมาในรูปแบบที่ไม่แย่งสายตา: เป็น "ขอบ" ไม่ใช่แผ่นกระดาษทึบ พื้นโปร่ง
+   แสงส้มกับเงาเรืองของพาดหัวจึงยังทะลุผ่านได้ ตัวหนังสือไม่ต้องเปลี่ยนสีเลย
+
+   ตั๋วครอบเฉพาะแถบสี่ช่องล่าง ไม่ครอบบรรทัดรอง — บรรทัดรองคือคำสัญญาสามข้อ
+   ที่ต้องเด่นลอยเป็นอิสระ พอเอากรอบไปล้อมมันด้วย มันกลายเป็นของในกล่อง
+   เท่ากับแถบข้อมูลจุกจิกข้างล่าง ทั้งที่ลำดับความสำคัญไม่เท่ากัน วาดเป็น SVG
+   เพราะขอบที่มีรอยบากทำด้วย border ของ CSS ไม่ได้ และปกเป็นภาพขนาดตายตัว
+   1920x1080 อยู่แล้ว เลขในพาธจึงล็อกได้ตรงๆ ไม่ต้องยืด */
+.tk-edge{position:absolute;left:50%;transform:translateX(-50%);bottom:70px;z-index:5;
+ width:1220px;height:62px;pointer-events:none;overflow:visible}
+.tk-edge .body{fill:rgba(255,236,216,.05);stroke:rgba(255,228,203,.44);stroke-width:2}
+
+/* ---- บรรทัดรอง + แถบล่าง ------------------------------------------------
+   กลับมาใช้ทรงเดิม (พาดหัว → บรรทัดรอง → แถบสี่ช่อง) เพราะทรงนี้อ่านง่ายที่สุด
+   ตอนย่อเป็นธัมบ์เนล แต่ "คำ" เปลี่ยนหมด — ของเดิมคือคำเดียวกับปกคู่แข่งเกือบ
+   ทุกคำ และทุกคำเป็นคำที่ใครก็พูดได้:
+     บรรทัดรอง  ทุกประเภท • สวยทันสมัย • ส่งไว   → สามข้อที่ลูกค้าเช็คได้ทันที
+     แถบล่าง    ปลอดภัย มั่นใจได้                → รับประกันงานเสีย 1–3 เดือน (ของจริง)
+                รองรับทุกอุปกรณ์ / โหลดเร็ว SEO ดี / ดูแลหลังส่งงาน → เขียนใหม่
+
+   ดีเอ็นเอใบสั่งยังอยู่ ไม่ได้หายไปกับกระดาษ: เส้นคั่นเป็นเส้นประแบบรอยปรุ
+   มีเส้นฉีกประพาดเหนือแถบ และป้ายราคามุมขวาบนยังเป็นกระดาษฉีกใบเดิม */
+.sub{margin-top:4px;font-size:35px;font-weight:600;color:#ffe6d2;letter-spacing:1px;
+ text-shadow:0 4px 20px rgba(0,0,0,.6)}
+.sub b{color:#ff9a52;font-weight:700;margin:0 6px}
+
+.bar{position:absolute;left:0;right:0;bottom:86px;display:flex;justify-content:center;
+ align-items:center;z-index:7}
+/* เคยมีเส้นประพาดเหนือแถบเป็น "รอยฉีก" — ถอดออก ระหว่างบรรทัดรองกับแถบ
+   เหลือที่แค่ 27px เส้นเลยไปพาดระดับเดียวกับตัวหนังสือ อ่านเป็นเส้นขีดฆ่า
+   ดีเอ็นเอใบสั่งอยู่ที่เส้นคั่นประในแถบกับป้ายราคากระดาษฉีกอยู่แล้ว */
+.f{display:flex;align-items:center;gap:11px;padding:0 28px;font-size:23px;color:#f0e3da;
+ font-weight:500;border-right:1.5px dotted rgba(255,214,180,.3)}
+.f:last-child{border-right:0}
+.f svg{width:25px;height:25px;stroke:#ff9a52;fill:none;stroke-width:1.8;
+ stroke-linecap:round;stroke-linejoin:round}
+</style></head><body>
+<div class="stage">
+  <div class="grid"></div>
+  <div class="grain"></div>
+
+  <div class="brand"><span class="tk"><svg viewBox="0 0 32 32"><path class="egg-white" d="M15.00,3.40 C16.58,3.40 18.73,3.50 20.50,4.20 C22.27,4.90 24.25,6.23 25.60,7.60 C26.95,8.97 28.43,10.77 28.60,12.40 C28.77,14.03 26.37,15.93 26.60,17.40 C26.83,18.87 30.33,19.87 30.00,21.20 C29.67,22.53 26.50,24.17 24.60,25.40 C22.70,26.63 20.80,28.13 18.60,28.60 C16.40,29.07 13.47,28.77 11.40,28.20 C9.33,27.63 7.50,26.50 6.20,25.20 C4.90,23.90 3.90,22.03 3.60,20.40 C3.30,18.77 4.47,17.03 4.40,15.40 C4.33,13.77 2.70,12.20 3.20,10.60 C3.70,9.00 6.10,6.87 7.40,5.80 C8.70,4.73 9.73,4.60 11.00,4.20 C12.27,3.80 13.42,3.40 15.00,3.40 Z"/><circle class="yolk" cx="18.4" cy="13.2" r="5.2"/></svg></span><div><b>ตามสั่ง</b><span>WEB &amp; APP STUDIO</span></div></div>
+
+  <div class="tag"><span class="e">เริ่มต้นที่</span><b>฿3,500<i>+</i></b><span class="d">ประเมินราคาให้ฟรี ก่อนเริ่มงาน</span></div>
+
+  <div class="phones">
+    <div class="mac" style="--shot:url(terrace-cover.webp)">
+      <div class="lid"><span class="cam"></span>
+        <div class="scr">
+          <div class="bar2"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            <span class="url">theterrace.co.th</span></div>
+          <img src="terrace-cover.webp">
+          <div class="glare"></div>
+        </div>
+      </div>
+      <div class="foot"></div>
+    </div>
+    <div class="ph p1" style="--shot:url(the-bed.png)"><span class="top"></span><i></i><b class="bl"></b><b class="br"></b><img src="the-bed.png"></div>
+    <div class="ph p2" style="--shot:url(krua.png)"><span class="top"></span><i></i><b class="bl"></b><b class="br"></b><img src="krua.png"></div>
+    <div class="ph p4" style="--shot:url(glow.png)"><span class="top"></span><i></i><b class="bl"></b><b class="br"></b><img src="glow.png"></div>
+    <div class="ph p5" style="--shot:url(shop.png)"><span class="top"></span><i></i><b class="bl"></b><b class="br"></b><img src="shop.png"></div>
+  </div>
+
+  <div class="copy">
+    <h1>รับทำเว็บไซต์ &amp; <em>แอป</em></h1>
+    <div class="sub">เดโมฟรีก่อนจ่าย <b>&bull;</b> ไม่ต้องมัดจำ <b>&bull;</b> ตอบกลับใน 1 วัน</div>
+  </div>
+
+  <svg class="tk-edge" viewBox="0 0 1220 62" fill="none">
+    <path class="body" d="M11,1 H1209 A10,10 0 0 1 1219,11 V17 A14,14 0 0 0 1219,45 V51
+      A10,10 0 0 1 1209,61 H11 A10,10 0 0 1 1,51 V45 A14,14 0 0 0 1,17 V11
+      A10,10 0 0 1 11,1 Z"/>
+  </svg>
+
+  <div class="bar">
+    <div class="f"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="14" height="10" rx="2"/><path d="M2 18h14"/><rect x="17" y="9" width="5" height="11" rx="1.5"/></svg>สวยครบทุกจอ</div>
+    <div class="f"><svg viewBox="0 0 24 24"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg>โหลดไว ติดอันดับ Google</div>
+    <div class="f"><svg viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.4c0 4.4-3.1 8.2-7.5 9.6-4.4-1.4-7.5-5.2-7.5-9.6V6z"/><path d="M9 12l2.2 2.2L15.4 10"/></svg>รับประกันงานเสีย 1–3 เดือน</div>
+    <div class="f"><svg viewBox="0 0 24 24"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>ดูแลต่อหลังส่งงาน</div>
+  </div>
+
+
+  <div class="vig"></div>
+</div></body></html>

@@ -1,0 +1,238 @@
+/* =============================================================================
+   ตามสั่ง (TarmSung) — Design tokens
+   Step 2 of website_building.md: the design system is born here.
+   3-tier taxonomy: primitive -> semantic -> component.
+   Color in OKLCH (perceptually uniform, P3). Grayscale-first thinking:
+   hierarchy is carried by weight + size + spacing; color is the accent layer.
+
+   redesign-kitchen: "ครัวตามสั่ง" — order-ticket editorial. Charcoal + ember
+   fire-orange (single accent) + paper cream + leaf green (success only).
+   Semantic var names are unchanged from the previous (violet/cyan) system —
+   only the primitive values they point at moved. See DESIGN-KITCHEN.md.
+   ========================================================================== */
+
+:root {
+  /* Not "light dark": that let the UA paint scrollbars and <select> menus dark
+     off the OS while our own tokens below stayed light, because the token sets
+     are keyed on [data-theme] only. color-scheme now follows the same attribute
+     as everything else — see the dark block at the bottom of this file. */
+  color-scheme: light;
+
+  /* ---- Tier 1: PRIMITIVES ------------------------------------------------ */
+
+  /* Charcoal — warm neutral ramp (hue ~50 = wood/ash, not the old cool violet-tinted gray). */
+  --charcoal-25:  oklch(0.985 0.004 50);
+  --charcoal-50:  oklch(0.97  0.006 50);
+  --charcoal-100: oklch(0.94  0.008 50);
+  --charcoal-200: oklch(0.89  0.010 50);
+  --charcoal-300: oklch(0.80  0.012 50);
+  --charcoal-400: oklch(0.68  0.014 50);
+  --charcoal-500: oklch(0.56  0.015 50);
+  --charcoal-600: oklch(0.46  0.016 50);
+  --charcoal-700: oklch(0.36  0.017 50);
+  --charcoal-800: oklch(0.27  0.017 50);
+  --charcoal-850: oklch(0.22  0.016 50);
+  --charcoal-900: oklch(0.18  0.016 50);
+  --charcoal-950: oklch(0.14  0.015 50);
+
+  /* Paper — cream ticket-white, light-theme surfaces only. */
+  --paper-0:   oklch(1    0     0);
+  --paper-25:  oklch(0.985 0.010 75);
+  --paper-50:  oklch(0.97  0.014 75);
+  --paper-100: oklch(0.94  0.018 75);
+
+  /* Ember — fire-orange, the single accent (replaces violet+cyan everywhere). */
+  --ember-50:  oklch(0.96 0.03 45);
+  --ember-100: oklch(0.92 0.06 45);
+  --ember-200: oklch(0.85 0.10 45);
+  --ember-300: oklch(0.78 0.14 44);
+  --ember-400: oklch(0.72 0.18 42);
+  --ember-500: oklch(0.65 0.20 40); /* base accent */
+  /* L .58 measured only 4.24:1 against the dark ink we print on it — and no ink,
+     not even #000, can clear AA on that swatch. L .62 gives 5.01:1 with the ink
+     and still 3.81:1 against the paper bg, so the button edge and focus ring
+     stay visible as UI. Measured, not guessed. */
+  --ember-600: oklch(0.62 0.21 38);
+  --ember-700: oklch(0.50 0.19 32);
+  --ember-800: oklch(0.42 0.16 30);
+  --ember-900: oklch(0.34 0.13 28);
+
+  /* Leaf — banana-leaf green, the 2nd color. Scope is locked to success/tick/live-dot; do not expand. */
+  /* Gas-ring blue. The kitchen's own second colour, opposite the ember on the
+     wheel, so it reads as part of the same room rather than a decorator's pick.
+     Used sparingly — a flame is a detail in a kitchen, not the walls. */
+  --flame-200: oklch(0.86 0.09 235);
+  --flame-400: oklch(0.68 0.16 245);
+  --flame-600: oklch(0.52 0.17 250);
+
+  --leaf-50:  oklch(0.95 0.04 148);
+  --leaf-500: oklch(0.62 0.15 148);
+  --leaf-600: oklch(0.52 0.14 148);
+
+  /* Semantic status hues — untouched by the redesign. */
+  --warning-500: oklch(0.78 0.15 80);
+  --warning-50:  oklch(0.96 0.04 80);
+  --error-500:   oklch(0.60 0.20 25);
+  --error-600:   oklch(0.53 0.21 25);
+  --error-50:    oklch(0.96 0.03 25);
+  --info-500:    oklch(0.62 0.16 250);
+
+  /* ---- Spacing scale (constrained, non-linear) --------------------------- */
+  --space-1: 0.25rem;  /* 4  */
+  --space-2: 0.5rem;   /* 8  */
+  --space-3: 0.75rem;  /* 12 */
+  --space-4: 1rem;     /* 16 */
+  --space-5: 1.5rem;   /* 24 */
+  --space-6: 2rem;     /* 32 */
+  --space-7: 3rem;     /* 48 */
+  --space-8: 4rem;     /* 64 */
+  --space-9: 6rem;     /* 96 */
+  --space-10: 8rem;    /* 128 */
+
+  /* ---- Type scale (~1.25 modular) --------------------------------------- */
+  /* Anuphan for display/headlines, IBM Plex Sans Thai for body — both verified
+     on Google Fonts. Plex Mono is new: numerals only (queue, price, ticket no),
+     it has no Thai glyphs so it must never wrap a Thai string. */
+  --font-display: "Anuphan", "Noto Sans Thai", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans Thai", "Anuphan", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --text-xs:   0.8rem;
+  --text-sm:   0.9rem;
+  --text-base: 1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.375rem;
+  --text-2xl:  clamp(1.5rem, 1.15rem + 1.5vw, 2.25rem);
+  --text-3xl:  clamp(1.9rem, 1.35rem + 2.4vw, 3.25rem);
+  --text-4xl:  clamp(2.5rem, 1.8rem + 3.2vw, 3.75rem);
+  --text-5xl:  clamp(2.9rem, 1.6rem + 5.6vw, 6.5rem);
+
+  --leading-tight: 1.15;
+  --leading-snug: 1.3;
+  --leading-normal: 1.65;
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* ---- Radius (one system, cut sharper than the old SaaS-rounded scale) -- */
+  --radius-sm: 0.1875rem;
+  --radius-md: 0.3125rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-full: 999px; /* pill/stamp/queue-badge only */
+
+  /* ---- Elevation: hard offset, no blur — "paper stacked on paper", not a
+     SaaS glow. Signature of the redesign; see 1.9 in DESIGN-KITCHEN.md. ---- */
+  --shadow-sm: 1px 1px 0 0 oklch(0.20 0.02 50 / 0.20);
+  --shadow-md: 2px 2px 0 0 oklch(0.20 0.02 50 / 0.22);
+  --shadow-lg: 4px 4px 0 0 oklch(0.20 0.02 50 / 0.24);
+  --shadow-xl: 6px 6px 0 0 oklch(0.20 0.02 50 / 0.26);
+
+  /* ---- Motion ----------------------------------------------------------- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  /* Overshoots and settles. For things that answer a cursor — a card taking a
+     step toward you — where the stock ease reads as a slow swell instead of a
+     reply. Paired with --dur-spring: at 250ms the overshoot happens too fast to
+     be felt as a spring and only registers as a twitch. */
+  --ease-spring: cubic-bezier(0.34, 1.45, 0.5, 1);
+  --dur-fast: 150ms;
+  --dur-mid: 250ms;
+  --dur-spring: 380ms;
+  --dur-slow: 400ms;
+
+  /* ---- Layout ----------------------------------------------------------- */
+  --container: min(94vw, 116rem);
+  --container-narrow: 52rem;
+  --header-h: 4.5rem;
+
+  /* ---- Tier 2: SEMANTIC (light theme) ----------------------------------- */
+  --color-bg: var(--paper-25);
+  --color-bg-subtle: var(--paper-50);
+  --color-surface: var(--paper-0);
+  --color-surface-2: var(--paper-100);
+  --color-border: oklch(0.20 0.02 50 / 0.14);
+  --color-border-strong: var(--charcoal-800);
+
+  --color-text: var(--charcoal-900);
+  --color-text-muted: var(--charcoal-600);
+  --color-text-subtle: oklch(0.50 0.016 50);
+  --color-text-on-brand: var(--charcoal-950);
+
+  --color-brand: var(--ember-600);
+  /* Hover goes UP the ramp, not down: the primary button prints dark ink, so a
+     darker hover would drop it back under AA. Hotter flame reads fine anyway. */
+  --color-brand-hover: var(--ember-500);
+  --color-brand-soft: var(--ember-100);
+  --color-brand-text: var(--ember-700); /* ~4.7:1 on paper-25, the tightest pair in the system — do not darken bg further without re-measuring */
+  --color-accent: var(--leaf-500);
+  --color-flame: var(--flame-600);
+
+  --color-focus: var(--ember-600);
+  --color-error: var(--error-600);
+  --color-error-bg: var(--error-50);
+  --color-success: var(--leaf-500);
+  --color-success-bg: var(--leaf-50);
+
+  /* --gradient-brand / --gradient-hero removed on purpose: no gradients in
+     this system. Hero bg is a paper-noise texture + hairline grid (styles.css
+     .hero::before); every former gradient-brand fill is now a flat
+     --color-brand or --charcoal-* surface. */
+
+  /* ---- Tier 3: COMPONENT ------------------------------------------------ */
+  --button-radius: var(--radius-sm);
+  --card-radius: var(--radius-md);
+  --card-bg: var(--color-surface);
+  --card-border: var(--color-border);
+}
+
+/* ---- Dark theme: remap semantic -> primitive ---------------------------- */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: var(--charcoal-950);
+  --color-bg-subtle: var(--charcoal-900);
+  --color-surface: var(--charcoal-900);
+  --color-surface-2: var(--charcoal-850);
+  --color-border: oklch(1 0 0 / 0.10);
+  --color-border-strong: var(--charcoal-700);
+
+  --color-text: var(--paper-50);
+  --color-text-muted: var(--charcoal-400);
+  --color-text-subtle: oklch(0.66 0.015 50);
+  /* --color-brand is ember-400 here, a lit-up orange: dark ink stays legible
+     on it (~8:1) and keeps the button reading bright, which a dark theme wants
+     for its primary action — same logic the old violet system used. */
+  --color-text-on-brand: var(--charcoal-950);
+
+  --color-brand: var(--ember-400);
+  --color-flame: var(--flame-200);
+  --color-brand-hover: var(--ember-300);
+  --color-brand-soft: oklch(0.30 0.10 40);
+  --color-brand-text: var(--ember-300);
+  --color-accent: var(--leaf-500);
+
+  --color-focus: var(--ember-400);
+  --color-error: oklch(0.72 0.17 25);
+  --color-error-bg: oklch(0.28 0.09 25);
+  --color-success: oklch(0.72 0.15 150);
+  --color-success-bg: oklch(0.28 0.07 148);
+
+  /* Hard-offset shadows read as pure black in dark, since there's no light
+     paper underneath to tint them. shadow-xl gets an ember glow — reserved
+     for hero-scale surfaces (.mock, .cta-band) and primary-button hover,
+     never stamped on every card. */
+  --shadow-sm: 1px 1px 0 0 oklch(0 0 0 / 0.5);
+  --shadow-md: 2px 2px 0 0 oklch(0 0 0 / 0.55);
+  --shadow-lg: 4px 4px 0 0 oklch(0 0 0 / 0.6);
+  --shadow-xl: 6px 6px 0 0 oklch(0 0 0 / 0.65), 0 0 24px oklch(0.65 0.20 40 / 0.12);
+}
+
+/* The OS preference is honoured in the inline script in the <head> of every page,
+   which writes data-theme before the first paint. It is deliberately NOT a media
+   query here: a media query can only reach color-scheme without duplicating the
+   whole token block, and that split is exactly the bug — the page came up light
+   while main.js read the OS and thought it was already dark, so the first press
+   of the toggle appeared to do nothing. One switch, one attribute. (With JS off
+   the page is light for everyone; nothing can read a preference without it.) */

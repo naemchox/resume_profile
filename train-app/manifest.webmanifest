@@ -1,0 +1,39 @@
+{
+  "name": "Ijek — Train With Myself",
+  "short_name": "Ijek",
+  "description": "Keep up with your committed self. Your avatar runs your daily schedule perfectly — race to stay on track and build your streak.",
+  "start_url": "./train.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "lang": "en",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "train-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    {
+      "name": "เพิ่มบล็อก / Add block",
+      "short_name": "Add block",
+      "url": "./train.html?tab=schedule&action=add",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "ตารางวันนี้ / Today",
+      "short_name": "Today",
+      "url": "./train.html?tab=main",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "ตารางสัปดาห์ / Schedule",
+      "short_name": "Schedule",
+      "url": "./train.html?tab=schedule",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "pubchat-functions",
+  "description": "Server-authoritative economy (coins, balls, XP) + Stripe coin top-ups for PubChat",
+  "type": "module",
+  "engines": { "node": "20" },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^6.1.0",
+    "stripe": "^17.4.0"
+  },
+  "private": true
+}

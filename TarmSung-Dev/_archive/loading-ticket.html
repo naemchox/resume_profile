@@ -1,0 +1,36 @@
+<!-- ตามสั่ง — loading screen, VARIANT 1: the printed order ticket (20/8/26)
+     Replaced on the live pages by the .ld--orb variant (the ScoreUp shape), kept
+     here because the CSS it needs is still in css/styles.css: .ld-print,
+     .ld-slot, .ld-paper, .ld-ticket, .ld-head, .ld-lines, .ld-bar, .ld-stamp.
+     To go back to it: paste this block over the .ld block in index.html,
+     reference.html and privacy.html — all three, or the site greets you two
+     different ways depending on where you land. Nothing else changes: the head
+     gate, js/loader.js and the .ld shell are shared by both variants. -->
+<!-- ============================ LOADING SCREEN ============================
+       An order ticket printing out of the kitchen's rail. Gated on html.loading
+       (see the head script) and taken away by js/loader.js. Everything visible
+       here is aria-hidden; the one line a screen reader gets is the .sr-only
+       status below, because "เว็บไซต์ ✓ เว็บแอป ✓" read aloud is noise. -->
+  <div class="ld" id="ld" role="status" aria-live="polite">
+    <p class="sr-only">กำลังเปิดครัว กรุณารอสักครู่</p>
+    <div class="ld-print" aria-hidden="true">
+      <div class="ld-slot"></div>
+      <div class="ld-paper">
+        <article class="ld-ticket">
+          <header class="ld-head">
+            <span class="ld-mark"><svg viewBox="0 0 32 32" focusable="false" aria-hidden="true"><path class="egg-white" d="M15.00,3.40 C16.58,3.40 18.73,3.50 20.50,4.20 C22.27,4.90 24.25,6.23 25.60,7.60 C26.95,8.97 28.43,10.77 28.60,12.40 C28.77,14.03 26.37,15.93 26.60,17.40 C26.83,18.87 30.33,19.87 30.00,21.20 C29.67,22.53 26.50,24.17 24.60,25.40 C22.70,26.63 20.80,28.13 18.60,28.60 C16.40,29.07 13.47,28.77 11.40,28.20 C9.33,27.63 7.50,26.50 6.20,25.20 C4.90,23.90 3.90,22.03 3.60,20.40 C3.30,18.77 4.47,17.03 4.40,15.40 C4.33,13.77 2.70,12.20 3.20,10.60 C3.70,9.00 6.10,6.87 7.40,5.80 C8.70,4.73 9.73,4.60 11.00,4.20 C12.27,3.80 13.42,3.40 15.00,3.40 Z"/><circle class="yolk" cx="18.4" cy="13.2" r="5.2"/></svg></span>
+            <span class="ld-brand">ตามสั่ง</span>
+            <span class="ld-no">#001</span>
+          </header>
+          <ul class="ld-lines">
+            <li>เว็บไซต์<i></i></li>
+            <li>เว็บแอป<i></i></li>
+            <li>โมบายแอป<i></i></li>
+          </ul>
+          <div class="ld-bar"><i></i></div>
+          <span class="ld-stamp">รับออเดอร์</span>
+        </article>
+      </div>
+    </div>
+    <p class="ld-msg" aria-hidden="true">กำลังเปิดครัว<span>.</span><span>.</span><span>.</span></p>
+  </div>

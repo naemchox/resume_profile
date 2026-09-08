@@ -1,0 +1,231 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+    function chatMembers(cid) {
+      return get(/databases/$(database)/documents/chats/$(cid)).data.members;
+    }
+
+    // A chat is over when it is not a friendship and 24h have passed since it started — or since
+    // the meet-up it booked, whichever is later (talk.html chatExpiresAt). The client deletes its
+    // own expired chats, so "it disappears after 24h" is true of the data and not just of the
+    // list on one device. Only the two members may do it, and only once the clock has actually run
+    // out: without the time test either side could wipe the thread mid-conversation, taking the
+    // other person's evidence with it.
+    function chatDead(d) {
+      return d.get('friends', false) != true
+        && request.time.toMillis() >
+           (d.get('meetAt', 0) > d.get('createdAt', 0) ? d.get('meetAt', 0) : d.get('createdAt', 0))
+           + 24 * 60 * 60 * 1000;
+    }
+    function chatDeadNow(cid) {
+      return chatDead(get(/databases/$(database)/documents/chats/$(cid)).data);
+    }
+
+    // Profiles. `allow read: if signedIn()` used to be here, which meant any signed-in account
+    // could read ANY member's whole doc — including `application`, i.e. their age, workplace,
+    // what they are looking for and their LINE ID / phone number. That was a worse leak than the
+    // pinpoint-location one below. Members in good standing may read profiles (the pool needs
+    // it); everyone else may read only their own.
+    // `application` was moved to users/{uid}/private/ on 18 Aug — see the match block below.
+    // What another member can still read here is `inviteWeek`, a weekly counter: how many invites
+    // someone has spent. Not personal data, and no screen shows it, so it stays until there is a
+    // reason to spend a Cloud Function on it.
+    match /users/{uid} {
+      allow read: if isOwner(uid) || memberOK();
+      // Sign-up creates a FREE member (entry is free as of 17 Aug), never a paid one: a client
+      // cannot mint itself a plan, a tier, a score, or admin. `plan` is set from the console when
+      // payment arrives. Locking these on update alone was not enough — whatever a client wrote
+      // at CREATE time then became permanent.
+      allow create: if isOwner(uid)
+        && request.resource.data.get('status',  'active') in ['active', 'pending']
+        && request.resource.data.get('plan',    '')        == ''
+        && request.resource.data.get('tier',    0)         == 0
+        && request.resource.data.get('tcs',     0)         == 0
+        && request.resource.data.get('isAdmin', false)     == false;
+      // You may edit your own doc, but identity fields are immutable once set — and the club
+      // fields (status/tier/tcs/isAdmin) are server-owned. Without this, an applicant could
+      // open devtools and hand themselves a paid plan.
+      allow update: if isOwner(uid)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.get('status',  'active') == resource.data.get('status',  'active')
+        && request.resource.data.get('plan',    '')       == resource.data.get('plan',    '')
+        && request.resource.data.get('tier',    0)        == resource.data.get('tier',    0)
+        && request.resource.data.get('tcs',     0)        == resource.data.get('tcs',     0)
+        && request.resource.data.get('isAdmin', false)    == resource.data.get('isAdmin', false)
+        // inviteWeek is the allowance counter, and the allowance is the only thing money buys.
+        // It used to be absent from this list, so a member could write themselves a fresh week
+        // from devtools. Only the startChat function touches it now.
+        && request.resource.data.get('inviteWeek', {})    == resource.data.get('inviteWeek', {});
+      allow delete: if false;
+
+      // The application — age, city, work, what they are looking for, LINE ID or phone — lives
+      // here rather than on the user doc, out of reach of the memberOK() read above. Entry is
+      // free, so leaving it upstairs meant any account that signed up could read every member's
+      // contact details. Subcollections do not inherit the parent match, which is what makes this
+      // work: owner only, both directions.
+      match /private/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    // A member in good standing. Entry is free (17 Aug decision), so a missing `status` means
+    // active — the field exists to take people OUT (suspended / banned / expired), not to let them
+    // in. What separates a paying member from a free one is `plan`, which only the console writes.
+    function memberOK() {
+      return signedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid))
+        .data.get('status', 'active') == 'active';
+    }
+
+    // Presence (location + visibility flags): written only by self.
+    // READS ARE SPLIT ON PURPOSE:
+    //   get  — pinpointing ONE person's live lat/lng by uid is exactly how you stalk someone,
+    //          so nobody but the owner may do it. The app never does this: every read site is
+    //          a query (talk.html:1919,1924,1928,3264,3265,3275,3276 — checked by grep, and
+    //          those line numbers were wrong in an earlier version of this comment).
+    //   list — open to members in good standing. WARNING, and this is not a fix: a member can
+    //          still run getDocs(collection('presence')) with no filter and pull everyone's
+    //          coarse position. Our own queries filter on a visibility flag, but rules do not
+    //          force that. What limits the damage is the client no longer writing lat/lng at
+    //          all while invisible (writePresence) — invisible really means no coordinates,
+    //          instead of coordinates that only our own queries politely skip.
+    match /presence/{uid} {
+      allow get:   if isOwner(uid);
+      allow list:  if memberOK();
+      allow write: if isOwner(uid);
+    }
+
+    // Invites sent (the weekly allowance). Write-once records, readable by the two people
+    // involved: reciprocity scoring asks "did `to` ever reply?", which is answered by the
+    // chat's messages, so nothing here ever needs updating.
+    // NOT enforced here: the weekly count itself lives on users/{uid}.inviteWeek, which its
+    // owner can edit. Metering writes properly needs a Cloud Function — until then the quota
+    // is a guardrail for paying members, not a lock.
+    match /invites/{iid} {
+      allow read:   if signedIn() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+      // Written by startChat in the same transaction that spends the invite. A client that
+      // could write these could forge a reciprocity record for a conversation that never
+      // happened, which is an input to scoring.
+      allow create: if false;
+      allow update, delete: if false;
+    }
+
+    // Booked meet-ups — the record that a pair actually met in person, which is the input to
+    // show-up rate (RANKING-SPEC.md §3, S2). Confirmation is TWO-SIDED on purpose: members
+    // are sorted, members[0] owns `confA` and members[1] owns `confB`, and a member may only
+    // write their OWN field. One person alone therefore cannot mark a meeting as happened,
+    // which is what free show-up credit would look like.
+    // Not enforceable here (needs a Cloud Function): "the same pair only counts once per
+    // 30 days" from the spec. Scoring must apply that when it reads these docs.
+    match /meets/{mid} {
+      function iAmA() { return request.auth.uid == resource.data.members[0]; }
+      function noConfirmsYet() {
+        return !('confA' in resource.data) && !('confB' in resource.data);
+      }
+      allow read: if signedIn() && request.auth.uid in resource.data.members;
+      // Booked at least 2h ahead — you cannot back-date a meeting you have already had.
+      allow create: if signedIn()
+        && request.resource.data.members.size() == 2
+        && request.auth.uid in request.resource.data.members
+        && !('confA' in request.resource.data) && !('confB' in request.resource.data)
+        && request.resource.data.at > request.time.toMillis() + 2 * 60 * 60 * 1000;
+      function myConfUnchanged() {
+        return iAmA()
+          ? request.resource.data.get('confA', 0) == resource.data.get('confA', 0)
+          : request.resource.data.get('confB', 0) == resource.data.get('confB', 0);
+      }
+      allow update: if signedIn()
+        && request.auth.uid in resource.data.members
+        && request.resource.data.members == resource.data.members
+        // The time may be changed only while it is still at least 2h away — the old rule allowed
+        // any change "while nobody has confirmed", which meant: book for tomorrow, update `at`
+        // to yesterday, then both scan now and collect credit for a meeting that never happened.
+        && (request.resource.data.at == resource.data.at
+            || request.resource.data.at > request.time.toMillis() + 2 * 60 * 60 * 1000)
+        && (iAmA()
+              ? request.resource.data.get('confB', 0) == resource.data.get('confB', 0)
+              : request.resource.data.get('confA', 0) == resource.data.get('confA', 0))
+        // The second confirm must land within 15 minutes of the first: two people who are
+        // actually standing together scan each other within a minute or two. This is what
+        // makes the QR mean something — the code itself is not a secret (both sides know the
+        // meet id), so the proof is "both confirmed at the same moment", not "saw a code".
+        // Coordinates are recorded (confALoc/confBLoc) but NOT enforced here on purpose:
+        // indoor GPS fails often enough that blocking on distance would punish real meet-ups.
+        // Scoring is where distance gets judged (RANKING-SPEC.md §3).
+        // It applies ONLY to the write that sets your own confirm. The earlier version applied it
+        // to every update, so once the other side had confirmed more than 15 minutes ago you
+        // could no longer accept, decline or cancel the meet-up at all — the write was denied and
+        // the app showed nothing but "could not update".
+        && (myConfUnchanged() || (iAmA()
+              ? (resource.data.get('confB', 0) == 0
+                 || math.abs(request.resource.data.get('confA', 0) - resource.data.get('confB', 0)) < 15 * 60 * 1000)
+              : (resource.data.get('confA', 0) == 0
+                 || math.abs(request.resource.data.get('confB', 0) - resource.data.get('confA', 0)) < 15 * 60 * 1000)));
+      allow delete: if false;
+    }
+
+    // PDPA deletion requests. The application form promises "we delete it on request" — this is
+    // where that request lands. Write-only from a client, like reports: the member files it, a
+    // human works it in the console. Users cannot delete their own doc directly (see above),
+    // because a self-delete would orphan chats and meet records the other person still needs.
+    match /deletion_requests/{rid} {
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow read, update, delete: if false;
+    }
+
+    // Moderation queue. A report used to be written into the reporter's own blocks/ subtree,
+    // where literally nobody — not even the operator — could read it. Reports now land in a
+    // top-level collection: anyone may file one about someone else, nobody may read or edit
+    // them from a client. Review them in the Firebase console (or from a Cloud Function).
+    match /reports/{rid} {
+      allow create: if signedIn()
+        && request.resource.data.reporter == request.auth.uid
+        && request.resource.data.reportedUid is string
+        && request.resource.data.reportedUid != request.auth.uid;
+      allow read, update, delete: if false;
+    }
+
+    // Personal block list — only the owner can touch it.
+    match /blocks/{uid}/blocked/{other} {
+      allow read, write: if isOwner(uid);
+    }
+
+    // Unique personal keys. A key doc is CREATE-ONCE: the first signed-in user to
+    // claim a key owns it; updates/deletes are forbidden, so no two users can ever
+    // hold the same key (the loser of a race gets a denied write and retries).
+    match /keys/{key} {
+      allow read:   if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // Chats — only the two members can read/write the room.
+    // (resource == null lets a member probe a not-yet-created chat without a permission error.)
+    match /chats/{cid} {
+      allow read:   if signedIn() && (resource == null || request.auth.uid in resource.data.members);
+      // Created by the startChat Cloud Function alone (functions/index.js). While a client
+      // could create this doc, the invite allowance could be skipped by writing the chat
+      // directly and never spending one — metering the counter server-side would have meant
+      // nothing. The Admin SDK bypasses these rules, so the function is unaffected.
+      allow create: if false;
+      allow update: if signedIn() && request.auth.uid in resource.data.members;
+      allow delete: if signedIn() && request.auth.uid in resource.data.members && chatDead(resource.data);
+
+      match /messages/{mid} {
+        allow read:   if signedIn() && request.auth.uid in chatMembers(cid);
+        // Members may post, but a message that carries a `from` must be from the sender
+        // (blocks impersonating the other person). System cards (sys/compass/meetpoint) carry no `from`.
+        allow create: if signedIn() && request.auth.uid in chatMembers(cid)
+          && (!('from' in request.resource.data) || request.resource.data.from == request.auth.uid);
+        // Deletable only as part of the 24h purge, which runs messages-first while the parent chat
+        // doc still exists — hence the get() here. Costs one read per message deleted; fine at club
+        // size, and the alternative (a scheduled Cloud Function) needs the paid plan.
+        allow update: if false;
+        allow delete: if signedIn() && request.auth.uid in chatMembers(cid) && chatDeadNow(cid);
+      }
+    }
+  }
+}

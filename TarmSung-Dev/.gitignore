@@ -1,0 +1,11 @@
+.DS_Store
+
+# Local Netlify folder
+.netlify
+
+# Scratch — regenerated capture scripts/frames
+.tmp/
+
+# กล้องของ playbook: playwright + ffmpeg-static ลงในเครื่อง ไม่ต้องขึ้น repo
+node_modules/
+playbook/watch-site.log

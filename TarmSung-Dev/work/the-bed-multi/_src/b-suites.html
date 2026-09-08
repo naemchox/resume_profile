@@ -1,0 +1,99 @@
+<section id="suites" class="bg-ink text-cream py-12 lg:py-16 relative overflow-hidden">
+  <!-- These two gold glows were declared at opacity 0.04 over #0A0908: gold at 4%
+       on near-black is a ~1% luminance lift, i.e. nothing on a real screen. The
+       decoration was already here — it just was not switched on. 0.13 is where
+       the wash becomes visible without lifting the ground off black. -->
+  <div class="absolute inset-0 opacity-[0.13] pointer-events-none" aria-hidden="true"
+       style="background-image: radial-gradient(circle at 18% 25%, #C9A961 0%, transparent 45%), radial-gradient(circle at 82% 75%, #C9A961 0%, transparent 50%);"></div>
+
+  <div class="relative max-w-[1500px] mx-auto px-6 lg:px-12">
+    <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 lg:gap-8 mb-8 lg:mb-10 reveal">
+      <div class="max-w-2xl">
+        <span class="hairline text-gold eyebrow left">Chapter Two · The Suites</span>
+        <h2 class="split display text-3xl lg:text-5xl leading-[1.0] mt-3">
+          Three rooms.
+          <span class="italic editorial font-light text-gold">One philosophy.</span>
+        </h2>
+      </div>
+      <p class="lg:max-w-md text-cream/70 editorial text-base leading-relaxed font-light">
+        Each suite shaped around a singular idea — good living begins with what we choose to leave out. Linen, light, and silence.
+      </p>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-6">
+      <!-- Suite 1 -->
+      <article class="suite-card group flex flex-col reveal" style="--i:0">
+        <div class="overflow-hidden">
+          <img src="{{R}}img/studio.jpg"
+               alt="Studio suite with bed, desk, and natural light"
+               class="w-full h-44 lg:h-48 object-cover zoom-img" loading="lazy" width="1200" height="1200" />
+        </div>
+        <div class="p-5 lg:p-6 flex flex-col flex-1">
+          <div class="flex items-center justify-between mb-2">
+            <span class="hairline text-gold">Suite · I</span>
+            <span class="text-[10px] tracking-[0.25em] text-cream/50">28 SQM</span>
+          </div>
+          <h3 class="display text-xl lg:text-2xl mb-2">The Atelier</h3>
+          <p class="editorial text-cream/70 text-sm mb-4 leading-relaxed flex-1">
+            A studio for the solitary writer — few possessions, held dear.
+          </p>
+          <div class="flex items-center justify-between pt-3 border-t border-gold/30">
+            <span class="display text-gold text-base">From ฿ 12,500<span class="text-[10px] text-cream/50">/mo</span></span>
+            <a href="{{R}}suites/the-atelier/" class="text-[10px] tracking-[0.32em] uppercase text-gold hover:text-cream cursor-pointer">View this suite&nbsp;→</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- Suite 2 (featured) -->
+      <article class="suite-card group flex flex-col relative reveal" style="--i:1">
+        <div class="absolute top-3 left-3 z-10 bg-gold text-ink text-[9px] tracking-[0.3em] uppercase px-2.5 py-1">Most Loved</div>
+        <div class="overflow-hidden">
+          <img src="{{R}}img/suite-classic.jpg"
+               alt="One-bedroom suite with separate living area"
+               class="w-full h-44 lg:h-48 object-cover zoom-img" loading="lazy" width="1200" height="900" />
+        </div>
+        <div class="p-5 lg:p-6 flex flex-col flex-1">
+          <div class="flex items-center justify-between mb-2">
+            <span class="hairline text-gold">Suite · II</span>
+            <span class="text-[10px] tracking-[0.25em] text-cream/50">42 SQM</span>
+          </div>
+          <h3 class="display text-xl lg:text-2xl mb-2">The Reader</h3>
+          <p class="editorial text-cream/70 text-sm mb-4 leading-relaxed flex-1">
+            A one-bedroom with a window deep enough to sit in — mornings of light, evenings of books.
+          </p>
+          <div class="flex items-center justify-between pt-3 border-t border-gold/30">
+            <span class="display text-gold text-base">From ฿ 17,800<span class="text-[10px] text-cream/50">/mo</span></span>
+            <a href="{{R}}suites/the-reader/" class="text-[10px] tracking-[0.32em] uppercase text-gold hover:text-cream cursor-pointer">View this suite&nbsp;→</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- Suite 3 -->
+      <article class="suite-card group flex flex-col reveal" style="--i:2">
+        <div class="overflow-hidden">
+          <img src="{{R}}img/lounge.jpg"
+               alt="Spacious one-bedroom suite with extended living area"
+               class="w-full h-44 lg:h-48 object-cover zoom-img" loading="lazy" width="1200" height="816" />
+        </div>
+        <div class="p-5 lg:p-6 flex flex-col flex-1">
+          <div class="flex items-center justify-between mb-2">
+            <span class="hairline text-gold">Suite · III</span>
+            <span class="text-[10px] tracking-[0.25em] text-cream/50">58 SQM</span>
+          </div>
+          <h3 class="display text-xl lg:text-2xl mb-2">The Salon</h3>
+          <p class="editorial text-cream/70 text-sm mb-4 leading-relaxed flex-1">
+            A larger residence for those who entertain quietly — a long table, an evening of pasta and conversation.
+          </p>
+          <div class="flex items-center justify-between pt-3 border-t border-gold/30">
+            <span class="display text-gold text-base">From ฿ 24,500<span class="text-[10px] text-cream/50">/mo</span></span>
+            <a href="{{R}}suites/the-salon/" class="text-[10px] tracking-[0.32em] uppercase text-gold hover:text-cream cursor-pointer">View this suite&nbsp;→</a>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <p class="mt-6 lg:mt-8 text-center text-cream/55 text-[10px] tracking-[0.32em] uppercase reveal">
+      All suites include furnishing, weekly housekeeping, high-speed wifi, and full concierge service
+    </p>
+  </div>
+</section>
