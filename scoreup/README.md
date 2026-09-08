@@ -13,7 +13,7 @@ python3 -m http.server 8077
 - `scoreup.html` — the whole app (HTML + CSS + JS in one file).
 - **`questions.js` / `exam.js` / `vocab-bank.js`** — question data loaded via `<script src>` (`window.QUESTIONS` / `window.EXAM_BANK` / `window.VOCAB_BANK`). The app **breaks without these** — keep them.
 - `emoji/` `images/` `audio/` — assets. `sw.js` — service worker (offline cache).
-- `google-sheet-logger.gs` — optional Google Apps Script backend for the group leaderboard + prep-test logging (dormant until `PREP_SHEET_URL` is set in `scoreup.html`). Contains a shared SECRET — **keep this repo private.**
+- `google-sheet-logger.gs` — optional Google Apps Script backend for the group leaderboard + prep-test logging (dormant until `PREP_SHEET_URL` is set in `scoreup.html`). The shared secret it checks has been replaced with `REPLACE_WITH_YOUR_SECRET` in this copy — set a real value in **both** `google-sheet-logger.gs` and `scoreup.html` before deploying.
 
 ## Editing
 Bump the `CACHE` version in **`sw.js`** (e.g. `scoreup-v196` → `v197`) on every change, or browsers keep serving the old cached version.
