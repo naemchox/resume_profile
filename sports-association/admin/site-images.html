@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>รูปประจำหน้า · Sample Sports Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="is-checking">
+  <div class="layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="backdrop" id="backdrop"></div>
+    <div class="main">
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <h1>รูปประจำหน้า</h1>
+            <p>รูปหัวหน้าและรูปประกอบของแต่ละหน้า · ถ้ายังไม่ได้ตั้ง หน้าเว็บจะใช้รูปสำรองของตัวเอง</p>
+          </div>
+        </div>
+        <div class="grid" id="grid"></div>
+        <input type="file" id="file-input" accept="image/*" hidden>
+      </main>
+    </div>
+  </div>
+  <script type="module" src="js/pages/site-images.js"></script>
+</body>
+</html>

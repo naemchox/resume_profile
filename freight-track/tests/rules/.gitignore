@@ -1,0 +1,4 @@
+node_modules/
+# คัดลอกมาจากรากโปรเจกต์ตอน npm test
+firestore.rules
+storage.rules

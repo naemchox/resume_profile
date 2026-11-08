@@ -1,0 +1,22 @@
+{
+  "name": "basalt",
+  "version": "0.1.0",
+  "description": "A Firestore/Supabase-style backend service: Postgres, auth, RLS, realtime, storage.",
+  "type": "module",
+  "main": "server/index.mjs",
+  "scripts": {
+    "start": "node server/index.mjs",
+    "test": "node --test --test-force-exit --test-timeout=25000 --test-reporter=spec test/*.test.mjs",
+    "studio:dev": "npm --prefix studio run dev",
+    "studio:build": "npm --prefix studio run build",
+    "setup": "npm install && npm --prefix studio install && npm run studio:build"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.4",
+    "ws": "^8.21.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

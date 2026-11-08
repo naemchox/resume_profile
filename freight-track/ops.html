@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<script src="js/theme-init.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>กระดานงานคลัง · FreightTrack</title>
+<meta name="description" content="กระดานงานขนส่งของทีมคลัง ตรวจรับเข้าคลัง จ่ายงานคนขับ และติดตามทุกใบงาน">
+<meta name="theme-color" content="#f4f3f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1f1c1b" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/apple.css">
+<!-- office.css โหลดหลัง apple.css — โทนเดียวกับหน้าแรก (index.html) และหน้าคนขับ -->
+<link rel="stylesheet" href="css/office.css">
+<style>
+/* ตัวกรองวันที่ — หน้าตาเดียวกับหน้า Dashboard (dashboard.html .pill-date / .pill-check)
+   ใช้ชื่อ dpill เพราะ .pill เป็นป้ายสถานะของหน้านี้อยู่แล้ว */
+.dpill{display:inline-flex;align-items:center;gap:4px;height:34px;padding:0 13px;border-radius:999px;
+  border:1.2px solid var(--line,rgba(127,127,127,.35));font-size:13px;white-space:nowrap;cursor:pointer}
+.dpill input{border:0;background:transparent;font:inherit;color:inherit;outline:none;padding:0;cursor:pointer}
+.dpill input[type=date]{font-family:var(--mono);font-size:12px;width:118px}
+.dpill:focus-within{box-shadow:0 0 0 3px rgba(245,165,36,.25)}
+.dpill-date{background:var(--amber-wash);border:1.6px solid var(--amber);color:var(--amber-ink);font-weight:600}
+.dpill-date:has(input:disabled){opacity:.45}
+.dpill-date input:disabled{cursor:not-allowed}
+.dpill-check input{width:14px;height:14px;margin:0 2px 0 0;accent-color:var(--amber)}
+.dpill-check:has(input:checked){background:var(--amber-wash);border-color:var(--amber);color:var(--amber-ink);font-weight:600}
+/* กลุ่มจัดส่งโดย (js/ops.js grpHead) — หัวกลุ่ม แล้วงานย่อยเยื้องเข้าไปข้างใต้ */
+.quota-bar{display:flex;align-items:center;gap:10px;margin-bottom:18px;padding:12px 16px;border-radius:12px;font-size:14px;font-weight:600;border:1.5px solid var(--amber);background:var(--amber-wash);color:var(--amber-ink)}
+.quota-bar[data-lv="90"]{border-color:var(--red);background:var(--amber-wash);color:var(--red)}
+.quota-bar[data-lv="100"]{border-color:var(--red);background:var(--red-wash);color:var(--red)}
+.grp-gap td{height:20px;padding:0;background:var(--bg);border:0;border-top:1px solid var(--line)}
+.grp-gap:first-child{display:none}
+.grp-head td{background:var(--amber-wash);border-top:1.5px solid var(--amber);padding:9px 14px;font-size:13.5px}
+.grp-kid td:first-child{padding-left:40px;box-shadow:inset 3px 0 0 var(--amber)}
+.grp-truck td{border-top:1px dashed var(--line);padding:6px 14px 6px 26px;font-size:12.5px;box-shadow:inset 3px 0 0 var(--amber)}
+</style>
+</head>
+<body class="ofc">
+<!-- โครงหน้ารอโหลด — ขึ้นทันทีจาก HTML/CSS ก่อน JavaScript ทำงาน แล้วสลับเป็นหน้าจริงตอนวาดเสร็จ (ui.js → shell) -->
+<div class="skel" aria-hidden="true">
+  <div class="skel-bar"></div>
+  <div class="skel-page">
+    <i class="sk sk-eyebrow"></i>
+    <i class="sk sk-title"></i>
+    <i class="sk sk-line"></i>
+    <div class="skel-kpis"><i class="sk"></i><i class="sk"></i><i class="sk"></i><i class="sk"></i></div>
+    <div class="skel-card">
+      <i class="sk sk-h"></i>
+      <i class="sk sk-row"></i><i class="sk sk-row"></i><i class="sk sk-row"></i><i class="sk sk-row"></i><i class="sk sk-row"></i>
+    </div>
+  </div>
+</div>
+<main class="page">
+<div class="wrap-wide">
+
+  <div class="page-head">
+    <div>
+      <p class="eyebrow eyebrow-accent">ขั้นที่ 2 · ทีมคลัง</p>
+      <h1 class="page-title" style="margin-top:6px">กระดานงานขนส่ง</h1>
+      <p class="muted small" style="margin-top:4px">ตรวจรับของ · จ่ายงานคนขับ · ดูสถานะทุกเที่ยว</p>
+    </div>
+    <div class="row gap-10 no-print">
+      <a class="btn btn-ghost btn-sm" href="driver.html" target="_blank" rel="noopener" data-driver-link>เปิดหน้าคนขับ ↗</a>
+      <button class="btn btn-rush btn-sm" id="rtNew" title="ส่งก่อน ปิดงานทีหลัง">⚡ + งานด่วน</button>
+      <a class="btn btn-accent btn-sm" href="customer.html">+ แจ้งงานแทนลูกค้า</a>
+    </div>
+  </div>
+
+  <div id="demoBarSlot" style="margin-bottom:18px"></div>
+  <!-- เตือนโควตารูปใน Storage รายเดือน (70/80/90/100%) — js/photoQuota.js · ซ่อนเมื่อต่ำกว่า 70% -->
+  <div id="photoQuota" class="quota-bar no-print" role="status" hidden></div>
+  <!-- ============ sync เลข Invoice จากไฟล์ Excel ============ -->
+  <section class="card card-pad" id="syncCard" style="margin-bottom:18px">
+    <div style="margin-bottom:14px">
+      <h3 style="font-size:16px">อัปเดตเลข Invoice จากไฟล์ Excel</h3>
+      <p class="tiny dim" style="margin-top:3px;max-width:70ch">
+        ส่งไฟล์ขาวเข้า LINE OA หรือลากมาวางด้านล่าง — ระบบเปลี่ยนเลข 5 เป็น Invoice + Shipment No. และรวมงานให้เอง
+        · รายการเริ่มใหม่ทุกวัน · กด "ตรวจเดี๋ยวนี้" เพื่อดึงไฟล์วันนี้อีกรอบ
+      </p>
+    </div>
+
+    <div id="autoSyncBar" class="panel no-print" style="margin-bottom:14px"></div>
+
+    <div class="drop" id="syncDrop" tabindex="0" role="button" style="padding:34px 20px">
+      <div class="strong" style="font-size:16px">ลากไฟล์ Excel มาวาง หรือคลิกเพื่อเลือก</div>
+      <div class="tiny dim" style="margin-top:6px">ไฟล์ .xlsx · อ่านทุกชีต · เก็บลง Google Drive ให้เอง</div>
+    </div>
+    <input type="file" id="syncFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+    <div id="syncInfo" style="margin-top:12px"></div>
+    <div id="syncResult" style="margin-top:12px"></div>
+  </section>
+
+
+  <div class="grid g4" id="kpis" style="margin-bottom:20px"></div>
+
+  <div class="card" style="overflow:hidden">
+    <div style="padding:14px 16px 0">
+      <div class="row between wraps gap-12" style="align-items:flex-end">
+        <div class="tabs grow" id="tabs" role="tablist"></div>
+        <div class="row wraps gap-8" style="align-items:center">
+          <label class="dpill dpill-check"><input type="checkbox" id="dToday"> เฉพาะวันนี้</label>
+          <label class="dpill dpill-date">📅 <input type="date" id="dFrom" aria-label="วันเริ่มต้น"> – <input type="date" id="dTo" aria-label="วันสุดท้าย"></label>
+          <input class="input" id="q" placeholder="🔍 ค้นหา เลขงาน · Invoice · คนขับ · ทะเบียน" style="width:min(340px,60vw)" autocomplete="off">
+        </div>
+      </div>
+    </div>
+    <div class="scroll-x">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>เลขบิล / รถ</th>
+            <th>SO</th>
+            <th>จุดส่ง</th>
+            <th>ความคืบหน้า</th>
+            <th>น้ำหนัก</th>
+            <th>มูลค่า</th>
+            <th>คนขับ</th>
+            <th>สถานะ</th>
+            <th class="right">อัปเดตล่าสุด</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div id="emptyState"></div>
+  </div>
+
+  <p class="of-hint">
+    👆 คลิกแถวเพื่อเปิดใบงาน — ไทม์ไลน์ · ใบแจ้งหนี้ · รูป · ลายเซ็น
+  </p>
+</div>
+</main>
+
+<script type="module" src="js/firebase.js"></script>
+<script type="module" src="js/ops.js"></script>
+<script type="module" src="js/opsAuto.js"></script>
+</body>
+</html>

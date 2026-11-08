@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>บันทึกงานผู้ขาย — ระบบจัดซื้อจัดจ้าง</title>
+<link rel="stylesheet" href="css/app.css">
+<script src="js/theme.js"></script>
+</head>
+<body>
+<main id="app"><div class="spinner">…</div></main>
+
+<script type="module">
+import { sb } from './js/supabase.js';
+import { t, pick, fmtDate } from './js/i18n.js';
+import { requirePage, me, has, hasAny } from './js/auth.js';
+import { masters, flow, insert, update, remove, upsert } from './js/api.js';
+import { fmt, fmtQty, toSatang, toBaht } from './js/money.js';
+import { formModal } from './js/form.js';
+import { sortTable } from './js/sorttable.js';
+import { openFile, fileLabel } from './js/storage.js';
+import { el, $, shell, pageTitle, table, modal, confirmBox, askReason, badge,
+         ok, fail, spinner, downloadCsv } from './js/ui.js';
+
+const un = ({ data, error }) => { if (error) throw error; return data; };
+
+// เหตุผลที่ใบเสนอราคาถูกตัดออก — ชื่อคีย์ตรงกับค่าที่ v_quote_ranking คืนมา
+const EXCLUDE = { disqualified: 'quote.exDisqualified', blacklisted: 'quote.exBlacklisted',
+                  sow_incomplete: 'quote.exSow', ok: 'quote.exOk' };
+
+const u = await requirePage('quotes.html');
+if (u) {
+  shell('quotes.html');
+  const prId = new URLSearchParams(location.search).get('pr');
+  prId ? await detail(prId) : await listView();
+}
+
+// ===========================================================================
+// รายการใบขอซื้อที่อยู่ในขั้นขอราคา
+// ===========================================================================
+async function listView() {
+  const app = $('#app');
+  app.textContent = '';
+  app.append(pageTitle('quote.title'));
+
+  const body = el('div', {}, spinner());
+  app.append(el('div', { class: 'card' }, el('h2', {}, t('quote.forPr')), body));
+
+  try {
+    const rows = await sb.from('v_pr_summary').select('*')
+      .in('status', ['rfq_issued', 'quoting', 'evaluated'])
+      .order('created_at', { ascending: false }).then(un);
+
+    body.textContent = '';
+    body.append(table(
+      [t('pr.no'), t('pr.purpose'), t('pr.costCenter'), t('pr.neededBy'),
+       { label: t('quote.count'), align: 'right' }, t('common.status')],
+      rows.map((r) => el('tr', {},
+        el('td', {}, el('a', { href: `quotes.html?pr=${r.id}` }, r.pr_no ?? '—')),
+        el('td', {}, pick(r, 'purpose')),
+        el('td', {}, r.cost_center_code ?? '—'),
+        el('td', {}, fmtDate(r.needed_by)),
+        el('td', { class: 'num' }, String(r.quote_count ?? 0)),
+        el('td', {}, badge(r.status, 'prStatus'))))));
+  } catch (e) { body.textContent = ''; fail(e); }
+}
+
+// ===========================================================================
+// หน้าทำงานของใบขอซื้อหนึ่งใบ
+// ===========================================================================
+async function detail(prId) {
+  const app = $('#app');
+  app.textContent = '';
+  app.append(spinner());
+
+  let pr, prLines, clauses, ranking, quoteRows, qLines, qSow, vendors, prints, awards, lineAwards, budgetNow;
+  try {
+    [pr, prLines, clauses, ranking, quoteRows, vendors, prints, awards, lineAwards] = await Promise.all([
+      sb.from('prs').select('*').eq('id', prId).maybeSingle().then(un),
+      sb.from('pr_lines').select('*').eq('pr_id', prId).order('seq').then(un),
+      masters.sowClauses(),
+      sb.from('v_quote_ranking').select('*').eq('pr_id', prId).then(un),
+      // เรียงตามลำดับที่คีย์เข้ามา — เป็นลำดับตั้งต้นของทั้งสองตาราง
+      sb.from('quotes').select('*').eq('pr_id', prId).order('entered_at').then(un),
+      masters.vendors(),
+      sb.from('rfq_prints').select('vendor_id, printed_at').eq('pr_id', prId).then(un),
+      sb.from('pr_awards').select('*').eq('pr_id', prId).maybeSingle().then(un),
+      sb.from('line_awards').select('*').eq('pr_id', prId).then(un),
+    ]);
+    const ids = quoteRows.map((q) => q.id);
+    [qLines, qSow, budgetNow] = await Promise.all([
+      ids.length ? sb.from('quote_lines').select('*').in('quote_id', ids).then(un) : [],
+      ids.length ? sb.from('quote_sow').select('*').in('quote_id', ids).then(un) : [],
+      // ส่ง 0 = ขอแค่ยอดคงเหลือ ไม่ได้ถามว่ายอดไหนผ่านไม่ผ่าน
+      // ยังไม่ตั้งงบของศูนย์ต้นทุนนี้ = คืน verdict 'none' ยอดคงเหลือเป็น null แล้วข้ามด่านงบไป
+      flow.checkBudget(prId, 0).catch(() => null),
+    ]);
+  } catch (e) { app.textContent = ''; fail(e); return; }
+
+  if (!pr) {
+    app.textContent = '';
+    app.append(pageTitle('quote.title'), el('div', { class: 'notice err' }, t('pr.notFound')),
+      el('a', { class: 'btn', href: 'quotes.html' }, t('pr.backToList')));
+    return;
+  }
+
+  const reload = () => detail(prId);
+  const canEnter = hasAny('purchasing', 'admin')
+                   && ['rfq_issued', 'quoting'].includes(pr.status);
+  const canAward = hasAny('purchasing', 'admin')
+                   && ['rfq_issued', 'quoting', 'evaluated'].includes(pr.status);
+
+  // เกินงบไปเท่าไร — คิดที่หน้าจอเอง ไม่ผูกกับคอลัมน์ใน view
+  // เพราะถ้าฐานข้อมูลยังไม่ได้อัปเดต view ค่าจะเป็น undefined แล้วเงียบหายไปทั้งฟีเจอร์
+  // โดยไม่มีอะไรฟ้อง ซึ่งอันตรายกว่าการคำนวณซ้ำหนึ่งที่
+  //
+  // เทียบกับ "ราคาประเมิน" ที่ผู้ขอซื้อตั้งไว้ในใบขอซื้อก่อน เพราะเป็นตัวเลขที่มีทุกใบ
+  // และเป็นคำถามที่คนดูตารางนี้อยากรู้จริงๆ ว่า "เจ้านี้แพงกว่าที่ตั้งไว้ไหม"
+  // ถ้าใบไหนไม่ได้ตั้งราคาประเมิน ค่อยถอยไปใช้งบคงเหลือของศูนย์ต้นทุน
+  // (งบคงเหลือเป็นคนละด่าน มีการ์ดงบด้านล่างดูแลยอดรวมอยู่แล้ว)
+  const budgetLeft = budgetNow?.available ?? null;
+  const overRef  = pr.estimated_amount > 0 ? pr.estimated_amount : budgetLeft;
+  const refIsEstimate = pr.estimated_amount > 0;
+  const overBy = (total) =>
+    (overRef != null && total != null && total > overRef) ? total - overRef : 0;
+
+  const vendorById = new Map(vendors.map((v) => [v.id, v]));
+  const rankById   = new Map(ranking.map((r) => [r.quote_id, r]));
+  const linesOf    = (qid) => qLines.filter((l) => l.quote_id === qid);
+  const sowOf      = (qid) => qSow.filter((s) => s.quote_id === qid);
+
+  // ป้าย "ราคาต่ำสุด" — คิดที่หน้าจอจากยอดที่แสดงจริง ไม่ใช้ is_cheapest จาก view
+  // เพราะ view คิดเฉพาะใบที่ "ผ่านเกณฑ์" (รับ SOW ครบ) ทำให้ป้ายค้างอยู่กับใบเดิม
+  // ทั้งที่แก้ราคาจนมีใบอื่นถูกกว่าไปแล้ว — คนอ่านตารางเห็นเลขขัดกับป้ายทันที
+  //
+  // นับเฉพาะใบที่ยังอยู่ในการพิจารณา (รวมใบที่รับ SOW ไม่ครบ เพราะยังคุยกันได้
+  // และอยู่ในตารางเปรียบเทียบด้วย) และต้องมียอดจริง — ใบที่ยังไม่ได้คีย์ราคา
+  // ยอดเป็น 0 ถ้านับด้วยจะคว้าป้ายไปทุกที
+  const inPlay = (r) => !!r && (r.qualified || r.exclude_reason === 'sow_incomplete');
+  const cheapestTotal = (() => {
+    const totals = ranking.filter((r) => inPlay(r) && Number(r.grand_total) > 0)
+                          .map((r) => Number(r.grand_total));
+    return totals.length ? Math.min(...totals) : null;
+  })();
+  const isCheapest = (r) =>
+    cheapestTotal != null && inPlay(r) && Number(r.grand_total) === cheapestTotal;
+
+  app.textContent = '';
+  app.append(pageTitle('quote.title',
+    el('a', { class: 'btn small', href: `pr.html?id=${prId}` }, t('pr.title')),
+    el('a', { class: 'btn small', href: 'quotes.html', style: 'margin-left:.3rem' }, t('pr.backToList'))));
+
+  // ---- หัวเรื่อง ----
+  const sentTo = prints.map((p) => vendorById.get(p.vendor_id)?.code).filter(Boolean);
+  app.append(el('div', { class: 'card' },
+    el('h2', { style: 'margin:0' }, pr.pr_no ?? '—', ' ', badge(pr.status, 'prStatus')),
+    el('p', { class: 'muted', style: 'margin:.3rem 0 .6rem' }, pick(pr, 'purpose')),
+    sentTo.length
+      ? el('p', { class: 'faint' }, t('quote.sentTo') + ': ' + [...new Set(sentTo)].join(', '))
+      : null));
+
+  // ไฟล์แนบของใบเสนอราคา — กดแล้วขอลิงก์ชั่วคราวจากคลังแล้วเปิดแท็บใหม่
+  const attachLink = (q) => q.attachment_path
+    ? el('button', {
+        class: 'btn link attach', title: fileLabel(q.attachment_path),
+        onclick: () => openFile(q.attachment_path).catch(fail),
+      }, '\u{1F4CE} ' + fileLabel(q.attachment_path))
+    : null;
+
+  // =========================================================================
+  // ใบเสนอราคา + ตารางเปรียบเทียบ (ใช้ตารางเดียว ไม่ต้องดูสองที่)
+  // =========================================================================
+  const quotesCard = el('div', { class: 'card' },
+    el('div', { class: 'row' },
+      el('h2', { style: 'margin:0' }, t('quote.compare')),
+      el('div', { class: 'spacer' }),
+      canEnter ? el('button', { class: 'btn primary', onclick: onNewQuote }, t('quote.new')) : null));
+
+  if (!quoteRows.length) {
+    quotesCard.append(el('p', { class: 'faint' }, t('quote.noQuotes')));
+  } else {
+    quotesCard.append(el('p', { class: 'faint' }, t('quote.normalized')));
+    const cmp = table(
+      [t('quote.vendor'), t('quote.no'), { label: t('quote.subtotal'), align: 'right' },
+       { label: t('quote.freight'), align: 'right' }, { label: t('quote.grandTotal'), align: 'right' },
+       { label: t('sow.title'), align: 'center' },
+       { label: t('quote.rank'), align: 'center' }, t('common.status'), ''],
+      quoteRows.map((q) => {
+        const r = rankById.get(q.id) ?? {};
+        const v = vendorById.get(q.vendor_id) ?? {};
+        return el('tr', {},
+          el('td', {}, el('b', {}, v.code ?? '—'),
+            el('div', { class: 'faint vname' }, pick(v, 'name'))),
+          el('td', {}, q.quote_no ?? '—', el('div', { class: 'faint' }, fmtDate(q.quote_date)),
+            // ไฟล์แนบอยู่ใต้เลขที่ใบ ไม่แยกเป็นคอลัมน์ใหม่ เพราะตารางนี้กว้างจนต้องเลื่อนอยู่แล้ว
+            attachLink(q)),
+          el('td', { class: 'num' }, fmt(r.subtotal)),
+          el('td', { class: 'num' }, fmt(q.freight)),
+          // เรื่องเกินงบเตือนที่ตารางเปรียบเทียบที่เดียว ตารางนี้เอาไว้กรอกข้อมูลล้วนๆ
+          el('td', { class: 'num' }, el('b', {}, fmt(r.grand_total)),
+            isCheapest(r) ? el('div', { class: 'faint' }, t('quote.cheapest')) : null),
+          el('td', { class: 'ta-center' },
+            `${r.sow_accepted ?? 0}/${r.sow_required ?? clauses.length}`),
+          el('td', { class: 'ta-center' }, r.rank_no ? String(r.rank_no) : '—'),
+          el('td', {}, r.qualified
+            ? el('span', { class: 'badge green' }, t('quote.inPlay'))
+            : el('span', { class: 'badge red', title: t(EXCLUDE[r.exclude_reason] ?? 'quote.excluded') },
+                 t(EXCLUDE[r.exclude_reason] ?? 'quote.excluded'))),
+          el('td', {}, el('div', { class: 'actions' },
+            canEnter ? el('button', { class: 'btn small', title: t('quote.lines'),
+                                      onclick: () => editLines(q) }, t('common.unitPrice')) : null,
+            canEnter ? el('button', { class: 'btn small', title: t('quote.sowCheck'),
+                                      onclick: () => editSow(q) }, t('sow.title')) : null,
+            canEnter ? el('button', { class: 'btn small', onclick: () => editQuote(q) }, t('common.edit')) : null,
+            canEnter ? el('button', { class: 'btn small ' + (q.disqualified ? '' : 'danger'),
+                                      onclick: () => toggleDisqualify(q) },
+                           q.disqualified ? t('quote.undisqualify') : t('quote.disqualify')) : null)));
+      }));
+    cmp.classList.add('dense');
+    quotesCard.append(cmp);
+  }
+  app.append(quotesCard);
+
+  // ---- ฟอร์มหัวใบเสนอราคา ----
+  const quoteFields = () => [
+    { k: 'vendor_id', label: 'quote.vendor', type: 'select', required: true,
+      options: vendors.filter((v) => !v.blacklisted)
+        .map((v) => ({ value: v.id, label: `${v.code} — ${v.name_th}` })) },
+    { k: 'quote_no', label: 'quote.no', required: true },
+    { k: 'quote_date', label: 'quote.date', type: 'date', required: true },
+    { k: 'valid_until', label: 'quote.validUntil', type: 'date', hint: 'quote.validUntilHint' },
+    { k: 'freight', label: 'quote.freight', type: 'money' },
+    { k: 'vat_percent', label: 'quote.vatRate', type: 'num', step: '0.01' },
+    { k: 'delivery_days', label: 'quote.deliveryDays', type: 'num', step: '1' },
+    { k: 'warranty_days', label: 'quote.warrantyDays', type: 'num', step: '1' },
+    { k: 'attachment_path', label: 'common.attachment', type: 'file', folder: 'quotes',
+      hint: 'quote.attachHint', wide: true },
+  ];
+
+  // vat_bp เก็บเป็น basis point ในฐาน แต่คนกรอกเป็น % — แปลงตรงนี้ที่เดียว
+  const toRow = ({ vat_percent, ...v }) => ({
+    ...v, vat_bp: Math.round(Number(vat_percent ?? 7) * 100),
+    freight: v.freight ?? 0,
+  });
+
+  // ราคาต่อบรรทัดกับเงื่อนไขที่ผู้ขายรับ ต่อท้ายฟอร์มหัวใบในกล่องเดียวกัน
+  // จะได้คีย์ใบเสนอราคาจบในครั้งเดียว ไม่ต้องกดปุ่มในตารางทีหลัง
+  // (ปุ่มในตารางยังอยู่เหมือนเดิม สำหรับกรณีมาแก้ทีหลังเฉพาะส่วน)
+  const quoteExtras = (q) => {
+    const le = lineEditor(q), se = sowEditor(q);
+    const nodes = [];
+    if (prLines.length) nodes.push(el('div', { style: 'margin-top:.6rem' },
+      el('h3', {}, t('quote.lines')),
+      el('p', { class: 'faint', style: 'margin:0 0 .5rem' }, t('quote.linesHint')),
+      le.node));
+    if (clauses.length) nodes.push(el('div', { style: 'margin-top:1rem' },
+      el('h3', {}, t('quote.sowCheck')),
+      el('p', { class: 'faint', style: 'margin:0 0 .5rem' }, t('quote.sowHint')),
+      se.node));
+    return { nodes, save: async (id) => { await le.save(id); await se.save(id); } };
+  };
+
+  async function onNewQuote() {
+    const company = await masters.company();
+    const ex = quoteExtras(null);
+    const v = await formModal(t('quote.new'), quoteFields(),
+      { vat_percent: (company?.default_vat_bp ?? 700) / 100, quote_date: new Date().toISOString().slice(0, 10) },
+      ex.nodes);
+    if (!v) return;
+    let row;
+    // แยก try ของหัวใบออกจากของท้ายใบ เพราะถ้าหัวใบเข้าแล้วแต่ท้ายใบพัง
+    // ต้องรีเฟรชให้เห็นใบที่เพิ่งสร้าง ไม่งั้นกดใหม่จะได้ใบซ้ำ
+    try { [row] = await insert('quotes', { ...toRow(v), pr_id: prId, entered_by: me.id }); }
+    catch (e) { fail(e); return; }
+    try { if (row?.id) await ex.save(row.id); ok(t('common.saved')); } catch (e) { fail(e); }
+    reload();
+  }
+
+  async function editQuote(q) {
+    const ex = quoteExtras(q);
+    const v = await formModal(t('common.edit'), quoteFields(),
+      { ...q, vat_percent: (q.vat_bp ?? 700) / 100 }, ex.nodes);
+    if (!v) return;
+    try {
+      await update('quotes', q.id, toRow(v));
+      await ex.save(q.id);
+      ok(t('common.saved'));
+    } catch (e) { fail(e); }
+    reload();
+  }
+
+  async function toggleDisqualify(q) {
+    try {
+      if (q.disqualified) {
+        await update('quotes', q.id, { disqualified: false, disqualified_reason: null });
+      } else {
+        const reason = await askReason(t('quote.disqualify'), t('quote.disqualifyReason'));
+        if (!reason) return;
+        await update('quotes', q.id, { disqualified: true, disqualified_reason: reason });
+      }
+      ok(t('common.saved'));
+    } catch (e) { fail(e); }
+    reload();
+  }
+
+  // ---- ราคาต่อบรรทัด ----
+  //
+  // แยกตัวสร้างออกจากกล่องโต้ตอบ เพราะตอนนี้มีสองทางเข้า:
+  // กรอกพร้อมหัวใบเสนอราคาในกล่องเดียว กับปุ่ม "ราคา/หน่วย" ในตารางเปรียบเทียบ
+  // ถ้าเขียนสองชุด วันหนึ่งแก้ที่เดียวแล้วอีกทางจะบันทึกไม่เหมือนกัน
+  // q = null แปลว่าใบเสนอราคายังไม่ถูกสร้าง (กล่องกรอกใบใหม่) — ยังไม่มีของเดิมให้โหลด
+  function lineEditor(q) {
+    const existing = new Map(q ? linesOf(q.id).map((l) => [l.pr_line_id, l]) : []);
+    const inputs = new Map();
+    const node = el('div', { class: 'table-wrap' },
+      el('table', {},
+        el('thead', {}, el('tr', {},
+          el('th', {}, t('common.seq')), el('th', {}, t('common.description')),
+          el('th', { class: 'ta-right' }, t('common.qty')), el('th', {}, t('common.unit')),
+          el('th', { class: 'ta-right' }, t('common.unitPrice')))),
+        el('tbody', {}, ...prLines.map((pl) => {
+          const cur = existing.get(pl.id);
+          const qty = el('input', { type: 'number', step: 'any', class: 'num' });
+          qty.value = cur ? cur.qty : pl.qty;
+          const price = el('input', { type: 'number', step: 'any', class: 'num' });
+          price.value = cur ? toBaht(cur.unit_price) : '';
+          inputs.set(pl.id, { qty, price });
+          return el('tr', {},
+            el('td', {}, String(pl.seq)),
+            el('td', {}, el('b', {}, pl.description), pl.spec ? el('div', { class: 'faint' }, pl.spec) : null),
+            el('td', { class: 'ta-right' }, qty), el('td', {}, pl.unit),
+            el('td', { class: 'ta-right' }, price));
+        }))));
+
+    return { node, async save(quoteId) {
+      const rows = [];
+      for (const pl of prLines) {
+        const { qty, price } = inputs.get(pl.id);
+        if (!String(price.value).trim()) continue;    // ไม่กรอกราคา = ผู้ขายไม่เสนอบรรทัดนี้
+        rows.push({ quote_id: quoteId, pr_line_id: pl.id,
+                    qty: Number(qty.value) || 0, unit_price: toSatang(price.value) });
+      }
+      // amount เป็นคอลัมน์ที่ฐานคำนวณเอง ห้ามส่งไป
+      if (rows.length) await upsert('quote_lines', rows, 'quote_id,pr_line_id');
+      const keep = new Set(rows.map((r) => r.pr_line_id));
+      const drop = [...existing.values()].filter((l) => !keep.has(l.pr_line_id)).map((l) => l.id);
+      if (drop.length) await sb.from('quote_lines').delete().in('id', drop).then(un);
+    } };
+  }
+
+  async function editLines(q) {
+    const ed = lineEditor(q);
+    const res = await modal({
+      title: `${t('quote.lines')} — ${vendorById.get(q.vendor_id)?.code ?? ''}`,
+      body: ed.node, wide: true,
+      actions: [{ label: t('common.save'), class: 'btn primary', value: () => true }],
+    });
+    if (typeof res !== 'function') return;
+    try { await ed.save(q.id); ok(t('common.saved')); } catch (e) { fail(e); }
+    reload();
+  }
+
+  // ---- ผู้ขายรับเงื่อนไข SOW ครบไหม ----
+  function sowEditor(q) {
+    const cur = new Map(q ? sowOf(q.id).map((s) => [s.sow_clause_id, s]) : []);
+    const boxes = new Map();
+    const node = el('div', {});
+
+    // ปุ่มติ๊กรวดเดียวทุกข้อ — ผู้ขายส่วนใหญ่รับครบ จะได้ไม่ต้องกดทีละช่อง
+    // กดซ้ำเมื่อครบแล้ว = ล้างทั้งหมด (ปุ่มเดียวสลับสองทาง)
+    const allBtn = el('button', { type: 'button', class: 'btn small',
+                                  style: 'margin:0 0 .6rem' });
+    const syncBtn = () => {
+      const all = clauses.length > 0 && clauses.every((c) => boxes.get(c.id).checked);
+      allBtn.textContent = all ? t('quote.sowNone') : t('quote.sowAll');
+      allBtn.dataset.all = all ? '1' : '';
+    };
+    allBtn.onclick = () => {
+      const want = allBtn.dataset.all !== '1';
+      for (const cb of boxes.values()) cb.checked = want;
+      syncBtn();
+    };
+    node.append(allBtn);
+
+    for (const c of clauses) {
+      const cb = el('input', { type: 'checkbox' });
+      cb.checked = cur.get(c.id)?.accepted ?? false;
+      cb.onchange = syncBtn;
+      boxes.set(c.id, cb);
+      node.append(el('label', { class: 'row', style: 'gap:.5rem;align-items:flex-start;margin-bottom:.6rem' },
+        cb, el('span', {}, el('b', {}, `${c.seq}. ${pick(c, 'title')}`))));
+    }
+    syncBtn();
+
+    return { node, async save(quoteId) {
+      if (!clauses.length) return;
+      await upsert('quote_sow',
+        clauses.map((c) => ({ quote_id: quoteId, sow_clause_id: c.id, accepted: boxes.get(c.id).checked })),
+        'quote_id,sow_clause_id');
+    } };
+  }
+
+  async function editSow(q) {
+    const ed = sowEditor(q);
+    const res = await modal({
+      title: `${t('quote.sowCheck')} — ${vendorById.get(q.vendor_id)?.code ?? ''}`,
+      body: ed.node, wide: true,
+      actions: [{ label: t('common.save'), class: 'btn primary', value: () => true }],
+    });
+    if (typeof res !== 'function') return;
+    try { await ed.save(q.id); ok(t('common.saved')); } catch (e) { fail(e); }
+    reload();
+  }
+
+  // =========================================================================
+  // ตารางเปรียบเทียบ — สะท้อนตารางกรอกข้อมูลแบบ 1 ใบเสนอราคา = 1 แถว
+  //
+  // เอาใบที่ยังอยู่ในการพิจารณา + ใบที่ "รับเงื่อนไขขอบเขตงานไม่ครบ" มาด้วย
+  // เพราะข้อที่ไม่รับยังคุยกันได้ ราคายังเอามาเทียบได้ ต่างจากใบที่ถูกตัดออกด้วยมือ
+  // หรือผู้ขายติดบัญชีดำ ซึ่งจบไปแล้วไม่ต้องเอามารกสายตา (ดูได้ที่ตารางกรอกข้อมูลด้านบน)
+  // =========================================================================
+  if (quoteRows.length) {
+    const card = el('div', { class: 'card' }, el('h2', {}, t('award.title')));
+    card.append(el('p', { class: 'faint' }, t('quote.compareHint')));
+    // บอกไปเลยว่าเกณฑ์ไฮไลต์คือเท่าไร ไม่งั้นพอไม่มีแถวไหนแดง คนจะแยกไม่ออกว่า
+    // "ไม่มีใบไหนเกินงบ" กับ "ฟีเจอร์ไม่ทำงาน/ยังไม่ได้ตั้งงบ" ต่างกันตรงไหน
+    card.append(el('p', { class: 'faint' }, overRef == null
+      ? t('quote.noRef')
+      : t(refIsEstimate ? 'quote.refEstimate' : 'quote.refBudget', { amount: fmt(overRef) })));
+    const inPlayRows = quoteRows.filter((q) => inPlay(rankById.get(q.id)));
+    card.append(inPlayRows.length
+      ? compareTable(inPlayRows)
+      : el('div', { class: 'notice warn' }, t('quote.allExcluded')));
+
+    // ผู้ตรวจรับเปิดดูเปรียบเทียบได้ แต่ไม่มีสิทธิ์เลือกผู้ชนะ จึงเห็นแค่ตารางด้านบน
+    if (canAward) {
+      card.append(el('h3', { style: 'margin-top:1.4rem' }, t('award.pickSection')));
+
+      // ผู้ชนะเลือกเป็น "รายเจ้า" ไม่ใช่รายบรรทัด — ใบขอซื้อหนึ่งใบจบที่ผู้ขายรายเดียว
+      // แถวนี้จึงใช้คอลัมน์ชุดเดียวกับตารางเปรียบเทียบด้านบน ต่างแค่ช่องผู้ขายเป็นกล่องเลือก
+      // เลือกเจ้าไหน ข้อมูลทั้งแถวเด้งมาจากใบเสนอราคาของเจ้านั้นเอง ไม่ต้องเลื่อนขึ้นไปดูซ้ำ
+      //
+      // เลือกได้ทุกเจ้าที่ยังอยู่ในการพิจารณา ไม่ได้บังคับให้เอาเจ้าที่ถูกที่สุด
+      // (ไม่เอาเจ้าถูกสุด = ระบุเหตุผลแล้วยกระดับผู้อนุมัติ ซึ่งเป็นกติกาที่มีอยู่แล้ว)
+      // ใบที่รับขอบเขตงานไม่ครบก็ยังเลือกได้ เพราะข้อที่ไม่รับยังคุยกันได้ก่อนออกใบสั่งซื้อ
+      // เหลือที่เลือกไม่ได้จริงๆ แค่สองกรณีที่คนตั้งใจปิดประตูเอง — ตัดออกด้วยมือ / ติดบัญชีดำ
+      const byTotal = (a, b) => (rankById.get(a.id)?.grand_total ?? 0)
+                              - (rankById.get(b.id)?.grand_total ?? 0);
+      const pickable = quoteRows.filter((q) => inPlay(rankById.get(q.id))).sort(byTotal);
+      const blocked  = quoteRows.filter((q) => !inPlay(rankById.get(q.id))).sort(byTotal);
+
+      if (!pickable.length) {
+        card.append(el('div', { class: 'notice warn' }, t('award.noQualified')));
+      } else {
+        const pickIds = new Set(pickable.map((q) => q.id));
+
+        // ราคาต่ำสุดต่อบรรทัด — นับจากกลุ่มเดียวกับที่เลือกได้ ให้ตรงกับกติกาในฐานข้อมูล
+        // ถ้าอ้างอิงคนละกลุ่มกับสิทธิ์เลือก จะกลายเป็นถามหาเหตุผลจากราคาที่เลือกไม่ได้อยู่ดี
+        const cheapestOf = (plId) => {
+          const cands = qLines.filter((l) => l.pr_line_id === plId && pickIds.has(l.quote_id));
+          return cands.length ? Math.min(...cands.map((l) => l.unit_price)) : null;
+        };
+
+        // ป้ายชื่อในกล่อง: รหัส — ชื่อ — ยอดสุทธิ (★ = ถูกที่สุด)
+        const optLabel = (q) => {
+          const v2 = vendorById.get(q.vendor_id) ?? {};
+          const r2 = rankById.get(q.id) ?? {};
+          return [v2.code ?? '?', pick(v2, 'name'), fmt(r2.grand_total)].filter(Boolean).join(' — ')
+                 + (isCheapest(r2) ? '  \u2605' : '');
+        };
+
+        // เจ้าที่เลือกไม่ได้ยังโชว์ในกล่อง แต่กดไม่ลง พร้อมบอกเหตุผลต่อท้าย
+        // ซ่อนไปเลยจะกลายเป็น "ทำไมไม่เห็นเจ้านี้" แล้วต้องไล่หาเองว่าหายไปไหน
+        const sel = el('select', { style: 'width:100%' },
+          el('option', { value: '' }, t('award.none')),
+          ...pickable.map((q) => el('option', { value: q.id }, optLabel(q))),
+          ...blocked.map((q) => {
+            const r2 = rankById.get(q.id) ?? {};
+            return el('option', { value: q.id, disabled: true },
+              optLabel(q) + '  (' + t(EXCLUDE[r2.exclude_reason] ?? 'quote.excluded') + ')');
+          }));
+
+        // เคยยืนยันไปแล้วให้ค้างที่เจ้าเดิม — ของเดิมเลือกคละเจ้าได้ ถ้าเจอแบบนั้นปล่อยว่างไว้
+        const prevIds = [...new Set(lineAwards.map((a) => a.quote_id))];
+        if (prevIds.length === 1 && pickIds.has(prevIds[0])) sel.value = prevIds[0];
+
+        const cols = compareCols();
+        const tds  = cols.slice(1).map(() => el('td', {}));
+        const tr   = el('tr', {}, el('td', { style: 'min-width:240px' }, sel), ...tds);
+        const warn = el('div', {});
+        const btn  = el('button', { class: 'btn primary', style: 'margin-top:.8rem',
+                                    onclick: () => doAward(sel.value, cheapestOf) }, t('award.confirm'));
+
+        // ใบเสนอราคาของเจ้านี้ขาดรายการไหนไปบ้าง — ขาดแม้บรรทัดเดียวก็ยืนยันไม่ได้
+        // ฐานข้อมูลบังคับให้เลือกครบทุกบรรทัด ดักที่หน้าจอก่อนจะได้ไม่ต้องกดแล้วเจอ error
+        const missingOf = (q) =>
+          prLines.filter((pl) => !linesOf(q.id).some((l) => l.pr_line_id === pl.id));
+
+        const paint = () => {
+          const q = quoteRows.find((x) => x.id === sel.value);
+          const cells = q ? compareCells(q).slice(1) : null;
+          tr.className = (q && overBy(rankById.get(q.id)?.grand_total)) ? 'over-budget' : '';
+          tds.forEach((td, i) => {
+            const col = cols[i + 1];
+            const align = typeof col === 'string' ? null : col.align;
+            td.className = align ? `ta-${align}` : '';
+            td.textContent = '';
+            td.append(cells ? (cells[i].node ?? cells[i].text ?? '')
+                            : el('span', { class: 'faint' }, '—'));
+          });
+          const miss = q ? missingOf(q) : [];
+          warn.textContent = '';
+          if (miss.length) {
+            warn.append(el('div', { class: 'notice warn', style: 'margin-top:.6rem' },
+              t('award.missingLines', { items: miss.map((pl) => pl.description).join(', ') })));
+          }
+          // รับขอบเขตงานไม่ครบ = เลือกได้ แต่ต้องรู้ตัวว่าค้างอะไรอยู่ก่อนไปออกใบสั่งซื้อ
+          if (q && !rankById.get(q.id)?.qualified) {
+            warn.append(el('div', { class: 'notice warn', style: 'margin-top:.6rem' },
+              t('award.pickSowWarn')));
+          }
+          btn.disabled = !q || miss.length > 0;
+        };
+        sel.onchange = paint;
+        paint();
+
+        card.append(table(cols, [tr]), warn);
+
+        if (awards) {
+          card.append(el('div', { class: 'notice ok', style: 'margin-top:.8rem' },
+            t('award.done'),
+            awards.escalated ? ' — ' + t('award.escalated') : ''));
+        }
+
+        card.append(btn);
+      }
+    }
+    app.append(card);
+  }
+
+  // ---- ตัวตารางเปรียบเทียบ ----
+  // คอลัมน์ชุดเดียวกับตารางกรอกข้อมูลช่วง "ผู้ขาย → ขอบเขตงาน"
+  // แทรก "วัตถุประสงค์ที่ซื้อ" ต่อจากผู้ขาย และ "จำนวน" ก่อนยอดสุทธิ
+  function compareCols() {
+    return [
+      { label: t('quote.vendor') },
+      { label: t('quote.purpose') },
+      { label: t('quote.no') },
+      { label: t('quote.subtotal'), align: 'right' },
+      { label: t('quote.freight'), align: 'right' },
+      { label: t('common.qty'), align: 'right' },
+      { label: t('quote.grandTotal'), align: 'right' },
+      { label: t('sow.title'), align: 'center' },
+    ];
+  }
+
+  // ช่องทั้งแถวของใบเสนอราคาหนึ่งใบ — ใช้ร่วมกันสองที่
+  // ตารางเปรียบเทียบ (หลายแถว) กับแถวเลือกผู้ชนะ (แถวเดียว ช่องแรกเป็นกล่องเลือก)
+  function compareCells(q) {
+    const r = rankById.get(q.id) ?? {};
+    const v = vendorById.get(q.vendor_id) ?? {};
+    // เรียงตามลำดับรายการในใบขอซื้อ ไม่ใช่ลำดับที่บังเอิญคีย์เข้ามา
+    const mine = prLines
+      .map((pl) => ({ pl, ql: linesOf(q.id).find((l) => l.pr_line_id === pl.id) }))
+      .filter((x) => x.ql);
+
+    // ช่อง "วัตถุประสงค์ที่ซื้อ" กับ "จำนวน" ต้องอ่านคู่กันบรรทัดต่อบรรทัด
+    // รายการไหนมีสเปกอยู่บรรทัดล่าง ฝั่งจำนวนจึงต้องเว้นบรรทัดเปล่าให้ตรงกัน
+    const purposeNode = mine.length
+      ? el('div', {}, ...mine.map(({ pl }) => el('div', { class: 'cmp-item' },
+          el('b', {}, pl.description),
+          pl.spec ? el('div', { class: 'faint' }, pl.spec) : null)))
+      : el('i', { class: 'faint' }, t('quote.noLines'));
+
+    const qtyNode = mine.length
+      ? el('div', {}, ...mine.map(({ pl, ql }) => el('div', { class: 'cmp-item' },
+          fmtQty(ql.qty) + ' ' + pl.unit,
+          pl.spec ? el('div', { class: 'faint' }, '\u00a0') : null)))
+      : el('span', { class: 'faint' }, '—');
+
+    const sow = `${r.sow_accepted ?? 0}/${r.sow_required ?? clauses.length}`;
+    // รับไม่ครบ = ยังเลือกเป็นผู้ชนะไม่ได้ ติดป้ายแดงตรงตัวเลขไปเลย
+    // ชี้ตรงจุดกว่าการทำทั้งแถวจาง แล้วปล่อยให้คนไปเดาเองว่าจางเพราะอะไร
+    const sowNode = r.sow_complete
+      ? sow
+      : el('span', { class: 'badge red', title: t('quote.exSow') }, sow);
+
+    return [
+      { node: el('div', {}, el('b', {}, v.code ?? '—'),
+          el('div', { class: 'faint vname' }, pick(v, 'name'))),
+        text: `${v.code ?? ''} ${pick(v, 'name') ?? ''}`.trim() },
+      { node: purposeNode,
+        text: mine.map(({ pl }) => [pl.description, pl.spec].filter(Boolean).join(' ')).join(' · ') },
+      { node: el('div', {}, q.quote_no ?? '—',
+          el('div', { class: 'faint' }, fmtDate(q.quote_date)), attachLink(q)),
+        text: q.quote_no ?? '' },
+      { node: fmt(r.subtotal), text: fmt(r.subtotal), num: r.subtotal ?? 0 },
+      { node: fmt(q.freight),  text: fmt(q.freight),  num: q.freight ?? 0 },
+      { node: qtyNode,
+        text: mine.map(({ pl, ql }) => fmtQty(ql.qty) + ' ' + pl.unit).join(' · '),
+        num: mine.reduce((sum, { ql }) => sum + Number(ql.qty || 0), 0) },
+      { node: el('div', {}, el('b', {}, fmt(r.grand_total)),
+          isCheapest(r) ? el('div', { class: 'faint' }, t('quote.cheapest')) : null,
+          overBy(r.grand_total)
+            ? el('div', { title: t('quote.overBudgetHint') },
+                el('span', { class: 'badge red' },
+                  t('quote.overBudget') + ' ' + fmt(overBy(r.grand_total))))
+            : null),
+        text: fmt(r.grand_total), num: r.grand_total ?? 0 },
+      { node: sowNode, text: sow,
+        num: (r.sow_required ?? clauses.length) ? (r.sow_accepted ?? 0) : 0 },
+    ];
+  }
+
+  function compareTable(rowsIn) {
+    // เกินงบ = ไฮไลต์แดงอ่อนทั้งแถว ให้สะดุดตาตอนกวาดสายตาเทียบราคา
+    // ยังเลือกเป็นผู้ชนะได้ตามปกติ แค่เตือนว่าต้องต่อรองหรือขออนุมัติเพิ่ม
+    const rows = rowsIn.map((q) => ({
+      class: overBy(rankById.get(q.id)?.grand_total) ? 'over-budget' : null,
+      cells: compareCells(q),
+    }));
+    return sortTable(compareCols(), rows, { dense: true });
+  }
+
+  // เลือกผู้ชนะทั้งใบทีเดียว แล้วกางเป็นรายบรรทัดให้ฐานข้อมูล
+  // (fn_award_pr ยังรับเป็นรายบรรทัดเหมือนเดิม และบังคับว่าต้องครบทุกบรรทัด)
+  async function doAward(quoteId, cheapestOf) {
+    const q = quoteRows.find((x) => x.id === quoteId);
+    if (!q) { fail(new Error(t('award.needAll'))); return; }
+
+    const mine = linesOf(q.id);
+    const payload = [];
+    const pricey = [];   // บรรทัดที่เจ้านี้เสนอแพงกว่าเจ้าที่ถูกที่สุด
+    for (const pl of prLines) {
+      const ql = mine.find((l) => l.pr_line_id === pl.id);
+      if (!ql) { fail(new Error(t('award.missingLines', { items: pl.description }))); return; }
+      const cheap = cheapestOf(pl.id);
+      if (cheap != null && ql.unit_price > cheap) pricey.push(pl);
+      payload.push({ pr_line_id: pl.id, quote_line_id: ql.id, reason: null });
+    }
+
+    // ไม่ได้เลือกเจ้าที่ถูกที่สุด — ฐานข้อมูลบังคับเหตุผล "รายบรรทัด"
+    // แต่คนเลือกทีเดียวทั้งใบ จึงถามครั้งเดียวแล้วใช้กับทุกบรรทัดที่เข้าข่าย
+    // ถ้าเคยยืนยันเจ้านี้ไปแล้วและมีเหตุผลเก่าอยู่ ก็ใช้ของเดิม ไม่ต้องถามซ้ำ
+    if (pricey.length) {
+      const prior = new Map(lineAwards.filter((a) => a.quote_id === q.id)
+        .map((a) => [a.pr_line_id, (a.reason_if_not_cheapest ?? '').trim()]));
+      const ask = pricey.filter((pl) => !prior.get(pl.id));
+      let fresh = '';
+      if (ask.length) {
+        fresh = await askReason(t('award.notCheapestReason'),
+          ask.map((pl) => pl.description).join(', '));
+        if (!fresh) return;
+      }
+      const need = new Map(pricey.map((pl) => [pl.id, prior.get(pl.id) || fresh]));
+      for (const p of payload) if (need.has(p.pr_line_id)) p.reason = need.get(p.pr_line_id);
+    }
+
+    try {
+      const res = await flow.award(prId, payload, null);
+      ok(t('award.done') + ' — ' + t('award.total') + ' ' + fmt(res.awarded_total));
+      reload();
+    } catch (e) { fail(e); }
+  }
+
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+@import 'tailwindcss';
+
+/* Token contract mirrors shadcn/ui: semantic CSS variables, swapped by
+   [data-theme], mapped into Tailwind via @theme inline. A 21st.dev component
+   dropped in here inherits the theme without edits. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-danger: var(--danger);
+  --color-warn: var(--warn);
+  --color-info: var(--info);
+  --color-ring: var(--ring);
+
+  --font-sans: 'Fira Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'Fira Code', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+/* Dark is the default: this is a tool you keep open next to an editor. */
+:root,
+[data-theme='dark'] {
+  --bg: #0f172a;
+  --surface: #131c31;
+  --surface-2: #1e293b;
+  --border: #263149;
+  --fg: #f8fafc;
+  --muted: #94a3b8;      /* 7.0:1 on --bg */
+  --accent: #22c55e;
+  --accent-fg: #052e16;
+  --danger: #f87171;
+  --warn: #fbbf24;
+  --info: #60a5fa;
+  --ring: #22c55e;
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --bg: #ffffff;
+  --surface: #f8fafc;
+  --surface-2: #f1f5f9;
+  --border: #cbd5e1;     /* slate-300: visible on white, not the near-invisible white/10 */
+  --fg: #0f172a;
+  --muted: #475569;      /* slate-600 — the lightest that clears 4.5:1 */
+  --accent: #15803d;     /* green-700 so accent text passes on white */
+  --accent-fg: #ffffff;
+  --danger: #b91c1c;
+  --warn: #a16207;
+  --info: #1d4ed8;
+  --ring: #15803d;
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* A dev tool lives in tables. Keep the scrollbars thin but visible. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 6px;
+  border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+::selection { background: color-mix(in oklab, var(--accent) 30%, transparent); }
+
+/* Every interactive element gets a visible ring — keyboard nav is not optional. */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes flash {
+  from { background-color: color-mix(in oklab, var(--accent) 22%, transparent); }
+  to { background-color: transparent; }
+}
+.flash { animation: flash 900ms ease-out; }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.pulse-dot { animation: pulse-dot 1.6s ease-in-out infinite; }

@@ -1,0 +1,605 @@
+/* ============================================================
+   ระบบจัดซื้อจัดจ้าง — หน้าจอใช้งาน
+   เน้นอ่านตัวเลขง่าย แถวเยอะไม่ล้า ใช้ได้ทั้งไทยและอังกฤษ
+   ============================================================ */
+
+:root {
+  --bg:        #f4f6f8;
+  --surface:   #ffffff;
+  --line:      #dfe4ea;
+  --line-soft: #eef1f4;
+  --ink:       #1c2530;
+  --ink-soft:  #5b6874;
+  --ink-faint: #8d99a6;
+  --brand:     #14532d;
+  --brand-ink: #ffffff;
+  --accent:    #1d6f42;
+  --ok:        #157347;
+  --warn:      #9a6700;
+  --warn-bg:   #fff4d6;
+  --err:       #b02a25;
+  --err-bg:    #fdeceb;
+  --ok-bg:     #e6f4ec;
+  --blue:      #1b5e9e;
+  --blue-bg:   #e7f0f9;
+  --radius:    8px;
+  --shadow:    0 1px 2px rgba(20,30,45,.06), 0 4px 14px rgba(20,30,45,.06);
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans Thai', 'Noto Sans Thai', 'Sarabun', -apple-system,
+               BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+:lang(en) body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }
+
+h1 { font-size: 1.35rem; margin: 0; font-weight: 650; }
+h2 { font-size: 1.05rem; margin: 0 0 .6rem; font-weight: 650; }
+h3 { font-size: .95rem; margin: 0 0 .4rem; font-weight: 600; color: var(--ink-soft); }
+a  { color: var(--accent); }
+
+/* ---------- แถบบน ---------- */
+/* สองแถวเสมอ: แถวบนโลโก้กับปุ่มผู้ใช้ แถวล่างเมนู — หน้าตาเท่ากันทุกภาษา
+   ไม่ให้ความยาวเมนูของแต่ละภาษามาเปลี่ยนโครงหน้า */
+.topbar {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center; column-gap: 1rem; row-gap: .45rem;
+  padding: .45rem 1.1rem;
+  background: var(--brand); color: var(--brand-ink);
+  position: sticky; top: 0; z-index: 40;
+}
+.topbar .brand { grid-column: 1; grid-row: 1; }
+.topbar nav    { grid-column: 1; grid-row: 2; }
+/* คร่อมทั้งสองแถวแล้วดันลงล่าง ให้ก้อนผู้ใช้ชิดเส้นล่างเดียวกับเมนู ไม่ลอยอยู่ครึ่งบน */
+.topbar .user-group {
+  grid-column: 2; grid-row: 1 / span 2; align-self: end;
+  display: flex; align-items: center; gap: 1rem;
+}
+.topbar .brand { font-weight: 700; color: #fff; text-decoration: none; white-space: nowrap; }
+/* nav เลื่อนแนวนอนได้ กล่องจึงตัดขอบ — เผื่อที่ไว้รอบใน ไม่งั้นมุมโค้งของเมนูที่เลือกอยู่โดนเฉือน
+   (padding ด้านท้ายมักถูกเมิน ใน flex ที่เลื่อนได้ ต้องใช้ ::after กันไว้อีกชั้น) */
+.topbar nav {
+  display: flex; gap: .15rem; overflow-x: auto; scrollbar-width: none;
+  padding: 3px; margin: -3px; scroll-padding-inline: 3px;
+}
+.topbar nav::after { content: ''; flex: 0 0 3px; }
+
+.topbar nav::-webkit-scrollbar { display: none; }
+.topbar nav a {
+  color: #d7e6dc; text-decoration: none; padding: .35rem .7rem;
+  border-radius: 6px; white-space: nowrap; font-size: .92rem;
+}
+.topbar nav a:hover  { background: rgba(255,255,255,.12); color: #fff; }
+.topbar nav a.active { background: rgba(255,255,255,.2);  color: #fff; font-weight: 600; }
+.topbar .spacer { flex: 1; }
+/* ความกว้างคงที่ ไม่ผูกกับความยาวข้อความ — สลับ EN/ไทย แล้วปุ่มต้องไม่ขยับ */
+/* ทุกชิ้นในกลุ่มขวากว้างเท่าข้อความของตัวเอง แล้วเว้นระยะห่างเท่ากันหมด (gap ของ .topbar)
+   ตำแหน่งจึงขยับตามความยาวข้อความได้ แต่ช่องไฟไม่โดด */
+.topbar .btn.lang-toggle { justify-content: center; padding-inline: .6rem; }
+.topbar .who {
+  display: flex; flex-direction: column; justify-content: center;
+  line-height: 1.2; font-size: .85rem; text-align: right;
+  flex: 0 1 auto; min-width: 0; max-width: clamp(8rem, 17vw, 15rem);
+}
+.topbar .who > b, .topbar .who small {
+  display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.topbar .who > b { font-weight: 600; }
+.topbar .who small { color: #b9d2c4; font-size: .72rem; }
+
+/* ---------- โครงหน้า ---------- */
+main { max-width: 1240px; margin: 0 auto; padding: 1.2rem 1.1rem 4rem; }
+.page-head { display: flex; align-items: center; gap: .8rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.page-head .spacer { flex: 1; }
+
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 1rem 1.1rem; margin-bottom: 1rem;
+}
+.card > h2:first-child { margin-top: 0; }
+.grid  { display: grid; gap: 1rem; }
+.g2    { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.g3    { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.row   { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+.spacer{ flex: 1; }
+.hidden{ display: none !important; }
+.muted { color: var(--ink-soft); }
+.faint { color: var(--ink-faint); font-size: .85rem; }
+.center { text-align: center; }
+
+/* ---------- ฟอร์ม ---------- */
+label { display: block; font-size: .84rem; color: var(--ink-soft); margin-bottom: .22rem; font-weight: 500; }
+input, select, textarea {
+  width: 100%; padding: .48rem .6rem; font: inherit; color: var(--ink);
+  background: #fff; border: 1px solid var(--line); border-radius: 6px;
+}
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid rgba(29,111,66,.28); outline-offset: -1px; border-color: var(--accent);
+}
+input:disabled, select:disabled, textarea:disabled { background: var(--line-soft); color: var(--ink-soft); }
+input[type=checkbox], input[type=radio] { width: auto; }
+textarea { resize: vertical; }
+.field { margin-bottom: .8rem; }
+/* คำอธิบายใต้หัวข้อ — บางข้อมีสองบรรทัด (คำอธิบายข้อ + วิธีกรอก) ถ้าปล่อยเป็น inline
+   สองบรรทัดจะต่อกันเป็นประโยคเดียวจนอ่านผิดความ */
+.field > small { display: block; }
+
+/* ---------- ช่องวันที่ วว/ดด/ปปปป พร้อมปฏิทินในตัว ---------- */
+.field-wrap { position: relative; }
+/* ไอคอนอยู่ซ้ายสุดของกล่อง คนหาเจอก่อนเริ่มพิมพ์ — ตัวอักษรจึงต้องเว้นที่ทางซ้ายให้ */
+.date-field .date-input {
+  padding-left: 2.7rem; font-variant-numeric: tabular-nums; letter-spacing: .01em;
+}
+.date-field .date-input.bad { border-color: var(--err); background: var(--err-bg); }
+.in-field-btn {
+  position: absolute; top: 50%; left: .32rem; transform: translateY(-50%);
+  width: 1.85rem; height: 1.85rem; padding: 0; line-height: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--brand);
+  background: rgba(20, 83, 45, .08);
+  border: 1px solid rgba(20, 83, 45, .18); border-radius: 7px;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.in-field-btn svg { width: 15px; height: 15px; display: block; }
+.in-field-btn:hover {
+  background: var(--brand); color: var(--brand-ink); border-color: var(--brand);
+}
+.in-field-btn:active { transform: translateY(-50%) scale(.93); }
+.in-field-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.in-field-btn:disabled { opacity: .4; cursor: default; background: transparent; }
+/* โฟกัสอยู่ในช่อง = กำลังจะกรอก ไอคอนเด่นขึ้นให้นึกออกว่ากดเลือกจากปฏิทินได้ */
+.field-wrap:focus-within .in-field-btn { background: rgba(20, 83, 45, .16); }
+/* ช่องปฏิทินจริงซ้อนทับช่องข้อความแบบโปร่งใส — ต้องกินพื้นที่เท่ากันจริง
+   ปฏิทินจะได้เด้งตรงใต้ช่อง ไม่ไปโผล่มุมจอ และ pointer-events:none ให้คลิกทะลุไปที่ช่องข้อความ */
+.date-field .date-native {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  opacity: 0; pointer-events: none; border: 0; padding: 0;
+}
+/* ทางสำรองเมื่อเปิดปฏิทินด้วยสคริปต์ไม่ได้ — โชว์ช่องปฏิทินมาตรฐานทับไว้ให้กดเอง */
+.date-field.picker-fallback .date-native {
+  opacity: 1; pointer-events: auto; z-index: 2;
+  padding: .48rem .6rem .48rem 2.7rem;
+  border: 1px solid var(--accent); border-radius: 6px; background: #fff;
+}
+.date-field .btn-holder { display: contents; }
+
+/* ช่องที่ระบบเติมให้จากที่อื่น (เช่น BOQ ดึงจากรายการที่ขอซื้อ) — แก้ตรงนี้ไม่ได้ */
+textarea.linked, input.linked {
+  background: var(--bg); color: var(--ink-soft);
+  border-style: dashed; cursor: default;
+}
+
+/* ---------- รายการติ๊กเลือกหลายรายการ (เช่น เลือกผู้ขายหลายเจ้าในใบขอราคา) ---------- */
+.pick-list { border: 1px solid var(--line); border-radius: var(--radius);
+             max-height: 46vh; overflow: auto; }
+.pick-row { display: flex; align-items: center; gap: .5rem; margin: 0;
+            padding: .42rem .6rem; font-size: .95rem; color: var(--ink);
+            cursor: pointer; border-bottom: 1px solid var(--line); }
+.pick-list .pick-row:last-child { border-bottom: 0; }
+.pick-row:hover { background: var(--bg); }
+.pick-row input[type=checkbox] { width: 16px; height: 16px; flex: none; margin: 0; }
+.pick-row .faint { margin-left: auto; }
+.pick-all { border: 0; padding: .2rem .1rem .45rem; }
+.err-line { color: var(--err); font-size: .82rem; margin: .25rem 0 0; }
+
+/* ตัวเลขเงิน — ใช้ตัวเลขความกว้างเท่ากันเพื่อให้หลักตรงกัน */
+.num, td.num, input.num { font-variant-numeric: tabular-nums; text-align: right; }
+
+/* ---------- ปุ่ม ---------- */
+.btn {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .45rem .85rem; font: inherit; font-weight: 500;
+  border: 1px solid var(--line); border-radius: 6px;
+  background: #fff; color: var(--ink); cursor: pointer; white-space: nowrap;
+}
+.btn:hover:not(:disabled) { border-color: var(--ink-faint); background: #fafbfc; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover:not(:disabled) { background: #17603a; }
+.btn.danger  { background: var(--err); border-color: var(--err); color: #fff; }
+.btn.ghost   { background: transparent; border-color: rgba(255,255,255,.35); color: inherit; }
+.topbar .btn.ghost:hover { background: rgba(255,255,255,.14); }
+.btn.small   { padding: .25rem .55rem; font-size: .84rem; }
+.btn.link    { border: 0; background: none; color: var(--accent); padding: 0; text-decoration: underline; }
+/* ปุ่มเข้าระบบด้วย Google — สูงกว่าปุ่มปกติเพราะเป็นทางเข้าเดียวของระบบ */
+.btn.google  { padding: .62rem .85rem; font-weight: 600; }
+.btn.google .g-logo { width: 18px; height: 18px; flex: none; }
+
+/* ---------- ตาราง ---------- */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; }
+/* ตารางที่คอลัมน์เยอะ — บังคับความกว้างขั้นต่ำ ให้เลื่อนแนวนอนแทนที่จะบีบจนอ่านไม่ออก */
+.table-wrap.dense table { min-width: 1320px; }
+.table-wrap.dense th:first-child,
+.table-wrap.dense td:first-child { min-width: 13rem; }
+.table-wrap.dense td .vname { display: block; }
+.actions { white-space: nowrap; display: flex; gap: .25rem; justify-content: flex-end; }
+table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+th, td { padding: .5rem .65rem; text-align: left; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+th {
+  background: #f7f9fa; font-weight: 600; font-size: .8rem; color: var(--ink-soft);
+  position: sticky; top: 0; white-space: nowrap;
+}
+tbody tr:hover { background: #fbfcfd; }
+tbody tr:last-child td { border-bottom: 0; }
+td.empty { text-align: center; color: var(--ink-faint); padding: 2rem; }
+.ta-right { text-align: right; }
+.ta-center{ text-align: center; }
+tr.excluded td { color: var(--ink-faint); background: #fbfbfc; }
+tr.winner td { background: var(--ok-bg); }
+
+/* ---------- ป้ายสถานะ ---------- */
+.badge {
+  display: inline-block; padding: .12rem .5rem; border-radius: 100px;
+  font-size: .76rem; font-weight: 600; white-space: nowrap;
+}
+.badge.grey  { background: #eceff2; color: #55606c; }
+.badge.blue  { background: var(--blue-bg); color: var(--blue); }
+.badge.green { background: var(--ok-bg);   color: var(--ok); }
+.badge.amber { background: var(--warn-bg); color: var(--warn); }
+.badge.red   { background: var(--err-bg);  color: var(--err); }
+
+/* ---------- กล่องแจ้งเตือนในหน้า ---------- */
+.notice { padding: .65rem .85rem; border-radius: 6px; border-left: 3px solid; margin-bottom: .9rem; font-size: .9rem; }
+.notice.ok   { background: var(--ok-bg);   border-color: var(--ok);   color: #12502f; }
+.notice.warn { background: var(--warn-bg); border-color: var(--warn); color: #6b4700; }
+.notice.err  { background: var(--err-bg);  border-color: var(--err);  color: #7d1d19; }
+.notice.info { background: var(--blue-bg); border-color: var(--blue); color: #14476f; }
+.notice strong { display: block; margin-bottom: .15rem; }
+
+/* ---------- สายอนุมัติ ---------- */
+.chain { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
+.chain .step {
+  display: flex; flex-direction: column; align-items: center; gap: .15rem;
+  padding: .4rem .7rem; border: 1px solid var(--line); border-radius: 6px;
+  background: #fff; font-size: .82rem; min-width: 92px;
+}
+.chain .step small { color: var(--ink-faint); font-size: .72rem; }
+.chain .step.done    { border-color: var(--ok);   background: var(--ok-bg); }
+.chain .step.current { border-color: var(--warn); background: var(--warn-bg); font-weight: 600; }
+.chain .step.reject  { border-color: var(--err);  background: var(--err-bg); }
+.chain .arrow { color: var(--ink-faint); }
+
+/* ---------- แถบงบประมาณ ---------- */
+.meter { height: 8px; background: var(--line-soft); border-radius: 100px; overflow: hidden; margin: .3rem 0; }
+.meter > i { display: block; height: 100%; background: var(--ok); border-radius: 100px; }
+.meter.warn > i { background: var(--warn); }
+.meter.over > i { background: var(--err); }
+
+/* ---------- แจ้งเตือนมุมจอ ---------- */
+#toasts { position: fixed; right: 1rem; bottom: 1rem; z-index: 90; display: flex; flex-direction: column; gap: .5rem; }
+.toast {
+  padding: .6rem .9rem; border-radius: 6px; box-shadow: var(--shadow);
+  background: #263140; color: #fff; font-size: .88rem; max-width: 380px;
+  animation: slide-in .2s ease-out;
+}
+.toast-ok   { background: var(--ok); }
+.toast-warn { background: var(--warn); }
+.toast-err  { background: var(--err); }
+.toast.out  { opacity: 0; transition: opacity .3s; }
+@keyframes slide-in { from { transform: translateX(12px); opacity: 0; } }
+
+/* ---------- กล่องโต้ตอบ ---------- */
+.backdrop {
+  position: fixed; inset: 0; background: rgba(20,30,45,.42);
+  display: flex; align-items: center; justify-content: center; z-index: 80; padding: 1rem;
+}
+.modal { background: #fff; border-radius: var(--radius); box-shadow: 0 12px 40px rgba(0,0,0,.22);
+         width: min(520px, 100%); max-height: 90vh; display: flex; flex-direction: column; }
+.modal.wide { width: min(980px, 100%); }
+.modal header  { padding: .9rem 1.1rem; border-bottom: 1px solid var(--line); font-weight: 650; }
+.modal section { padding: 1rem 1.1rem; overflow: auto; }
+.modal footer  { padding: .8rem 1.1rem; border-top: 1px solid var(--line);
+                 display: flex; gap: .5rem; justify-content: flex-end; }
+
+.spinner { padding: 2.5rem; text-align: center; color: var(--ink-faint); }
+
+/* ---------- หน้าเข้าสู่ระบบ ---------- */
+/* แถบหัวข้อย่อยของหน้าตั้งค่า */
+.tabs { display: flex; flex-wrap: wrap; gap: .15rem; margin-bottom: 1.1rem;
+        border-bottom: 1px solid var(--line); }
+.tabs a { padding: .5rem .8rem; text-decoration: none; color: var(--ink-faint);
+          border-bottom: 2px solid transparent; font-weight: 500; white-space: nowrap; }
+.tabs a:hover { color: var(--ink); }
+.tabs a.active { color: var(--accent); border-bottom-color: var(--accent); }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 0 1rem; }
+.form-grid .wide { grid-column: 1 / -1; }
+
+/* ช่องแนบไฟล์ — ปุ่มเลือกไฟล์ + ชื่อไฟล์ อยู่ในกรอบเดียวกับช่องกรอกอื่น */
+.file-field {
+  display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+  padding: .4rem .5rem; border: 1px solid var(--line); border-radius: 6px;
+  background: #fff; min-height: 2.4rem;
+}
+.file-field.invalid { border-color: var(--err); }
+.file-field .file-name {
+  flex: 1 1 8rem; min-width: 0; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.file-field .rm { color: var(--err); }
+
+/* ลิงก์ไฟล์แนบในตารางเปรียบเทียบ — ชื่อไฟล์ยาวแค่ไหนก็ห้ามดันตารางให้กว้างขึ้น */
+.btn.attach {
+  display: block; max-width: 11rem; margin-top: .15rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: .84rem; text-align: left;
+}
+/* กล่องไฟล์แนบในหน้ารายละเอียด — ดูบิลจริงคู่กับตัวเลขที่คีย์ไว้ในหน้าเดียวกัน */
+.attach-head { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-top: .7rem; }
+.attach-head .clip { font-size: 1rem; line-height: 1; }
+.attach-head .attach-name {
+  flex: 1 1 10rem; min-width: 0; font-weight: 500;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.file-view { margin-top: .7rem; }
+.file-preview {
+  display: block; width: 100%; border: 1px solid var(--line); border-radius: 6px;
+  background: #fff;   /* บิลสแกนมาพื้นขาว โหมดมืดก็ต้องขาว ไม่งั้นขอบรอบกระดาษเพี้ยน */
+}
+iframe.file-preview { height: 70vh; min-height: 22rem; }
+/* รูปบิลไม่ยืดเต็มความกว้าง — ปล่อยให้กรอบพอดีตัวรูป ไม่งั้นมีขอบขาวโล่งสองข้าง */
+img.file-preview { width: auto; max-width: 100%; height: auto; max-height: 70vh;
+                   margin-inline: auto; }
+@media (max-width: 700px) {
+  iframe.file-preview { height: 55vh; min-height: 16rem; }
+}
+
+.form-grid .invalid, input.invalid, select.invalid, textarea.invalid {
+  border-color: var(--err); background: var(--err-bg);
+}
+
+/* ก้อนเสริมท้ายฟอร์มในกล่องเดียวกัน (เช่น ตารางจำนวนรับ/ตีกลับ ในกล่องบันทึกการส่งมอบ) */
+.form-extra { margin-top: .8rem; padding-top: .8rem; border-top: 1px solid var(--line); }
+/* ช่องตัวเลขในก้อนเสริมต้องชิดขวาเท่ากับหัวคอลัมน์ที่ชิดขวา ไม่งั้นช่องกับหัวจะเยื้องกัน */
+.form-extra table input[type=number] { width: 5.5rem; display: block; margin-left: auto; }
+.form-extra table th { white-space: nowrap; }
+.chips { display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; }
+.chip { display: inline-flex; align-items: center; gap: .3rem; font-size: .8rem;
+        padding: .15rem .2rem .15rem .5rem; border: 1px solid var(--line); border-radius: 999px; }
+.chip button { border: 0; background: none; cursor: pointer; color: var(--err);
+               font-size: .95rem; line-height: 1; padding: 0 .3rem; }
+
+/* ---------- หน้าเข้าสู่ระบบ (สองฝั่ง: ฝั่งซ้ายแนะนำระบบ ฝั่งขวาลงชื่อเข้าใช้) ---------- */
+.login-wrap { min-height: 100vh; background: var(--surface); display: grid;
+              grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
+
+/* ฝั่งซ้าย — ภาพท่าเรือตู้คอนเทนเนอร์มุมสูง คลุมด้วยสีกรมท่าให้ตัวอักษรอ่านออก */
+.login-hero {
+  position: relative; overflow: hidden; color: #fff;
+  display: flex; flex-direction: column; justify-content: space-between;
+  padding: 3rem clamp(2rem, 4vw, 4rem);
+  background: #101c28 url('../img/login-port.jpg') center 62% / cover no-repeat;
+}
+/* ทึบด้านบน (เป็นพื้นให้โลโก้) แล้วค่อยจางลงให้เห็นภาพช่วงกลาง และเข้มอีกทีตรงแถวตัวเลข */
+.login-hero::before {
+  content: ''; position: absolute; inset: 0;
+  background:
+    linear-gradient(180deg,
+      #0e1a26 0%, #0e1a26 14%, rgba(14,26,38,.88) 24%,
+      rgba(14,26,38,.60) 44%, rgba(13,24,34,.56) 66%,
+      rgba(10,18,26,.78) 86%, rgba(9,16,23,.90) 100%),
+    linear-gradient(90deg, rgba(10,18,26,.45) 0%, rgba(10,18,26,0) 48%);
+}
+.login-hero > * { position: relative; z-index: 1; }
+
+.brand-mark { display: inline-flex; align-items: center; gap: .6rem; }
+.brand-mark .mark {
+  width: 34px; height: 34px; border-radius: 9px; flex: none;
+  display: grid; place-items: center; background: var(--accent); color: #fff;
+}
+.brand-mark .mark svg { width: 19px; height: 19px; display: block; }
+.brand-mark .name { font-weight: 700; font-size: 1.05rem; letter-spacing: .1px; }
+.brand-mark .name .soft { font-weight: 400; opacity: .72; }
+/* ฝั่งภาพใช้ตราสลับสี — พื้นขาว ไอคอนเขียว ให้ตัดกับภาพเข้ม */
+.login-hero .brand-mark .mark { background: #fff; color: var(--accent); }
+
+.login-hero .hero-copy { max-width: 34rem; }
+.login-hero h2 {
+  font-size: clamp(1.7rem, 2.6vw, 2.5rem); line-height: 1.25;
+  font-weight: 700; color: #fff; margin: 0 0 1rem; text-wrap: balance;
+  text-shadow: 0 2px 18px rgba(0,0,0,.45);
+}
+.login-hero p { margin: 0; color: #cbd6de; font-size: .98rem; line-height: 1.6; max-width: 46ch;
+                text-shadow: 0 1px 12px rgba(0,0,0,.45); }
+
+.login-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem;
+  padding-top: 1.4rem; border-top: 1px solid rgba(255,255,255,.18);
+}
+.login-stats b { display: block; font-size: 1.25rem; font-weight: 700; color: #fff; }
+.login-stats span { display: block; font-size: .78rem; color: #a3b1bc; line-height: 1.45; margin-top: .15rem; }
+
+/* ฝั่งขวา */
+.login-panel {
+  display: flex; flex-direction: column;
+  padding: 2.2rem clamp(1.5rem, 4vw, 3.5rem) 1.6rem;
+}
+.login-panel .panel-top { display: flex; align-items: center; gap: 1rem; }
+.login-panel .panel-top .spacer { flex: 1; }
+.login-panel .brand-mark { color: var(--ink); }
+.login-panel .brand-mark .name { color: var(--ink); }
+
+.lang-pill {
+  display: inline-flex; align-items: center; gap: .35rem;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink-soft);
+  border-radius: 999px; padding: .3rem .7rem; font: inherit; font-size: .82rem;
+  font-weight: 600; cursor: pointer;
+}
+.lang-pill:hover { background: #fff; color: var(--ink); }
+.lang-pill svg { width: 14px; height: 14px; }
+
+.login-form { flex: 1; display: flex; flex-direction: column; justify-content: center;
+              width: min(430px, 100%); margin: 0 auto; padding: 2.5rem 0; }
+.login-form h1 { text-align: left; font-size: clamp(1.5rem, 2.2vw, 1.9rem); margin: 0 0 .35rem; }
+.login-form .lead { color: var(--ink-soft); margin: 0 0 1.6rem; }
+.login-form .btn { width: 100%; justify-content: center; padding: .7rem 1rem; font-size: .98rem; }
+.login-form .err-line { text-align: left; margin-top: .8rem; }
+.login-form .notice { margin-bottom: 1rem; }
+
+.login-foot {
+  display: flex; align-items: center; gap: .5rem;
+  border-top: 1px solid var(--line-soft); padding-top: 1rem;
+  width: 100%; margin: 0 auto;
+  font-size: .82rem; color: var(--ink-faint);
+}
+.login-foot .spacer { flex: 1; }
+.login-foot .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); display: inline-block; }
+.login-foot .state { color: var(--ok); font-weight: 600; }
+.login-foot.down .dot { background: var(--err); }
+.login-foot.down .state { color: var(--err); }
+.login-foot a { color: var(--ink-faint); text-decoration: none; margin-left: .9rem; white-space: nowrap; }
+.login-foot a:hover { color: var(--ink-soft); text-decoration: underline; }
+
+@media (max-width: 900px) {
+  .login-wrap { grid-template-columns: 1fr; }
+  .login-hero { padding: 2rem 1.4rem; gap: 1.6rem; }
+  .login-hero .hero-copy { max-width: none; }
+  .login-stats { gap: .8rem; padding-top: 1rem; }
+  .login-stats b { font-size: 1.05rem; }
+  .login-panel .panel-top .brand-mark { display: none; }
+  .login-panel { padding: 1.2rem 1.4rem 1.4rem; }
+  .login-form { padding: 1.6rem 0; }
+}
+
+/* ---------- คำเชิญผู้ใช้ ---------- */
+a.btn { text-decoration: none; color: var(--ink); }
+a.btn.primary { color: #fff; }
+.btn .plus { font-size: 1.05rem; line-height: 1; font-weight: 600; }
+.checks { display: flex; flex-wrap: wrap; gap: .35rem .9rem; margin: .15rem 0 .25rem; }
+.check  { display: inline-flex; align-items: center; gap: .35rem; font-size: .9rem; cursor: pointer; }
+.check input { margin: 0; }
+/* ลิงก์เชิญยาวและต้องคัดลอกให้ครบ — ตัดคำกลางคำได้ ห้ามล้นกล่อง */
+.invite-link { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85rem;
+               word-break: break-all; background: var(--line-soft); border: 1px solid var(--line);
+               border-radius: 6px; padding: .55rem .7rem; }
+
+/* ตัวเลือกตำแหน่ง — ปุ่มกดใหญ่ กดโดนง่าย เห็นชัดว่าอันไหนถูกเลือก */
+.pick-box { border: 1px solid var(--line); border-radius: 8px; padding: .7rem .8rem;
+            background: #fcfdfd; margin-top: .3rem; }
+.pick-box > label:first-child { font-size: .9rem; color: var(--ink); font-weight: 600; }
+.role-picks { display: flex; flex-wrap: wrap; gap: .45rem; margin: .5rem 0 .35rem; }
+.role-pick { display: inline-flex; align-items: center; gap: .4rem; cursor: pointer;
+             margin: 0; padding: .4rem .7rem; font-size: .9rem; font-weight: 500;
+             color: var(--ink); background: #fff;
+             border: 1px solid var(--line); border-radius: 999px; }
+.role-pick:hover { border-color: var(--ink-faint); }
+.role-pick input { margin: 0; }
+.role-pick.on { background: var(--ok-bg); border-color: var(--accent); color: #12502f; }
+
+/* ---------- จอเล็ก ---------- */
+@media (max-width: 720px) {
+  .topbar { padding: .5rem .7rem; gap: .5rem; }
+  .topbar .who { display: none; }
+  main { padding: .9rem .6rem 3rem; }
+}
+
+/* ---------- ตารางที่กดหัวคอลัมน์เพื่อเรียงได้ (js/sorttable.js) ---------- */
+.stable th.sortable { cursor: pointer; user-select: none; }
+.stable th.sortable:hover { color: var(--ink); background: #eff3f5; }
+.stable th.sortable:focus-visible { outline: 2px solid rgba(29,111,66,.35); outline-offset: -2px; }
+.stable .sort-mark { margin-left: .25rem; font-size: .65rem; color: var(--accent); }
+/* แถวที่ยอดเกินงบคงเหลือ — เตือนด้วยสีเท่านั้น ยังเลือกเป็นผู้ชนะได้ */
+/* ต้องอยู่หลัง tbody tr:hover ในไฟล์ และมี 2 คลาส เพื่อให้ชนะกฎ hover ของตารางทั่วไป */
+.stable tbody tr.over-budget td { background: var(--err-bg); }
+.stable tbody tr.over-budget:hover td { background: #fbdedb; }
+/* ป้ายแดงในแถวที่ไฮไลต์แดงอยู่แล้ว พื้นจะกลืนกันจนดูไม่ออกว่าเป็นป้าย — พลิกเป็นพื้นขาว */
+.stable tbody tr.over-budget .badge.red { background: #fff; }
+/* แต่ละรายการในช่อง "วัตถุประสงค์ที่ซื้อ" กับ "จำนวน" ต้องสูงเท่ากัน จะได้อ่านคู่กันตรงบรรทัด */
+.cmp-item { padding: .12rem 0; }
+.cmp-item + .cmp-item { border-top: 1px dashed var(--line-soft); margin-top: .25rem; padding-top: .3rem; }
+
+/* ============================================================
+   โหมดมืด — สลับด้วยปุ่มบนแถบบน (js/theme.js ติด data-theme ไว้ที่ <html>)
+   อยู่ใน @media screen ล้วน: เอกสารที่สั่งพิมพ์ต้องเป็นพื้นขาวหมึกดำเสมอ
+   ============================================================ */
+@media screen {
+  [data-theme="dark"] {
+    color-scheme: dark;   /* ปฏิทิน/สกอลบาร์ของเบราว์เซอร์ต้องมืดตาม ไม่งั้นเด้งมาขาวโพลน */
+    --bg:        #12171d;
+    --surface:   #1a2028;
+    --line:      #303a47;
+    --line-soft: #242d37;
+    --ink:       #e5ecf3;
+    --ink-soft:  #a6b3c0;
+    --ink-faint: #7c8b99;
+    --brand:     #12351f;
+    --brand-ink: #eef5f0;
+    --accent:    #45b078;
+    --ok:        #4fbe80;
+    --warn:      #d9a63c;
+    --warn-bg:   #38290d;
+    --err:       #ef6d66;
+    --err-bg:    #3b1d1b;
+    --ok-bg:     #16321f;
+    --blue:      #6cabe4;
+    --blue-bg:   #152a3c;
+    --shadow:    0 1px 2px rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.28);
+  }
+
+  /* ที่เหลือคือจุดที่เขียนสีขาวตายตัวไว้ — ต้องดึงกลับมาใช้ตัวแปรทีละที่ */
+  [data-theme="dark"] input,
+  [data-theme="dark"] select,
+  [data-theme="dark"] textarea,
+  [data-theme="dark"] .btn:not(.primary):not(.danger):not(.ghost):not(.link),
+  [data-theme="dark"] .table-wrap,
+  [data-theme="dark"] .chain .step,
+  [data-theme="dark"] .modal,
+  [data-theme="dark"] .file-field,
+  [data-theme="dark"] .pick-box,
+  [data-theme="dark"] .role-pick,
+  [data-theme="dark"] .date-field.picker-fallback .date-native,
+  [data-theme="dark"] .lang-pill:hover,
+  [data-theme="dark"] .stable tbody tr.over-budget .badge.red { background: var(--surface); }
+
+  [data-theme="dark"] .btn:hover:not(:disabled)   { background: #242e39; }
+  [data-theme="dark"] .btn.primary                { background: var(--accent); border-color: var(--accent); color: #0d1a12; }
+  [data-theme="dark"] .btn.primary:hover:not(:disabled) { background: #55c187; }
+  [data-theme="dark"] .btn.danger                 { background: var(--err); border-color: var(--err); color: #2a0f0d; }
+  [data-theme="dark"] a.btn.primary               { color: #0d1a12; }
+  [data-theme="dark"] .btn.ghost                  { background: transparent; }
+
+  [data-theme="dark"] th                          { background: #202832; }
+  [data-theme="dark"] tbody tr:hover              { background: #222b35; }
+  [data-theme="dark"] tr.excluded td              { background: #1b2129; }
+  [data-theme="dark"] .stable th.sortable:hover   { background: #26313c; color: var(--ink); }
+  [data-theme="dark"] .stable tbody tr.over-budget:hover td { background: #4a2521; }
+
+  [data-theme="dark"] .badge.grey                 { background: #2d3742; color: #b6c2ce; }
+
+  /* ข้อความในกล่องแจ้งเตือน เดิมเป็นสีเข้มบนพื้นอ่อน — พลิกเป็นสีอ่อนบนพื้นเข้ม */
+  [data-theme="dark"] .notice.ok                  { color: #9fe0ba; }
+  [data-theme="dark"] .notice.warn                { color: #f0cf8a; }
+  [data-theme="dark"] .notice.err                 { color: #f5aca7; }
+  [data-theme="dark"] .notice.info                { color: #a8cef0; }
+  [data-theme="dark"] .role-pick.on               { color: #9fe0ba; }
+
+  [data-theme="dark"] .backdrop                   { background: rgba(0,0,0,.6); }
+  [data-theme="dark"] .toast                      { background: #2d3742; }
+
+  [data-theme="dark"] .in-field-btn               { background: rgba(69,176,120,.14); border-color: rgba(69,176,120,.3); color: var(--accent); }
+  [data-theme="dark"] .field-wrap:focus-within .in-field-btn { background: rgba(69,176,120,.24); }
+  [data-theme="dark"] .in-field-btn:hover         { background: var(--accent); color: #0d1a12; border-color: var(--accent); }
+  [data-theme="dark"] input:focus,
+  [data-theme="dark"] select:focus,
+  [data-theme="dark"] textarea:focus              { outline-color: rgba(69,176,120,.4); }
+
+  /* หน้าเข้าสู่ระบบ: ฝั่งขวาเป็นพื้นขาวตายตัว ต้องมืดตามด้วย ไม่งั้นแสบตาอยู่ครึ่งจอ */
+  [data-theme="dark"] .login-wrap                 { background: var(--surface); }
+  [data-theme="dark"] .lang-pill                  { background: var(--bg); }
+}
+
+/* ปุ่มสลับโหมดสว่าง/มืดบนแถบบน — โชว์ไอคอนของโหมดที่จะได้เมื่อกด */
+.theme-toggle { justify-content: center; padding-inline: .5rem; }
+.theme-toggle svg { width: 15px; height: 15px; display: block; }
+.theme-toggle .i-sun { display: none; }
+[data-theme="dark"] .theme-toggle .i-sun  { display: block; }
+[data-theme="dark"] .theme-toggle .i-moon { display: none; }

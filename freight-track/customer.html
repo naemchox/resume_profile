@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<script src="js/theme-init.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>นำเข้างานขนส่งจาก Excel · FreightTrack</title>
+<meta name="description" content="อัปโหลดไฟล์ Excel แล้วระบบสร้างใบงานให้ทั้งชุด พร้อมจับคู่คนขับจากช่องคนขับอัตโนมัติ">
+<meta name="theme-color" content="#f4f3f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1f1c1b" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/app.css">
+<style>
+  /* ---- ตารางตรวจทานก่อนนำเข้า ---- */
+  .rv-wrap{ overflow:auto; max-height:min(62vh,640px); border:1px solid var(--line); border-radius:12px; }
+  .rv{ width:100%; border-collapse:separate; border-spacing:0; font-size:13px; }
+  .rv th{
+    position:sticky; top:0; z-index:2; background:var(--surface-2);
+    text-align:left; padding:9px 10px; font-size:11px; font-weight:600;
+    color:var(--text-2); letter-spacing:.04em; white-space:nowrap;
+    border-bottom:1px solid var(--line);
+  }
+  .rv td{ padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  .rv tr:last-child td{ border-bottom:none; }
+  .rv tr.is-bad td{ background:rgba(220,80,80,.07); }
+  .rv tr.is-off td{ opacity:.45; }
+  .rv .c-chk{ width:34px; text-align:center; }
+  .rv .c-row{ width:44px; color:var(--text-3); font-size:11px; }
+  .rv .nowrap{ white-space:nowrap; }
+  .rv .sub{ font-size:11px; color:var(--text-3); display:block; margin-top:2px; }
+
+  .dchip{
+    display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:20px;
+    font-size:11.5px; font-weight:500; margin:2px 3px 2px 0; white-space:nowrap;
+  }
+  .dchip.ok{   background:rgba(60,170,120,.15); color:#6fd6a6; }
+  .dchip.warn{ background:rgba(214,160,60,.15); color:#e2b765; }
+  .dchip.bad{  background:rgba(220,90,90,.15);  color:#ef9a9a; }
+  /* ป้ายคนขับ — กากบาทเอาออก, ปุ่ม + เพิ่มคน */
+  .dchip .dx{
+    background:none; border:none; cursor:pointer; padding:0 0 0 4px;
+    color:inherit; opacity:.55; font-size:13px; line-height:1;
+  }
+  .dchip .dx:hover{ opacity:1; }
+  .dchip .dlink{
+    background:none; border:none; padding:0; cursor:pointer;
+    color:inherit; font:inherit; text-decoration:underline dotted;
+  }
+  .dadd{
+    display:inline-grid; place-items:center; width:22px; height:22px; vertical-align:middle;
+    border:1px dashed var(--line-strong); border-radius:50%; background:none;
+    color:var(--text-2); cursor:pointer; font-size:14px; line-height:1; margin:2px 0 2px 2px;
+  }
+  .dadd:hover{ border-color:var(--amber); color:var(--amber-dim); border-style:solid; }
+
+  .why{ font-size:11px; line-height:1.5; margin-top:3px; }
+  .why b{ color:#ef9a9a; font-weight:500; }
+  .why i{ color:#e2b765; font-style:normal; }
+
+  .mapgrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:10px; }
+  .mapgrid label{ font-size:12px; }
+  .mapgrid select{ width:100%; margin-top:3px; }
+
+  .stat{ display:flex; gap:18px; flex-wrap:wrap; align-items:baseline; }
+  .stat b{ font-size:19px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .stat span{ font-size:11.5px; color:var(--text-3); display:block; }
+</style>
+<link rel="stylesheet" href="css/apple.css">
+<!-- office.css โหลดหลัง apple.css — โทนเดียวกับหน้าแรก (index.html) และหน้าคนขับ -->
+<link rel="stylesheet" href="css/office.css">
+</head>
+<body class="ofc">
+<!-- โครงหน้ารอโหลด — ขึ้นทันทีจาก HTML/CSS ก่อน JavaScript ทำงาน แล้วสลับเป็นหน้าจริงตอนวาดเสร็จ (ui.js → shell) -->
+<div class="skel" aria-hidden="true">
+  <div class="skel-bar"></div>
+  <div class="skel-page">
+    <i class="sk sk-eyebrow"></i>
+    <i class="sk sk-title"></i>
+    <i class="sk sk-line"></i>
+    <div class="skel-kpis"><i class="sk"></i><i class="sk"></i><i class="sk"></i><i class="sk"></i></div>
+    <div class="skel-card">
+      <i class="sk sk-h"></i>
+      <i class="sk sk-row"></i><i class="sk sk-row"></i><i class="sk sk-row"></i><i class="sk sk-row"></i><i class="sk sk-row"></i>
+    </div>
+  </div>
+</div>
+<main class="page">
+<div class="wrap">
+
+  <div class="page-head">
+    <div>
+      <p class="eyebrow eyebrow-accent">ขั้นที่ 1 · นำเข้างาน</p>
+      <h1 class="page-title" style="margin-top:6px">นำเข้างานขนส่งจาก Excel</h1>
+      <p class="muted small" style="margin-top:4px">
+        อัปโหลดไฟล์ Excel → ตรวจ → กดนำเข้า · ระบบจับคู่คนขับและสร้างใบงานให้ทั้งชุด
+      </p>
+    </div>
+    <button class="btn btn-quiet btn-sm no-print" id="resetAll" hidden>เริ่มใหม่</button>
+  </div>
+
+  <div id="demoBarSlot" style="margin-bottom:20px"></div>
+
+  <!-- ============ 1. เลือกไฟล์ ============ -->
+  <section class="card card-pad" id="stepFile">
+    <div class="of-step"><span class="of-step-n">1</span><span><span class="of-step-t">เลือกไฟล์ Excel</span><span class="of-step-d">ลากมาวาง หรือคลิกเพื่อเลือก</span></span></div>
+    <div class="drop" id="xlDrop" tabindex="0" role="button" style="padding:34px 20px">
+      <div class="strong" style="font-size:16px">ลากไฟล์ Excel มาวาง หรือคลิกเพื่อเลือก</div>
+      <div class="tiny dim" style="margin-top:6px">ไฟล์ .xlsx หรือ .xls</div>
+    </div>
+    <input type="file" id="xlFile" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" hidden>
+    <div id="fileInfo" style="margin-top:12px"></div>
+  </section>
+
+  <!-- ============ 2. ตั้งค่าการอ่าน ============ -->
+  <section class="card card-pad" id="stepMap" style="margin-top:18px" hidden>
+    <div class="of-step"><span class="of-step-n">2</span><span><span class="of-step-t">ตั้งค่าการอ่าน</span><span class="of-step-d">ปกติไม่ต้องแก้ — ระบบเลือกให้แล้ว</span></span></div>
+    <div class="row between wraps gap-12" style="align-items:flex-end">
+      <div class="grid g2" style="gap:14px;flex:1 1 420px">
+        <label class="field">
+          <span class="label">ชีตที่จะอ่าน</span>
+          <select class="input" id="sheetSel"></select>
+        </label>
+        <label class="field">
+          <span class="label">แถวหัวตาราง</span>
+          <input class="input tnum" id="headerRow" type="number" min="1" step="1" value="1">
+          <span class="hint">ใช้อ่านชื่อหัวตาราง · งานอ่านเฉพาะระหว่างแถวที่มี “เริ่ม” – “จบ” (คอลัมน์ไหนก็ได้)</span>
+        </label>
+      </div>
+      <button class="btn btn-quiet btn-sm" id="toggleMap" type="button">ตั้งค่าผังคอลัมน์</button>
+    </div>
+    <p class="tiny" data-rangenote style="margin-top:12px"></p>
+
+    <div id="mapBox" hidden style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
+      <p class="tiny dim" style="margin-bottom:10px">
+        ระบบเดาคอลัมน์จาก<b>ชื่อหัวตาราง</b>ให้เอง — ถ้าผิด แก้ตรงนี้ได้ (แก้แล้วระบบไม่เดาทับ)
+      </p>
+      <p class="tiny" id="mapNote" style="margin-bottom:10px"></p>
+      <div class="mapgrid" id="mapGrid"></div>
+    </div>
+  </section>
+
+  <!-- ============ 3. ตรวจทาน ============ -->
+  <section class="card card-pad" id="stepReview" style="margin-top:18px" hidden>
+    <div class="of-step"><span class="of-step-n">3</span><span><span class="of-step-t">ตรวจแล้วกดนำเข้า</span><span class="of-step-d">ติ๊กแถวที่ต้องการ แล้วกดปุ่มส้มด้านล่าง</span></span></div>
+    <div class="row between wraps gap-14" style="align-items:flex-start;margin-bottom:14px">
+      <div class="stat" id="summary"></div>
+      <div class="row gap-8 wraps">
+        <label class="row gap-6" style="align-items:center;font-size:12.5px">
+          <input type="checkbox" id="onlyProblem"> เฉพาะแถวที่มีปัญหา
+        </label>
+        <button class="btn btn-quiet btn-sm" id="selAll" type="button">เลือกทั้งหมด</button>
+        <button class="btn btn-quiet btn-sm" id="selNone" type="button">ไม่เลือกเลย</button>
+      </div>
+    </div>
+    <p class="tiny" data-rangenote style="margin:-4px 0 12px"></p>
+
+    <div class="rv-wrap">
+      <table class="rv">
+        <thead>
+          <tr>
+            <th class="c-chk"><input type="checkbox" id="chkAll" aria-label="เลือกทุกแถว"></th>
+            <th class="c-row">แถว</th>
+            <th>เลขงาน</th>
+            <th>ลูกค้า · ปลายทาง</th>
+            <th class="nowrap">น้ำหนัก</th>
+            <th class="nowrap">มูลค่า</th>
+            <th>คนขับ</th>
+            <th>สถานะ</th>
+          </tr>
+        </thead>
+        <tbody id="rvBody"></tbody>
+      </table>
+    </div>
+
+    <div class="row between wraps gap-12" style="margin-top:16px">
+      <p class="tiny dim" id="importHint">แถวสีแดงจะถูกข้าม — แก้ในไฟล์ Excel แล้วอัปโหลดใหม่</p>
+      <div class="row gap-10 wraps">
+        <button class="btn btn-green" id="dlUpdated" type="button" hidden>ดาวน์โหลด Excel ที่อัปเดตคนขับ</button>
+        <button class="btn btn-accent btn-lg" id="doImport">นำเข้างานที่เลือก</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ กรอกเองทีละใบ (สำรอง) ============ -->
+  <section class="card card-pad" style="margin-top:18px">
+    <button class="row between" id="manualToggle" type="button"
+            style="width:100%;background:none;border:none;padding:0;cursor:pointer;color:inherit;text-align:left">
+      <span>
+        <span class="strong" style="font-size:15px">กรอกเองทีละใบ</span>
+        <span class="tiny dim" style="display:block;margin-top:2px">สำหรับงานแทรกที่ไม่อยู่ในไฟล์ Excel</span>
+      </span>
+      <span class="tiny dim" id="manualCaret">แสดง ▾</span>
+    </button>
+
+    <form class="stack gap-18" id="jobForm" novalidate hidden style="margin-top:18px;padding-top:18px;border-top:1px solid var(--line)">
+      <div class="grid g2" style="gap:14px">
+        <label class="field">
+          <span class="label">เลขอ้างอิง (Invoice / Delivery)<span class="req">*</span></span>
+          <input class="input mono" name="code" placeholder="5370147798">
+          <span class="err" data-err="code"></span>
+        </label>
+        <label class="field">
+          <span class="label">วันที่ต้องการส่ง</span>
+          <input class="input" type="date" name="serviceDate">
+        </label>
+        <label class="field" style="grid-column:1/-1">
+          <span class="label">ชื่อลูกค้า<span class="req">*</span></span>
+          <input class="input" name="cName" placeholder="โรงพยาบาลบางน้ำเปรี้ยว">
+          <span class="err" data-err="cName"></span>
+        </label>
+        <label class="field" style="grid-column:1/-1">
+          <span class="label">ชื่อสถานที่จัดส่ง<span class="req">*</span></span>
+          <input class="input" name="dName" placeholder="โรงพยาบาลบางน้ำเปรี้ยว">
+          <span class="err" data-err="dName"></span>
+        </label>
+        <label class="field" style="grid-column:1/-1">
+          <span class="label">ที่อยู่ปลายทาง<span class="req">*</span></span>
+          <textarea class="textarea" name="dAddress" placeholder="เลขที่ 100 ต.หมอนทอง บางน้ำเปรี้ยว ฉะเชิงเทรา"></textarea>
+          <span class="err" data-err="dAddress"></span>
+        </label>
+        <label class="field">
+          <span class="label">น้ำหนัก (กก.)</span>
+          <input class="input tnum" name="weightKg" type="number" min="0" step="0.001" placeholder="177.406" inputmode="decimal">
+        </label>
+        <label class="field">
+          <span class="label">มูลค่า (บาท)</span>
+          <input class="input tnum" name="invAmount" type="number" min="0" step="0.01" placeholder="4403" inputmode="decimal">
+        </label>
+        <label class="field" style="grid-column:1/-1">
+          <span class="label">คนขับ (คั่นด้วย , ได้หลายคน)</span>
+          <input class="input" name="driverNames" placeholder="สมชาย, วิเชียร ทองดี">
+          <span class="hint">พิมพ์แค่ชื่อต้นก็ได้</span>
+        </label>
+        <label class="field" style="grid-column:1/-1">
+          <span class="label">รายละเอียดสินค้า / หมายเหตุ</span>
+          <input class="input" name="cargoDesc" placeholder="ยา 12 รายการ">
+        </label>
+      </div>
+      <div class="row between wraps gap-12">
+        <p class="tiny dim">งานจะไปรอที่ทีมคลัง (สถานะ “รอรับเข้าคลัง”)</p>
+        <div class="row gap-10">
+          <button type="reset" class="btn btn-ghost">ล้างฟอร์ม</button>
+          <button type="submit" class="btn btn-accent">สร้างใบงาน</button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <p class="of-hint">
+    ใช้เลขจากไฟล์ตรง ๆ ไม่สร้างเลขใหม่ ·
+    ดูงานทั้งหมดที่ <a href="ops.html">กระดานงาน</a> ·
+    ติดตามรายใบที่ <a href="track.html">หน้าติดตาม</a>
+  </p>
+</div>
+</main>
+
+<script type="module" src="js/firebase.js"></script>
+<script type="module" src="js/customer.js"></script>
+</body>
+</html>

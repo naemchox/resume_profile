@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>จ่ายเงิน — ระบบจัดซื้อจัดจ้าง</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<main id="app"><div class="spinner">…</div></main>
+
+<script type="module">
+import { sb } from './js/supabase.js';
+import { t, pick, fmtDate, fmtDateTime, isoDate } from './js/i18n.js';
+import { requirePage, me, has, hasAny } from './js/auth.js';
+import { masters, flow } from './js/api.js';
+import { fmt, pct } from './js/money.js';
+import { formModal } from './js/form.js';
+import { el, $, shell, pageTitle, table, confirmBox, askReason,
+         ok, fail, spinner } from './js/ui.js';
+
+const un = ({ data, error }) => { if (error) throw error; return data; };
+
+// วิธีจ่ายเก็บเป็นข้อความ แต่ให้เลือกจากรายการ จะได้ไม่มีสะกดคนละแบบสิบแบบในรายงาน
+const METHODS = ['pay.methodTransfer', 'pay.methodCheque', 'pay.methodCash'];
+
+const DECISION = { pending: ['amber', 'pay.pending'],
+                   approved: ['green', 'pay.approved'],
+                   rejected: ['red', 'pay.rejected'] };
+
+const decisionBadge = (d) =>
+  el('span', { class: 'badge ' + DECISION[d][0] }, t(DECISION[d][1]));
+
+const u = await requirePage('pay.html');
+if (u) {
+  shell('pay.html');
+  const id = new URLSearchParams(location.search).get('id');
+  try { id ? await detail(id) : await listView(); } catch (e) { fail(e); }
+}
+
+// ===========================================================================
+// หน้ารวม
+// ===========================================================================
+async function listView() {
+  const app = $('#app');
+  app.textContent = '';
+  app.append(pageTitle('pay.title'));
+
+  const invBox = el('div', {}, spinner());
+  const vBox = el('div', {}, spinner());
+  const rBox = el('div', {}, spinner());
+  app.append(el('div', { class: 'card' }, el('h2', {}, t('pay.forInv')), invBox));
+  app.append(el('div', { class: 'card' }, el('h2', {}, t('pay.vouchers')), vBox));
+  app.append(el('div', { class: 'card' }, el('h2', {}, t('pay.retentionSection')), rBox));
+
+  try {
+    const [invs, vouchers, rets, pos, vendors] = await Promise.all([
+      sb.from('invoices').select('*').eq('status', 'matched')
+        .order('received_date').then(un),
+      sb.from('payment_vouchers').select('*').order('prepared_at', { ascending: false }).then(un),
+      sb.from('retention_releases').select('*').order('due_date').then(un),
+      sb.from('pos').select('id, po_no, vendor_id').then(un),
+      masters.vendors(),
+    ]);
+    const vById = new Map(vendors.map((v) => [v.id, v]));
+    const poById = new Map(pos.map((p) => [p.id, p]));
+    const allInv = vouchers.length
+      ? await sb.from('invoices').select('id, vendor_invoice_no, po_id')
+          .in('id', vouchers.map((v) => v.invoice_id)).then(un)
+      : [];
+    const invById = new Map([...invs, ...allInv].map((i) => [i.id, i]));
+    const payments = vouchers.length
+      ? await sb.from('payments').select('*').in('voucher_id', vouchers.map((v) => v.id)).then(un)
+      : [];
+    const paidOf = new Map(payments.map((p) => [p.voucher_id, p]));
+
+    const vendorOfPo = (poId) => {
+      const p = poById.get(poId);
+      const v = p && vById.get(p.vendor_id);
+      return v ? `${v.code} — ${pick(v, 'name')}` : '—';
+    };
+
+    // ---- ใบแจ้งหนี้ที่รอตั้งเบิก ----
+    invBox.textContent = '';
+    invBox.append(invs.length
+      ? table([t('inv.vendorNo'), t('po.no'), t('quote.vendor'), t('inv.date'),
+               { label: t('common.grandTotal'), align: 'right' }, ''],
+          invs.map((i) => el('tr', {},
+            el('td', {}, el('a', { href: `invoice.html?id=${i.id}` }, i.vendor_invoice_no)),
+            el('td', {}, poById.get(i.po_id)?.po_no ?? '—'),
+            el('td', {}, vendorOfPo(i.po_id)),
+            el('td', {}, fmtDate(i.invoice_date)),
+            el('td', { class: 'num' }, fmt(i.grand_total)),
+            el('td', { class: 'ta-right' },
+              hasAny('purchasing', 'accounting', 'admin')
+                ? el('button', { class: 'btn small primary', onclick: () => onCreate(i) },
+                     t('pay.create'))
+                : null))))
+      : el('p', { class: 'faint' }, t('pay.noInv')));
+
+    // ---- ใบสำคัญจ่าย ----
+    vBox.textContent = '';
+    vBox.append(vouchers.length
+      ? table([t('pay.voucher'), t('inv.vendorNo'), t('quote.vendor'),
+               { label: t('pay.net'), align: 'right' }, t('common.status'), t('pay.paid')],
+          vouchers.map((v) => {
+            const inv = invById.get(v.invoice_id);
+            const pmt = paidOf.get(v.id);
+            return el('tr', {},
+              el('td', {}, el('a', { href: `pay.html?id=${v.id}` }, v.voucher_no)),
+              el('td', {}, inv?.vendor_invoice_no ?? '—'),
+              el('td', {}, inv ? vendorOfPo(inv.po_id) : '—'),
+              el('td', { class: 'num' }, fmt(v.net_amount)),
+              el('td', {}, decisionBadge(v.decision)),
+              el('td', {}, pmt
+                ? el('span', { class: 'badge green' }, fmtDate(pmt.paid_date))
+                : el('span', { class: 'faint' }, t('pay.notPaid'))));
+          }))
+      : el('p', { class: 'faint' }, t('pay.noVouchers')));
+
+    // ---- เงินประกันผลงาน ----
+    rBox.textContent = '';
+    const open = rets.filter((r) => !r.released_at);
+    rBox.append(open.length
+      ? table([t('po.no'), { label: t('common.amount'), align: 'right' },
+               t('pay.retentionDue'), t('pay.confirmedBy'), ''],
+          open.map((r) => {
+            const notDue = new Date() < new Date(r.due_date);
+            return el('tr', {},
+              el('td', {}, el('a', { href: `po.html?id=${r.po_id}` },
+                 poById.get(r.po_id)?.po_no ?? '—')),
+              el('td', { class: 'num' }, fmt(r.amount)),
+              el('td', {}, fmtDate(r.due_date),
+                notDue ? el('div', { class: 'faint' }, t('pay.retentionLocked')) : null),
+              el('td', {}, r.confirmed_at
+                ? fmtDateTime(r.confirmed_at)
+                : el('span', { class: 'faint' }, t('pay.notConfirmed'))),
+              el('td', { class: 'ta-right' },
+                hasAny('accounting', 'admin') && r.confirmed_at
+                  ? el('button', { class: 'btn small primary', onclick: () => onRelease(r) },
+                       t('pay.retentionRelease'))
+                  : null));
+          }))
+      : el('p', { class: 'faint' }, t('pay.noRetention')));
+  } catch (e) { invBox.textContent = ''; vBox.textContent = ''; rBox.textContent = ''; fail(e); }
+}
+
+// ---- ตั้งเบิก ----
+async function onCreate(inv) {
+  const whts = await masters.whtRates();
+  const v = await formModal(`${t('pay.create')} — ${inv.vendor_invoice_no}`, [
+    { k: 'wht_code', label: 'po.whtCode', type: 'select',
+      options: whts.map((w) => ({ value: w.code,
+        label: `${w.code} — ${pick(w, 'description')} ${pct(w.rate_bp)}%` })) },
+    { k: 'other', label: 'pay.other', type: 'money' },
+    { k: 'other_note', label: 'pay.otherNote', wide: true },
+  ], {}, [el('div', { class: 'notice info' }, t('pay.preview'))]);
+  if (!v) return;
+  try {
+    const res = await flow.createVoucher(inv.id, v.wht_code, v.other ?? 0, v.other_note);
+    ok(`${res.voucher_no} — ${t('pay.net')} ${fmt(res.net)}`);
+    location.href = `pay.html?id=${res.voucher_id}`;
+  } catch (e) { fail(e); }
+}
+
+// ---- คืนเงินประกัน ----
+async function onRelease(r) {
+  const v = await formModal(t('pay.retentionRelease'), [
+    { k: 'ref', label: 'pay.refNo', required: true },
+    { k: 'note', label: 'common.note', type: 'textarea', wide: true },
+  ], {}, [el('div', { class: 'notice warn' }, t('pay.releaseSegregation'))]);
+  if (!v) return;
+  try { await flow.releaseRetention(r.po_id, v.ref, v.note); ok(t('pay.released')); location.reload(); }
+  catch (e) { fail(e); }
+}
+
+// ===========================================================================
+// รายละเอียดใบสำคัญจ่าย
+// ===========================================================================
+async function detail(vid) {
+  const app = $('#app');
+  app.textContent = '';
+  app.append(spinner());
+
+  let v, inv, po, vendor, payment, people;
+  try {
+    v = await sb.from('payment_vouchers').select('*').eq('id', vid).maybeSingle().then(un);
+    if (!v) throw new Error(t('pr.notFound'));
+    inv = await sb.from('invoices').select('*').eq('id', v.invoice_id).maybeSingle().then(un);
+    [po, payment] = await Promise.all([
+      sb.from('pos').select('*').eq('id', inv.po_id).maybeSingle().then(un),
+      sb.from('payments').select('*').eq('voucher_id', vid).maybeSingle().then(un),
+    ]);
+    const ids = [v.prepared_by, v.approved_by, payment?.paid_by, inv.entered_by].filter(Boolean);
+    [vendor, people] = await Promise.all([
+      sb.from('vendors').select('*').eq('id', po.vendor_id).maybeSingle().then(un),
+      sb.from('user_profiles').select('id, full_name_th, full_name_en')
+        .in('id', [...new Set(ids)]).then(un).then((rows) => new Map(rows.map((x) => [x.id, x]))),
+    ]);
+  } catch (e) { app.textContent = ''; fail(e); return; }
+
+  const reload = () => detail(vid);
+  const nameOf = (id) => (id && people.get(id)) ? pick(people.get(id), 'full_name') : '—';
+
+  // กติกาแยกหน้าที่บังคับที่ฐาน — ตรงนี้แค่ปิดปุ่มล่วงหน้าพร้อมบอกเหตุผล
+  const ownWork = v.prepared_by === me.id || inv.entered_by === me.id;
+  const canDecide = v.decision === 'pending' && hasAny('accounting', 'pd', 'ceo', 'admin');
+  const canPay = v.decision === 'approved' && !payment && hasAny('accounting', 'admin');
+
+  app.textContent = '';
+  app.append(pageTitle('pay.voucher',
+    el('a', { class: 'btn small', href: `invoice.html?id=${inv.id}` }, t('inv.title')),
+    el('a', { class: 'btn small', href: 'pay.html', style: 'margin-left:.3rem' }, t('pay.vouchers'))));
+
+  const info = (label, val) => el('div', {},
+    el('small', { class: 'faint' }, t(label)), el('div', {}, val ?? '—'));
+
+  app.append(el('div', { class: 'card' },
+    el('h2', { style: 'margin:0' }, v.voucher_no, ' ', decisionBadge(v.decision)),
+    el('p', { class: 'muted', style: 'margin:.3rem 0 .8rem' },
+      [po?.po_no, inv.vendor_invoice_no, vendor && `${vendor.code} — ${pick(vendor, 'name')}`]
+        .filter(Boolean).join('  ·  ')),
+    el('div', { class: 'grid g3' },
+      info('pay.preparedBy', nameOf(v.prepared_by)),
+      info('inv.enteredBy', nameOf(inv.entered_by)),
+      info('common.at', fmtDateTime(v.prepared_at))),
+    v.decision === 'rejected' && v.reject_reason
+      ? el('div', { class: 'notice err', style: 'margin-top:.8rem' },
+          el('strong', {}, t('pay.rejected')), v.reject_reason)
+      : null));
+
+  // ---- รายการหัก ----
+  const row = (label, amount, extra) => el('tr', {},
+    el('th', { style: 'text-align:left;font-weight:500' }, t(label),
+      extra ? el('div', { class: 'faint' }, extra) : null),
+    el('td', { class: 'num' }, amount));
+
+  const deductions = [
+    v.penalty_amount ? row('pay.penalty', '− ' + fmt(v.penalty_amount),
+      `${t('pay.lateDays')} ${v.late_days} ${t('common.days')} · ${pct(po.penalty_rate_bp)}%/${t('po.perDay')}`) : null,
+    v.retention_amount ? row('pay.retention', '− ' + fmt(v.retention_amount),
+      `${pct(po.retention_bp)}%`) : null,
+    v.wht_amount ? row('pay.wht', '− ' + fmt(v.wht_amount),
+      `${v.wht_code} · ${t('pay.whtBase')} ${fmt(v.wht_base)}`) : null,
+    v.other_deduction ? row('pay.other', '− ' + fmt(v.other_deduction), v.other_deduction_note) : null,
+  ].filter(Boolean);
+
+  app.append(el('div', { class: 'card' },
+    el('h2', {}, t('pay.deductions')),
+    el('div', { class: 'table-wrap', style: 'max-width:36rem' },
+      el('table', {}, el('tbody', {},
+        row('pay.gross', fmt(v.gross)),
+        ...(deductions.length ? deductions
+            : [el('tr', {}, el('td', { colspan: 2, class: 'faint' }, t('pay.noDeduction')))]),
+        el('tr', {},
+          el('th', { style: 'text-align:left' }, el('b', {}, t('pay.net'))),
+          el('td', { class: 'num' }, el('b', {}, fmt(v.net_amount)))))))));
+
+  // ---- อนุมัติจ่าย ----
+  if (v.decision === 'pending') {
+    const card = el('div', { class: 'card' }, el('h2', {}, t('pay.approve')));
+    if (!canDecide) {
+      card.append(el('p', { class: 'faint' }, t('msg.noPermission')));
+    } else if (ownWork) {
+      card.append(el('div', { class: 'notice warn' }, t('pay.segregation')));
+    } else {
+      card.append(el('div', { class: 'row', style: 'gap:.5rem' },
+        el('button', { class: 'btn primary', onclick: () => decide(true) }, t('pay.approve')),
+        el('button', { class: 'btn danger', onclick: () => decide(false) }, t('approve.reject'))));
+    }
+    app.append(card);
+  }
+
+  async function decide(approve) {
+    try {
+      let reason = null;
+      if (!approve) {
+        reason = await askReason(t('approve.reject'), t('pay.rejectReason'));
+        if (!reason) return;
+      } else if (!await confirmBox(t('pay.approve'))) return;
+      await flow.decideVoucher(vid, approve, reason);
+      ok(t('common.saved')); reload();
+    } catch (e) { fail(e); }
+  }
+
+  // ---- จ่ายจริง ----
+  // วิธีจ่าย/เลขอ้างอิง/วันที่จ่าย เป็นข้อมูลที่คนคีย์เอง ผิดได้ จึงต้องแก้ได้
+  // (ยอดเงินแก้ไม่ได้ ต้องยกเลิกใบสำคัญจ่ายทำใหม่ — คนละเรื่องกัน)
+  const canEditPay = !!payment && hasAny('accounting', 'admin');
+
+  const payCard = el('div', { class: 'card' },
+    el('div', { class: 'row' },
+      el('h2', { style: 'margin:0' }, t('pay.record')),
+      el('div', { class: 'spacer' }),
+      canEditPay
+        ? el('button', { class: 'btn small', onclick: onEditPay }, t('common.edit'))
+        : null));
+  if (payment) {
+    payCard.append(el('div', { class: 'grid g3', style: 'margin-top:.8rem' },
+      info('pay.paidDate', fmtDate(payment.paid_date)),
+      info('pay.method', payment.method),
+      info('pay.refNo', payment.ref_no),
+      info('pay.paidBy', nameOf(payment.paid_by)),
+      info('pay.whtCert', payment.wht_cert_no ?? '—'),
+      info('common.at', fmtDateTime(payment.paid_at))));
+    // append() แปลง null เป็นข้อความ "null" (ไม่เหมือน el() ที่กรองให้) — ต้องเช็คก่อนเรียก
+    if (payment.note) payCard.append(el('p', { class: 'faint' }, payment.note));
+  } else if (canPay) {
+    payCard.append(el('button', { class: 'btn primary', style: 'margin-top:.8rem',
+                                  onclick: onPay }, t('pay.record')));
+  } else {
+    payCard.append(el('p', { class: 'faint', style: 'margin-top:.8rem' }, t('pay.notPaid')));
+  }
+  app.append(payCard);
+
+  async function onPay() {
+    const f = await formModal(t('pay.record'), [
+      { k: 'paid_date', label: 'pay.paidDate', type: 'date', required: true },
+      { k: 'method', label: 'pay.method', type: 'select', required: true,
+        options: METHODS.map((m) => ({ value: t(m), label: t(m) })) },
+      { k: 'ref_no', label: 'pay.refNo', required: true },
+      { k: 'note', label: 'common.note', type: 'textarea', wide: true },
+    ], { paid_date: isoDate() });
+    if (!f) return;
+    try {
+      const res = await flow.pay(vid, f.paid_date, f.method, f.ref_no, f.note);
+      ok(res.wht_cert_no
+        ? `${t('pay.paid')} — ${t('pay.whtCert')} ${res.wht_cert_no}`
+        : t('pay.paid'));
+      reload();
+    } catch (e) { fail(e); }
+  }
+
+  async function onEditPay() {
+    // วิธีจ่ายเก็บเป็นข้อความ ไม่ใช่รหัส ของเดิมจึงอาจเป็นคำที่ไม่อยู่ในรายการปัจจุบัน
+    // (คีย์ไว้ตอนเปิดภาษาอังกฤษ หรือรายการถูกแก้ทีหลัง) — ต้องคงตัวเลือกเดิมไว้ด้วย
+    // ไม่งั้นพอเปิดฟอร์มมา ช่องจะว่างเปล่าแล้วกลายเป็นแก้ค่าเดิมทิ้งโดยไม่ตั้งใจ
+    const opts = METHODS.map((m) => ({ value: t(m), label: t(m) }));
+    if (payment.method && !opts.some((o) => o.value === payment.method)) {
+      opts.push({ value: payment.method, label: payment.method });
+    }
+    const f = await formModal(t('pay.editPayment'), [
+      { k: 'paid_date', label: 'pay.paidDate', type: 'date', required: true },
+      { k: 'method', label: 'pay.method', type: 'select', required: true, options: opts },
+      { k: 'ref_no', label: 'pay.refNo', required: true },
+      { k: 'note', label: 'common.note', type: 'textarea', wide: true },
+    ], payment, [
+      el('div', { class: 'notice info' }, t('pay.editHint')),
+      v.retention_amount
+        ? el('div', { class: 'notice warn' }, t('pay.editRetentionNote'))
+        : null,
+    ].filter(Boolean));
+    if (!f) return;
+    try {
+      await flow.editPayment(vid, f.paid_date, f.method, f.ref_no, f.note);
+      ok(t('common.saved')); reload();
+    } catch (e) { fail(e); }
+  }
+}
+</script>
+</body>
+</html>

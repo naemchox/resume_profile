@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<script src="js/theme-init.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ใบวางบิล · FreightTrack</title>
+<meta name="description" content="ใบวางบิลค่าขนส่งจากขนส่งตัวอย่าง — กดรับบิล นัดวันชำระ และแจ้งชำระเงินได้จากหน้านี้">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#f4f3f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1f1c1b" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/app.css">
+<style>@page{size:A4 portrait;margin:14mm 12mm}</style>
+<link rel="stylesheet" href="css/apple.css">
+<!-- office.css โหลดหลัง apple.css — โทนเดียวกับหน้าแรกและ track.html · ตัวใบวางบิลที่พิมพ์ไม่ถูกแตะ -->
+<link rel="stylesheet" href="css/office.css">
+</head>
+<body class="billpage ofc ofc-bill">
+<!-- โครงหน้ารอโหลด — ขึ้นทันทีจาก HTML/CSS ก่อน JavaScript ทำงาน แล้วสลับเป็นหน้าจริงตอนวาดเสร็จ (ui.js → shell) -->
+<div class="skel" aria-hidden="true">
+  <div class="skel-bar"></div>
+  <div class="skel-page">
+    <i class="sk sk-eyebrow"></i>
+    <i class="sk sk-title"></i>
+    <i class="sk sk-line"></i>
+    <div class="skel-card">
+      <i class="sk sk-h"></i>
+      <i class="sk sk-row"></i><i class="sk sk-row"></i><i class="sk sk-row"></i><i class="sk sk-row"></i>
+    </div>
+  </div>
+</div>
+<main class="page">
+<div class="wrap">
+
+  <div class="page-head no-print">
+    <div>
+      <p class="eyebrow eyebrow-accent">ใบวางบิล · ค่าขนส่ง</p>
+      <h1 class="page-title" style="margin-top:6px" id="title">ใบวางบิล</h1>
+      <p class="muted small" style="margin-top:4px" id="sub">กำลังเปิดใบวางบิล…</p>
+    </div>
+    <div class="row gap-8 wraps">
+      <button class="btn btn-ghost btn-sm" id="printBtn" hidden>พิมพ์ / บันทึกเป็น PDF</button>
+      <button class="btn btn-ghost btn-sm" id="xlsxBtn" hidden>⬇ บันทึกเป็น Excel</button>
+    </div>
+  </div>
+
+  <div id="state" class="no-print"></div>
+  <div id="actions" class="no-print"></div>
+  <div id="doc"></div>
+</div>
+</main>
+
+<script type="module" src="js/firebase.js"></script>
+<script type="module" src="js/billView.js"></script>
+</body>
+</html>

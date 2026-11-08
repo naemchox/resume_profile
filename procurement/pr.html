@@ -1,0 +1,730 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ใบขอซื้อ — ระบบจัดซื้อจัดจ้าง</title>
+<link rel="stylesheet" href="css/app.css">
+<script src="js/theme.js"></script>
+</head>
+<body>
+<main id="app"><div class="spinner">…</div></main>
+
+<script type="module">
+import { sb } from './js/supabase.js';
+import { t, pick, fmtDate } from './js/i18n.js';
+import { requirePage, me, has, hasAny } from './js/auth.js';
+import { masters, flow, insert, update, remove, upsert, contentHash } from './js/api.js';
+import { fmt, fmtQty, pct } from './js/money.js';
+import { formModal } from './js/form.js';
+import { loadRfqData, rfqCanonicalText } from './js/rfq.js';
+import { el, $, shell, pageTitle, table, confirmBox, badge,
+         ok, warn, fail, spinner, downloadCsv } from './js/ui.js';
+
+const un = ({ data, error }) => { if (error) throw error; return data; };
+
+const PR_STATUSES = ['draft', 'sow_locked', 'rfq_issued', 'quoting', 'evaluated',
+                     'pending_approval', 'approved', 'rejected', 'po_issued', 'closed', 'cancelled'];
+
+const u = await requirePage('pr.html');
+if (u) {
+  shell('pr.html');
+  const prId = new URLSearchParams(location.search).get('id');
+  prId ? await detail(prId) : await listView();
+}
+
+// ===========================================================================
+// รายการใบขอซื้อ
+// ===========================================================================
+async function listView() {
+  const app = $('#app');
+  app.textContent = '';
+
+  const newBtn = el('button', { class: 'btn primary', onclick: onNew }, t('pr.new'));
+  app.append(pageTitle('pr.title', has('requester') ? newBtn : null));
+
+  // ผู้ขอซื้อล้วน (ไม่ได้เป็นจัดซื้อ/บัญชี/แอดมินด้วย) ฐานข้อมูลส่งมาแต่ใบของตัวเองอยู่แล้ว
+  // บอกให้รู้ตัวไปเลยว่าที่เห็นไม่ครบทั้งบริษัทเพราะสิทธิ์ ไม่ใช่เพราะระบบพลาด
+  // และซ่อนตัวกรอง "เฉพาะของฉัน" ทิ้ง เพราะกดแล้วผลเท่าเดิม
+  const seesOthers = hasAny('purchasing', 'accounting', 'admin');
+  if (!seesOthers) app.append(el('div', { class: 'notice info' }, t('pr.onlyMine')));
+
+  const statusSel = el('select', {},
+    el('option', { value: '' }, t('common.all')),
+    ...PR_STATUSES.map((s) => el('option', { value: s }, t('prStatus.' + s))));
+  const searchBox = el('input', { type: 'search', placeholder: t('common.search') });
+  const mineBox = el('input', { type: 'checkbox' });
+
+  const body = el('div', {}, spinner());
+  app.append(el('div', { class: 'card' },
+    el('div', { class: 'row', style: 'gap:.7rem;flex-wrap:wrap;align-items:end' },
+      el('div', { class: 'field', style: 'margin:0' }, el('label', {}, t('common.status')), statusSel),
+      el('div', { class: 'field', style: 'margin:0;flex:1;min-width:200px' },
+        el('label', {}, t('common.search')), searchBox),
+      seesOthers
+        ? el('label', { class: 'row', style: 'gap:.35rem;align-items:center' },
+            mineBox, el('span', {}, t('pr.mine')))
+        : null,
+      el('div', { class: 'spacer' }),
+      el('button', { class: 'btn small', onclick: () => exportCsv() }, t('common.export'))),
+    body));
+
+  let rows = [];
+  let mineIds = new Set();
+  const draw = () => {
+    const q = searchBox.value.trim().toLowerCase();
+    const shown = rows.filter((r) =>
+      (!statusSel.value || r.status === statusSel.value) &&
+      (!mineBox.checked || mineIds.has(r.id)) &&
+      (!q || [r.pr_no, r.purpose_th, r.purpose_en, r.cost_center_code]
+              .some((x) => (x ?? '').toLowerCase().includes(q))));
+
+    body.textContent = '';
+    body.append(table(
+      [t('pr.no'), t('pr.purpose'), t('pr.requester'), t('pr.costCenter'), t('pr.neededBy'),
+       { label: t('pr.lineCount'), align: 'right' },
+       { label: t('pr.estimated'), align: 'right' }, t('common.status'), ''],
+      shown.map((r) => el('tr', {},
+        el('td', {}, el('a', { href: `pr.html?id=${r.id}` },
+          r.pr_no ?? el('i', { class: 'faint' }, t('pr.noNumber')))),
+        el('td', {}, pick(r, 'purpose')),
+        el('td', {}, pick(r, 'requester_name')),
+        el('td', {}, r.cost_center_code ?? '—'),
+        el('td', {}, fmtDate(r.needed_by)),
+        el('td', { class: 'num' }, String(r.line_count ?? 0)),
+        el('td', { class: 'num' }, fmt(r.estimated_amount)),
+        el('td', {}, badge(r.status, 'prStatus')),
+        el('td', {}, canDelete(r)
+          ? el('button', { class: 'btn small danger', title: t('pr.delete'),
+                           onclick: () => onDelete(r) }, t('common.delete'))
+          : null)))));
+  };
+
+  // ลบได้ตอนที่ยังไม่มีใบสั่งซื้อเท่านั้น — หลังออก PO มีสัญญากับผู้ขายและมียอดกันงบค้างอยู่
+  // ต้องไปยกเลิกที่ใบสั่งซื้อแทน ฐานข้อมูลเช็คซ้ำอีกชั้นใน fn_delete_pr
+  const canDelete = (r) => !['po_issued', 'closed'].includes(r.status)
+                           && (mineIds.has(r.id) || has('admin'));
+
+  const onDelete = async (r) => {
+    const no = r.pr_no ?? t('pr.noNumber');
+    if (!await confirmBox(t('pr.deleteConfirm', { no }))) return;
+    try {
+      await flow.deletePr(r.id);
+      ok(t('pr.deleted'));
+      rows = rows.filter((x) => x.id !== r.id);
+      mineIds.delete(r.id);
+      draw();
+    } catch (e) { fail(e); }
+  };
+
+  const exportCsv = () => downloadCsv('purchase-requisitions.csv',
+    ['pr_no', 'status', 'purpose', 'requester', 'cost_center', 'needed_by', 'estimated_baht'],
+    rows.map((r) => [r.pr_no ?? '', r.status, pick(r, 'purpose'), pick(r, 'requester_name'),
+                     r.cost_center_code ?? '', r.needed_by ?? '',
+                     (Number(r.estimated_amount) || 0) / 100]));
+
+  statusSel.onchange = draw;
+  mineBox.onchange = draw;
+  searchBox.oninput = draw;
+
+  try {
+    const [all, mine] = await Promise.all([
+      sb.from('v_pr_summary').select('*').order('created_at', { ascending: false }).then(un),
+      sb.from('prs').select('id').eq('requester_id', me.id).then(un),
+    ]);
+    rows = all;
+    mineIds = new Set(mine.map((r) => r.id));
+    draw();
+  } catch (e) { body.textContent = ''; fail(e); }
+}
+
+// ตั้งเรื่องใหม่ — policy บังคับว่า requester_id ต้องเป็นตัวเอง และสถานะต้องเป็น draft
+// ช่องศูนย์ต้นทุน/โครงการ เลือก "ไม่ระบุ" ได้ทั้งคู่
+// แต่ prs.cost_center_id เป็น NOT NULL (งบประมาณตัดตามศูนย์ต้นทุน) — พอไม่ระบุ
+// ต้องเติมตัวแรกตามรหัสให้ก่อนบันทึก ไม่งั้นฐานข้อมูลปฏิเสธทั้งใบ
+function ccField(ccs) {
+  return { k: 'cost_center_id', label: 'pr.costCenter', type: 'select',
+           placeholder: 'common.unspecified',
+           options: ccs.map((c) => ({ value: c.id, label: `${c.code} — ${c.name_th}` })) };
+}
+function prjField(prjs) {
+  return { k: 'project_id', label: 'pr.project', type: 'select',
+           placeholder: 'common.unspecified',
+           options: prjs.map((p) => ({ value: p.id, label: `${p.code} — ${p.name_th}` })) };
+}
+function fillCc(v, ccs) {
+  const id = v.cost_center_id ?? ccs[0]?.id ?? null;
+  if (!id) throw new Error(t('pr.noCostCenter'));
+  return { ...v, cost_center_id: id };
+}
+
+async function onNew() {
+  if (!has('requester')) { fail(new Error(t('pr.needRequester'))); return; }
+  const [ccs, prjs] = await Promise.all([masters.costCenters(), masters.projects()]);
+  const v = await formModal(t('pr.new'), [
+    ccField(ccs),
+    prjField(prjs),
+    { k: 'purpose_th', label: 'pr.purpose', required: true, wide: true },
+    { k: 'purpose_en', label: 'pr.purposeEn', wide: true },
+    { k: 'needed_by', label: 'pr.neededBy', type: 'date' },
+    { k: 'estimated_amount', label: 'pr.estimated', type: 'money' },
+  ]);
+  if (!v) return;
+  try {
+    // ช่องเงินที่เว้นว่างส่ง null มา แต่ estimated_amount เป็น NOT NULL — ยังไม่รู้ราคา = 0
+    const [row] = await insert('prs',
+      { ...fillCc(v, ccs), estimated_amount: v.estimated_amount ?? 0, requester_id: me.id });
+    location.href = `pr.html?id=${row.id}`;
+  } catch (e) { fail(e); }
+}
+
+// ===========================================================================
+// รายละเอียดใบขอซื้อ
+// ===========================================================================
+async function detail(id) {
+  const app = $('#app');
+  app.textContent = '';
+  app.append(spinner());
+
+  let pr, lines, clauses, sowMap, prints, ccs, prjs, requesterName = null;
+  try {
+    [pr, lines, clauses, prints, ccs, prjs] = await Promise.all([
+      sb.from('prs').select('*').eq('id', id).maybeSingle().then(un),
+      sb.from('pr_lines').select('*').eq('pr_id', id).order('seq').then(un),
+      masters.sowClauses(),
+      sb.from('rfq_prints').select('*').eq('pr_id', id)
+        .order('printed_at', { ascending: false }).then(un),
+      masters.costCenters(), masters.projects(),
+    ]);
+    const sowRows = await sb.from('pr_sow').select('*').eq('pr_id', id).then(un);
+    sowMap = new Map(sowRows.map((s) => [s.sow_clause_id, s]));
+    if (pr) {
+      const p = await sb.from('user_profiles').select('full_name_th, full_name_en')
+        .eq('id', pr.requester_id).maybeSingle().then(un);
+      requesterName = p ? pick(p, 'full_name') : null;
+    }
+  } catch (e) { app.textContent = ''; fail(e); return; }
+
+  if (!pr) {
+    app.textContent = '';
+    app.append(pageTitle('pr.title'),
+      el('div', { class: 'notice err' }, t('pr.notFound')),
+      el('a', { class: 'btn', href: 'pr.html' }, t('pr.backToList')));
+    return;
+  }
+
+  // policy `requester_update_draft` / `owner_write` ให้เฉพาะเจ้าของเท่านั้น แอดมินก็แก้ไม่ได้
+  const editable = ['draft', 'rejected'].includes(pr.status) && pr.requester_id === me.id;
+  const canLock  = ['draft', 'rejected'].includes(pr.status)
+                   && (pr.requester_id === me.id || has('admin'));
+  const canRfq   = hasAny('purchasing', 'admin')
+                   && ['sow_locked', 'rfq_issued', 'quoting'].includes(pr.status);
+  // ปลดล็อกได้เฉพาะช่วงที่ล็อกแล้วแต่ยังไม่มีกระดาษออกไปหาผู้ขาย
+  // (พอ fn_issue_rfq ทำงาน สถานะจะขยับเป็น rfq_issued ปุ่มนี้จึงหายไปเอง)
+  // ฝั่งฐานข้อมูลเช็คซ้ำอีกชั้นใน fn_unlock_sow — หน้าจอแค่ไม่ยื่นปุ่มให้กดเปล่าๆ
+  const canUnlock = pr.status === 'sow_locked'
+                    && (pr.requester_id === me.id || has('admin'));
+
+  const reload = () => detail(id);
+  const ccCode = ccs.find((c) => c.id === pr.cost_center_id)?.code
+                 ?? (pr.cost_center_id ? '—' : '—');
+  const pjCode = prjs.find((p) => p.id === pr.project_id)?.code ?? '—';
+
+  app.textContent = '';
+  app.append(pageTitle('pr.title',
+    el('a', { class: 'btn small', href: 'pr.html' }, t('pr.backToList'))));
+
+  // ---- แถบหัวเรื่อง ----
+  const head = el('div', { class: 'card' });
+  head.append(el('div', { class: 'row', style: 'align-items:flex-start' },
+    el('div', {},
+      el('h2', { style: 'margin:0' },
+        pr.pr_no ?? el('i', { class: 'faint' }, t('pr.noNumber')), ' ', badge(pr.status, 'prStatus')),
+      el('p', { class: 'muted', style: 'margin:.3rem 0 0' }, pick(pr, 'purpose'))),
+    el('div', { class: 'spacer' }),
+    editable ? el('button', { class: 'btn', onclick: onEditHead }, t('pr.editHeader')) : null));
+
+  if (pr.status === 'rejected') {
+    head.append(el('div', { class: 'notice err', style: 'margin-top:.8rem' },
+      el('strong', {}, t('pr.rejectedBanner')), pr.reject_reason ?? ''));
+  }
+  if (!editable && ['draft', 'rejected'].includes(pr.status)) {
+    head.append(el('div', { class: 'notice info', style: 'margin-top:.8rem' }, t('pr.notOwner')));
+  }
+  if (!['draft', 'rejected'].includes(pr.status)) {
+    head.append(el('div', { class: 'notice info', style: 'margin-top:.8rem' }, t('pr.locked')));
+  }
+
+  const info = (label, val) => el('tr', {},
+    el('th', { style: 'text-align:left;width:14rem;font-weight:500' }, t(label)),
+    el('td', {}, val ?? '—'));
+  head.append(el('div', { class: 'table-wrap', style: 'margin-top:.8rem' },
+    el('table', {}, el('tbody', {},
+      info('pr.requester', requesterName),
+      info('pr.costCenter', ccCode),
+      info('pr.project', pjCode),
+      info('pr.neededBy', fmtDate(pr.needed_by)),
+      info('pr.estimated', fmt(pr.estimated_amount) + ' ' + t('common.baht'))))));
+  app.append(head);
+
+  async function onEditHead() {
+    const v = await formModal(t('pr.editHeader'), [
+      ccField(ccs),
+      prjField(prjs),
+      { k: 'purpose_th', label: 'pr.purpose', required: true, wide: true },
+      { k: 'purpose_en', label: 'pr.purposeEn', wide: true },
+      { k: 'needed_by', label: 'pr.neededBy', type: 'date' },
+      { k: 'estimated_amount', label: 'pr.estimated', type: 'money' },
+    ], pr);
+    if (!v) return;
+    try {
+      await update('prs', id,
+        { ...fillCc(v, ccs), estimated_amount: v.estimated_amount ?? 0 });
+      ok(t('common.saved')); reload();
+    }
+    catch (e) { fail(e); }
+  }
+
+  // ---- รายการที่ขอซื้อ ----
+  const linesTotal = lines.reduce(
+    (s, l) => s + Math.round((Number(l.qty) || 0) * (Number(l.est_unit_price) || 0)), 0);
+
+  const lineFields = [
+    { k: 'description', label: 'common.description', required: true, wide: true },
+    { k: 'spec', label: 'common.spec', type: 'textarea', wide: true },
+    { k: 'qty', label: 'common.qty', type: 'num', required: true },
+    { k: 'unit', label: 'common.unit', required: true },
+    { k: 'est_unit_price', label: 'common.unitPrice', type: 'money', required: true },
+  ];
+
+  const onAddLine = async () => {
+    const v = await formModal(t('common.addLine'), lineFields);
+    if (!v) return;
+    const seq = (lines.at(-1)?.seq ?? 0) + 1;
+    try { await insert('pr_lines', { ...v, pr_id: id, seq }); ok(t('common.saved')); reload(); }
+    catch (e) { fail(e); }
+  };
+  const onEditLine = async (l) => {
+    const v = await formModal(t('common.edit'), lineFields, l);
+    if (!v) return;
+    try { await update('pr_lines', l.id, v); ok(t('common.saved')); reload(); } catch (e) { fail(e); }
+  };
+  const onDelLine = async (l) => {
+    if (!await confirmBox(t('msg.confirmDelete'))) return;
+    try { await remove('pr_lines', l.id); ok(t('common.saved')); reload(); } catch (e) { fail(e); }
+  };
+  const useLinesTotal = async () => {
+    try { await update('prs', id, { estimated_amount: linesTotal }); ok(t('common.saved')); reload(); }
+    catch (e) { fail(e); }
+  };
+
+  const lineRows = lines.map((l) => el('tr', {},
+    el('td', {}, String(l.seq)),
+    el('td', {}, el('b', {}, l.description), l.spec ? el('div', { class: 'faint' }, l.spec) : null),
+    el('td', { class: 'num' }, fmtQty(l.qty)),
+    el('td', {}, l.unit),
+    el('td', { class: 'num' }, fmt(l.est_unit_price)),
+    el('td', { class: 'num' }, fmt(Math.round((Number(l.qty) || 0) * (Number(l.est_unit_price) || 0)))),
+    el('td', { class: 'ta-right', style: 'white-space:nowrap' },
+      editable ? el('button', { class: 'btn small', onclick: () => onEditLine(l) }, t('common.edit')) : null,
+      editable ? el('button', { class: 'btn small danger', style: 'margin-left:.3rem',
+                                onclick: () => onDelLine(l) }, t('common.delete')) : null)));
+
+  app.append(el('div', { class: 'card' },
+    el('div', { class: 'row' },
+      el('h2', { style: 'margin:0' }, t('pr.lines')),
+      el('div', { class: 'spacer' }),
+      editable ? el('button', { class: 'btn primary', onclick: onAddLine }, t('common.addLine')) : null),
+    lines.length ? null : el('p', { class: 'faint' }, t('pr.noLines')),
+    table([t('common.seq'), t('common.description'), { label: t('common.qty'), align: 'right' },
+           t('common.unit'), { label: t('common.unitPrice'), align: 'right' },
+           { label: t('common.amount'), align: 'right' }, ''], lineRows),
+    el('div', { class: 'row', style: 'margin-top:.6rem' },
+      el('div', { class: 'spacer' }),
+      el('span', { class: 'muted' }, t('pr.linesTotal'), ': '),
+      el('b', { class: 'num' }, fmt(linesTotal), ' ', t('common.baht')),
+      editable && linesTotal && linesTotal !== pr.estimated_amount
+        ? el('button', { class: 'btn small', style: 'margin-left:.5rem', onclick: useLinesTotal },
+             t('pr.useTotal'))
+        : null)));
+
+  // ---- Scope of Work ----
+  // ข้อที่ผูกกับตาราง "รายการที่ขอซื้อ" — 1 บรรทัด = สินค้า 1 อย่าง
+  //   BOQ  → ชื่อ จำนวน หน่วย ราคา
+  //   SPEC → ชื่อ สเปก
+  // ไม่ให้พิมพ์มือ เพราะถ้าพิมพ์ซ้ำสองที่ วันหนึ่งข้อความใน SOW กับในตารางจะไม่ตรงกัน
+  // แล้วใบขอราคา/สัญญาที่อ้าง SOW ก็จะผิดตามไปด้วย
+  const LINKED = {
+    BOQ:  { hint: 'sow.boqLinked',
+            cols: (l) => [l.description, fmtQty(l.qty), l.unit, fmt(l.est_unit_price)] },
+    SPEC: { hint: 'sow.specLinked',
+            cols: (l) => [l.description, l.spec] },
+  };
+  const linkedText = (code, rows) => rows.map((l) =>
+    LINKED[code].cols(l).map((x) => String(x ?? '').trim()).filter(Boolean).join(' ')).join('\n');
+
+  // ---- ช่องตัวเลขของเงื่อนไขสัญญา ----
+  // ข้อ 3/4/5 ไม่ได้เป็นแค่ข้อความ แต่เป็นตัวเลขที่ใบสั่งซื้อต้องเอาไปใช้บังคับจริง
+  // (วันส่งมอบ, % ค่าปรับ, % เงินประกัน) จึงต้องเก็บเป็นตัวเลขในใบขอซื้อตั้งแต่ตรงนี้
+  // ไม่ใช่ปล่อยให้ฝ่ายจัดซื้อมาพิมพ์ใหม่ตอนกดออกใบ — พิมพ์ซ้ำเมื่อไหร่ก็เพี้ยนเมื่อนั้น
+  // ฐานเก็บเป็น basis point (10 = 0.1%) หน้าจอรับเป็น %
+  const NUM_TERMS = {
+    PEN:  [{ col: 'penalty_rate_bp', label: 'sow.penaltyRate', fallback: 10 },
+           { col: 'penalty_cap_bp',  label: 'sow.penaltyCap',  fallback: 1000 }],
+    WARR: [{ col: 'retention_bp',    label: 'sow.retention',   fallback: 0 }],
+  };
+  const termBp = (f) => (pr[f.col] == null ? f.fallback : pr[f.col]);
+
+  // ข้อที่เป็นตัวเลขล้วน — ไม่มีอะไรให้พิมพ์เพิ่มจากช่อง % ที่อยู่ในข้อนั้นแล้ว
+  // เดิมข้อ 5 มีช่องพิมพ์อิสระค้างไว้ ว่างทุกใบ และถ้าใครพิมพ์ไม่ตรงกับตัวเลข
+  // ใบสั่งซื้อ (ที่อ่านตัวเลข) กับ SOW (ที่ผู้ขายเซ็น) จะขัดกันเอง จึงสร้างข้อความจากตัวเลขแทน
+  const NUM_ONLY = ['PEN'];
+  const penaltyText = (rateBp, capBp) =>
+    t('sow.penaltyText', { rate: pct(rateBp), cap: pct(capBp) });
+  const numOnlyText = (code) => code === 'PEN'
+    ? penaltyText(termBp(NUM_TERMS.PEN[0]), termBp(NUM_TERMS.PEN[1])) : '';
+
+  // ให้ค่าที่บันทึกไว้ตรงกับตารางเสมอ ไม่งั้นล็อก SOW ไม่ผ่าน (ฐานข้อมูลเช็คว่าต้องมีข้อความจริง)
+  if (editable) {
+    for (const lc of clauses.filter((c) => LINKED[c.code] || NUM_ONLY.includes(c.code))) {
+      const want = LINKED[lc.code] ? linkedText(lc.code, lines) : numOnlyText(lc.code);
+      const have = sowMap.get(lc.id)?.requirement_th ?? '';
+      if (want === have) continue;
+      try {
+        if (want) {
+          await upsert('pr_sow', [{ pr_id: id, sow_clause_id: lc.id,
+                                    requirement_th: want }], 'pr_id,sow_clause_id');
+          sowMap.set(lc.id, { ...(sowMap.get(lc.id) ?? {}), requirement_th: want });
+        } else {
+          await sb.from('pr_sow').delete().eq('pr_id', id)
+            .eq('sow_clause_id', lc.id).then(un);
+          sowMap.delete(lc.id);
+        }
+      } catch (e) { fail(e); }
+    }
+  }
+
+  const sowInputs = new Map();
+  const filled = clauses.filter((c) =>
+    (sowMap.get(c.id)?.requirement_th ?? '').trim() !== '').length;
+
+  const sowCard = el('div', { class: 'card' },
+    el('h2', {}, t('sow.title')),
+    el('p', { class: 'faint' }, t('sow.intro')),
+    el('p', {}, el('b', {}, t('pr.sowProgress', { done: filled, total: clauses.length }))));
+
+  // ---- ช่องวันที่ (วว/ดด/ปปปป พ.ศ.) ----
+  // ข้อที่ต้องระบุวันที่ใช้ช่องนี้แทนช่องพิมพ์อิสระ วันที่ทุกใบจึงเป็นรูปแบบเดียวกัน
+  // ผูกสองทาง: พิมพ์ในช่อง → ปฏิทินเลื่อนตาม / เลือกจากปฏิทิน → ข้อความในช่องเปลี่ยนตาม
+  const DATE_CLAUSES = ['DELIV', 'WARR'];
+  const BE_OFFSET = 543;
+
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const toBeText = (dt) => `${pad2(dt.getDate())}/${pad2(dt.getMonth() + 1)}/${dt.getFullYear() + BE_OFFSET}`;
+  const toIso    = (dt) => `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())}`;
+
+  // เติมทีละส่วนได้ ยังพิมพ์ไม่ครบก็เดาจากเดือน/ปีปัจจุบัน
+  //   26           → 26 ของเดือนนี้ ปีนี้
+  //   26/12        → 26 ธ.ค. ปีนี้
+  //   26/12/2569   → ครบรูปแบบ (รับทั้ง พ.ศ. และ ค.ศ.)
+  const parseBeDate = (str) => {
+    const parts = String(str ?? '').split('/');
+    const now = new Date();
+    const d = Number(parts[0]);
+    if (!Number.isInteger(d) || d < 1 || d > 31) return null;
+
+    const mRaw = (parts[1] ?? '').trim();
+    const m = mRaw === '' ? now.getMonth() + 1 : Number(mRaw);
+    if (!Number.isInteger(m) || m < 1 || m > 12) return null;
+
+    const yRaw = (parts[2] ?? '').trim();
+    // ปียังพิมพ์ไม่ครบ 4 หลัก = ยังไม่เลือกปี ใช้ปีปัจจุบันไปก่อน
+    let y = yRaw.length === 4 ? Number(yRaw) : now.getFullYear();
+    if (!Number.isInteger(y)) return null;
+    if (y > 2400) y -= BE_OFFSET;
+
+    const dt = new Date(y, m - 1, d);
+    // กันวันที่ไม่มีจริง เช่น 31/02 (JS จะเลื่อนไปเดือนถัดไปเงียบๆ)
+    if (dt.getMonth() !== m - 1 || dt.getDate() !== d) return null;
+    return dt;
+  };
+
+  // ใส่ / ให้เองระหว่างพิมพ์ — ผู้ใช้เคาะแต่ตัวเลข
+  const maskBeDate = (raw) => {
+    const g = String(raw).replace(/\D/g, '').slice(0, 8);
+    return [g.slice(0, 2), g.slice(2, 4), g.slice(4, 8)].filter(Boolean).join('/');
+  };
+
+  // ไอคอนปฏิทินแบบเส้น (แนว Lucide) วาดด้วย SVG — คมทุกจอ และย้อมสีตามแบรนด์ได้
+  // อิโมจิ 📅 ใช้ไม่ได้ผล เพราะแต่ละเครื่องเรนเดอร์คนละหน้าตา และย้อมสีไม่ได้
+  const CAL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+    + ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<rect x="3" y="4.5" width="18" height="17" rx="2.5"/>'
+    + '<path d="M16 2.5v4M8 2.5v4M3 10h18"/>'
+    + '<path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>';
+
+  const dateField = (initial, disabled) => {
+    const input = el('input', {
+      type: 'text', class: 'date-input', inputmode: 'numeric', maxLength: 10,
+      placeholder: t('sow.dateFormat'), value: initial ?? '', disabled: !!disabled,
+    });
+    // ช่องปฏิทินจริงซ้อนทับช่องข้อความแบบโปร่งใส เพื่อให้ปฏิทินเด้งตรงตำแหน่งช่องพอดี
+    // (ถ้าย่อเหลือ 1px ปฏิทินจะไปโผล่มุมจอ)
+    const native = el('input', { type: 'date', class: 'date-native', tabIndex: -1 });
+    const btnHolder = el('span', { class: 'btn-holder' });
+
+    const syncNative = () => {
+      const dt = parseBeDate(input.value);
+      native.value = dt ? toIso(dt) : '';
+    };
+    syncNative();
+
+    input.addEventListener('input', () => {
+      // ใส่ / ให้เฉพาะตอนพิมพ์ต่อท้าย ถ้าแก้กลางข้อความปล่อยตามที่พิมพ์ ไม่ให้เคอร์เซอร์กระโดด
+      const atEnd = input.selectionStart === input.value.length;
+      if (atEnd) {
+        const masked = maskBeDate(input.value);
+        if (masked !== input.value) {
+          input.value = masked;
+          input.setSelectionRange(masked.length, masked.length);
+        }
+      }
+      syncNative();
+      input.classList.toggle('bad', input.value.trim() !== '' && !parseBeDate(input.value));
+    });
+
+    // เลือกจากปฏิทิน → เขียนกลับเป็น วว/ดด/ปปปป
+    native.addEventListener('change', () => {
+      if (!native.value) return;
+      const [y, m, d] = native.value.split('-').map(Number);
+      input.value = toBeText(new Date(y, m - 1, d));
+      input.classList.remove('bad');
+    });
+
+    // เบราว์เซอร์บางตัวเปิดปฏิทินด้วยสคริปต์ไม่ได้ (ต้องกดที่ตัวช่องเอง)
+    // กรณีนั้นให้สลับมาโชว์ช่องปฏิทินมาตรฐานทับไว้ ผู้ใช้จะได้ยังเลือกวันได้ ไม่ใช่กดแล้วเงียบ
+    const wrap = el('div', { class: 'field-wrap date-field' }, btnHolder, input, native);
+    const openPicker = () => {
+      if (disabled) return;
+      if (typeof native.showPicker === 'function') {
+        try { native.showPicker(); return; } catch { /* ตกไปใช้ทางสำรอง */ }
+      }
+      wrap.classList.add('picker-fallback');
+      native.focus();
+    };
+    native.addEventListener('blur', () => wrap.classList.remove('picker-fallback'));
+
+    btnHolder.append(el('button', {
+      type: 'button', class: 'in-field-btn', title: t('sow.insertDate'),
+      'aria-label': t('sow.insertDate'), html: CAL_ICON, disabled: !!disabled,
+      onclick: (e) => { e.preventDefault(); openPicker(); },
+    }));
+
+    // กดที่ช่อง = เปิดปฏิทินให้เลย ส่วนการพิมพ์ยังทำได้ปกติ
+    input.addEventListener('click', openPicker);
+
+    return { el: wrap, input };
+  };
+
+  const termInputs = new Map();     // ชื่อคอลัมน์ -> ช่องกรอก
+
+  const termFields = (code) => (NUM_TERMS[code] ?? []).map((f) => {
+    const input = el('input', {
+      type: 'number', step: '0.01', min: '0', max: '100', class: 'num',
+      disabled: !editable,
+      value: String(pct(termBp(f))),
+    });
+    termInputs.set(f.col, input);
+    return el('div', { class: 'field' }, el('label', {}, t(f.label)), input);
+  });
+
+  const termRow = (code) => {
+    const fields = termFields(code);
+    return fields.length ? el('div', { class: 'grid g3', style: 'margin:.4rem 0 .2rem' }, ...fields) : null;
+  };
+
+  for (const c of clauses) {
+    const link = LINKED[c.code];
+    const saved = sowMap.get(c.id)?.requirement_th ?? '';
+
+    // ข้อที่เป็นตัวเลขล้วน มีแต่ช่อง % ไม่มีช่องพิมพ์ ข้อความสร้างเองตอนบันทึก
+    if (NUM_ONLY.includes(c.code)) {
+      sowCard.append(el('div', { class: 'field' },
+        el('label', {}, `${c.seq}. ${pick(c, 'title')}`),
+        c.hint_th ? el('small', { class: 'faint' }, pick(c, 'hint')) : null,
+        el('small', { class: 'faint' }, t('sow.penaltyAuto')),
+        termRow(c.code)));
+      continue;
+    }
+
+    // ข้อที่เป็นวันที่ล้วน ใช้ช่องวันที่ ไม่ใช่ช่องพิมพ์อิสระ
+    if (DATE_CLAUSES.includes(c.code) && !link) {
+      const df = dateField(saved, !editable);
+      sowInputs.set(c.id, df.input);
+      sowCard.append(el('div', { class: 'field' },
+        el('label', {}, `${c.seq}. ${pick(c, 'title')}`),
+        c.hint_th ? el('small', { class: 'faint' }, pick(c, 'hint')) : null,
+        df.el,
+        termRow(c.code)));
+      continue;
+    }
+
+    const ta = el('textarea', {
+      rows: link ? Math.max(2, lines.length) : 2,
+      disabled: !editable && !link, readOnly: !!link,
+      class: link ? 'linked' : null,
+    });
+    ta.value = link ? linkedText(c.code, lines) : saved;
+    sowInputs.set(c.id, ta);
+    sowCard.append(el('div', { class: 'field' },
+      el('label', {}, `${c.seq}. ${pick(c, 'title')}`),
+      c.hint_th ? el('small', { class: 'faint' }, pick(c, 'hint')) : null,
+      link ? el('small', { class: 'faint' },
+        lines.length ? t(link.hint) : t('sow.boqEmpty')) : null,
+      ta,
+      termRow(c.code)));
+  }
+
+  // ล็อกแล้วแต่ยังไม่ออกใบขอราคา = ยังกลับมาแก้ได้ ไม่ต้องทิ้งใบแล้วทำใหม่ให้เปลืองเลข
+  if (!editable && canUnlock) {
+    sowCard.append(
+      el('p', { class: 'faint', style: 'margin:.2rem 0 .5rem' }, t('pr.editSowHint')),
+      el('button', { class: 'btn', onclick: async () => {
+        if (!await confirmBox(t('pr.editSowConfirm'))) return;
+        try { await flow.unlockSow(id); ok(t('pr.editSowDone')); reload(); }
+        catch (e) { fail(e); }
+      } }, t('pr.editSow')));
+  }
+
+  if (editable) {
+    sowCard.append(el('button', { class: 'btn primary', onclick: async () => {
+      const entries = [...sowInputs.entries()].map(([cid, ta]) => [cid, ta.value.trim()]);
+      const toSave = entries.filter(([, v]) => v)
+        .map(([cid, v]) => ({ pr_id: id, sow_clause_id: cid, requirement_th: v }));
+      const toClear = entries.filter(([, v]) => !v).map(([cid]) => cid);
+
+      // เงื่อนไขที่เป็นตัวเลขเก็บคู่ไปที่ใบขอซื้อด้วย ใบสั่งซื้อจะได้อ่านค่านี้ไปใช้ตรงๆ
+      // ข้อความในข้อ 3/4/5 ยังเก็บใน pr_sow เหมือนเดิม เพราะเป็นตัวที่ผู้ขายเซ็นรับ
+      const terms = {};
+      for (const [col, input] of termInputs) {
+        const n = Number(input.value);
+        terms[col] = input.value.trim() === '' || !Number.isFinite(n)
+          ? null : Math.round(n * 100);
+      }
+      const delivClause = clauses.find((c) => c.code === 'DELIV');
+      const delivText = delivClause ? (sowInputs.get(delivClause.id)?.value ?? '') : '';
+      const delivDt = parseBeDate(delivText);
+      terms.delivery_date = delivDt ? toIso(delivDt) : null;
+
+      const bad = [...termInputs.values()].some((i) => {
+        const n = Number(i.value);
+        return i.value.trim() !== '' && (!Number.isFinite(n) || n < 0 || n > 100);
+      });
+      if (bad) { warn(t('sow.badPct')); return; }
+
+      // ข้อที่ไม่มีช่องพิมพ์ ต้องเขียนข้อความให้เองทุกครั้ง ไม่งั้นล็อก SOW ไม่ผ่าน
+      for (const c of clauses.filter((x) => NUM_ONLY.includes(x.code))) {
+        toSave.push({ pr_id: id, sow_clause_id: c.id,
+                      requirement_th: penaltyText(terms.penalty_rate_bp,
+                                                  terms.penalty_cap_bp) });
+      }
+
+      try {
+        if (toSave.length) await upsert('pr_sow', toSave, 'pr_id,sow_clause_id');
+        // requirement_th เป็น NOT NULL — ข้อที่ลบข้อความออกต้องลบทั้งแถว เขียน null ไม่ได้
+        if (toClear.length) {
+          await sb.from('pr_sow').delete().eq('pr_id', id)
+            .in('sow_clause_id', toClear).then(un);
+        }
+        await sb.from('prs').update(terms).eq('id', id).then(un);
+        ok(t('common.saved')); reload();
+      } catch (e) { fail(e); }
+    } }, t('common.save')));
+  }
+  app.append(sowCard);
+
+  // ---- งบประมาณ ----
+  if (pr.cost_center_id && pr.estimated_amount > 0) {
+    const budgetCard = el('div', { class: 'card' }, el('h2', {}, t('budget.title')), spinner());
+    app.append(budgetCard);
+    flow.checkBudget(id, pr.estimated_amount).then((b) => {
+      // ยังไม่ได้ตั้งงบของศูนย์ต้นทุน/โครงการนี้ — ไม่มีอะไรให้แสดง
+      if (b.verdict === 'none') { budgetCard.remove(); return; }
+      const usedPct = Math.min(100, (b.used_bp_after ?? 0) / 100);
+      const tone = b.verdict === 'over' ? 'over' : b.verdict === 'warn' ? 'warn' : '';
+      budgetCard.textContent = '';
+      budgetCard.append(
+        el('h2', {}, t('budget.title')),
+        el('div', { class: 'notice ' + (b.verdict === 'over' ? 'err' : b.verdict === 'warn' ? 'warn' : 'ok') },
+          t('budget.' + b.verdict),
+          b.verdict === 'over'
+            ? ` — ${t('budget.overBy')} ${fmt(b.over_amount)} ${t('common.baht')}`
+            : ''),
+        el('div', { class: 'grid g3' },
+          el('div', {}, el('small', { class: 'faint' }, t('budget.amount')),
+            el('div', { class: 'num' }, fmt(b.budget_amount))),
+          el('div', {}, el('small', { class: 'faint' }, t('budget.available')),
+            el('div', { class: 'num' }, fmt(b.available))),
+          el('div', {}, el('small', { class: 'faint' }, t('budget.request')),
+            el('div', { class: 'num' }, fmt(b.request_amount)))),
+        el('div', { class: 'meter ' + tone }, el('i', { style: `width:${usedPct}%` })),
+        el('small', { class: 'faint' }, t('budget.used') + ' ' + usedPct.toFixed(1) + '%'),
+        b.verdict === 'over' ? el('p', { class: 'faint' }, t('budget.options')) : null);
+    }).catch(() => { budgetCard.remove(); });
+  }
+
+  // ---- ล็อก SOW ----
+  if (canLock) {
+    const blockers = [];
+    if (!lines.length) blockers.push(t('pr.noLines'));
+    if (filled < clauses.length) {
+      blockers.push(t('pr.sowMissing') + ' — ' +
+        t('pr.sowProgress', { done: filled, total: clauses.length }));
+    }
+    app.append(el('div', { class: 'card' },
+      el('h2', {}, t('pr.lockSow')),
+      ...blockers.map((b) => el('div', { class: 'notice warn' }, b)),
+      el('button', {
+        class: 'btn primary', disabled: blockers.length > 0,
+        onclick: async () => {
+          if (!await confirmBox(t('pr.lockConfirm'))) return;
+          try { await flow.lockSow(id); ok(t('common.saved')); reload(); } catch (e) { fail(e); }
+        },
+      }, t('pr.lockSow'))));
+  }
+
+  // ---- ใบขอราคา ----
+  // ออกเป็น "ใบกลาง" ใบเดียว ไม่ระบุชื่อผู้ขาย — ฝ่ายจัดซื้อถ่ายสำเนาส่งได้ทุกเจ้า
+  // (เดิมต้องเลือกผู้ขายก่อนแล้วออกใบต่อเจ้า ซึ่งบังคับให้ตัดสินใจตั้งแต่ยังไม่รู้ว่าจะถามใครบ้าง)
+  if (canRfq) {
+    const card = el('div', { class: 'card' },
+      el('h2', {}, t('pr.issueRfq')),
+      el('p', { class: 'faint' }, t('pr.rfqNoVendor')));
+
+    card.append(el('button', { class: 'btn primary', onclick: async () => {
+      try {
+        // ต้องคิด hash จากเนื้อเดียวกับที่จะพิมพ์ แล้วบันทึกก่อน ค่อยเปิดหน้าพิมพ์
+        // ถ้าพิมพ์ก่อนบันทึก จะมีกระดาษลอยอยู่ข้างนอกที่ระบบไม่รู้จัก
+        const data = await loadRfqData(id, null);
+        const hash = await contentHash(rfqCanonicalText(data));
+        const printId = await flow.issueRfq(id, null, hash);
+        ok(t('pr.rfqIssued'));
+        window.open(`print/rfq.html?print=${printId}`, '_blank');
+        reload();
+      } catch (e) { fail(e); }
+    } }, t('pr.issueRfq')));
+
+    card.append(el('h2', { style: 'margin-top:1.2rem' }, t('pr.rfqHistory')),
+      table([t('common.at'), t('pr.rfqHash'), ''],
+        prints.map((p) => el('tr', {},
+          el('td', {}, fmtDate(p.printed_at)),
+          el('td', {}, el('code', {}, (p.content_hash ?? '').slice(0, 8))),
+          el('td', { class: 'ta-right' },
+            el('a', { class: 'btn small', href: `print/rfq.html?print=${p.id}`, target: '_blank' },
+               t('common.print')))))));
+    app.append(card);
+  }
+}
+</script>
+</body>
+</html>

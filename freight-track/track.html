@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<script src="js/theme-init.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ติดตามพัสดุ · FreightTrack</title>
+<meta name="description" content="กรอกเลข Invoice หรือ Delivery เพื่อดูสถานะงานขนส่งแบบเรียลไทม์ พร้อมรูปถ่าย พิกัด และลายเซ็นตอนส่งมอบ">
+<meta name="theme-color" content="#f4f3f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1f1c1b" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/apple.css">
+<!-- track.css โหลดหลัง apple.css — หน้านี้ใช้โทนเดียวกับหน้าแรก (index.html) แทนโทนฟ้าของ apple.css -->
+<link rel="stylesheet" href="css/track.css">
+</head>
+<body class="trk">
+<!-- โครงหน้ารอโหลด — ขึ้นทันทีจาก HTML/CSS ก่อน JavaScript ทำงาน แล้วสลับเป็นหน้าจริงตอนวาดเสร็จ (ui.js → shell) -->
+<div class="skel" aria-hidden="true">
+  <div class="skel-bar"></div>
+  <div class="skel-hero"></div>
+</div>
+
+<main class="trk-page">
+  <!-- หัวเรื่อง: ซ้ายชื่อหน้าใหญ่ · ขวาคำโปรย + ปุ่มโทร (แบบหน้าแรก) -->
+  <div class="trk-head no-print">
+    <div>
+      <p class="trk-eyebrow">FreightTrack</p>
+      <h1 class="trk-title"><span>ติดตามการจัดส่ง</span></h1>
+    </div>
+    <div class="trk-aside">
+      <p class="trk-lead">ติดตามด้วยเลข Invoice หรือเลข Delivery <span class="nowrap"></span></p>
+      <a class="trk-call" id="callBtn" href="tel:020000000" data-tel-label="สำนักงาน">
+        <span class="trk-call-ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>
+        </span>
+        <span>โทรสอบถาม <span id="callNum">02-000-0000</span></span>
+      </a>
+      <p class="trk-admin" id="adminNums">แอดมิน <a href="tel:0800000001">080-000-0001</a> · <a href="tel:0800000002">080-000-0002</a></p>
+    </div>
+  </div>
+
+  <!-- การ์ดค้นหา -->
+  <section class="trk-sec no-print" aria-labelledby="trk-find">
+    <form class="trk-card" id="findForm">
+      <div class="trk-card-head">
+        <span class="trk-ic" style="--c:#C76E00" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/></svg>
+        </span>
+        <h2 id="trk-find">ตรวจสอบสถานะสินค้า</h2>
+      </div>
+      <label for="code">เลข Invoice หรือเลข Delivery</label>
+      <div class="trk-row">
+        <input class="trk-input" id="code" inputmode="text" autocomplete="off" placeholder="กรอกเลข Invoice หรือ Delivery">
+        <button class="trk-go" type="submit">ตรวจสอบ</button>
+      </div>
+      <p class="trk-hint">ดูเลขอ้างอิงได้จากใบแจ้งหนี้หรือใบส่งสินค้า</p>
+      <div id="quick"></div>
+    </form>
+  </section>
+
+  <!-- รีพอร์ต JOBLIST (6 พ.ย. — ลูกค้าขอ · js/jobReport.js) เลือกช่วงวันที่แบบหน้า Dashboard/หลังบ้าน แล้วดาวน์โหลดทันที ไม่ต้องค้นเลขก่อน -->
+  <section class="trk-sec no-print" aria-labelledby="trk-rpt">
+    <div class="trk-report">
+      <div class="grow">
+        <h2 class="trk-report-t" id="trk-rpt">รีพอร์ตการจัดส่ง</h2>
+        <p class="trk-hint" style="margin:2px 0 0">ทุกงานตามวันที่สร้างงาน · ไฟล์ Excel แบบ JOBLIST</p>
+      </div>
+      <div class="trk-report-go">
+        <label class="dpill dpill-date">📅 <input type="date" id="rptFrom" aria-label="วันเริ่มต้น"> – <input type="date" id="rptTo" aria-label="วันสุดท้าย"></label>
+        <button class="btn btn-accent btn-sm" type="button" id="rptBtn">⬇ ดาวน์โหลดรีพอร์ต</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="trk-results">
+    <div class="trk-results-head no-print">
+      <!-- ดู POD = เปิดใบบนจอเลย ไม่ต้องดาวน์โหลด/ไม่ต้องมีแอป PDF (ใช้ในเบราว์เซอร์ของ LINE ได้) · ดาวน์โหลด POD = หน้าต่างพิมพ์เดิม (31 ต.ค.) -->
+      <button class="btn btn-accent btn-sm" id="podViewBtn">👁 ดูใบส่งของ</button>
+      <button class="btn btn-ghost btn-sm" id="printBtn">⬇ ดาวน์โหลดใบส่งของ</button>
+    </div>
+    <div id="result"></div>
+  </section>
+
+  <!-- ข้อมูลประกอบ 3 ข้อ — การ์ดเล็ก ไอคอนสีอ่อน ไม่แย่งสายตาจากการ์ดค้นหา -->
+  <section class="trk-sec no-print" aria-labelledby="trk-feat">
+    <h2 class="trk-sec-t trk-sec-sm" id="trk-feat">ข้อมูลการจัดส่งที่ตรวจสอบได้</h2>
+    <ul class="trk-feats">
+      <li class="trk-feat">
+        <span class="trk-ic" style="--c:#C76E00" aria-hidden="true">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16a4 4 0 0 1 4-4h6l3-5h10l3 5h6a4 4 0 0 1 4 4v20a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4z"/><circle cx="24" cy="25" r="8"/></svg>
+        </span>
+        <p><span>รูปถ่ายสินค้า</span><span>ทุกจุดส่ง</span></p>
+      </li>
+      <li class="trk-feat">
+        <span class="trk-ic" style="--c:#C76E00" aria-hidden="true">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M24 44s14-12.6 14-24a14 14 0 0 0-28 0c0 11.4 14 24 14 24z"/><circle cx="24" cy="20" r="5"/></svg>
+        </span>
+        <p><span>พิกัด GPS</span> <span>ตอนส่งมอบ</span></p>
+      </li>
+      <li class="trk-feat">
+        <span class="trk-ic" style="--c:#C76E00" aria-hidden="true">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M30 8l10 10L18 40H8V30z"/><path d="M26 12l10 10"/><path d="M8 44h32"/></svg>
+        </span>
+        <p><span>ลายเซ็น</span><span>ผู้รับสินค้า</span></p>
+      </li>
+    </ul>
+  </section>
+</main>
+
+<script type="module" src="js/firebase.js"></script>
+<script type="module" src="js/track.js"></script>
+</body>
+</html>

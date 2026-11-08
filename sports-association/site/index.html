@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>สมาคมกีฬาตัวอย่าง | Sample Sports Association</title>
+  <meta name="description" content="ข่าว การแข่งขัน ปฏิทิน ดาวน์โหลดกติกา และแกลเลอรีของสมาคมกีฬาตัวอย่าง">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300..700&family=Noto+Serif+Display:wdth,wght@62.5..100,400..900&family=Noto+Serif+Thai:wdth,wght@62.5..100,400..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="module" src="js/pages/home.js"></script>
+</head>
+<body>
+  <main id="main">
+    <div id="ticker"></div>
+
+    <!-- Page Banner -->
+    <section class="hero" id="hero" aria-label="แบนเนอร์">
+      <div class="hero__slide is-active skeleton"></div>
+    </section>
+
+    <!-- Event Participation -->
+    <section class="events" id="upcomingEvents" aria-labelledby="events-h">
+      <h2 id="events-h" class="sr-only">การแข่งขันที่กำลังจะมาถึง</h2>
+      <div class="events__head">
+        <div class="events__tabs" role="tablist">
+          <button class="events__tab is-active" role="tab" data-type="all">ทั้งหมด</button>
+          <button class="events__tab" role="tab" data-type="major">รายการหลัก</button>
+          <button class="events__tab" role="tab" data-type="other">รายการอื่น</button>
+        </div>
+        <a class="events__sync" href="competition.html#calendar"><span data-cal></span>ดูปฏิทินการแข่งขันทั้งปี<span class="pill-arrow pill-arrow--blue" data-arr></span></a>
+      </div>
+      <div class="events__grid" id="eventsGrid"></div>
+    </section>
+
+    <!-- Updates: News -->
+    <section class="section section--blue carousel" id="latestNews" aria-labelledby="news-h">
+      <div class="section__head">
+        <h2 id="news-h" class="section__title display">ข่าวล่าสุด</h2>
+        <div class="section__rule"></div>
+        <div class="section__bar">
+          <div class="chips" id="newsChips"></div>
+          <div data-arrows-light></div>
+        </div>
+      </div>
+      <div class="carousel__track" id="newsTrack"></div>
+    </section>
+
+    <!-- About Jump Rope: Categories -->
+    <section class="section section--gray carousel" aria-labelledby="cat-h">
+      <div class="section__head">
+        <h2 id="cat-h" class="section__title display">ประเภทการแข่งขัน</h2>
+        <div class="section__bar section__bar--right" data-arrows></div>
+      </div>
+      <div class="carousel__track" id="catTrack"></div>
+    </section>
+
+    <!-- Feature: National Team -->
+    <section class="feature" id="nationalTeam" aria-labelledby="feat-h">
+      <div class="feature__text">
+        <h2 id="feat-h" class="feature__title">ทีมชาติไทย: จากสนามโรงเรียนสู่เวทีชิงแชมป์โลก</h2>
+        <p class="feature__desc">รู้จักนักกีฬากระโดดเชือกทีมชาติไทย และผลงานในการแข่งขันระดับนานาชาติ ทั้งชิงแชมป์เอเชียและชิงแชมป์โลก IJRU</p>
+        <a class="btn-rect" href="about-jump-rope.html#national-team">อ่าน <span data-arrow-r></span></a>
+      </div>
+      <div class="feature__media"><img id="featImg" alt=""></div>
+    </section>
+
+    <!-- Media -->
+    <section class="section section--sky carousel" id="latestAlbums" aria-labelledby="media-h">
+      <div class="section__head">
+        <h2 id="media-h" class="section__title display section__title--navy">อัลบั้มล่าสุด</h2>
+        <div class="section__bar section__bar--right" data-arrows></div>
+      </div>
+      <div class="carousel__track" id="mediaTrack"></div>
+    </section>
+
+    <!-- Downloads promo -->
+    <section class="promo" aria-labelledby="promo-h">
+      <div>
+        <h2 id="promo-h" class="promo__title display">Timing Tracks</h2>
+        <p class="promo__desc">ดาวน์โหลดสัญญาณเสียงจับเวลาสำหรับฝึกซ้อม ตามรูปแบบการแข่งขัน IJRU พร้อมกติกา Anti-Doping และ Safe Sport</p>
+        <a class="btn-wide" href="downloads.html#timing">ดาวน์โหลด <span data-arrow-ur></span></a>
+      </div>
+      <div class="promo__media"><img id="promoImg" alt=""></div>
+    </section>
+
+    <!-- Organisation -->
+    <section class="section section--gray carousel" aria-labelledby="org-h">
+      <div class="section__head">
+        <h2 id="org-h" class="section__title display section__title--navy">รู้จักสมาคม</h2>
+        <div class="section__bar section__bar--right" data-arrows></div>
+      </div>
+      <div class="carousel__track" id="orgTrack"></div>
+    </section>
+  </main>
+</body>
+</html>

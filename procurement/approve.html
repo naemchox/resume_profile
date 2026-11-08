@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>รออนุมัติ — ระบบจัดซื้อจัดจ้าง</title>
+<link rel="stylesheet" href="css/app.css">
+<script src="js/theme.js"></script>
+</head>
+<body>
+<main id="app"><div class="spinner">…</div></main>
+
+<script type="module">
+import { sb } from './js/supabase.js';
+import { t, pick, fmtDate, fmtDateTime } from './js/i18n.js';
+import { requirePage, me, has, hasAny } from './js/auth.js';
+import { masters, flow } from './js/api.js';
+import { fmt, fmtQty } from './js/money.js';
+import { el, $, shell, pageTitle, table, confirmBox, askReason, badge,
+         ok, fail, spinner } from './js/ui.js';
+
+const un = ({ data, error }) => { if (error) throw error; return data; };
+
+const u = await requirePage('approve.html');
+if (u) {
+  shell('approve.html');
+  const prId = new URLSearchParams(location.search).get('pr');
+  prId ? await detail(prId) : await listView();
+}
+
+// ยอดของใบขอซื้อ = แยกตามใบเสนอราคาที่ชนะ แล้วบวกค่าส่ง + VAT ของแต่ละเจ้า
+// ต้องคิดแบบเดียวกับ fn_submit_for_approval เป๊ะ ไม่งั้นเลขบนจอกับเลขที่อนุมัติจริงจะไม่ตรงกัน
+function awardedTotal(lineAwards, qLines, quotes) {
+  const byQuote = new Map();
+  for (const a of lineAwards) {
+    const ql = qLines.find((l) => l.id === a.quote_line_id);
+    if (!ql) continue;
+    byQuote.set(a.quote_id, (byQuote.get(a.quote_id) ?? 0) + (ql.amount ?? 0));
+  }
+  let total = 0;
+  for (const [qid, sub] of byQuote) {
+    const q = quotes.find((x) => x.id === qid);
+    if (!q) continue;
+    const base = sub + (q.freight ?? 0);
+    total += base + Math.round(base * (q.vat_bp ?? 0) / 10000);
+  }
+  return total;
+}
+
+// ===========================================================================
+// หน้ารวม
+// ===========================================================================
+async function listView() {
+  const app = $('#app');
+  app.textContent = '';
+  app.append(pageTitle('approve.title'));
+
+  const queueBox = el('div', {}, spinner());
+  app.append(el('div', { class: 'card' }, el('h2', {}, t('approve.myQueue')), queueBox));
+
+  const exBox = has('ceo') ? el('div', {}, spinner()) : null;
+  if (exBox) app.append(el('div', { class: 'card' }, el('h2', {}, t('approve.exceptions')), exBox));
+
+  const prBox = el('div', {}, spinner());
+  app.append(el('div', { class: 'card' }, el('h2', {}, t('approve.forPr')), prBox));
+
+  try {
+    const [queue, prs] = await Promise.all([
+      sb.from('v_pending_approvals').select('*')
+        .eq('doc_type', 'pr').in('role', me.roles).then(un),
+      sb.from('v_pr_summary').select('*')
+        .in('status', ['evaluated', 'pending_approval', 'approved', 'rejected'])
+        .order('created_at', { ascending: false }).then(un),
+    ]);
+    const prById = new Map(prs.map((p) => [p.id, p]));
+
+    queueBox.textContent = '';
+    queueBox.append(queue.length
+      ? table([t('pr.no'), t('pr.purpose'), t('approve.step'), t('admin.roleCol'),
+               { label: t('pr.estimated'), align: 'right' }],
+          queue.map((a) => {
+            const p = prById.get(a.doc_id);
+            return el('tr', {},
+              el('td', {}, el('a', { href: `approve.html?pr=${a.doc_id}` }, p?.pr_no ?? '—')),
+              el('td', {}, p ? pick(p, 'purpose') : '—'),
+              el('td', {}, String(a.step_no)),
+              el('td', {}, t('role.' + a.role)),
+              el('td', { class: 'num' }, fmt(p?.awarded_total || p?.estimated_amount)));
+          }))
+      : el('p', { class: 'faint' }, t('approve.empty')));
+
+    prBox.textContent = '';
+    prBox.append(table(
+      [t('pr.no'), t('pr.purpose'), t('pr.requester'), t('pr.costCenter'),
+       { label: t('approve.amount'), align: 'right' }, t('common.status')],
+      prs.map((p) => el('tr', {},
+        el('td', {}, el('a', { href: `approve.html?pr=${p.id}` }, p.pr_no ?? '—')),
+        el('td', {}, pick(p, 'purpose')),
+        el('td', {}, pick(p, 'requester_name')),
+        el('td', {}, p.cost_center_code ?? '—'),
+        el('td', { class: 'num' }, fmt(p.awarded_total || p.estimated_amount)),
+        el('td', {}, badge(p.status, 'prStatus'))))));
+  } catch (e) { queueBox.textContent = ''; prBox.textContent = ''; fail(e); }
+
+  if (exBox) {
+    try {
+      const exs = await sb.from('budget_exceptions').select('*')
+        .eq('decision', 'pending').order('requested_at', { ascending: false }).then(un);
+      exBox.textContent = '';
+      exBox.append(exs.length
+        ? table([t('pr.no'), { label: t('approve.overAmount'), align: 'right' },
+                 t('common.reason'), t('common.at'), ''],
+            exs.map((x) => el('tr', {},
+              el('td', {}, el('a', { href: `approve.html?pr=${x.pr_id}` }, t('pr.title'))),
+              el('td', { class: 'num' }, fmt(x.amount_over)),
+              el('td', {}, x.reason ?? '—'),
+              el('td', {}, fmtDateTime(x.requested_at)),
+              el('td', { class: 'ta-right', style: 'white-space:nowrap' },
+                el('button', { class: 'btn small primary', onclick: () => decideException(x, true) },
+                   t('approve.approve')),
+                el('button', { class: 'btn small danger', style: 'margin-left:.3rem',
+                               onclick: () => decideException(x, false) }, t('approve.reject'))))))
+        : el('p', { class: 'faint' }, t('approve.noExceptions')));
+    } catch (e) { exBox.textContent = ''; fail(e); }
+  }
+}
+
+async function decideException(x, approve) {
+  try {
+    let reason = null;
+    if (!approve) {
+      reason = await askReason(t('approve.reject'), t('approve.rejectReason'));
+      if (!reason) return;
+    } else if (!await confirmBox(t('approve.confirmApprove'))) return;
+    await flow.decideException(x.id, approve, reason);
+    ok(t('common.saved'));
+    location.reload();
+  } catch (e) { fail(e); }
+}
+
+// ===========================================================================
+// รายละเอียดใบขอซื้อหนึ่งใบ
+// ===========================================================================
+async function detail(prId) {
+  const app = $('#app');
+  app.textContent = '';
+  app.append(spinner());
+
+  let pr, prLines, lineAwards, prAward, quotes, qLines, vendors, chain, exceptions, requester;
+  let people = new Map();
+  try {
+    [pr, prLines, lineAwards, prAward, quotes, vendors, chain, exceptions] = await Promise.all([
+      sb.from('prs').select('*').eq('id', prId).maybeSingle().then(un),
+      sb.from('pr_lines').select('*').eq('pr_id', prId).order('seq').then(un),
+      sb.from('line_awards').select('*').eq('pr_id', prId).then(un),
+      sb.from('pr_awards').select('*').eq('pr_id', prId).maybeSingle().then(un),
+      sb.from('quotes').select('*').eq('pr_id', prId).then(un),
+      masters.vendors(),
+      sb.from('approvals').select('*').eq('doc_type', 'pr').eq('doc_id', prId)
+        .order('step_no').then(un),
+      sb.from('budget_exceptions').select('*').eq('pr_id', prId)
+        .order('requested_at', { ascending: false }).then(un),
+    ]);
+    const qIds = quotes.map((q) => q.id);
+    qLines = qIds.length
+      ? await sb.from('quote_lines').select('*').in('quote_id', qIds).then(un) : [];
+    if (pr) {
+      const ids = [...new Set([pr.requester_id,
+        ...chain.map((a) => a.approver_id)].filter(Boolean))];
+      people = new Map((await sb.from('user_profiles')
+        .select('id, full_name_th, full_name_en').in('id', ids).then(un))
+        .map((x) => [x.id, x]));
+      requester = people.get(pr.requester_id) ?? null;
+    }
+  } catch (e) { app.textContent = ''; fail(e); return; }
+
+  if (!pr) {
+    app.textContent = '';
+    app.append(pageTitle('approve.title'), el('div', { class: 'notice err' }, t('pr.notFound')),
+      el('a', { class: 'btn', href: 'approve.html' }, t('pr.backToList')));
+    return;
+  }
+
+  const reload = () => detail(prId);
+  const vendorById = new Map(vendors.map((v) => [v.id, v]));
+  const total = awardedTotal(lineAwards, qLines, quotes);
+
+  app.textContent = '';
+  app.append(pageTitle('approve.title',
+    el('a', { class: 'btn small', href: `pr.html?id=${prId}` }, t('pr.title')),
+    el('a', { class: 'btn small', href: 'approve.html', style: 'margin-left:.3rem' }, t('pr.backToList'))));
+
+  // ---- หัวเรื่อง ----
+  app.append(el('div', { class: 'card' },
+    el('h2', { style: 'margin:0' }, pr.pr_no ?? '—', ' ', badge(pr.status, 'prStatus')),
+    el('p', { class: 'muted', style: 'margin:.3rem 0 .6rem' }, pick(pr, 'purpose')),
+    el('div', { class: 'grid g3' },
+      el('div', {}, el('small', { class: 'faint' }, t('approve.requestedBy')),
+        el('div', {}, requester ? pick(requester, 'full_name') : '—')),
+      el('div', {}, el('small', { class: 'faint' }, t('pr.neededBy')),
+        el('div', {}, fmtDate(pr.needed_by))),
+      el('div', {}, el('small', { class: 'faint' }, t('approve.amount')),
+        el('div', { class: 'num' }, el('b', {}, fmt(total), ' ', t('common.baht'))))),
+    pr.status === 'rejected' && pr.reject_reason
+      ? el('div', { class: 'notice err', style: 'margin-top:.8rem' },
+          el('strong', {}, t('approve.rejected')), pr.reject_reason)
+      : null,
+    prAward?.escalated
+      ? el('div', { class: 'notice warn', style: 'margin-top:.8rem' }, t('award.escalated'))
+      : null));
+
+  // ---- ผลการคัดเลือก ----
+  if (lineAwards.length) {
+    app.append(el('div', { class: 'card' },
+      el('h2', {}, t('approve.awardSummary')),
+      table([t('common.seq'), t('common.description'), { label: t('common.qty'), align: 'right' },
+             t('approve.winner'), { label: t('common.unitPrice'), align: 'right' },
+             { label: t('common.amount'), align: 'right' }, t('award.notCheapestReason')],
+        prLines.map((pl) => {
+          const a = lineAwards.find((x) => x.pr_line_id === pl.id);
+          const ql = a && qLines.find((l) => l.id === a.quote_line_id);
+          const q = a && quotes.find((x) => x.id === a.quote_id);
+          const v = q && vendorById.get(q.vendor_id);
+          return el('tr', {},
+            el('td', {}, String(pl.seq)),
+            el('td', {}, el('b', {}, pl.description)),
+            el('td', { class: 'num' }, fmtQty(pl.qty) + ' ' + pl.unit),
+            el('td', {}, v ? `${v.code} — ${pick(v, 'name')}` : '—'),
+            el('td', { class: 'num' }, ql ? fmt(ql.unit_price) : '—'),
+            el('td', { class: 'num' }, ql ? fmt(ql.amount) : '—'),
+            el('td', {}, a?.reason_if_not_cheapest
+              ? el('span', { class: 'faint' }, a.reason_if_not_cheapest) : '—'));
+        }))));
+  }
+
+  // ---- ส่งเข้าสายอนุมัติ ----
+  if (pr.status === 'evaluated' && hasAny('purchasing', 'admin')) {
+    app.append(el('div', { class: 'card' },
+      el('h2', {}, t('approve.submit')),
+      el('p', { class: 'faint' }, t('approve.readyToSubmit')),
+      el('button', { class: 'btn primary', onclick: async () => {
+        if (!await confirmBox(t('approve.submit'))) return;
+        try {
+          const res = await flow.submit(prId);
+          // ยอดตกช่วงราคาของใคร คนนั้นอนุมัติคนเดียวจบ — บอกไปเลยว่าใคร จะได้ไม่ต้องเดา
+          ok(t('approve.submitted') + ' — ' + fmt(res.amount) + ' ' + t('common.baht')
+             + (res.approver_role ? ' → ' + t('role.' + res.approver_role) : ''));
+          reload();
+        } catch (e) { fail(e); }
+      } }, t('approve.submit'))));
+  }
+
+  // ---- สายอนุมัติ ----
+  const chainCard = el('div', { class: 'card' }, el('h2', {}, t('approve.chain')));
+  if (!chain.length) {
+    chainCard.append(el('p', { class: 'faint' }, t('approve.notSubmitted')));
+  } else {
+    chainCard.append(el('p', { class: 'faint' }, t('approve.chainHint')));
+
+    // ขั้นที่ "ถึงคิว" = ขั้นแรกที่ยังค้าง และขั้นก่อนหน้าอนุมัติครบแล้ว
+    const firstPending = chain.find((a) => a.decision === 'pending');
+    const blockedBefore = (a) =>
+      chain.some((p) => p.step_no < a.step_no && p.decision !== 'approved');
+
+    chainCard.append(el('div', { class: 'chain' },
+      ...chain.flatMap((a, i) => {
+        const cls = a.decision === 'approved' ? 'done'
+                  : a.decision === 'rejected' ? 'reject'
+                  : a === firstPending ? 'current' : '';
+        const step = el('div', { class: 'step ' + cls },
+          el('b', {}, t('role.' + a.role)),
+          chain.length > 1 ? el('small', {}, `${t('approve.step')} ${a.step_no}`) : null,
+          a.decision !== 'pending'
+            ? el('small', {}, fmtDateTime(a.decided_at))
+            : el('small', {}, blockedBefore(a) ? t('approve.waiting') : t('approve.pending')));
+        return i ? [el('span', { class: 'arrow' }, '→'), step] : [step];
+      })));
+
+    // ปุ่มตัดสิน — โผล่เฉพาะขั้นที่เป็นตำแหน่งของเรา และถึงคิวแล้ว
+    // กติกาแยกหน้าที่ (ผู้ขอ / คนคีย์ราคา ห้ามอนุมัติ) บังคับที่ฐาน เราแค่ไม่ซ่อนปุ่มมั่ว
+    const mine = chain.find((a) => a.decision === 'pending' && has(a.role) && !blockedBefore(a));
+    if (mine) {
+      chainCard.append(el('div', { class: 'row', style: 'margin-top:1rem;gap:.5rem' },
+        el('button', { class: 'btn primary', onclick: () => decide(mine, true) }, t('approve.approve')),
+        el('button', { class: 'btn danger', onclick: () => decide(mine, false) }, t('approve.reject'))));
+    } else if (firstPending) {
+      chainCard.append(el('p', { class: 'faint', style: 'margin-top:1rem' },
+        t('approve.notYourStep') + ' — ' + t('role.' + firstPending.role)));
+    }
+
+    // ประวัติการตัดสินที่ผ่านมา
+    const decided = chain.filter((a) => a.decision !== 'pending');
+    if (decided.length) {
+      chainCard.append(el('div', { style: 'margin-top:1rem' }, table(
+        [t('approve.step'), t('admin.roleCol'), t('common.status'), t('approve.decidedBy'),
+         t('common.reason'), t('common.at')],
+        decided.map((a) => el('tr', {},
+          el('td', {}, String(a.step_no)),
+          el('td', {}, t('role.' + a.role)),
+          el('td', {}, el('span', { class: 'badge ' + (a.decision === 'approved' ? 'green' : 'red') },
+            t(a.decision === 'approved' ? 'approve.approved' : 'approve.rejected'))),
+          el('td', {}, a.approver_id ? (pick(people.get(a.approver_id) ?? {}, 'full_name') || '—') : '—'),
+          el('td', {}, a.reason ?? '—'),
+          el('td', {}, fmtDateTime(a.decided_at)))))));
+    }
+  }
+  app.append(chainCard);
+
+  async function decide(a, approve) {
+    try {
+      let reason = null;
+      if (!approve) {
+        reason = await askReason(t('approve.reject'), t('approve.rejectReason'));
+        if (!reason) return;
+      } else if (!await confirmBox(t('approve.confirmApprove'))) return;
+      await flow.decide(a.id, approve, reason);
+      ok(t('common.saved'));
+      reload();
+    } catch (e) { fail(e); }
+  }
+
+  // ---- คำขอยกเว้นงบของเรื่องนี้ ----
+  if (exceptions.length) {
+    const card = el('div', { class: 'card' }, el('h2', {}, t('approve.exceptions')));
+    card.append(table(
+      [{ label: t('approve.overAmount'), align: 'right' }, t('common.reason'),
+       t('common.status'), t('common.at'), ''],
+      exceptions.map((x) => el('tr', {},
+        el('td', { class: 'num' }, fmt(x.amount_over)),
+        el('td', {}, x.reason ?? '—'),
+        el('td', {}, el('span', {
+          class: 'badge ' + (x.decision === 'approved' ? 'green'
+                           : x.decision === 'rejected' ? 'red' : 'amber') },
+          t('approve.' + (x.decision === 'pending' ? 'pending' : x.decision)))),
+        el('td', {}, fmtDateTime(x.requested_at)),
+        el('td', { class: 'ta-right', style: 'white-space:nowrap' },
+          x.decision === 'pending' && has('ceo')
+            ? el('span', {},
+                el('button', { class: 'btn small primary', onclick: () => decideException(x, true) },
+                   t('approve.approve')),
+                el('button', { class: 'btn small danger', style: 'margin-left:.3rem',
+                               onclick: () => decideException(x, false) }, t('approve.reject')))
+            : x.decision === 'pending'
+              ? el('small', { class: 'faint' }, t('approve.ceoOnly'))
+              : null)))));
+    app.append(card);
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>รายงาน — ระบบจัดซื้อจัดจ้าง</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<main id="app"><div class="spinner">…</div></main>
+
+<script type="module">
+import { sb } from './js/supabase.js';
+import { t, pick, fmtDate, fmtDateTime } from './js/i18n.js';
+import { requirePage, hasAny } from './js/auth.js';
+import { masters } from './js/api.js';
+import { fmt, fmtQty, pct } from './js/money.js';
+import { el, $, shell, pageTitle, table, modal, badge,
+         fail, spinner, downloadCsv } from './js/ui.js';
+import { loadRefs, tableLabel, actionLabel, subject, sentence,
+         changes } from './js/audit-text.js';
+
+const un = ({ data, error }) => { if (error) throw error; return data; };
+const baht = (satang) => (Number(satang) || 0) / 100;
+const daysSince = (d) => Math.max(0, Math.round((Date.now() - new Date(d)) / 86400000));
+
+// ทุก helper ต้องประกาศเหนือจุดเริ่มทำงาน — top-level await หยุดการประกาศที่เหลือของโมดูลไว้
+// ถ้าประกาศไว้ข้างล่าง ตอน render จะยังไม่ initialize แล้วหน้าจะว่างเปล่าเงียบๆ
+// ช่องที่ 4 = ตำแหน่งที่เปิดแท็บนี้ได้ (null = ทุกคนที่เข้าหน้ารายงานได้, admin ได้เสมอ)
+// ข้อมูลภาษีหัก ณ ที่จ่าย กับประวัติการใช้งานระบบ แคบกว่าแท็บอื่น จึงระบุไว้เฉพาะ
+const TABS = [
+  ['budget', 'report.budget', secBudget, null],
+  ['stuck',  'report.pending', secStuck, null],
+  ['vendor', 'report.vendor', secVendor, null],
+  ['wht',    'report.csv',    secWht,    ['accounting', 'ceo']],
+  ['audit',  'report.audit',  secAudit,  ['accounting', 'ceo']],
+];
+
+const myTabs = () => TABS.filter(([, , , roles]) => !roles || hasAny(...roles, 'admin'));
+
+const u = await requirePage('reports.html');
+if (u) {
+  shell('reports.html');
+  addEventListener('hashchange', render);
+  try { await render(); } catch (e) { fail(e); }
+}
+
+async function render() {
+  const tabs = myTabs();
+  const key = location.hash.slice(1) || tabs[0][0];
+  // แท็บที่ไม่มีสิทธิ์ (หรือลิงก์เก่าที่คนอื่นส่งมา) ให้ตกกลับแท็บแรกที่เปิดได้
+  const tab = tabs.find(([k]) => k === key) ?? tabs[0];
+  const app = $('#app');
+  app.textContent = '';
+  app.append(pageTitle('report.title'));
+  app.append(el('div', { class: 'tabs' },
+    ...tabs.map(([k, label]) =>
+      el('a', { href: '#' + k, class: k === tab[0] ? 'active' : '' }, t(label)))));
+
+  const card = el('div', { class: 'card' }, spinner());
+  app.append(card);
+  try {
+    const body = await tab[2]();
+    card.textContent = '';
+    card.append(el('h2', {}, t(tab[1])), body);
+  } catch (e) { card.textContent = ''; fail(e); }
+}
+
+// ===========================================================================
+// 1) งบคงเหลือ
+// ===========================================================================
+async function secBudget() {
+  const rows = await sb.from('v_budget_balance').select('*')
+    .order('cost_center_code').then(un);
+  if (!rows.length) return el('p', { class: 'faint' }, t('common.empty'));
+
+  const box = el('div', {},
+    el('p', { class: 'faint' }, t('report.budgetHint')),
+    el('div', { class: 'row', style: 'margin-bottom:.7rem' },
+      el('div', { class: 'spacer' }),
+      el('button', { class: 'btn small', onclick: () => downloadCsv('budget.csv',
+        ['cost_center', 'project', 'fiscal_year', 'budget', 'committed', 'actual', 'available', 'used_pct'],
+        rows.map((r) => [r.cost_center_code, r.project_code ?? '', r.fiscal_year,
+          baht(r.amount), baht(r.committed - r.released), baht(r.actual), baht(r.available),
+          (r.used_bp ?? 0) / 100])) }, t('report.export'))));
+
+  box.append(table(
+    [t('pr.costCenter'), t('pr.project'), t('admin.fiscalYear'),
+     { label: t('budget.amount'), align: 'right' },
+     { label: t('budget.committed'), align: 'right' },
+     { label: t('budget.actual'), align: 'right' },
+     { label: t('budget.available'), align: 'right' }, t('budget.used')],
+    rows.map((r) => {
+      const usedPct = Math.min(100, (r.used_bp ?? 0) / 100);
+      const tone = usedPct >= 100 ? 'over' : usedPct >= 90 ? 'warn' : '';
+      return el('tr', {},
+        el('td', {}, el('b', {}, r.cost_center_code), el('div', { class: 'faint' }, pick(r, 'cost_center_name'))),
+        el('td', {}, r.project_code ?? '—'),
+        el('td', {}, String(r.fiscal_year)),
+        el('td', { class: 'num' }, fmt(r.amount)),
+        el('td', { class: 'num' }, fmt(r.committed - r.released)),
+        el('td', { class: 'num' }, fmt(r.actual)),
+        el('td', { class: 'num' }, el('b', {}, fmt(r.available))),
+        el('td', { style: 'min-width:120px' },
+          el('div', { class: 'meter ' + tone }, el('i', { style: `width:${usedPct}%` })),
+          el('small', { class: 'faint' }, usedPct.toFixed(1) + '%')));
+    })));
+  return box;
+}
+
+// ===========================================================================
+// 2) เรื่องค้างในระบบ — ตอบคำถามเดียวว่า "ตอนนี้อะไรค้างอยู่ที่ใคร"
+// ===========================================================================
+async function secStuck() {
+  const [prs, pos, appr, invs, vouchers, rets, profiles] = await Promise.all([
+    sb.from('v_pr_summary').select('*')
+      .not('status', 'in', '("closed","cancelled")').then(un),
+    sb.from('pos').select('*').not('status', 'in', '("closed","cancelled")').then(un),
+    sb.from('v_pending_approvals').select('*').then(un),
+    sb.from('invoices').select('*').eq('status', 'matched').then(un),
+    sb.from('payment_vouchers').select('*').eq('decision', 'pending').then(un),
+    sb.from('retention_releases').select('*').is('released_at', null).then(un),
+    sb.from('user_profiles').select('id, full_name_th, full_name_en').then(un),
+  ]);
+  const nameOf = (id) => {
+    const p = profiles.find((x) => x.id === id);
+    return p ? pick(p, 'full_name') : '—';
+  };
+
+  const box = el('div', {});
+
+  // สรุปหัวตารางก่อน ให้เห็นภาพรวมใน 2 วินาที
+  const tiles = [
+    ['report.stuckPr', prs.length, 'pr.html'],
+    ['report.stuckPo', pos.length, 'po.html'],
+    ['report.stuckApproval', appr.length, 'approve.html'],
+    ['report.stuckInvoice', invs.length, 'pay.html'],
+    ['report.stuckVoucher', vouchers.length, 'pay.html'],
+    ['report.stuckRetention', rets.length, 'pay.html'],
+  ];
+  box.append(el('div', { class: 'grid g3', style: 'margin-bottom:1rem' },
+    ...tiles.map(([label, n, href]) =>
+      el('a', { class: 'card', href, style: 'text-decoration:none;color:inherit;display:block' },
+        el('h3', {}, t(label)),
+        el('div', { style: 'font-size:1.9rem;font-weight:700;line-height:1.1' }, String(n))))));
+
+  // หมวดไหนไม่มีของค้างก็ไม่ต้องขึ้นหัวข้อ — คืน null แล้วให้ add() ข้ามไป
+  // (ถ้า append(null) ตรงๆ DOM จะแปลงเป็นข้อความ "null" โผล่ใต้ตาราง)
+  const section = (label, headers, rows) => {
+    if (!rows.length) return null;
+    return el('div', { style: 'margin-top:1.2rem' },
+      el('h3', {}, t(label), ' ', el('small', { class: 'faint' }, `(${rows.length})`)),
+      table(headers, rows));
+  };
+  const add = (node) => { if (node) box.append(node); };
+
+  add(section('report.stuckPr',
+    [t('pr.no'), t('pr.purpose'), t('pr.requester'), t('common.status'),
+     { label: t('report.age'), align: 'right' }],
+    [...prs].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).map((p) =>
+      el('tr', {},
+        el('td', {}, el('a', { href: `pr.html?id=${p.id}` }, p.pr_no ?? '—')),
+        el('td', {}, pick(p, 'purpose')),
+        el('td', {}, pick(p, 'requester_name')),
+        el('td', {}, badge(p.status, 'prStatus')),
+        el('td', { class: 'num' }, `${daysSince(p.created_at)} ${t('common.days')}`)))));
+
+  add(section('report.stuckApproval',
+    [t('pr.no'), t('admin.roleCol'), t('approve.step'), { label: t('report.age'), align: 'right' }],
+    appr.map((a) => {
+      const p = prs.find((x) => x.id === a.doc_id);
+      return el('tr', {},
+        el('td', {}, el('a', { href: `approve.html?pr=${a.doc_id}` }, p?.pr_no ?? '—')),
+        el('td', {}, t('role.' + a.role)),
+        el('td', {}, String(a.step_no)),
+        el('td', { class: 'num' }, `${daysSince(a.created_at)} ${t('common.days')}`));
+    })));
+
+  add(section('report.stuckPo',
+    [t('po.no'), t('po.promisedDate'), { label: t('common.grandTotal'), align: 'right' },
+     t('common.status'), { label: t('report.age'), align: 'right' }],
+    pos.map((p) => el('tr', {},
+      el('td', {}, el('a', { href: `po.html?id=${p.id}` }, p.po_no)),
+      el('td', {}, fmtDate(p.promised_date)),
+      el('td', { class: 'num' }, fmt(p.grand_total)),
+      el('td', {}, badge(p.status, 'poStatus')),
+      el('td', { class: 'num' }, `${daysSince(p.issued_at)} ${t('common.days')}`)))));
+
+  add(section('report.stuckInvoice',
+    [t('inv.vendorNo'), t('inv.date'), { label: t('common.grandTotal'), align: 'right' },
+     { label: t('report.age'), align: 'right' }],
+    invs.map((i) => el('tr', {},
+      el('td', {}, el('a', { href: `invoice.html?id=${i.id}` }, i.vendor_invoice_no)),
+      el('td', {}, fmtDate(i.invoice_date)),
+      el('td', { class: 'num' }, fmt(i.grand_total)),
+      el('td', { class: 'num' }, `${daysSince(i.received_date)} ${t('common.days')}`)))));
+
+  add(section('report.stuckVoucher',
+    [t('pay.voucher'), t('pay.preparedBy'), { label: t('pay.net'), align: 'right' },
+     { label: t('report.age'), align: 'right' }],
+    vouchers.map((v) => el('tr', {},
+      el('td', {}, el('a', { href: `pay.html?id=${v.id}` }, v.voucher_no)),
+      el('td', {}, nameOf(v.prepared_by)),
+      el('td', { class: 'num' }, fmt(v.net_amount)),
+      el('td', { class: 'num' }, `${daysSince(v.prepared_at)} ${t('common.days')}`)))));
+
+  add(section('report.stuckRetention',
+    [t('po.no'), { label: t('common.amount'), align: 'right' }, t('pay.retentionDue'),
+     t('pay.confirmedBy')],
+    rets.map((r) => {
+      const p = pos.find((x) => x.id === r.po_id);
+      return el('tr', {},
+        el('td', {}, el('a', { href: `po.html?id=${r.po_id}` }, p?.po_no ?? '—')),
+        el('td', { class: 'num' }, fmt(r.amount)),
+        el('td', {}, fmtDate(r.due_date)),
+        el('td', {}, r.confirmed_at ? nameOf(r.confirmed_by)
+                                    : el('span', { class: 'faint' }, t('pay.notConfirmed'))));
+    })));
+
+  if (!prs.length && !pos.length && !appr.length && !invs.length
+      && !vouchers.length && !rets.length) {
+    box.append(el('p', { class: 'faint' }, t('common.empty')));
+  }
+  return box;
+}
+
+// ===========================================================================
+// 3) ประวัติผู้ขาย
+// ===========================================================================
+async function secVendor() {
+  const rows = await sb.from('v_vendor_history').select('*').order('code').then(un);
+  if (!rows.length) return el('p', { class: 'faint' }, t('common.empty'));
+
+  const box = el('div', {},
+    el('div', { class: 'row', style: 'margin-bottom:.7rem' },
+      el('div', { class: 'spacer' }),
+      el('button', { class: 'btn small', onclick: () => downloadCsv('vendor-history.csv',
+        ['code', 'name', 'jobs_rated', 'on_time', 'first_pass', 'total_late_days',
+         'rejects', 'suggested_score', 'blacklisted'],
+        rows.map((r) => [r.code, r.name_th, r.rating_count, r.on_time_count,
+          r.first_pass_count, r.total_late_days, r.total_rejects,
+          r.suggested_history_score, r.blacklisted ? 'yes' : 'no'])) }, t('report.export'))));
+
+  box.append(table(
+    [t('admin.code'), t('admin.nameTh'),
+     { label: t('report.vendorRating'), align: 'right' },
+     { label: t('report.onTime'), align: 'right' },
+     { label: t('report.firstPass'), align: 'right' },
+     { label: t('report.lateDaysTotal'), align: 'right' },
+     { label: t('report.rejects'), align: 'right' },
+     { label: t('report.suggested'), align: 'right' }, t('admin.blacklisted')],
+    rows.map((r) => el('tr', {},
+      el('td', {}, el('b', {}, r.code)),
+      el('td', {}, pick(r, 'name')),
+      el('td', { class: 'num' }, String(r.rating_count ?? 0)),
+      el('td', { class: 'num' }, String(r.on_time_count ?? 0)),
+      el('td', { class: 'num' }, String(r.first_pass_count ?? 0)),
+      el('td', { class: 'num' }, String(r.total_late_days ?? 0)),
+      el('td', { class: 'num' }, fmtQty(r.total_rejects ?? 0)),
+      el('td', { class: 'num' }, el('b', {}, String(r.suggested_history_score ?? 0))),
+      el('td', {}, r.blacklisted
+        ? el('span', { class: 'badge red' }, t('common.yes'))
+        : el('span', { class: 'faint' }, '—'))))));
+  return box;
+}
+
+// ===========================================================================
+// 4) ข้อมูลยื่นภาษีหัก ณ ที่จ่าย — ไฟล์ที่บัญชีเอาไปยื่น ภ.ง.ด. ได้เลย
+// ===========================================================================
+async function secWht() {
+  const payments = await sb.from('payments').select('*')
+    .order('paid_date', { ascending: false }).then(un);
+  if (!payments.length) return el('p', { class: 'faint' }, t('report.noData'));
+
+  const [vouchers, whts] = await Promise.all([
+    sb.from('payment_vouchers').select('*')
+      .in('id', payments.map((p) => p.voucher_id)).then(un),
+    masters.whtRates(),
+  ]);
+  const invIds = [...new Set(vouchers.map((v) => v.invoice_id))];
+  const invs = await sb.from('invoices').select('id, po_id, vendor_invoice_no')
+    .in('id', invIds).then(un);
+  const poIds = [...new Set(invs.map((i) => i.po_id))];
+  const pos = await sb.from('pos').select('id, po_no, vendor_id').in('id', poIds).then(un);
+  const vendors = await masters.vendors();
+
+  const vById = new Map(vendors.map((v) => [v.id, v]));
+  const rateOf = new Map(whts.map((w) => [w.code, w]));
+
+  // เอาเฉพาะรายการที่มีการหักภาษีจริง — ที่ไม่หักไม่ต้องยื่น
+  const rows = payments.map((p) => {
+    const v = vouchers.find((x) => x.id === p.voucher_id);
+    const inv = v && invs.find((x) => x.id === v.invoice_id);
+    const po = inv && pos.find((x) => x.id === inv.po_id);
+    const vendor = po && vById.get(po.vendor_id);
+    return { p, v, inv, po, vendor, rate: v && rateOf.get(v.wht_code) };
+  }).filter((r) => r.v && r.v.wht_amount > 0);
+
+  if (!rows.length) return el('p', { class: 'faint' }, t('report.noData'));
+
+  const box = el('div', {},
+    el('p', { class: 'faint' }, t('report.whtHint')),
+    el('div', { class: 'row', style: 'margin-bottom:.7rem' },
+      el('div', { class: 'spacer' }),
+      el('button', { class: 'btn small', onclick: () => downloadCsv('wht-filing.csv',
+        ['cert_no', 'paid_date', 'form', 'vendor_code', 'vendor_name', 'tax_id',
+         'wht_code', 'rate_pct', 'base', 'wht_amount', 'net_paid', 'voucher_no', 'invoice_no'],
+        rows.map((r) => [r.p.wht_cert_no ?? '', r.p.paid_date, r.rate?.form ?? '',
+          r.vendor?.code ?? '', r.vendor?.name_th ?? '', r.vendor?.tax_id ?? '',
+          r.v.wht_code ?? '', pct(r.rate?.rate_bp ?? 0), baht(r.v.wht_base),
+          baht(r.v.wht_amount), baht(r.v.net_amount), r.v.voucher_no,
+          r.inv?.vendor_invoice_no ?? ''])) }, t('report.export'))));
+
+  const cmp = table(
+    [t('report.certNo'), t('report.paidOn'), t('report.whtForm'), t('quote.vendor'),
+     t('report.taxId'), { label: t('report.whtRate'), align: 'right' },
+     { label: t('pay.whtBase'), align: 'right' },
+     { label: t('pay.wht'), align: 'right' }, t('pay.voucher')],
+    rows.map((r) => el('tr', {},
+      el('td', {}, el('b', {}, r.p.wht_cert_no ?? '—')),
+      el('td', {}, fmtDate(r.p.paid_date)),
+      el('td', {}, r.rate?.form ?? '—'),
+      el('td', {}, r.vendor ? `${r.vendor.code} — ${pick(r.vendor, 'name')}` : '—'),
+      el('td', {}, r.vendor?.tax_id ?? '—'),
+      el('td', { class: 'num' }, pct(r.rate?.rate_bp ?? 0) + '%'),
+      el('td', { class: 'num' }, fmt(r.v.wht_base)),
+      el('td', { class: 'num' }, el('b', {}, fmt(r.v.wht_amount))),
+      el('td', {}, el('a', { href: `pay.html?id=${r.v.id}` }, r.v.voucher_no)))));
+  cmp.classList.add('dense');
+  box.append(cmp);
+  return box;
+}
+
+// ===========================================================================
+// 5) ประวัติการใช้งานระบบ
+// ---------------------------------------------------------------------------
+// audit_log เก็บเป็น jsonb ดิบ (ชื่อคอลัมน์ + รหัส uuid + สตางค์) หน้านี้ห้ามโชว์แบบนั้น
+// คำแปลชื่อตาราง ชื่อช่อง และการจัดรูปค่า อยู่ที่ js/audit-text.js ที่เดียว
+// ===========================================================================
+// ประกาศเป็น function ไม่ใช่ const — ทั้งไฟล์นี้อยู่ใต้ top-level await
+// ตัวแปร const ที่อยู่ล่างจุด await จะยังไม่ initialize ตอน render() ทำงาน แล้วพังเงียบๆ
+function auditTone(action) {
+  return { INSERT: 'green', UPDATE: 'amber', DELETE: 'red' }[action] ?? 'grey';
+}
+
+// ค้นได้ทั้งประโยคที่แปลแล้ว ชื่อคนทำ และค่าดิบ (เผื่อค้นเลขที่เอกสารที่ไม่ได้ขึ้นหน้า)
+function auditText(r) {
+  return `${sentence(r)} ${r.actor_name ?? ''} ${JSON.stringify(r.before ?? '')} ${JSON.stringify(r.after ?? '')}`
+    .toLowerCase();
+}
+
+async function secAudit() {
+  const LIMIT = 200;
+  const box = el('div', {});
+  box.append(el('div', { class: 'notice info' }, t('report.auditImmutable')));
+
+  const tableSel = el('select', {}, el('option', { value: '' }, t('common.all')));
+  const actionSel = el('select', {},
+    el('option', { value: '' }, t('common.all')),
+    ...['INSERT', 'UPDATE', 'DELETE'].map((a) => el('option', { value: a }, actionLabel(a))));
+  const search = el('input', { type: 'search', placeholder: t('aud.searchPh') });
+  const body = el('div', {}, spinner());
+
+  let cache = [];
+
+  const paint = () => {
+    const kw = search.value.trim().toLowerCase();
+    const rows = kw ? cache.filter((r) => auditText(r).includes(kw)) : cache;
+
+    body.textContent = '';
+    body.append(el('p', { class: 'faint' }, `${rows.length} ${t('report.rows')}`));
+    body.append(table(
+      [t('report.auditWhen'), t('report.auditActor'), t('aud.what'), ''],
+      rows.map((r) => {
+        const ch = changes(r);
+        const names = ch.slice(0, 4).map((c) => c.label).join(', ')
+                    + (ch.length > 4 ? ` +${ch.length - 4}` : '');
+        return el('tr', {},
+          el('td', {}, fmtDateTime(r.at)),
+          el('td', {}, r.actor_name ?? '—'),
+          el('td', {},
+            el('div', { class: 'row', style: 'gap:.45rem;align-items:center;flex-wrap:wrap' },
+              el('span', { class: 'badge ' + auditTone(r.action) }, actionLabel(r.action)),
+              el('span', {}, `${tableLabel(r.table_name)} ${subject(r)}`.trim())),
+            ch.length
+              ? el('div', { class: 'faint', style: 'font-size:.85em;line-height:1.4;margin-top:.15rem' },
+                  r.action === 'UPDATE' ? t('aud.changedList', { list: names }) : names)
+              : null),
+          el('td', { class: 'ta-right' },
+            el('button', { class: 'btn small', onclick: () => showDiff(r) },
+               t('report.auditDetail'))));
+      })));
+  };
+
+  const draw = async () => {
+    body.textContent = '';
+    body.append(spinner());
+    try {
+      let q = sb.from('audit_log').select('*').order('at', { ascending: false }).limit(LIMIT);
+      if (tableSel.value) q = q.eq('table_name', tableSel.value);
+      if (actionSel.value) q = q.eq('action', actionSel.value);
+      cache = await q.then(un);
+      // ชื่อคน ผู้ขาย และเลขที่เอกสารของรหัส uuid ต้องพร้อมก่อนวาด ไม่งั้นจะโชว์เป็นรหัสย่อ
+      await loadRefs(cache);
+      paint();
+    } catch (e) { body.textContent = ''; fail(e); }
+  };
+
+  // ชื่อตารางเอาจากที่มีจริงในประวัติ ไม่ต้องมาไล่พิมพ์เอง — แต่โชว์เป็นชื่อภาษาคน
+  try {
+    const names = await sb.from('audit_log').select('table_name').limit(1000).then(un);
+    [...new Set(names.map((r) => r.table_name))]
+      .map((n) => [n, tableLabel(n)])
+      .sort((a, b) => a[1].localeCompare(b[1]))
+      .forEach(([n, label]) => tableSel.append(el('option', { value: n }, label)));
+  } catch { /* ไม่มีสิทธิ์อ่านก็ปล่อยตัวกรองว่างไว้ */ }
+
+  tableSel.onchange = draw;
+  actionSel.onchange = draw;
+  search.oninput = () => { if (cache.length) paint(); };
+
+  box.append(el('div', { class: 'row', style: 'gap:.7rem;align-items:end;margin:.8rem 0;flex-wrap:wrap' },
+    el('div', { class: 'field', style: 'margin:0' },
+      el('label', {}, t('report.auditTable')), tableSel),
+    el('div', { class: 'field', style: 'margin:0' },
+      el('label', {}, t('report.auditAction')), actionSel),
+    el('div', { class: 'field', style: 'margin:0;min-width:16rem;flex:1' },
+      el('label', {}, t('aud.search')), search)));
+  box.append(body);
+  await draw();
+  return box;
+}
+
+function showDiff(r) {
+  const ch = changes(r);
+  const del = r.action === 'DELETE';
+  const raw = (obj) => el('pre', {
+    style: 'white-space:pre-wrap;word-break:break-word;font-size:.8rem;margin:0;max-height:16rem;overflow:auto',
+  }, obj ? JSON.stringify(obj, null, 1) : '—');
+
+  const cell = (v) => el('td', { style: 'word-break:break-word' }, v);
+
+  const list = !ch.length
+    ? el('div', { class: 'notice' }, t('aud.noChange'))
+    : r.action === 'UPDATE'
+      ? table([t('aud.field'), t('report.auditBefore'), t('report.auditAfter')],
+          ch.map((c) => el('tr', {},
+            cell(c.label),
+            el('td', { class: 'faint', style: 'word-break:break-word' }, c.before),
+            cell(el('b', {}, c.after)))))
+      : table([t('aud.field'), del ? t('aud.deletedValue') : t('aud.value')],
+          ch.map((c) => el('tr', {}, cell(c.label), cell(del ? c.before : c.after))));
+
+  modal({
+    title: `${sentence(r)} · ${fmtDateTime(r.at)}`,
+    wide: true,
+    cancelLabel: t('common.close'),
+    body: el('div', {},
+      el('p', { class: 'faint', style: 'margin:.1rem 0 .9rem;line-height:1.45' },
+        `${t('report.auditActor')}: ${r.actor_name ?? '—'} · ${t('aud.recordType')}: ${tableLabel(r.table_name)}`),
+      list,
+      // ค่าดิบยังเก็บไว้ให้ผู้ดูแลระบบตรวจ แต่พับไว้ ไม่ใช่ของที่คนทั่วไปต้องอ่าน
+      el('details', { style: 'margin-top:1.1rem' },
+        el('summary', { class: 'faint', style: 'cursor:pointer' }, t('aud.raw')),
+        el('div', { class: 'grid g2', style: 'margin-top:.6rem' },
+          el('div', {}, el('h3', {}, t('report.auditBefore')), raw(r.before)),
+          el('div', {}, el('h3', {}, t('report.auditAfter')), raw(r.after))))),
+    actions: [],
+  });
+}
+</script>
+</body>
+</html>

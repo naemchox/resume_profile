@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>จัดการรูปในอัลบั้ม · Sample Sports Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="is-checking">
+  <div class="layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="backdrop" id="backdrop"></div>
+    <div class="main">
+      <main class="content">
+        <a class="back-link" href="albums.html">← อัลบั้มทั้งหมด</a>
+        <div class="page-head">
+          <div>
+            <h1 id="album-title">อัลบั้ม</h1>
+            <p class="meta" id="album-meta">&nbsp;</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-secondary" id="publish-btn" data-write hidden></button>
+            <button class="btn btn-secondary" id="preview-head-btn">ดูตัวอย่างบนเว็บ</button>
+            <button class="btn btn-secondary" id="edit-btn">แก้ไขข้อมูลอัลบั้ม</button>
+            <button class="btn btn-ghost danger" id="delete-album-btn" data-write>ลบอัลบั้ม</button>
+          </div>
+        </div>
+
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="file-input" accept="image/*" multiple hidden>
+          <button class="btn btn-primary" id="pick-btn" data-write>เลือกรูป (ได้หลายรูป)</button>
+          <p>หรือลากรูปมาวางตรงนี้ · ระบบย่อรูปเหลือด้านยาวสุด 1600px ให้อัตโนมัติ</p>
+        </div>
+
+        <div class="card upload-panel" id="upload-panel" hidden>
+          <div class="summary"><strong id="upload-summary">กำลังอัปโหลด…</strong><span id="upload-percent">0%</span></div>
+          <div class="progress"><div id="upload-bar"></div></div>
+          <ul class="upload-list" id="upload-list"></ul>
+          <div style="margin-top:10px;text-align:right" id="upload-close-wrap" hidden>
+            <button class="btn btn-secondary btn-sm" id="upload-close">ปิด</button>
+          </div>
+        </div>
+
+        <div class="select-bar" id="select-bar" hidden>
+          <label class="check"><input type="checkbox" id="select-all"> เลือกทั้งหมด</label>
+          <span id="select-count" style="color:var(--jr-text-muted);font-size:14px"></span>
+          <button class="btn btn-danger btn-sm" id="delete-selected" data-write disabled>ลบรูปที่เลือก</button>
+        </div>
+
+        <div class="photo-grid" id="photos"></div>
+        <div class="card empty-state" id="empty">ยังไม่มีรูปในอัลบั้มนี้</div>
+      </main>
+    </div>
+  </div>
+
+  <dialog id="edit-dialog">
+    <form class="dlg" id="edit-form" novalidate>
+      <div class="dlg-head">
+        <h2>แก้ไขอัลบั้ม</h2>
+        <button type="button" class="dlg-close" data-close aria-label="ปิด">×</button>
+      </div>
+      <div class="dlg-body">
+        <div class="field">
+          <label for="f-event">ผูกกับรายการแข่ง (ไม่บังคับ)</label>
+          <select id="f-event"><option value="">— ไม่ผูก —</option></select>
+        </div>
+        <div class="field">
+          <label for="f-title">ชื่ออัลบั้ม <span class="req">*</span></label>
+          <input type="text" id="f-title" maxlength="200" required>
+        </div>
+        <div class="field">
+          <label for="f-date">วันที่ <span class="req">*</span></label>
+          <input type="date" id="f-date" required>
+        </div>
+        <div class="field">
+          <span class="label">สถานะ</span>
+          <div style="display:flex;gap:20px;flex-wrap:wrap">
+            <label class="check"><input type="radio" name="status" value="draft" checked> ฉบับร่าง</label>
+            <label class="check"><input type="radio" name="status" value="published"> เผยแพร่</label>
+          </div>
+        </div>
+      </div>
+      <div class="dlg-foot">
+        <button type="button" class="btn btn-secondary" data-close>ยกเลิก</button>
+        <button type="button" class="btn btn-secondary" id="preview-btn">ดูตัวอย่าง</button>
+        <button type="submit" class="btn btn-primary" data-write>บันทึก</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="js/pages/album.js"></script>
+</body>
+</html>

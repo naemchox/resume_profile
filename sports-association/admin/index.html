@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>ภาพรวม · Sample Sports Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="is-checking">
+  <div class="layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="backdrop" id="backdrop"></div>
+    <div class="main">
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <h1>ภาพรวม</h1>
+            <p>สรุปเนื้อหาบนเว็บไซต์ SAMPLESPORT.COM</p>
+          </div>
+          <a class="btn btn-secondary" id="site-link" target="_blank" rel="noopener">ดูหน้าเว็บจริง</a>
+        </div>
+
+        <div class="stats">
+          <div class="card">
+            <div class="stat-label">ข่าวทั้งหมด</div>
+            <div class="stat-value" id="stat-news">–</div>
+            <div class="stat-sub" id="stat-news-sub">&nbsp;</div>
+          </div>
+          <div class="card">
+            <div class="stat-label">อัลบั้มรูป</div>
+            <div class="stat-value" id="stat-albums">–</div>
+            <div class="stat-sub" id="stat-albums-sub">&nbsp;</div>
+          </div>
+          <div class="card">
+            <div class="stat-label">รายการแข่งที่กำลังจะมาถึง</div>
+            <div class="stat-value" id="stat-events">–</div>
+            <div class="stat-sub" id="stat-events-sub">&nbsp;</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:24px">
+          <h2 class="section-title">ทางลัด</h2>
+          <div class="quick" id="quick"></div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">รายการแข่งถัดไป</h2>
+          <div id="upcoming"><div class="empty-state">ยังไม่มีข้อมูล</div></div>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script type="module" src="js/pages/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>หน้าแรก — ระบบจัดซื้อจัดจ้าง</title>
+<link rel="stylesheet" href="css/app.css">
+<script src="js/theme.js"></script>
+</head>
+<body>
+<main id="app"><div class="spinner">…</div></main>
+
+<script type="module">
+import { sb } from './js/supabase.js';
+import { t, pick, fmtDate } from './js/i18n.js';
+import { requirePage, me, has, hasAny, canOpen } from './js/auth.js';
+import { masters } from './js/api.js';
+import { fmt } from './js/money.js';
+import { el, $, shell, pageTitle, badge, table, fail } from './js/ui.js';
+
+const u = await requirePage('home.html');
+if (u) {
+  shell('home.html');
+  const app = $('#app');
+  app.textContent = '';
+  app.append(pageTitle('nav.home'));
+
+  if (!u.roles.length) {
+    app.append(el('div', { class: 'notice warn' }, t('auth.noRole')));
+  }
+
+  // ---- กล่องที่รอฉันทำ ----
+  const cards = el('div', { class: 'grid g3' });
+  app.append(cards);
+
+  const tile = (label, value, href, tone = '') =>
+    el('a', { class: 'card', href, style: 'text-decoration:none;color:inherit;display:block' },
+      el('h3', {}, label),
+      el('div', { style: 'font-size:1.9rem;font-weight:700;line-height:1.1', class: tone }, value));
+
+  try {
+    const jobs = [];
+
+    if (hasAny('inspector', 'pm', 'pd', 'ceo')) {
+      jobs.push(sb.from('v_pending_approvals').select('id', { count: 'exact', head: true })
+        .in('role', u.roles)
+        .then(({ count }) => tile(t('approve.myQueue'), count ?? 0, 'approve.html')));
+    }
+    if (hasAny('requester', 'purchasing')) {
+      jobs.push(sb.from('prs').select('id', { count: 'exact', head: true })
+        .in('status', ['draft', 'sow_locked', 'rfq_issued', 'quoting', 'rejected'])
+        .then(({ count }) => tile(t('nav.pr'), count ?? 0, 'pr.html')));
+    }
+    if (hasAny('purchasing', 'inspector')) {
+      jobs.push(sb.from('pos').select('id', { count: 'exact', head: true })
+        .in('status', ['issued', 'partially_received'])
+        .then(({ count }) => tile(t('nav.gr'), count ?? 0, 'gr.html')));
+    }
+    if (hasAny('purchasing', 'accounting')) {
+      jobs.push(sb.from('invoices').select('id', { count: 'exact', head: true })
+        .in('status', ['entered', 'mismatched'])
+        .then(({ count }) => tile(t('nav.invoice'), count ?? 0, 'invoice.html')));
+    }
+    if (hasAny('accounting', 'pd', 'ceo')) {
+      jobs.push(sb.from('payment_vouchers').select('id', { count: 'exact', head: true })
+        .eq('decision', 'pending')
+        .then(({ count }) => tile(t('pay.approve'), count ?? 0, 'pay.html')));
+    }
+    (await Promise.all(jobs)).forEach((c) => cards.append(c));
+
+    // ---- งบคงเหลือ ----
+    // ตัวเลขงบทั้งบริษัทเป็นเรื่องของคนที่เข้าหน้ารายงานได้ (จัดซื้อ/บัญชี/PM/PD/CEO)
+    // ผู้ขอซื้อกับผู้ตรวจรับไม่ต้องเห็นยอดงบของแผนกอื่น — ใช้เกณฑ์เดียวกับเมนูรายงาน
+    const { data: budgets } = canOpen('reports.html')
+      ? await sb.from('v_budget_balance').select('*').order('cost_center_code').limit(12)
+      : { data: [] };
+
+    if (budgets?.length) {
+      const rows = budgets.map((b) => {
+        const usedPct = Math.min(100, (b.used_bp ?? 0) / 100);
+        const tone = usedPct >= 100 ? 'over' : usedPct >= 90 ? 'warn' : '';
+        return el('tr', {},
+          el('td', {}, b.cost_center_code, b.project_code ? el('small', { class: 'faint' }, ' / ' + b.project_code) : null),
+          el('td', {}, String(b.fiscal_year)),
+          el('td', { class: 'num' }, fmt(b.amount)),
+          el('td', { class: 'num' }, fmt(b.committed - b.released)),
+          el('td', { class: 'num' }, fmt(b.actual)),
+          el('td', { class: 'num' }, el('b', {}, fmt(b.available))),
+          el('td', { style: 'min-width:120px' },
+            el('div', { class: 'meter ' + tone }, el('i', { style: `width:${usedPct}%` })),
+            el('small', { class: 'faint' }, usedPct.toFixed(1) + '%')));
+      });
+      app.append(el('div', { class: 'card' },
+        el('h2', {}, t('report.budget')),
+        table([t('pr.costCenter'), t('common.date'),
+               { label: t('budget.amount'), align: 'right' },
+               { label: t('budget.committed'), align: 'right' },
+               { label: t('budget.actual'), align: 'right' },
+               { label: t('budget.available'), align: 'right' },
+               t('budget.used')], rows)));
+    }
+
+    // ---- เรื่องล่าสุดของฉัน ----
+    const { data: prs } = await sb.from('v_pr_summary')
+      .select('*').order('created_at', { ascending: false }).limit(10);
+
+    if (prs?.length) {
+      app.append(el('div', { class: 'card' },
+        el('h2', {}, t('nav.pr')),
+        table([t('pr.no'), t('pr.purpose'), t('pr.requester'), t('pr.costCenter'),
+               { label: t('common.amount'), align: 'right' }, t('common.status')],
+          prs.map((p) => el('tr', {},
+            el('td', {}, el('a', { href: `pr.html?id=${p.id}` }, p.pr_no ?? '—')),
+            el('td', {}, pick(p, 'purpose')),
+            el('td', {}, pick(p, 'requester_name')),
+            el('td', {}, p.cost_center_code),
+            el('td', { class: 'num' }, fmt(p.awarded_total || p.estimated_amount)),
+            el('td', {}, badge(p.status, 'prStatus')))))));
+    }
+  } catch (e) { fail(e); }
+}
+</script>
+</body>
+</html>

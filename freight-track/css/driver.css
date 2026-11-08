@@ -1,0 +1,413 @@
+/* ============================================================
+   driver.css — หน้าคนขับ (driver.html) + ผู้ช่วยคนขับ (helper.html) · โทนเดียวกับหน้าแรก (index.html) และ track.html
+   พื้นเทาอ่อน · การ์ดขาวมุมโค้ง เงาบาง · หัวการ์ดสว่าง (เดิมแถบดำ) · สีเน้นส้ม #E8781A แทนฟ้าของ apple.css
+   สีบอกสถานะคงความหมายเดิม: เขียว = เสร็จ · เหลืองอำพัน = ขั้นที่ทำอยู่ / รอ · แดง = ยกเลิก
+   โหลดหลัง apple.css — เปลี่ยนแค่หน้าตา ไม่แตะโครงหน้าหรือการทำงาน (js/driver.js, js/helper.js เหมือนเดิมทุกบรรทัด)
+   style="" ที่ฝังมาจาก js/driver.js (สีขาว/กรมท่าของหัวการ์ดเดิม) ทับด้วย !important เฉพาะใน .driver-hero
+   อยากกลับหน้าตาเดิม: ลบ <link href="css/driver.css"> และ class "drv" ที่ <body> (สำเนาเดิม: *.html.pre-theme)
+   ============================================================ */
+
+:root{
+  --dv-card:#ffffff;
+  --dv-shadow:2px 4px 12px rgba(0,0,0,.08);
+  --dv-shadow-hover:2px 4px 16px rgba(0,0,0,.16);
+  --dv-sub:#6f6964;
+  --dv-tile:#f4f3f1;
+  --dv-accent:#E8781A;
+  --dv-accent-hover:#D2680F;
+  --dv-link:#B85A0C;
+  --dv-ring:rgba(232,120,26,.22);
+  --dv-wash:rgba(232,120,26,.07);
+  --dv-gut:clamp(16px,4vw,40px);
+}
+@media screen{
+  :root[data-theme="dark"]{
+    --dv-card:#2b2725;
+    --dv-shadow:0 0 0 1px rgba(255,255,255,.07);
+    --dv-shadow-hover:0 0 0 1px rgba(255,255,255,.16), 0 8px 28px rgba(0,0,0,.6);
+    --dv-sub:#aba49e;
+    --dv-tile:#37332f;
+    --dv-link:#FFA24D;
+    --dv-ring:rgba(255,162,77,.35);
+    --dv-wash:rgba(255,162,77,.1);
+  }
+}
+
+/* สีเน้นของ apple.css (ฟ้า) → ส้มแบบหน้าแรก · มีผลกับปุ่ม ลิงก์ วงโฟกัส แถบความคืบหน้า หน้าต่าง modal ทั้งหมดในหน้านี้ */
+body.drv{
+  --ap-blue:var(--dv-accent);
+  --ap-blue-hover:var(--dv-accent-hover);
+  --ap-link:var(--dv-link);
+  --ap-ring:var(--dv-ring);
+  --accent:var(--dv-accent);
+  --btn-bg:var(--dv-accent);
+  background:var(--bg);color:var(--text);overflow-x:hidden;
+}
+body.drv ::selection{background:var(--dv-ring)}
+:root[data-theme="dark"] body.drv{background:var(--bg)}
+
+/* ---------- แถบหัว: หน้าตาเดียวกับ .lx-bar ของหน้าแรก (เหมือน track.css) -----------
+   แถบสร้างโดย js/ui.js — ที่นี่แต่งเฉพาะหน้านี้ ปุ่มทุกตัว (เมนู · กลับไปหน้าเลือกผู้ใช้ · ธีม) ทำงานเหมือนเดิม */
+body.drv .appbar{background:var(--ap-glass);border-bottom:1px solid var(--lx-rule);color:var(--lx-ink)}
+body.drv .appbar .appbar-inner{width:auto;max-width:1200px;margin:0 auto;padding:8px var(--dv-gut);
+  height:auto;min-height:50px;gap:18px}
+/* มีเมนูพนักงาน (แอดมินเปิดดู) — กว้างเท่าหน้าอื่น (.wrap-wide) ไม่งั้นเมนูขวาสุดกับชื่อบริษัทโดนตัด */
+body.drv .appbar .appbar-inner:has(.appnav){width:min(100% - 40px,1400px);max-width:none;padding-inline:0}
+@media (max-width:640px){ body.drv .appbar .appbar-inner:has(.appnav){width:calc(100% - 28px)} }
+body.drv .appbar .brand{gap:12px;min-width:0;flex:0 1 auto;color:var(--lx-ink);text-decoration:none}
+body.drv .appbar .brand > span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.drv .appbar .brand-mark{width:auto;height:34px;padding:0 10px;border-radius:9px;box-shadow:none;
+  background:var(--dv-accent);color:#fff;font-family:var(--sans);font-size:15px;font-weight:700;letter-spacing:.06em;line-height:1}
+body.drv .appbar .brand-name{font-size:15px;font-weight:500;letter-spacing:0;line-height:1.3;color:var(--lx-ink)}
+/* หน้าแรกไม่มีชื่อภาษาอังกฤษ / ป้ายมุมมอง — หัวการ์ดบอกอยู่แล้วว่าเป็นคนขับ / ผู้ช่วย / คนขับภายนอก */
+body.drv .appbar .brand br,body.drv .appbar .brand-sub,body.drv .appbar .appbar-role{display:none}
+body.drv .appbar .appnav a[aria-current="page"]{background:var(--dv-wash);color:var(--dv-link)}
+body.drv .appbar .appbar-out{border:0;border-radius:99px;padding:7px 14px;font-size:13px;font-weight:500;
+  background:var(--ap-seg);color:var(--lx-ink);transition:background-color .2s}
+body.drv .appbar .appbar-out:hover{background:var(--line-strong);color:var(--lx-ink)}
+/* ปุ่มธีม → สวิตช์แบบหน้าแรก (.lx-switch) */
+body.drv .appbar .theme-btn{position:relative;flex:none;width:52px;height:30px;padding:0;border:0;border-radius:99px;
+  background:#e7e4e1;transition:background .25s}
+body.drv .appbar .theme-btn:hover{background:#e7e4e1}
+body.drv .appbar .theme-btn::before{content:"";position:absolute;top:7px;left:7px;width:16px;height:16px;z-index:1;opacity:0;
+  transition:opacity .2s;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f3ead8'%3E%3Cpath d='M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1z'/%3E%3C/svg%3E") center/contain no-repeat}
+body.drv .appbar .theme-btn::after{content:"";position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;
+  background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.18);transition:transform .25s cubic-bezier(.3,.7,.2,1)}
+:root[data-theme="dark"] body.drv .appbar .theme-btn,
+:root[data-theme="dark"] body.drv .appbar .theme-btn:hover{background:#433e3b}
+:root[data-theme="dark"] body.drv .appbar .theme-btn::before{opacity:1}
+:root[data-theme="dark"] body.drv .appbar .theme-btn::after{background:transparent;box-shadow:none}
+:root[data-theme="dark"] body.drv .appbar .appnav a[aria-current="page"]{background:var(--dv-wash);color:var(--dv-link)}
+body.drv .skel-bar{height:51px;border-bottom:1px solid var(--lx-rule)}
+@media (max-width:640px){ body.drv .appbar .appbar-inner{gap:10px} body.drv .appbar .appbar-out{padding:7px 12px} }
+@media (max-width:380px){ body.drv .appbar .brand-name{display:none} }
+
+/* ---------- การ์ดหลัก -------------------------------------- */
+body.drv .driver-shell{padding-top:clamp(8px,2vh,20px)}
+body.drv .driver-card{background:var(--dv-card);border-radius:18px;box-shadow:var(--dv-shadow)}
+
+/* ---------- หัวการ์ด: แถบดำ → สว่างแบบหัวเรื่องหน้าแรก ---------- */
+body.drv .driver-hero{background:var(--dv-card);color:var(--text);
+  padding:clamp(20px,3vw,30px) clamp(18px,3vw,30px) clamp(18px,2.6vw,24px);border-bottom:1px solid var(--line)}
+:root[data-theme="dark"] body.drv .driver-hero{background:var(--dv-card)}
+body.drv .driver-hero .eyebrow{font-size:15px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--dv-accent) !important}
+body.drv .driver-hero h2{font-size:clamp(24px,4.4vw,30px) !important;font-weight:700;line-height:1.25;letter-spacing:-.02em;color:var(--text)}
+/* คำอธิบายใต้หัวเรื่อง — เดิมสีฟ้าเทาบนพื้นดำ */
+body.drv .driver-hero [style*="9fb2c8"]{color:var(--dv-sub) !important}
+body.drv .driver-hero .small{font-size:16px;line-height:1.5}
+/* ตัวเลขสรุป (เที่ยวค้าง · จุดที่ต้องส่ง) */
+body.drv .driver-hero .mono{font-family:var(--sans);font-variant-numeric:tabular-nums;font-size:30px !important;font-weight:700 !important;letter-spacing:-.02em}
+body.drv .driver-hero .mono[style*="--amber"]{color:var(--dv-accent) !important}
+/* ปุ่มบนหัวการ์ด (ออกจากระบบ · เปลี่ยนคนขับ) — แคปซูลเทาเรียบแบบปุ่มบนแถบหัว */
+body.drv .driver-hero .btn{background:var(--ap-seg) !important;border-color:transparent !important;color:var(--text);font-weight:500}
+body.drv .driver-hero .btn:hover{background:var(--line-strong) !important;filter:none}
+
+/* หัวการ์ดเที่ยว — เลขเที่ยว · ตัวเลขใหญ่ · รถ · เพื่อนร่วมเที่ยว */
+body.drv .dhero-code{background:var(--dv-tile);border-color:transparent;color:var(--text)}
+body.drv .dhero-code svg{color:var(--dv-accent)}
+body.drv .dhero-stat{background:var(--dv-tile);border-color:transparent;border-radius:14px}
+body.drv .dhero-stat svg{color:var(--dv-accent)}
+body.drv .dhero-stat b{color:var(--text)}
+body.drv .dhero-stat span,body.drv .dhero-meta{color:var(--dv-sub)}
+body.drv .dhero-meta svg{color:var(--dv-accent)}
+body.drv .dhero-meta[style*="--amber"]{color:var(--dv-link) !important}
+
+/* ---------- กระดานสรุปงานที่เหลือ (เที่ยวค้าง · จุดต้องส่ง) ----------
+   การ์ดสองช่อง ไอคอนไล่สีส้มแบบการ์ดหน้าแรก · ตัวเลขใหญ่ · จุดต้องส่ง = ตัวเลขสีส้ม (สำคัญสุด)
+   เหลือ 0 = จางลง ไอคอนเทา บอกว่าไม่มีอะไรค้าง */
+body.drv .drv-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}
+body.drv .drv-kpi{display:flex;align-items:center;gap:14px;min-width:0;padding:16px 18px;border-radius:18px;background:var(--dv-tile)}
+body.drv .drv-kpi-ic{display:grid;place-items:center;flex:none;width:52px;aspect-ratio:1;border-radius:26%;color:#fff;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--dv-accent) 78%,#fff) 0%,var(--dv-accent) 70%);
+  box-shadow:0 10px 24px -12px var(--dv-accent)}
+body.drv .drv-kpi-ic svg{width:54%;height:54%}
+body.drv .drv-kpi-tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+body.drv .drv-kpi-l{font-size:16px;font-weight:600;line-height:1.3;color:var(--dv-sub)}
+body.drv .drv-kpi b{font-size:44px;font-weight:700;line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--text)}
+body.drv .drv-kpi small{font-size:17px;font-weight:600;color:var(--dv-sub)}
+body.drv .drv-kpi.is-hot b{color:var(--dv-accent)}
+body.drv .drv-kpi.is-zero .drv-kpi-ic{background:var(--line-strong);box-shadow:none}
+body.drv .drv-kpi.is-zero b{color:var(--text-3)}
+/* ทะเบียนรถ — การ์ดแบบเดียวกัน กว้างเต็มแถวเหนือตัวเลขงาน · เลขทะเบียนตัวใหญ่ ชนิดรถตัวเล็กต่อท้าย */
+body.drv .drv-kpi-plate{grid-column:1 / -1}
+body.drv .drv-kpi-plate b{font-size:34px;letter-spacing:.01em}
+body.drv .drv-kpi-plate small{display:inline-block;margin-left:4px}
+/* ไม่ตัดกลางคำ — ป้ายและชนิดรถขึ้นบรรทัดใหม่ทั้งก้อน */
+body.drv .drv-kpi-l,body.drv .drv-kpi small{white-space:nowrap}
+/* การ์ดแคบ (มือถือ/การ์ดหดตามจอ): ไอคอนอยู่บน ตัวเลขอยู่ล่าง — วัดจากความกว้างกระดานเอง ไม่ใช่ความกว้างจอ */
+body.drv .drv-kpis{container-type:inline-size}
+@container (max-width:340px){
+  body.drv .drv-kpi:not(.drv-kpi-plate){flex-direction:column;align-items:flex-start;gap:10px;padding:14px}
+  body.drv .drv-kpi-ic{width:44px}
+  body.drv .drv-kpi b{font-size:38px}
+  body.drv .drv-kpi-plate{padding:14px}
+  body.drv .drv-kpi-plate b{font-size:28px}
+}
+@media (max-width:400px){
+  body.drv .drv-kpis{gap:8px}
+  body.drv .drv-kpi{flex-direction:column;align-items:flex-start;gap:10px;padding:14px}
+  body.drv .drv-kpi-ic{width:44px}
+  body.drv .drv-kpi b{font-size:38px}
+  body.drv .drv-kpi-plate{flex-direction:row;align-items:center}
+  body.drv .drv-kpi-plate b{font-size:28px}
+}
+
+/* ---------- รายการเที่ยว --------------------------------------- */
+body.drv .drv-list-body{background:var(--bg) !important}
+body.drv .job-card{background:var(--dv-card);border-color:transparent;border-radius:18px;box-shadow:var(--dv-shadow);
+  transition:transform .3s cubic-bezier(0,0,.5,1), box-shadow .3s cubic-bezier(0,0,.5,1)}
+body.drv .job-card:hover{transform:scale(1.015);box-shadow:var(--dv-shadow-hover)}
+body.drv .job-card:active{transform:scale(.99)}
+body.drv .job-card[data-active="1"]{box-shadow:0 0 0 2px var(--dv-accent), var(--dv-shadow)}
+body.drv .job-card[data-active="1"]:hover{box-shadow:0 0 0 2px var(--dv-accent), var(--dv-shadow-hover)}
+
+/* ปุ่มกลับ — การ์ดขาว ตัวส้ม แบบปุ่มโทรของ track.html */
+body.drv .driver-shell [data-back]{background:var(--dv-card) !important;color:var(--text) !important;box-shadow:var(--dv-shadow)}
+body.drv .driver-shell [data-back] svg{color:var(--dv-accent)}
+body.drv .driver-shell [data-back]:hover{box-shadow:var(--dv-shadow-hover);filter:none}
+
+/* การ์ดเที่ยวในหน้าแรกคนขับ (js/driver.js tripCard) — ตัวใหญ่ชุดเดียวกับรายการจุดส่ง (25 ต.ค.)
+   บรรทัดหลัก "37 จุดส่ง · 3 ปลายทาง" 32 · รายละเอียด 25 · "ถัดไป: … →" 26 · ป้ายสถานะ 24 */
+body.drv .job-card[data-trip] .trip-row-body > .row:first-child{flex-wrap:wrap;row-gap:8px}
+body.drv .job-card[data-trip] .code{font-size:25px;padding:5px 12px}
+body.drv .job-card[data-trip] .pill-drv{font-size:24px;padding:8px 18px 8px 14px}
+body.drv .job-card[data-trip] .pill-drv svg{width:26px;height:26px}
+body.drv .job-card[data-trip] .strong[style*="font-size"]{font-size:32px !important;line-height:1.2;font-weight:700}
+body.drv .job-card[data-trip] .tiny{font-size:25px;line-height:1.35;margin-top:4px}
+body.drv .job-card[data-trip] .trip-row-body > .row:last-child{flex-wrap:wrap;row-gap:6px}
+body.drv .job-card[data-trip] .trip-row-body > .row:last-child .strong{font-size:26px;font-weight:700;margin-left:auto}
+body.drv .job-card[data-trip] .tripbar{height:12px}
+body.drv .job-card[data-trip] .drv-note{font-size:25px}
+body.drv .job-card[data-trip] .drv-note-more{font-size:22px}
+/* การ์ดเที่ยว → แถว (31 ต.ค.) — แบบเดียวกับหน้าจัดลำดับ (.drv-sortlist): วงเลขซ้าย ข้อมูลขวา เรียงลงทีละแถว
+   คอลัมน์เดียวทุกขนาดจอ (เดิมแท็บเล็ต 2 / คอม 3 คอลัมน์ ใน app.css) */
+body.drv .drv-jobs{grid-template-columns:minmax(0,1fr)}
+body.drv .drv-jobs .job-card.trip-row{flex-direction:row;align-items:flex-start;gap:14px}
+body.drv .drv-jobs .job-card.trip-row > :last-child{margin-top:0 !important}
+body.drv .trip-row > .stop-n{flex:none}
+body.drv .trip-row-body{flex:1;min-width:0}
+
+/* ---------- ใบงานของเที่ยว ------------------------------------- */
+body.drv .drv-trip-body h4{font-size:19px;font-weight:700;letter-spacing:-.015em}
+body.drv .stop-row{border-radius:14px}
+/* รายการจุดส่ง ตัวใหญ่ให้คนขับอ่านง่าย (ผู้ใช้ขอ 25 ต.ค.: ชื่อร้าน 32 · รายละเอียด 25 · ปุ่ม 26)
+   ใช้กับแถวจุดส่ง (js/driver.js stopRow · groupRow · billRow) และแถวแบบมีปุ่มสามปุ่ม (js/helper.js payStopRow · groupActs)
+   ตัวใหญ่แบบนี้บนมือถือ: ที่อยู่ขึ้นหลายบรรทัดแทนตัด "…" · ป้ายขวา (ส่งของ → / ดูบิล) ลงไปบรรทัดล่าง · ปุ่มสามปุ่มเรียงทีละแถว */
+body.drv .stop-row{align-items:flex-start}
+body.drv .stop-row .grow > .strong:first-child{font-size:32px;line-height:1.2;font-weight:700;word-break:break-word}
+body.drv .stop-row .grow > .tiny{font-size:25px;line-height:1.35;margin-top:4px}
+body.drv .stop-row .grow > .trunc{white-space:normal;overflow:visible}
+body.drv .stop-row > .tiny,
+body.drv .helper-row-top > .tiny{font-size:26px;line-height:1.3;font-weight:700}
+body.drv .stop-n{width:52px;height:52px;font-size:24px}
+body.drv .helper-row-top{align-items:flex-start;flex-wrap:wrap}
+body.drv .helper-act{min-height:72px;padding:12px 14px;gap:4px}
+body.drv .helper-act-k{font-size:26px;line-height:1.25}
+body.drv .helper-act-v{font-size:25px}
+body.drv .stop-grp-body .btn{font-size:24px;min-height:64px}
+@media (max-width:700px){
+  body.drv .stop-row:not(.helper-row){flex-wrap:wrap}
+  body.drv .stop-row:not(.helper-row) > .tiny,
+  body.drv .helper-row-top > .tiny{flex-basis:100%;text-align:right}
+  body.drv .helper-acts{grid-template-columns:1fr;gap:8px}
+  body.drv .helper-act{flex-direction:row;align-items:baseline;justify-content:space-between;flex-wrap:wrap;column-gap:12px}
+  body.drv .helper-act-v{text-align:right}
+}
+/* งานด่วน ⚡ (ผู้ใช้ขอ 25 ต.ค.: ให้คนขับเห็นทันทีว่าแถวไหนด่วน) — helper.js rtLive · rtTag
+   ยังไม่ส่ง: กรอบแดง พื้นอมแดง วงเลขแดง "ส่งของ →" แดง · ส่งแล้ว: แถวปกติ เหลือป้ายเล็กสีเทา
+   การ์ดเที่ยวหน้าแรก: ป้าย "⚡ มีงานด่วน N จุด" (store.js jobRollup.rtOpen) */
+body.drv{--rt:#e5372b}   /* แดงสดเท่ากันทั้งธีมสว่าง/มืด (--red ธีมมืดเป็นแดงอมส้มซีด ไม่เด่นพอ) */
+body.drv .rt-tag{display:inline-block;align-self:flex-start;background:var(--rt);color:#fff;font-size:22px;font-weight:800;
+  line-height:1.2;padding:5px 14px;border-radius:999px;margin-bottom:8px;letter-spacing:.01em}
+body.drv .rt-tag.is-past{background:var(--surface-2);color:var(--text-2);font-size:18px;font-weight:700;padding:3px 10px;
+  border:1px solid var(--line)}
+body.drv .job-card[data-trip] .rt-tag{display:table;margin-bottom:8px}
+body.drv .stop-row.is-rt{border:3px solid var(--rt);background:color-mix(in srgb,var(--rt) 12%,var(--surface-2))}
+body.drv .stop-row.is-rt .stop-n{background:var(--rt);color:#fff}
+body.drv .stop-row.is-rt > .tiny.strong,
+body.drv .stop-row.is-rt .helper-row-top > .tiny.strong{color:var(--rt)!important}
+body.drv .stop-row .grow > .rt-tag + .strong{font-size:32px;line-height:1.2;font-weight:700;word-break:break-word}
+body.drv .pay-view{border-color:var(--line)}
+
+/* ---------- ฟอร์ม · ปุ่ม · หน้าต่าง ------------------------------ */
+body.drv .btn-ghost:hover{background:var(--dv-wash)}
+body.drv .drop:hover,body.drv .drop.is-over{background:var(--dv-wash)}
+body.drv .drop.is-over{background:
+    linear-gradient(var(--dv-wash),var(--dv-wash)) padding-box,
+    repeating-linear-gradient(90deg,var(--dv-accent) 0 10px,transparent 10px 18px) border-box;background-size:auto,36px 100%}
+body.drv .input,body.drv .textarea{border-radius:14px}
+body.drv .modal{border-radius:22px}
+@media (max-width:620px){ body.drv .modal{border-radius:22px 22px 0 0} }
+/* ---------- หน้าต่างแจ้งเตือนงานใหม่ / งานด่วน (showNewWork ใน js/driver.js) — โทนหน้าแรก ----------
+   การ์ดขาว · ไอคอนในกล่องไล่สีส้ม (งานด่วน = แดง) · เที่ยวเป็นกล่องเทาแตะได้ · ปุ่มใหญ่สองปุ่ม */
+body.drv .newjob-card{border-radius:24px;border-top:0;padding:30px 22px 22px;background:var(--dv-card);
+  box-shadow:0 24px 60px rgba(0,0,0,.25)}
+body.drv .newjob-icon{display:grid;place-items:center;width:76px;aspect-ratio:1;margin:0 auto;border-radius:26%;color:#fff;font-size:0;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--dv-accent) 78%,#fff) 0%,var(--dv-accent) 70%);
+  box-shadow:0 14px 28px -14px var(--dv-accent)}
+body.drv .newjob-card[data-urgent="1"] .newjob-icon{background:linear-gradient(160deg,color-mix(in srgb,var(--red) 75%,#fff) 0%,var(--red) 70%);
+  box-shadow:0 14px 28px -14px var(--red)}
+body.drv .newjob-icon svg{width:52%;height:52%}
+body.drv .newjob-title{font-size:30px;font-weight:700;letter-spacing:-.02em;margin-top:14px;color:var(--text)}
+body.drv .newjob-card[data-urgent="1"] .newjob-title{color:var(--red)}
+body.drv .newjob-sub{font-size:18px;color:var(--dv-sub)}
+body.drv .newjob-hint{font-size:15.5px;font-weight:600;color:var(--text)}
+body.drv .newjob-list{margin-top:14px}
+body.drv .newjob-item{background:var(--dv-tile);border:0;border-radius:18px;padding:14px 16px;
+  transition:transform .2s cubic-bezier(0,0,.5,1),box-shadow .2s}
+body.drv .newjob-item:hover{box-shadow:0 0 0 2px var(--dv-accent)}
+body.drv .newjob-item:active{transform:scale(.99)}
+body.drv .newjob-item:focus-visible{outline:3px solid var(--dv-accent);outline-offset:2px}
+body.drv .newjob-item[data-urgent="1"]{box-shadow:inset 4px 0 0 var(--red)}
+body.drv .newjob-item[data-urgent="1"]:hover{box-shadow:inset 4px 0 0 var(--red), 0 0 0 2px var(--red)}
+body.drv .newjob-code{font-size:18px}
+body.drv .newjob-n{font-size:17px;color:var(--dv-accent)}
+body.drv .newjob-card[data-urgent="1"] .newjob-n{color:var(--red)}
+body.drv .newjob-stop{font-size:16px;color:var(--dv-sub)}
+body.drv .newjob-go{color:var(--dv-link)}
+/* ปุ่มหลัก "ดูรายละเอียดงาน" ส้มทึบ (งานด่วน = แดง) · ปุ่ม "รับทราบ" เทา — ใหญ่ทั้งคู่ กดง่าย */
+body.drv .newjob-ok{min-height:62px;margin-top:20px;background:var(--dv-accent);font-size:20px}
+body.drv .newjob-ok:hover{background:var(--dv-accent-hover)}
+body.drv .newjob-card[data-urgent="1"] .newjob-ok{background:var(--red)}
+body.drv .newjob-later{background:var(--ap-seg);color:var(--text)}
+body.drv .newjob-later:hover{background:var(--line-strong)}
+body.drv .newjob-ok:focus-visible,body.drv .newjob-later:focus-visible{outline:3px solid var(--dv-ring);outline-offset:3px}
+
+/* ---------- ป้าย "หน้าคนขับ / หน้าผู้ช่วยคนขับ" (roleChip ใน js/driver.js) ----------
+   ขึ้นบนหัวการ์ดทุกหน้า — คนขับ = ส้ม · ผู้ช่วย = ม่วง (สีต่างกันชัด ไม่ต้องอ่านก็รู้) · พนักงาน = เทา */
+body.drv .drv-role{display:inline-flex;align-items:center;gap:7px;margin:0;padding:6px 14px 6px 10px;border-radius:99px;
+  font-size:16px;font-weight:700;line-height:1.3;background:var(--dv-wash);color:var(--dv-link)}
+body.drv .drv-role svg{width:20px;height:20px;flex:none}
+body.drv .drv-role.is-assist{background:color-mix(in srgb,#7a4fd6 12%,transparent);color:#6a3fc6}
+:root[data-theme="dark"] body.drv .drv-role.is-assist{background:rgba(160,130,240,.16);color:#c4b0ff}
+body.drv .drv-role.is-staff{background:var(--ap-seg);color:var(--text-2)}
+
+/* ---------- คำบอกว่าต้องกดอะไร (drv-hint) ---------- */
+body.drv .drv-hint{margin:0 0 12px;font-size:16px;font-weight:600;line-height:1.45;color:var(--text)}
+
+/* ---------- ปุ่มโทรหาทีมคลัง (helpCall) — เด่นพอเห็น แต่เบากว่าปุ่มหลักสีส้ม ---------- */
+body.drv .drv-help{display:flex;align-items:center;gap:12px;margin-top:16px;padding:10px 16px 10px 10px;
+  border-radius:16px;background:var(--dv-tile);color:var(--text);text-decoration:none;
+  transition:background-color .2s}
+body.drv .drv-help:hover{background:var(--line);color:var(--text)}
+body.drv .drv-help:focus-visible{outline:3px solid var(--dv-accent);outline-offset:3px}
+body.drv .drv-help-ic{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:50%;
+  background:var(--dv-accent);color:#fff}
+body.drv .drv-help-ic svg{width:19px;height:19px}
+body.drv .drv-help-tx{display:flex;flex-direction:column;min-width:0;font-size:14px;line-height:1.35;color:var(--dv-sub)}
+body.drv .drv-help-tx b{font-size:17px;font-weight:700;color:var(--text)}
+body.drv .drv-list-body > .drv-help,body.drv .drv-side > .drv-help{margin-top:20px}
+/* รายการเที่ยวมีพื้นเทาอยู่แล้ว — ปุ่มโทรเป็นการ์ดขาวแทน ไม่งั้นกลืนกับพื้น */
+body.drv .drv-list-body > .drv-help{background:var(--dv-card);box-shadow:var(--dv-shadow)}
+body.drv .drv-list-body > .drv-help:hover{box-shadow:var(--dv-shadow-hover)}
+body.drv .drv-help + .drv-help{margin-top:8px}   /* ปุ่มโทรเบอร์ถัดไป — ชิดปุ่มแรก */
+
+@media (prefers-reduced-motion:reduce){
+  body.drv .job-card,body.drv .appbar .theme-btn::after{transition:none}
+  body.drv .job-card:hover{transform:none}
+}
+
+/* ---------- ขยาย / ย่อตัวอักษร (js/fontScale.js) ----------
+   ปุ่ม "กก" บนแถบหัว + แผงล่างจอ · ปุ่มใหญ่ ≥ 56px นิ้วโป้งกดง่าย */
+.fs-btn{flex:none;height:34px;min-width:44px;padding:0 9px;border-radius:99px;display:inline-flex;align-items:baseline;justify-content:center;gap:1px;
+  background:transparent;border:1px solid var(--line-strong);color:var(--text);font-weight:600;line-height:1;cursor:pointer}
+.fs-btn:hover{background:rgba(0,0,0,.05)}
+@media screen{ :root[data-theme="dark"] .fs-btn{color:#f4f3f1;border-color:#4a4542} }
+.fs-scrim{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.38);display:flex;align-items:flex-end;justify-content:center}
+.fs-sheet{width:100%;max-width:460px;background:var(--dv-card);color:var(--text);border-radius:20px 20px 0 0;
+  padding:18px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -6px 24px rgba(0,0,0,.18)}
+.fs-title{font-weight:700;font-size:17px;text-align:center;margin-bottom:14px}
+.fs-row{display:flex;align-items:center;gap:12px}
+.fs-step{flex:1;height:64px;border-radius:16px;border:1.5px solid var(--dv-accent);background:var(--dv-wash);color:var(--dv-link);
+  font-size:22px;font-weight:700;display:inline-flex;align-items:baseline;justify-content:center;gap:2px;cursor:pointer}
+.fs-step:disabled{opacity:.35;cursor:default}
+.fs-now{flex:none;width:92px;text-align:center;display:flex;flex-direction:column;gap:2px}
+.fs-now b{font-size:24px}
+.fs-now span{font-size:12px;color:var(--dv-sub)}
+.fs-dots{display:flex;justify-content:center;gap:8px;margin:14px 0 6px}
+.fs-dots i{width:9px;height:9px;border-radius:50%;background:var(--line-strong)}
+.fs-dots i.on{background:var(--dv-accent)}
+.fs-sample{text-align:center;color:var(--dv-sub);font-size:14px;margin:6px 0 16px}
+.fs-foot{display:flex;gap:10px}
+.fs-foot .btn{flex:1;min-height:50px;font-size:16px}
+/* มือถือ: แถบหัวมี โลโก้ · เลือกฝั่ง · กก · ธีม — ชื่อบริษัทยาวดันปุ่มตกแถว จึงเหลือแค่โลโก้ FT
+   ขยายตัวอักษรแล้ว (html มี zoom) ก็ซ่อนเหมือนกัน เพราะ zoom ไม่เปลี่ยนผล @media */
+@media (max-width:520px){ body.drv .brand > span:last-child{display:none} }
+:root[style*="zoom"] body.drv .brand > span:last-child{display:none}
+/* กล่องตัวเลขหัวเที่ยว (จุด · กก.) — พื้นที่ไม่พอ (จอแคบ / ขยายตัวอักษร) ให้ลงมาเรียงทีละแถวแทนการล้นขอบ */
+body.drv .dhero-stats{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+/* แถบขั้นตอน — แคบจนชื่อขั้นชนกัน (ขยายตัวอักษรมาก) ให้เหลือชื่อเฉพาะขั้นปัจจุบัน วงกลมยังครบทุกขั้น */
+body.drv .dflow{container-type:inline-size}
+@container (max-width:230px){
+  body.drv .dflow-step:not([data-state="now"]) .dflow-label{visibility:hidden}
+}
+
+/* ---------- 27 ต.ค. — แท็บ ค้าง/เสร็จแล้ว · จัดลำดับ · เลือกบิล · หลักฐาน · ผลการส่ง (js/driver.js) ---------- */
+.drv-tabs{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;padding:4px;margin-bottom:14px;border-radius:14px;background:var(--dv-tile)}
+.drv-tabs button{min-height:52px;padding:6px 4px;border:0;border-radius:11px;background:transparent;color:var(--dv-sub);font:inherit;font-size:15px;font-weight:600;line-height:1.25;cursor:pointer}
+.drv-tabs button[data-fail] b,.drv-tabs button[data-fail][aria-selected="true"] b{background:var(--red);color:#fff}
+.drv-tabs button b{display:inline-block;min-width:24px;padding:1px 7px;margin-left:4px;border-radius:999px;background:rgba(0,0,0,.07);font-size:14px}
+.drv-tabs button[aria-selected="true"]{background:var(--dv-card);color:var(--text);box-shadow:var(--dv-shadow)}
+.drv-tabs button[aria-selected="true"] b{background:var(--dv-accent);color:#fff}
+
+.drv-sortbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.drv-sortlist{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.drv-sortlist li{display:flex;align-items:center;gap:10px;padding:10px 10px 10px 12px;border-radius:14px;background:var(--dv-card);box-shadow:var(--dv-shadow)}
+/* ลากเรียง (กดค้างแล้วลาก) — กันเมนูกดค้าง/เลือกข้อความของ iOS · การ์ดที่ยกอยู่ลอยเหนือการ์ดอื่น */
+.drv-sortlist li{cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;transition:box-shadow .15s,transform .15s}
+.drv-sortlist li.is-drag{position:relative;z-index:5;cursor:grabbing;transition:box-shadow .15s;box-shadow:0 10px 28px rgba(0,0,0,.28),0 0 0 2px var(--dv-accent)}
+.drv-sortlist.is-sorting li:not(.is-drag){transition:none}
+.drv-grip{flex:none;width:36px;text-align:center;font-size:22px;line-height:1;color:var(--dv-sub)}
+
+.drv-pick{display:flex;align-items:center;gap:12px;padding:12px;margin-bottom:8px;border:1px solid var(--line);border-radius:12px;cursor:pointer}
+.drv-pick input{width:24px;height:24px;flex:none;accent-color:var(--dv-accent)}
+.drv-pick.is-done{opacity:.6;cursor:default}
+
+.drv-done-item{margin-bottom:12px}
+.drv-done-item .stop-row,.drv-done-item .stop-grp{margin-bottom:6px}
+.drv-proof{padding:12px;margin-bottom:12px;border:1px solid var(--line);border-radius:12px}
+.drv-check{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:4px;font-size:15px}
+.drv-check li[data-ok="1"]{color:var(--green)}
+.drv-check li[data-ok="0"]{color:var(--red)}
+.drv-check li .dim{color:var(--dv-sub)}
+
+.drv-outcome{min-height:52px;font-size:17px;font-weight:600}
+.drv-livewarn{padding:10px 12px;margin-bottom:10px;border-radius:10px;background:var(--red-wash);color:var(--red)}
+
+/* ---------- เพิ่มรูปหลังส่ง (js/driver.js addPhotoDialog) ---------- */
+.drv-proof-acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.drv-proof-acts .btn{min-height:44px}
+.drv-had img{opacity:.85}
+.drv-addsrc{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.drv-addsrc .drop{display:flex;align-items:center;justify-content:center;min-height:56px;text-align:center}
+
+/* "ส่งโดย …" ใต้บิล — หน้าคนขับตัวใหญ่ อ่านง่าย (app.css .sent-by เล็กสำหรับตารางออฟฟิศ) */
+body.drv .sent-by{font-size:15px;margin-top:4px;color:var(--dv-sub)}
+body.drv .sent-by b{color:var(--text)}
+
+/* ---------- เที่ยวหลายคนขับ: ใครกดถึงขั้นไหน (js/driver.js crewBoard) ---------- */
+.crew-board{margin-top:12px;padding:10px 12px;border-radius:14px;background:var(--dv-tile)}
+.crew-board-h{margin:0 0 6px;font-size:13px;color:var(--dv-sub)}
+.crew-row{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:15px;border-top:1px solid var(--line)}
+.crew-row:first-of-type{border-top:0}
+.crew-row.is-me{font-weight:600}
+.crew-st{font-size:13.5px;white-space:nowrap;color:var(--green)}
+.crew-st[data-st="new"]{color:var(--amber-dim)}
+
+/* ---------- รอคืนเข้าคลัง (js/driver.js whPendingBox) — บนสุดของหน้าการ์ด หาเจอแม้ผ่านไปหลายวัน ---------- */
+.wh-pending{margin-bottom:12px;padding:12px;border-radius:14px;border:2px solid var(--amber, #E8781A);background:rgba(232,120,26,.08)}
+.wh-pending-h{margin:0 0 6px;font-size:16px;font-weight:700}
+.wh-pending-h .tiny{font-weight:500;color:var(--dv-sub)}
+.wh-pending-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.wh-pending-row .btn{flex:none;min-height:44px}
+body.drv .wh-tag{font-size:13.5px}
+
+/* ค้นหาบิลในเที่ยว + ปุ่มหาบิลไม่เจอ (28 ต.ค. · js/driver.js findBox) */
+.drv-find{display:flex;gap:8px;margin:0 0 10px}
+.drv-find .input{flex:1;min-width:0;font-size:17px;min-height:48px}
+.drv-find .btn{flex:none;min-height:48px;white-space:nowrap}
+.drv-find-note{margin:-2px 0 10px;font-size:14px;font-weight:600;color:var(--amber-dim)}
+.drv-find-note[hidden]{display:none}
+/* แนบรูปไว้ก่อน (6 พ.ย.) — ปุ่มเล็กใต้บิลที่ยังไม่ส่ง (driver.js preBtn) */
+.drv-pre-btn{display:block;width:100%;margin:6px 0 10px;text-align:center;font-size:14px;min-height:40px}

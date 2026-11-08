@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ใบสั่งซื้อ</title>
+<link rel="stylesheet" href="../css/print.css">
+<script src="../js/theme.js"></script>
+</head>
+<body class="print-body">
+<div class="print-bar no-print" id="bar"></div>
+<div id="out"><div class="sheet">…</div></div>
+
+<script type="module">
+import { sb } from '../js/supabase.js';
+import { t } from '../js/i18n.js';
+import { requireAuth } from '../js/auth.js';
+import { loadPoData, poSheet } from '../js/po-doc.js';
+import { el, errText } from '../js/ui.js';
+
+const $ = (s) => document.querySelector(s);
+
+// อยู่ในโฟลเดอร์ print/ — requireAuth เด้งกลับ index.html แบบ relative จะได้ print/index.html
+// ซึ่งไม่มีจริง เลยเช็ค session เองก่อนแล้วส่งกลับให้ถูกที่
+const { data: { session } } = await sb.auth.getSession();
+if (!session) {
+  location.href = '../index.html';
+} else {
+  await requireAuth();
+  await render();
+}
+
+async function render() {
+  const out = $('#out');
+  try {
+    const poId = new URLSearchParams(location.search).get('id');
+    if (!poId) throw new Error('ไม่ได้ระบุใบสั่งซื้อที่ต้องการพิมพ์');
+
+    const d = await loadPoData(poId);
+    if (!d) throw new Error('ไม่พบใบสั่งซื้อนี้ หรือคุณไม่มีสิทธิ์ดู');
+
+    out.textContent = '';
+    out.append(poSheet(d));
+    document.title = `ใบสั่งซื้อ ${d.po.po_no} ${d.vendor?.name_th ?? ''}`.trim();
+
+    $('#bar').append(
+      el('span', { class: 'who' },
+        [d.po.po_no, d.vendor?.name_th].filter(Boolean).join('  ·  ')),
+      el('button', { class: 'btn primary', onclick: () => window.print() }, t('common.print')),
+      el('a', { class: 'btn', href: `../po.html?id=${poId}` }, t('po.title')));
+  } catch (e) {
+    out.textContent = '';
+    out.append(el('div', { class: 'sheet' }, el('p', {}, errText(e))));
+  }
+}
+</script>
+</body>
+</html>

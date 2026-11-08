@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>แบนเนอร์หน้าแรก · Sample Sports Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="is-checking">
+  <div class="layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="backdrop" id="backdrop"></div>
+    <div class="main">
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <h1>แบนเนอร์หน้าแรก</h1>
+            <p>สไลด์ด้านบนสุดของหน้าแรก เรียงจากบนลงล่าง · แสดงเฉพาะที่เปิดอยู่</p>
+          </div>
+          <button class="btn btn-primary" id="add-btn" data-write>+ เพิ่มแบนเนอร์</button>
+        </div>
+        <div id="list"></div>
+        <div class="card empty-state" id="empty">ยังไม่มีข้อมูล</div>
+      </main>
+    </div>
+  </div>
+
+  <dialog id="edit-dialog">
+    <form class="dlg" id="edit-form" novalidate>
+      <div class="dlg-head">
+        <h2 id="dlg-title">เพิ่มแบนเนอร์</h2>
+        <button type="button" class="dlg-close" data-close aria-label="ปิด">×</button>
+      </div>
+      <div class="dlg-body">
+        <div class="field">
+          <span class="label">รูปแบนเนอร์ <span class="req">*</span></span>
+          <div class="image-field" id="image-field">
+            <img alt="" hidden>
+            <div class="empty">ยังไม่มีรูป</div>
+            <input type="file" accept="image/*">
+            <button type="button" class="btn btn-secondary btn-sm" data-pick>เลือกรูป</button>
+            <div class="hint">แนะนำแนวนอน 1920×900 · ระบบย่อรูปให้อัตโนมัติ</div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-title">หัวข้อบนแบนเนอร์</label>
+          <input type="text" id="f-title" maxlength="120">
+        </div>
+        <div class="field">
+          <label for="f-subtitle">ข้อความรอง (ไม่บังคับ)</label>
+          <input type="text" id="f-subtitle" maxlength="200">
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="f-link-label">ข้อความบนปุ่ม (ไม่บังคับ)</label>
+            <input type="text" id="f-link-label" maxlength="40" placeholder="เช่น สมัครแข่งขัน">
+          </div>
+          <div class="field">
+            <label for="f-link-url">ลิงก์ของปุ่ม</label>
+            <input type="url" id="f-link-url" placeholder="https://">
+          </div>
+        </div>
+        <label class="check"><input type="checkbox" id="f-active" checked> แสดงบนหน้าเว็บ</label>
+      </div>
+      <div class="dlg-foot">
+        <button type="button" class="btn btn-secondary" data-close>ยกเลิก</button>
+        <button type="button" class="btn btn-secondary" id="preview-btn">ดูตัวอย่าง</button>
+        <button type="submit" class="btn btn-primary" data-write>บันทึก</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="js/pages/banners.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "name": "coop-coding-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8787",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "test:persist": "node persist-test.mjs",
+    "test:limits": "node rate-limit-test.mjs"
+  },
+  "dependencies": {
+    "lib0": "^0.2.99",
+    "y-protocols": "^1.0.6",
+    "yjs": "^13.6.20"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0",
+    "ws": "^8.21.3",
+    "y-websocket": "^2.1.0"
+  }
+}

@@ -1,0 +1,274 @@
+/* ============================================================
+   AURUM — Queue & Appointment Atelier
+   base.css — tokens, typography, motif, motion, atmosphere
+   Style recipe: Luxury / serif (Appendix C1)
+   Palette: one hue (h 78 — champagne) nine shades, named by job (C2)
+   ============================================================ */
+
+/* ---------- 1. TOKENS ---------- */
+:root{
+  /* brand hue + accent chroma — overwritten at runtime by brand.js (white-label) */
+  --h: 78;
+  --ca: .105;
+
+  /* nine shades, named by job — DARK field (default) */
+  --c-page:      oklch(.155 .008 var(--h));
+  --c-surface:   oklch(.205 .011 var(--h));
+  --c-sunken:    oklch(.115 .006 var(--h));
+  --c-border:    oklch(.285 .014 var(--h));
+  --c-line:      oklch(.480 .022 var(--h));
+  --c-muted:     oklch(.700 .026 var(--h));
+  --c-action:    oklch(.805 var(--ca) var(--h));
+  --c-action-hi: oklch(.885 calc(var(--ca) * .8) calc(var(--h) + 4));
+  --c-ink:       oklch(.965 .013 var(--h));
+  --c-on-action: oklch(.170 .020 var(--h));
+
+  /* semantics — the sanctioned exception to one hue */
+  --c-ok-fg:   oklch(.82 .11 145); --c-ok-bg:   oklch(.30 .05 145); --c-ok-bd: oklch(.44 .07 145);
+  --c-warn-fg: oklch(.85 .12  75); --c-warn-bg: oklch(.30 .05  75); --c-warn-bd: oklch(.46 .08 75);
+  --c-err-fg:  oklch(.78 .15  27); --c-err-bg:  oklch(.28 .07  27); --c-err-bd: oklch(.44 .11 27);
+  --c-info-fg: oklch(.80 .09 250); --c-info-bg: oklch(.28 .05 250); --c-info-bd: oklch(.44 .07 250);
+
+  /* gilding — the one gradient allowed, used only on the foil edge */
+  --foil: linear-gradient(115deg,
+      oklch(.62 calc(var(--ca)*.7) var(--h)) 0%,
+      oklch(.92 calc(var(--ca)*.6) calc(var(--h) + 8)) 22%,
+      oklch(.74 var(--ca) var(--h)) 44%,
+      oklch(.98 .04 calc(var(--h) + 10)) 58%,
+      oklch(.70 calc(var(--ca)*.9) calc(var(--h) - 6)) 78%,
+      oklch(.86 calc(var(--ca)*.7) var(--h)) 100%);
+
+  /* type */
+  --f-display: "Cormorant Garamond", "Noto Serif Thai", Georgia, serif;
+  --f-body: "IBM Plex Sans Thai", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --t-display: clamp(3rem, 8.5vw, 7.5rem);
+  --t-h1: clamp(2.4rem, 5.5vw, 4.25rem);
+  --t-h2: clamp(1.9rem, 3.8vw, 3rem);
+  --t-h3: clamp(1.25rem, 2vw, 1.6rem);
+  --t-body: clamp(.975rem, .35vw + .9rem, 1.075rem);
+  --t-small: .875rem;
+  --t-label: .705rem;
+
+  /* spacing 4·8·12·16·24·32·48·64·96·128 */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px;
+  --s6:32px; --s7:48px; --s8:64px; --s9:96px; --s10:128px;
+
+  /* radius — luxury recipe: 2–4px */
+  --r-sm:2px; --r-md:4px; --r-lg:6px; --r-full:9999px;
+
+  /* elevation — max three levels */
+  --e-sm: 0 1px 2px oklch(0 0 0/.30), 0 1px 3px oklch(0 0 0/.24);
+  --e-md: 0 2px 6px oklch(0 0 0/.28), 0 10px 26px oklch(0 0 0/.34);
+  --e-lg: 0 6px 14px oklch(0 0 0/.30), 0 26px 60px oklch(0 0 0/.46);
+
+  /* motion scale (C4) */
+  --m-instant: 100ms linear;
+  --m-fast: 150ms cubic-bezier(.16,1,.3,1);
+  --m-base: 250ms cubic-bezier(.16,1,.3,1);
+  --m-slow: 400ms cubic-bezier(.65,0,.35,1);
+
+  --maxw: 1220px;
+  --gutter: clamp(20px, 5vw, 64px);
+}
+
+/* ---------- LIGHT FIELD (white-label option: "Cream") ---------- */
+:root[data-field="cream"]{
+  --c-page:      oklch(.975 .010 var(--h));
+  --c-surface:   oklch(.940 .014 var(--h));
+  --c-sunken:    oklch(.905 .018 var(--h));
+  --c-border:    oklch(.865 .020 var(--h));
+  --c-line:      oklch(.680 .028 var(--h));
+  --c-muted:     oklch(.505 .030 var(--h));
+  --c-action:    oklch(.470 var(--ca) var(--h));
+  --c-action-hi: oklch(.380 var(--ca) var(--h));
+  --c-ink:       oklch(.215 .022 var(--h));
+  --c-on-action: oklch(.985 .010 var(--h));
+  --e-sm: 0 1px 2px oklch(.3 .02 var(--h)/.06), 0 1px 3px oklch(.3 .02 var(--h)/.10);
+  --e-md: 0 2px 4px oklch(.3 .02 var(--h)/.06), 0 8px 16px oklch(.3 .02 var(--h)/.10);
+  --e-lg: 0 4px 8px oklch(.3 .02 var(--h)/.06), 0 16px 32px oklch(.3 .02 var(--h)/.12);
+  /* the gilding has to run dark on a light ground or it disappears */
+  --foil: linear-gradient(115deg,
+      oklch(.52 calc(var(--ca)*.9) var(--h)) 0%,
+      oklch(.68 calc(var(--ca)*.7) calc(var(--h) + 8)) 22%,
+      oklch(.44 var(--ca) var(--h)) 44%,
+      oklch(.72 calc(var(--ca)*.6) calc(var(--h) + 10)) 58%,
+      oklch(.42 calc(var(--ca)*.95) calc(var(--h) - 6)) 78%,
+      oklch(.60 calc(var(--ca)*.8) var(--h)) 100%);
+}
+
+/* ---------- 2. RESET ---------- */
+*,*::before,*::after{box-sizing:border-box}
+*{margin:0}
+html{-webkit-text-size-adjust:100%; scroll-behavior:smooth; color-scheme:dark}
+:root[data-field="cream"] html, html:has(:root[data-field="cream"]){color-scheme:light}
+body{
+  font-family:var(--f-body);
+  font-size:var(--t-body);
+  line-height:1.75;
+  color:var(--c-ink);
+  background:var(--c-page);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  overflow-x:hidden;
+}
+img,svg,video{display:block; max-width:100%}
+button,input,select,textarea{font:inherit; color:inherit}
+a{color:inherit; text-decoration:none}
+/* Thai stacks a vowel + a tone mark above the base glyph — tight leading clips them.
+   1.22 is the floor that keeps ที่ / ที้ / ปั๊ intact at display sizes. */
+h1,h2,h3,h4{font-family:var(--f-display); font-weight:500; line-height:1.22; letter-spacing:-.012em}
+h1{font-size:var(--t-h1)} h2{font-size:var(--t-h2)} h3{font-size:var(--t-h3); line-height:1.38}
+::selection{background:var(--c-action); color:var(--c-on-action)}
+
+/* focus — never leave the default ring */
+:focus-visible{outline:2px solid var(--c-action); outline-offset:3px; border-radius:var(--r-sm)}
+:focus:not(:focus-visible){outline:none}
+
+/* scrollbar — never leave the default */
+*{scrollbar-width:thin; scrollbar-color:var(--c-border) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--c-sunken)}
+::-webkit-scrollbar-thumb{background:var(--c-border); border:3px solid var(--c-sunken); border-radius:var(--r-full)}
+::-webkit-scrollbar-thumb:hover{background:var(--c-line)}
+
+/* ---------- 3. LAYOUT PRIMITIVES ---------- */
+.wrap{width:100%; max-width:var(--maxw); margin-inline:auto; padding-inline:var(--gutter)}
+.wrap-wide{max-width:1480px}
+.wrap-tight{max-width:820px}
+section{position:relative; padding-block:clamp(64px,9vw,128px)}
+.field-surface{background:var(--c-surface)}
+.field-sunken{background:var(--c-sunken)}
+.field-invert{background:var(--c-ink); color:var(--c-page)}
+:root[data-field="cream"] .field-invert{background:var(--c-ink); color:var(--c-page)}
+.field-invert .eyebrow{color:oklch(.55 var(--ca) var(--h))}
+/* On an inverted field the neutral ramp runs the wrong way — restate the
+   secondary text roles so they stay readable instead of washing out. */
+.field-invert .hint,
+.field-invert .muted,
+.field-invert .lede,
+.field-invert .lbl,
+.field-invert .marquee-item{color:color-mix(in oklab, var(--c-page) 62%, var(--c-ink))}
+.field-invert .rule{background:linear-gradient(90deg,transparent,color-mix(in oklab,var(--c-page) 22%,transparent) 18%,color-mix(in oklab,var(--c-page) 22%,transparent) 82%,transparent)}
+.stack>*+*{margin-top:var(--s4)}
+.grid{display:grid; gap:var(--s5)}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:900px){.g3,.g4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.g2,.g3,.g4{grid-template-columns:1fr}}
+
+/* ---------- 4. TYPE UTILITIES ---------- */
+.eyebrow{
+  font-family:var(--f-mono); font-size:var(--t-label); font-weight:500;
+  letter-spacing:.32em; text-transform:uppercase; color:var(--c-action);
+  display:flex; align-items:center; gap:var(--s3);
+}
+.eyebrow::before{content:""; width:26px; height:1px; background:currentColor; opacity:.55}
+.lede{font-size:clamp(1.05rem,1.4vw,1.3rem); color:var(--c-muted); line-height:1.7; max-width:62ch}
+.muted{color:var(--c-muted)}
+.display{font-family:var(--f-display); font-size:var(--t-display); line-height:1.24; letter-spacing:-.028em; font-weight:400}
+.italic-accent{font-style:italic; color:var(--c-action)}
+.num{font-family:var(--f-mono); font-variant-numeric:tabular-nums; letter-spacing:-.02em}
+.foil-text{
+  background:var(--foil); background-size:220% 100%;
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  animation:foilSweep 9s ease-in-out infinite;
+}
+@keyframes foilSweep{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+
+/* hairline rule with the motif at its centre */
+.rule{height:1px; background:linear-gradient(90deg,transparent,var(--c-border) 18%,var(--c-border) 82%,transparent); position:relative}
+.rule::after{
+  content:""; position:absolute; left:50%; top:50%; width:16px; height:16px;
+  transform:translate(-50%,-50%) rotate(45deg);
+  background:var(--c-action); opacity:.5;
+  -webkit-mask:var(--motif-mask) center/contain no-repeat; mask:var(--motif-mask) center/contain no-repeat;
+}
+
+/* ---------- 5. THE MOTIF — "the gilded petal" ----------
+   Drawn here, not fetched. A tapered petal with one flattened
+   side and an off-centre notch. Used ≥4 ways: bullet, divider,
+   watermark, loader, active-nav, image mask, favicon.        */
+:root{
+  --motif-path: "M12 1.4 C 17.9 5.1 21.2 11.0 20.2 16.4 C 19.6 19.6 16.6 22.4 12.6 22.6 C 12.2 20.0 13.4 18.4 13.4 16.2 C 13.4 14.0 11.6 12.9 11.6 10.6 C 11.6 8.0 13.8 6.6 13.2 4.0 C 10.4 6.6 7.0 8.2 5.0 12.0 C 3.0 15.9 4.2 20.1 6.6 22.6 C 2.6 21.4 0.9 17.0 1.7 12.6 C 2.9 6.4 8.2 3.6 12 1.4 Z";
+  --motif-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.4C17.9 5.1 21.2 11 20.2 16.4c-.6 3.2-3.6 6-7.6 6.2-.4-2.6.8-4.2.8-6.4s-1.8-3.3-1.8-5.6c0-2.6 2.2-4 1.6-6.6-2.8 2.6-6.2 4.2-8.2 8-2 3.9-.8 8.1 1.6 10.6C2.6 21.4.9 17 1.7 12.6 2.9 6.4 8.2 3.6 12 1.4Z' fill='%23000'/%3E%3C/svg%3E");
+}
+.motif{width:1em; height:1em; flex:none; fill:currentColor}
+.motif-bullet{list-style:none; padding-left:0}
+.motif-bullet li{position:relative; padding-left:1.9em; margin-bottom:var(--s3)}
+.motif-bullet li::before{
+  content:""; position:absolute; left:0; top:.52em; width:.85em; height:.85em;
+  background:var(--c-action);
+  -webkit-mask:var(--motif-mask) center/contain no-repeat; mask:var(--motif-mask) center/contain no-repeat;
+}
+/* watermark — one copy, 600px+, bleeding off an edge */
+.watermark{
+  position:absolute; pointer-events:none; z-index:0;
+  width:min(640px,72vw); aspect-ratio:1; opacity:.035;
+  background:var(--c-action);
+  -webkit-mask:var(--motif-mask) center/contain no-repeat; mask:var(--motif-mask) center/contain no-repeat;
+}
+.watermark.wm-r{right:-16%; top:-10%; transform:rotate(18deg)}
+.watermark.wm-l{left:-18%; bottom:-14%; transform:rotate(-160deg)}
+
+/* loader — the motif, never a generic spinner */
+.motif-loader{width:34px;height:34px;background:var(--c-action);
+  -webkit-mask:var(--motif-mask) center/contain no-repeat; mask:var(--motif-mask) center/contain no-repeat;
+  animation:motifPulse 1.5s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes motifPulse{0%,100%{transform:rotate(0) scale(.82); opacity:.4}50%{transform:rotate(180deg) scale(1); opacity:1}}
+
+/* ---------- 6. ATMOSPHERE — gilded dust in a light shaft ----------
+   ONE system for the whole product. Subject-true: the still, lit
+   air of a treatment room. transform/opacity only, paused off-screen. */
+.atmo{position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:0}
+.atmo .shaft{
+  position:absolute; top:-30%; left:52%; width:46%; height:170%;
+  background:linear-gradient(178deg, oklch(.88 var(--ca) var(--h)/.075), transparent 62%);
+  transform:rotate(11deg); filter:blur(42px);
+  animation:shaftBreathe 22s ease-in-out infinite;
+}
+@keyframes shaftBreathe{0%,100%{opacity:.55; transform:rotate(11deg) translateX(0)}50%{opacity:1; transform:rotate(9deg) translateX(-2.5%)}}
+.atmo .mote{
+  position:absolute; border-radius:var(--r-full); background:var(--c-action);
+  opacity:0; will-change:transform,opacity;
+  animation:moteDrift calc(15s + var(--i)*1.7s) linear infinite;
+  animation-delay:calc(var(--i) * -2.4s);
+}
+@keyframes moteDrift{
+  0%{transform:translate3d(0,20px,0) scale(.7); opacity:0}
+  14%{opacity:.42}
+  78%{opacity:.30}
+  100%{transform:translate3d(26px,-190px,0) scale(1.25); opacity:0}
+}
+.atmo.paused *{animation-play-state:paused !important}
+/* on a light ground the dust has to darken, not glow */
+:root[data-field="cream"] .atmo .mote{background:var(--c-line)}
+:root[data-field="cream"] .atmo .shaft{background:linear-gradient(178deg, oklch(.55 var(--ca) var(--h)/.10), transparent 62%)}
+
+/* ---------- 7. GRAIN — 4% over flat colour ---------- */
+body::after{
+  content:""; position:fixed; inset:0; z-index:9998; pointer-events:none; opacity:.045;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode:overlay;
+}
+
+/* ---------- 8. SCROLL REVEALS (varied by kind, see ui.js) ---------- */
+[data-reveal]{opacity:0; will-change:transform,opacity}
+[data-reveal="rise"]{transform:translateY(22px)}
+[data-reveal="slide"]{transform:translateX(-34px)}
+[data-reveal="mask"]{clip-path:inset(0 100% 0 0); opacity:1}
+[data-reveal="scale"]{transform:scale(.955)}
+[data-reveal].in{opacity:1; transform:none; clip-path:inset(0 0 0 0);
+  transition:opacity 700ms cubic-bezier(.16,1,.3,1), transform 700ms cubic-bezier(.16,1,.3,1), clip-path 900ms cubic-bezier(.65,0,.35,1);
+  transition-delay:var(--d,0ms)}
+
+/* ---------- 9. REDUCED MOTION IS ABSOLUTE ---------- */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important}
+  html{scroll-behavior:auto}
+  .atmo{display:none}
+  [data-reveal]{opacity:1 !important; transform:none !important; clip-path:none !important}
+  .foil-text{background-position:38% 50%}
+}

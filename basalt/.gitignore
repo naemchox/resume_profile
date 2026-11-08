@@ -1,0 +1,7 @@
+node_modules/
+studio/node_modules/
+studio/dist/
+
+# Runtime state. Contains the Postgres data directory, the JWT signing keypair,
+# the service key, and uploaded blobs. Never commit this.
+.data/

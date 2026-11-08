@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ใบแจ้งหนี้ — ระบบจัดซื้อจัดจ้าง</title>
+<link rel="stylesheet" href="css/app.css">
+<script src="js/theme.js"></script>
+</head>
+<body>
+<main id="app"><div class="spinner">…</div></main>
+
+<script type="module">
+import { sb } from './js/supabase.js';
+import { t, pick, fmtDate, fmtDateTime, isoDate } from './js/i18n.js';
+import { requirePage, me, has, hasAny } from './js/auth.js';
+import { masters, flow, insert, update } from './js/api.js';
+import { fmt, fmtQty, toSatang, toBaht, applyBp } from './js/money.js';
+import { formModal } from './js/form.js';
+import { fileLabel } from './js/storage.js';
+import { el, $, shell, pageTitle, table, modal, confirmBox, badge,
+         ok, fail, spinner, attachCard } from './js/ui.js';
+
+const un = ({ data, error }) => { if (error) throw error; return data; };
+
+const u = await requirePage('invoice.html');
+if (u) {
+  shell('invoice.html');
+  const q = new URLSearchParams(location.search);
+  const invId = q.get('id');
+  invId ? await detail(invId) : await listView();
+}
+
+// ===========================================================================
+// รายการ
+// ===========================================================================
+async function listView() {
+  const app = $('#app');
+  app.textContent = '';
+  app.append(pageTitle('inv.title'));
+
+  const poBox = el('div', {}, spinner());
+  const invBox = el('div', {}, spinner());
+  app.append(el('div', { class: 'card' }, el('h2', {}, t('inv.forPo')), poBox));
+  app.append(el('div', { class: 'card' }, el('h2', {}, t('inv.list')), invBox));
+
+  try {
+    const [pos, invs, vendors] = await Promise.all([
+      sb.from('pos').select('*')
+        .in('status', ['partially_received', 'received', 'invoiced'])
+        .order('promised_date').then(un),
+      sb.from('invoices').select('*').order('entered_at', { ascending: false }).then(un),
+      masters.vendors(),
+    ]);
+    const vById = new Map(vendors.map((v) => [v.id, v]));
+    const poById = new Map(pos.map((p) => [p.id, p]));
+
+    poBox.textContent = '';
+    poBox.append(pos.length
+      ? table([t('po.no'), t('quote.vendor'), { label: t('common.grandTotal'), align: 'right' },
+               { label: t('inv.invoicedQty'), align: 'right' }, t('common.status'), ''],
+          pos.map((p) => {
+            const billed = invs.filter((i) => i.po_id === p.id)
+              .reduce((s, i) => s + (i.grand_total ?? 0), 0);
+            const v = vById.get(p.vendor_id);
+            return el('tr', {},
+              el('td', {}, el('a', { href: `po.html?id=${p.id}` }, p.po_no)),
+              el('td', {}, v ? `${v.code} — ${pick(v, 'name')}` : '—'),
+              el('td', { class: 'num' }, fmt(p.grand_total)),
+              el('td', { class: 'num' }, fmt(billed)),
+              el('td', {}, badge(p.status, 'poStatus')),
+              el('td', { class: 'ta-right' },
+                el('button', { class: 'btn small primary', onclick: () => onNew(p, v) },
+                   t('inv.new'))));
+          }))
+      : el('p', { class: 'faint' }, t('inv.noPo')));
+
+    invBox.textContent = '';
+    invBox.append(invs.length
+      ? table([t('inv.vendorNo'), t('po.no'), t('quote.vendor'), t('inv.date'),
+               { label: t('common.grandTotal'), align: 'right' }, t('common.status')],
+          invs.map((i) => {
+            const p = poById.get(i.po_id);
+            const v = p && vById.get(p.vendor_id);
+            return el('tr', {},
+              el('td', {},
+                el('a', { href: `invoice.html?id=${i.id}` }, i.vendor_invoice_no),
+                // ติดคลิปหนีบไว้ให้เห็นตั้งแต่หน้ารายการว่าใบไหนมีบิลจริงแนบแล้ว
+                // ใบที่ยังไม่มีคือใบที่ตามเอกสารต่อ ไม่ใช่ใบที่คีย์ไม่เสร็จ
+                i.attachment_path
+                  ? el('span', { class: 'clip', title: `${t('inv.hasFile')} — ${fileLabel(i.attachment_path)}` },
+                       ' \u{1F4CE}')
+                  : null),
+              el('td', {}, p?.po_no ?? '—'),
+              el('td', {}, v ? v.code : '—'),
+              el('td', {}, fmtDate(i.invoice_date)),
+              el('td', { class: 'num' }, fmt(i.grand_total)),
+              el('td', {}, badge(i.status, 'invStatus')));
+          }))
+      : el('p', { class: 'faint' }, t('inv.none')));
+  } catch (e) { poBox.textContent = ''; invBox.textContent = ''; fail(e); }
+}
+
+// หัวบิล — ตัวเลขทุกช่องกรอกตามกระดาษ ระบบไม่เติมให้
+// ถ้าเติมให้ การจับคู่ 3 ทางจะไม่มีความหมาย เพราะเราจะเทียบเลขของเรากับเลขของเราเอง
+async function onNew(po, vendor) {
+  const v = await formModal(`${t('inv.new')} — ${po.po_no}`, [
+    { k: 'vendor_invoice_no', label: 'inv.vendorNo', required: true },
+    { k: 'invoice_date', label: 'inv.date', type: 'date', required: true },
+    { k: 'received_date', label: 'inv.receivedDate', type: 'date', required: true },
+    { k: 'freight', label: 'inv.freight', type: 'money' },
+    { k: 'subtotal', label: 'inv.subtotal', type: 'money', required: true },
+    { k: 'vat_amount', label: 'inv.vat', type: 'money' },
+    { k: 'grand_total', label: 'inv.grandTotal', type: 'money', required: true },
+    // โฟลเดอร์ต้องเป็น invoices (เติม s) — 10_storage.sql อนุญาตแค่ quotes/invoices/deliveries/misc
+    // ถ้าสะกดไม่ตรง Supabase จะปฏิเสธตอนอัปโหลดด้วย row-level security
+    { k: 'attachment_path', label: 'inv.file', type: 'file', folder: 'invoices',
+      required: true, hint: 'inv.fileHint', wide: true },
+  ], { invoice_date: isoDate(), received_date: isoDate() },
+     [el('div', { class: 'notice info' }, t('inv.enterAsPrinted'))]);
+  if (!v) return;
+  try {
+    const [row] = await insert('invoices', {
+      ...v, po_id: po.id, entered_by: me.id,
+      freight: v.freight ?? 0, vat_amount: v.vat_amount ?? 0,
+    });
+    location.href = `invoice.html?id=${row.id}`;
+  } catch (e) { fail(e); }
+}
+
+// ===========================================================================
+// รายละเอียดใบแจ้งหนี้
+// ===========================================================================
+async function detail(invId) {
+  const app = $('#app');
+  app.textContent = '';
+  app.append(spinner());
+
+  let inv, po, poLines, lines, recv, billed, matchRes, vendor, enterer;
+  try {
+    inv = await sb.from('invoices').select('*').eq('id', invId).maybeSingle().then(un);
+    if (!inv) throw new Error(t('pr.notFound'));
+    [po, lines, matchRes, enterer] = await Promise.all([
+      sb.from('pos').select('*').eq('id', inv.po_id).maybeSingle().then(un),
+      sb.from('invoice_lines').select('*').eq('invoice_id', invId).then(un),
+      sb.from('match_results').select('*').eq('invoice_id', invId).maybeSingle().then(un),
+      sb.from('user_profiles').select('full_name_th, full_name_en')
+        .eq('id', inv.entered_by).maybeSingle().then(un),
+    ]);
+    [poLines, recv, billed, vendor] = await Promise.all([
+      sb.from('po_lines').select('*').eq('po_id', inv.po_id).order('seq').then(un),
+      sb.from('v_po_line_received').select('*').eq('po_id', inv.po_id).then(un),
+      sb.from('v_po_line_invoiced').select('*').eq('po_id', inv.po_id).then(un),
+      sb.from('vendors').select('*').eq('id', po.vendor_id).maybeSingle().then(un),
+    ]);
+  } catch (e) { app.textContent = ''; fail(e); return; }
+
+  const reload = () => detail(invId);
+  const recvBy = new Map(recv.map((r) => [r.po_line_id, r]));
+  const billedBy = new Map(billed.map((r) => [r.po_line_id, r]));
+  const lineOf = (plId) => lines.find((l) => l.po_line_id === plId);
+
+  // แก้ได้เฉพาะคนคีย์ และเฉพาะก่อนตั้งเบิก — ตรงกับ policy keyer_update
+  const editable = inv.entered_by === me.id && ['entered', 'mismatched'].includes(inv.status);
+  const canMatch = hasAny('purchasing', 'accounting', 'admin')
+                   && ['entered', 'mismatched'].includes(inv.status);
+  // ไฟล์บิลแยกกฎจากตัวเลข — ของจริงมักสแกนมาทีหลัง แนบเพิ่มได้จนกว่าจะตั้งเบิก
+  // ตรงกับ fn_attach_invoice_file ใน db/21_invoice_attachment.sql
+  const canAttach = hasAny('purchasing', 'accounting', 'admin')
+                    && !['voucher_created', 'paid'].includes(inv.status);
+
+  // ยอดที่ระบบคำนวณได้ ใช้เทียบให้คนคีย์เห็น ไม่ได้เอาไปเขียนทับของจริง
+  const calcSub = lines.reduce((s, l) => s + (l.amount ?? 0), 0) + (inv.freight ?? 0);
+  const calcVat = applyBp(calcSub, po?.vat_bp ?? 0);
+  const calcTotal = calcSub + calcVat;
+
+  app.textContent = '';
+  app.append(pageTitle('inv.title',
+    el('a', { class: 'btn small', href: `po.html?id=${inv.po_id}` }, t('po.title')),
+    el('a', { class: 'btn small', href: 'invoice.html', style: 'margin-left:.3rem' }, t('inv.list'))));
+
+  // ---- หัวบิล ----
+  const head = el('div', { class: 'card' },
+    el('div', { class: 'row' },
+      el('div', {},
+        el('h2', { style: 'margin:0' }, inv.vendor_invoice_no, ' ', badge(inv.status, 'invStatus')),
+        el('p', { class: 'muted', style: 'margin:.3rem 0 0' },
+          [po?.po_no, vendor && `${vendor.code} — ${pick(vendor, 'name')}`]
+            .filter(Boolean).join('  ·  '))),
+      el('div', { class: 'spacer' }),
+      editable ? el('button', { class: 'btn', onclick: onEditHead }, t('common.edit')) : null),
+    !editable && inv.status === 'voucher_created'
+      ? el('div', { class: 'notice info', style: 'margin-top:.7rem' }, t('inv.editLocked'))
+      : null,
+    el('div', { class: 'grid g3', style: 'margin-top:.8rem' },
+      info('inv.date', fmtDate(inv.invoice_date)),
+      info('inv.receivedDate', fmtDate(inv.received_date)),
+      info('inv.enteredBy', enterer ? pick(enterer, 'full_name') : '—')));
+  app.append(head);
+
+  // ---- ไฟล์บิลจริงจากผู้ขาย ----
+  // แยกเป็นกล่องของตัวเองและกางให้เห็นทั้งใบ ไม่ใช่ปุ่มเล็กๆ ในหัวบิล
+  // เพราะงานตรงนี้คือ "อ่านเลขจากกระดาษเทียบกับที่คีย์ไว้" ต้องเห็นพร้อมกันในหน้าเดียว
+  app.append(attachCard(inv.attachment_path, {
+    title: 'inv.file',
+    missing: 'inv.noFile',
+    action: canAttach
+      ? el('button', { class: 'btn small' + (inv.attachment_path ? '' : ' primary'),
+          onclick: onAttachFile },
+          t(inv.attachment_path ? 'file.change' : 'file.attach'))
+      : null,
+  }));
+
+  // ไฟล์แนบแก้แยกจากตัวเลข — คนคีย์มักได้บิลตัวจริงมาทีหลัง จะได้ไม่ต้องเปิดฟอร์มทั้งใบ
+  // และเวลาแก้ตัวเลขก็ไม่ต้องแนบไฟล์ใหม่ทุกรอบ
+  async function onAttachFile() {
+    const v = await formModal(t(inv.attachment_path ? 'file.change' : 'file.attach'), [
+      { k: 'attachment_path', label: 'inv.file', type: 'file', folder: 'invoices',
+        required: true, hint: 'inv.fileHint', wide: true },
+    ], inv);
+    if (!v) return;
+    try {
+      await flow.attachInvoice(invId, v.attachment_path);
+      ok(t('common.saved')); reload();
+    } catch (e) { fail(e); }
+  }
+
+  function info(label, val) {
+    return el('div', {}, el('small', { class: 'faint' }, t(label)), el('div', {}, val ?? '—'));
+  }
+
+  async function onEditHead() {
+    const v = await formModal(t('common.edit'), [
+      { k: 'vendor_invoice_no', label: 'inv.vendorNo', required: true },
+      { k: 'invoice_date', label: 'inv.date', type: 'date', required: true },
+      { k: 'received_date', label: 'inv.receivedDate', type: 'date', required: true },
+      { k: 'freight', label: 'inv.freight', type: 'money' },
+      { k: 'subtotal', label: 'inv.subtotal', type: 'money', required: true },
+      { k: 'vat_amount', label: 'inv.vat', type: 'money' },
+      { k: 'grand_total', label: 'inv.grandTotal', type: 'money', required: true },
+    ], inv, [el('div', { class: 'notice info' }, t('inv.enterAsPrinted'))]);
+    if (!v) return;
+    try {
+      await update('invoices', invId, { ...v, freight: v.freight ?? 0, vat_amount: v.vat_amount ?? 0 });
+      ok(t('common.saved')); reload();
+    } catch (e) { fail(e); }
+  }
+
+  // ---- รายการในบิล เทียบกับ PO และใบตรวจรับ ----
+  const linesCard = el('div', { class: 'card' },
+    el('div', { class: 'row' },
+      el('h2', { style: 'margin:0' }, t('inv.lines')),
+      el('div', { class: 'spacer' }),
+      editable ? el('button', { class: 'btn primary', onclick: onEditLines }, t('inv.addLine')) : null),
+    el('p', { class: 'faint' }, t('inv.matchHint')));
+
+  if (!lines.length) {
+    linesCard.append(el('div', { class: 'notice warn' }, t('inv.noLines')));
+  } else {
+    linesCard.append(table(
+      [t('common.seq'), t('common.description'),
+       { label: t('inv.acceptedQty'), align: 'right' },
+       { label: t('common.qty'), align: 'right' },
+       { label: t('inv.poPrice'), align: 'right' },
+       { label: t('common.unitPrice'), align: 'right' },
+       { label: t('common.amount'), align: 'right' }],
+      lines.map((l) => {
+        const pl = poLines.find((p) => p.id === l.po_line_id);
+        const acc = Number(recvBy.get(l.po_line_id)?.qty_accepted ?? 0);
+        const overQty = Number(l.qty) > acc;
+        const badPrice = pl && l.unit_price !== pl.unit_price;
+        return el('tr', {},
+          el('td', {}, String(pl?.seq ?? '—')),
+          el('td', {}, el('b', {}, pl?.description ?? '—')),
+          el('td', { class: 'num' }, fmtQty(acc)),
+          el('td', { class: 'num' },
+            overQty ? el('b', { style: 'color:var(--err)' }, fmtQty(l.qty)) : fmtQty(l.qty)),
+          el('td', { class: 'num' }, pl ? fmt(pl.unit_price) : '—'),
+          el('td', { class: 'num' },
+            badPrice ? el('b', { style: 'color:var(--err)' }, fmt(l.unit_price)) : fmt(l.unit_price)),
+          el('td', { class: 'num' }, fmt(l.amount)));
+      })));
+  }
+
+  // ยอดตามบิล vs ยอดที่ระบบคำนวณ — ต่างกันตรงไหนต้องเห็นก่อนกดจับคู่
+  const cmp = (label, printed, computed) => {
+    const diff = printed !== computed;
+    return el('tr', {},
+      el('th', { style: 'text-align:left;font-weight:500' }, t(label)),
+      el('td', { class: 'num' }, fmt(printed)),
+      el('td', { class: 'num' + (diff ? '' : ' faint') },
+        diff ? el('b', { style: 'color:var(--err)' }, fmt(computed)) : fmt(computed)));
+  };
+  linesCard.append(el('div', { class: 'table-wrap', style: 'margin-top:.8rem;max-width:34rem;margin-left:auto' },
+    el('table', {},
+      el('thead', {}, el('tr', {},
+        el('th', {}, ''), el('th', { class: 'ta-right' }, t('inv.title')),
+        el('th', { class: 'ta-right' }, t('inv.computed')))),
+      el('tbody', {},
+        cmp('inv.subtotal', inv.subtotal, calcSub),
+        cmp('inv.vat', inv.vat_amount, calcVat),
+        cmp('inv.grandTotal', inv.grand_total, calcTotal)))));
+  app.append(linesCard);
+
+  // ---- จับคู่ 3 ทาง ----
+  const matchCard = el('div', { class: 'card' }, el('h2', {}, t('inv.match')));
+  if (matchRes) {
+    const okMatch = matchRes.status === 'matched';
+    matchCard.append(el('div', { class: 'notice ' + (okMatch ? 'ok' : 'err') },
+      okMatch ? t('inv.matchOk') : t('inv.mismatched'),
+      el('div', { class: 'faint' }, `${t('inv.matchedAt')} ${fmtDateTime(matchRes.matched_at)}`)));
+    const mis = matchRes.mismatches ?? [];
+    if (mis.length) {
+      matchCard.append(el('h3', {}, t('inv.mismatchList')));
+      matchCard.append(el('ul', {}, ...mis.map((m) =>
+        el('li', {}, pickMsg(m), el('small', { class: 'faint' }, ' [' + m.code + ']')))));
+    }
+  } else {
+    matchCard.append(el('p', { class: 'faint' }, t('inv.notMatched')));
+  }
+  if (canMatch) {
+    matchCard.append(el('button', { class: 'btn primary', style: 'margin-top:.6rem',
+      onclick: async () => {
+        try {
+          const res = await flow.matchInvoice(invId);
+          res.status === 'matched' ? ok(t('inv.matched')) : fail(new Error(t('inv.mismatched')));
+          reload();
+        } catch (e) { fail(e); }
+      } }, t('inv.match')));
+  }
+  app.append(matchCard);
+
+  // ---- แก้รายการในบิล ----
+  async function onEditLines() {
+    const rows = poLines.map((pl) => {
+      const cur = lineOf(pl.id);
+      const acc = Number(recvBy.get(pl.id)?.qty_accepted ?? 0);
+      const bl = Number(billedBy.get(pl.id)?.qty_invoiced ?? 0);
+      // ที่ยังวางบิลได้ = ตรวจรับแล้ว − วางบิลไปแล้ว (ไม่รวมบรรทัดของบิลใบนี้เอง)
+      const room = Math.max(0, acc - bl + Number(cur?.qty ?? 0));
+      const qty = el('input', { type: 'number', step: 'any', min: '0', class: 'num' });
+      const price = el('input', { type: 'number', step: 'any', min: '0', class: 'num' });
+      qty.value = cur ? cur.qty : (room || '');
+      price.value = toBaht(cur ? cur.unit_price : pl.unit_price);
+      return { pl, acc, bl, room, qty, price };
+    });
+
+    const body = el('div', { class: 'table-wrap' }, el('table', {},
+      el('thead', {}, el('tr', {},
+        el('th', {}, t('common.description')),
+        el('th', { class: 'ta-right' }, t('inv.acceptedQty')),
+        el('th', { class: 'ta-right' }, t('inv.billable')),
+        el('th', { class: 'ta-right' }, t('common.qty')),
+        el('th', { class: 'ta-right' }, t('common.unitPrice')))),
+      el('tbody', {}, ...rows.map((r) => el('tr', {},
+        el('td', {}, el('b', {}, r.pl.description), el('div', { class: 'faint' }, r.pl.unit)),
+        el('td', { class: 'num' }, fmtQty(r.acc)),
+        el('td', { class: 'num' }, fmtQty(r.room)),
+        el('td', {}, r.qty), el('td', {}, r.price))))));
+
+    const res = await modal({
+      title: t('inv.addLine'), body, wide: true,
+      actions: [{ label: t('common.save'), class: 'btn primary', value: () => true }],
+    });
+    if (typeof res !== 'function') return;
+
+    // ตั้งใจไม่บล็อกที่หน้าจอเมื่อวางบิลเกินจำนวนที่ตรวจรับ — ปล่อยให้ fn_match_invoice จับ
+    // แล้วขึ้นเป็นรายการ "จุดที่ไม่ตรง" จะได้มีหลักฐานว่าผู้ขายวางบิลเกินจริง
+    const keep = [];
+    const upserts = [];
+    for (const r of rows) {
+      const q = Number(r.qty.value) || 0;
+      if (q <= 0) continue;
+      keep.push(r.pl.id);
+      upserts.push({ invoice_id: invId, po_line_id: r.pl.id,
+                     qty: q, unit_price: toSatang(r.price.value) });
+    }
+    try {
+      if (upserts.length) {
+        await sb.from('invoice_lines').upsert(upserts, { onConflict: 'invoice_id,po_line_id' })
+          .select().then(un);
+      }
+      const drop = lines.filter((l) => !keep.includes(l.po_line_id)).map((l) => l.id);
+      if (drop.length) await sb.from('invoice_lines').delete().in('id', drop).then(un);
+      ok(t('common.saved')); reload();
+    } catch (e) { fail(e); }
+  }
+}
+
+// ข้อความจาก fn_match_invoice มาสองภาษาในก้อนเดียว เลือกตามภาษาที่เปิดอยู่
+function pickMsg(m) {
+  return pick(m, 'message') || m.message_th || m.message_en || m.code;
+}
+</script>
+</body>
+</html>

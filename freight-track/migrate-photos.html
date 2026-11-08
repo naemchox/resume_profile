@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<script src="js/theme-init.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ย้ายรูปขึ้นคลาวด์ · FreightTrack</title>
+<meta name="description" content="ย้ายรูปหลักฐานที่ค้างเป็น base64 ในเครื่อง ขึ้น Firebase Storage แล้วเก็บแค่ URL">
+<meta name="theme-color" content="#f4f3f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1f1c1b" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/app.css">
+<style>
+  .bar{ height:8px; border-radius:99px; background:var(--steel-100); overflow:hidden; }
+  .bar > i{ display:block; height:100%; width:0; background:var(--amber); transition:width .2s linear; }
+  .log{
+    max-height:260px; overflow:auto; font-size:12px; line-height:1.7;
+    border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:var(--surface-2);
+  }
+  .log div + div{ border-top:1px solid var(--line); }
+  .log .bad{ color:#c0392b; }
+  .log .ok{ color:#1e8449; }
+</style>
+<link rel="stylesheet" href="css/apple.css">
+<!-- office.css โหลดหลัง apple.css — โทนเดียวกับหน้าแรก (index.html) และหน้าคนขับ -->
+<link rel="stylesheet" href="css/office.css">
+</head>
+<body class="ofc ofc-migrate">
+<!-- โครงหน้ารอโหลด — ขึ้นทันทีจาก HTML/CSS ก่อน JavaScript ทำงาน แล้วสลับเป็นหน้าจริงตอนวาดเสร็จ (ui.js → shell) -->
+<div class="skel" aria-hidden="true">
+  <div class="skel-bar"></div>
+  <div class="skel-page">
+    <i class="sk sk-eyebrow"></i>
+    <i class="sk sk-title"></i>
+    <i class="sk sk-line"></i>
+    <div class="skel-kpis"><i class="sk"></i><i class="sk"></i><i class="sk"></i><i class="sk"></i></div>
+    <div class="skel-card">
+      <i class="sk sk-h"></i>
+      <i class="sk sk-row"></i><i class="sk sk-row"></i><i class="sk sk-row"></i><i class="sk sk-row"></i><i class="sk sk-row"></i>
+    </div>
+  </div>
+</div>
+<main class="page">
+<div class="wrap">
+
+  <div class="page-head">
+    <div>
+      <p class="eyebrow eyebrow-accent">เครื่องมือ · ใช้ครั้งเดียว</p>
+      <h1 class="page-title" style="margin-top:6px">ย้ายรูปขึ้นคลาวด์</h1>
+      <p class="muted small" style="margin-top:4px">
+        รูปที่ค้างอยู่ในเครื่อง (เครื่องอื่นมองไม่เห็น และกินพื้นที่) → อัปขึ้น Firebase Storage แล้วเก็บแค่ลิงก์
+      </p>
+    </div>
+    <a class="btn btn-quiet btn-sm" href="ops.html">← กลับกระดานงาน</a>
+  </div>
+
+  <section class="card card-pad">
+    <div class="row between wraps gap-12" style="align-items:baseline">
+      <h3 style="margin:0;font-size:16px">1 · ตรวจดูก่อน</h3>
+      <span class="tiny dim">อ่านอย่างเดียว ไม่แก้อะไร</span>
+    </div>
+    <div id="scanOut" style="margin-top:12px"><p class="small dim">กดปุ่มด้านล่างเพื่อไล่ดูทั้งฐานข้อมูล</p></div>
+    <button class="btn btn-accent" id="scanBtn" style="margin-top:14px">ตรวจหารูปที่ยังไม่ขึ้นคลาวด์</button>
+  </section>
+
+  <section class="card card-pad" id="runBox" style="margin-top:18px" hidden>
+    <div class="row between wraps gap-12" style="align-items:baseline">
+      <h3 style="margin:0;font-size:16px">2 · ย้ายขึ้นคลาวด์</h3>
+      <span class="tiny dim">อัปทีละรูป · หยุดได้ รูปที่ย้ายแล้วไม่เสีย</span>
+    </div>
+
+    <p class="tiny dim" style="margin:10px 0 0">
+      กด <b>ทดลอง 1 รูป</b> ก่อนเสมอ ผ่านแล้วค่อยย้ายทั้งหมด
+    </p>
+
+    <div class="row gap-10 wraps" style="margin-top:14px">
+      <button class="btn btn-quiet" id="tryOne">ทดลอง 1 รูป</button>
+      <button class="btn btn-accent" id="runAll">ย้ายทั้งหมด</button>
+      <button class="btn btn-ghost" id="stopBtn" hidden>หยุด</button>
+    </div>
+
+    <div id="progWrap" style="margin-top:16px" hidden>
+      <div class="row between" style="font-size:12.5px;margin-bottom:6px">
+        <span id="progText">กำลังเริ่ม…</span>
+        <span class="mono dim" id="progNum"></span>
+      </div>
+      <div class="bar"><i id="progBar"></i></div>
+    </div>
+
+    <div id="logWrap" style="margin-top:14px" hidden>
+      <p class="tiny dim" style="margin-bottom:6px">บันทึกการทำงาน</p>
+      <div class="log" id="log"></div>
+    </div>
+  </section>
+
+  <p class="of-hint">
+    รูปจะอยู่ที่ <span class="mono">evidence/…</span> บน Firebase Storage ·
+    จำนวนรูปไม่เปลี่ยน ไม่เขียนลงไทม์ไลน์ (แค่ย้ายที่เก็บ ไม่ได้แก้ข้อมูล)
+  </p>
+</div>
+</main>
+
+<script type="module" src="js/firebase.js"></script>
+<script type="module" src="js/migratePhotos.js"></script>
+</body>
+</html>

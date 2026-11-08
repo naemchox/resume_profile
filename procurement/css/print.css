@@ -1,0 +1,172 @@
+/* ============================================================
+   เอกสารพิมพ์ — A4 แนวตั้ง
+   หลัก: อ่านออกแม้ถ่ายเอกสารซ้ำ / เส้นกรอบครบทุกช่องที่ต้องกรอก
+   สี: เขียวเข้มแบรนด์ (#14532d) ใช้เฉพาะแถบหัวเรื่อง พิมพ์ขาวดำก็ยังอ่านได้
+   ============================================================ */
+
+@page { size: A4; margin: 12mm 11mm 14mm; }
+
+@media print {
+  .no-print, .topbar, #toasts, .backdrop { display: none !important; }
+  html { background: #fff; }
+  .sheet { box-shadow: none; margin: 0; border: 0; width: auto; min-height: 0; padding: 0; }
+  /* พิมพ์หลายใบในหน้าเดียว — ใบถัดไปต้องขึ้นกระดาษใหม่เสมอ ห้ามต่อท้ายใบก่อนหน้า */
+  .sheet + .sheet { break-before: page; page-break-before: always; }
+  tr, .keep { break-inside: avoid; }
+  thead { display: table-header-group; }
+  /* แถบสีต้องพิมพ์ออกมาจริง ไม่ใช่กลายเป็นกระดาษเปล่า */
+  .sheet, .idbox .band, .sec, table.doc th, .info h4, .tot tr.grand td {
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+}
+
+body.print-body {
+  background: #e9ecee;
+  font-family: 'IBM Plex Sans Thai', 'Noto Sans Thai', 'Sarabun', sans-serif;
+  color: #111;
+  font-size: 11.5px;
+  line-height: 1.5;
+  margin: 0;
+}
+.print-body * { box-sizing: border-box; }
+
+.sheet {
+  width: 210mm; min-height: 297mm; padding: 12mm 11mm 14mm;
+  margin: 8mm auto; background: #fff; box-shadow: 0 2px 14px rgba(0,0,0,.18);
+}
+
+/* ---------- แถบเครื่องมือบนจอ (ไม่พิมพ์) ---------- */
+.print-bar {
+  position: sticky; top: 0; z-index: 5;
+  background: #14532d; color: #fff;
+  padding: .55rem 1rem; display: flex; gap: .5rem;
+  align-items: center; justify-content: center; flex-wrap: wrap;
+  box-shadow: 0 1px 8px rgba(0,0,0,.25);
+}
+.print-bar .who { margin-right: auto; font-size: 12.5px; opacity: .9; }
+.print-bar .btn {
+  font: inherit; font-size: 13px; padding: .38rem .95rem; border-radius: 6px;
+  border: 1px solid rgba(255,255,255,.55); background: transparent; color: #fff;
+  cursor: pointer; text-decoration: none; line-height: 1.5;
+}
+.print-bar .btn:hover { background: rgba(255,255,255,.12); }
+.print-bar .btn.primary { background: #fff; color: #14532d; border-color: #fff; font-weight: 600; }
+
+/* ---------- หัวกระดาษ ---------- */
+.doc-head { display: flex; gap: 6mm; align-items: flex-start; }
+.doc-head .org { flex: 1; display: flex; gap: 4mm; }
+.doc-head .logo { width: 20mm; height: 20mm; object-fit: contain; flex: none; }
+.doc-head .org .nm { font-size: 14.5px; font-weight: 700; line-height: 1.25; }
+.doc-head .org .en { font-size: 10.5px; color: #444; line-height: 1.3; margin-bottom: 1.2mm; }
+.doc-head .org small { display: block; font-size: 9.8px; line-height: 1.45; color: #333; }
+
+.idbox { width: 68mm; flex: none; border: .7pt solid #111; }
+.idbox .band { background: #14532d; color: #fff; text-align: center; padding: 2mm 2mm 1.6mm; }
+.idbox .band b { display: block; font-size: 14px; line-height: 1.2; }
+.idbox .band i { display: block; font-style: normal; font-size: 8.8px; letter-spacing: 1.1px; opacity: .92; }
+.idbox table { width: 100%; border-collapse: collapse; font-size: 10.2px; }
+.idbox td { border-top: .5pt solid #111; padding: 1.3mm 2mm; }
+.idbox td:first-child { width: 26mm; color: #555; border-right: .5pt solid #111; }
+.idbox td b { font-weight: 700; }
+
+.rule { border-top: 1.2pt solid #14532d; margin: 3mm 0 3.5mm; }
+
+/* ---------- กล่องข้อมูลคู่ ---------- */
+.info { display: flex; gap: 4mm; }
+.info > div { flex: 1; border: .6pt solid #111; display: flex; flex-direction: column; }
+.info h4, .signs h4 {
+  margin: 0; background: #f0f3f1; border-bottom: .6pt solid #111;
+  padding: 1.3mm 2.5mm; font-size: 9.6px; font-weight: 700; letter-spacing: .3px;
+}
+.info h4 span, .signs h4 span { font-weight: 400; color: #666; }
+.info .bd { padding: 2mm 2.5mm; flex: 1; }
+.info .nm { font-weight: 700; font-size: 12.5px; line-height: 1.35; }
+.info table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+.info table td { padding: .8mm 0; vertical-align: top; border: 0; }
+.info table td:first-child { color: #555; width: 32mm; padding-right: 2mm; }
+
+.subject { border: .6pt solid #111; border-top: 0; padding: 1.8mm 2.5mm; display: flex; gap: 2mm; }
+.subject b { white-space: nowrap; color: #555; font-weight: 600; }
+
+/* ---------- แถบหัวข้อส่วน ---------- */
+.sec {
+  display: flex; align-items: baseline; gap: 2mm;
+  background: #14532d; color: #fff; padding: 1.4mm 2.5mm;
+  margin: 4mm 0 0; font-size: 10.8px; font-weight: 700;
+}
+.sec i { font-style: normal; font-weight: 400; font-size: 9.2px; opacity: .85; }
+.sec .hint { margin-left: auto; font-weight: 400; font-size: 9.2px; opacity: .92; }
+
+/* ---------- ตารางเอกสาร ---------- */
+table.doc { width: 100%; border-collapse: collapse; font-size: 10.6px; }
+table.doc th, table.doc td { border: .5pt solid #111; padding: 1.5mm 2mm; vertical-align: top; }
+table.doc th { background: #f0f3f1; text-align: center; font-weight: 700; font-size: 9.8px; line-height: 1.25; }
+table.doc th i { display: block; font-style: normal; font-weight: 400; font-size: 8.4px; color: #555; }
+table.doc td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.doc td.c { text-align: center; }
+table.doc td .spec { color: #333; font-size: 9.9px; white-space: pre-line; }
+table.doc tr.blank td { height: 7mm; }
+table.doc td.tick { text-align: center; vertical-align: middle; }
+
+.chk { display: inline-block; width: 3.4mm; height: 3.4mm; border: .7pt solid #111; vertical-align: -.5mm; }
+
+/* ---------- สรุปยอด ---------- */
+.sum { display: flex; gap: 4mm; margin-top: 3mm; align-items: flex-start; }
+.sum .left { flex: 1; border: .5pt solid #111; padding: 2mm 2.5mm; align-self: stretch; }
+.sum .left .cap { color: #555; font-size: 9.8px; }
+.sum .left .opts { margin-top: 2.5mm; display: flex; gap: 5mm; font-size: 10.2px; }
+table.tot { width: 80mm; flex: none; border-collapse: collapse; font-size: 10.5px; }
+table.tot td { border: .5pt solid #111; padding: 1.5mm 2mm; }
+table.tot td:first-child { width: 46mm; color: #333; }
+table.tot td:first-child i { display: block; font-style: normal; font-size: 8.4px; color: #666; }
+table.tot td:last-child { text-align: right; }
+table.tot tr.grand td { background: #14532d; color: #fff; font-weight: 700; }
+table.tot tr.grand td:first-child i { color: rgba(255,255,255,.8); }
+
+/* ---------- ช่องให้กรอกด้วยมือ ---------- */
+.fill { display: inline-block; flex: 1; min-width: 24mm; height: 4.2mm;
+        border-bottom: .5pt dotted #111; }
+
+.terms { display: grid; grid-template-columns: 1fr 1fr; border: .5pt solid #111; border-bottom: 0; }
+.terms > div { border-bottom: .5pt solid #111; padding: 1.9mm 2.5mm; display: flex; gap: 2mm; align-items: baseline; }
+.terms > div:nth-child(odd) { border-right: .5pt solid #111; }
+.terms label { color: #555; white-space: nowrap; font-size: 10.2px; }
+.terms label i { font-style: normal; color: #888; font-size: 8.8px; }
+
+/* ---------- คำแนะนำ ---------- */
+.notes { border: .5pt solid #111; margin: 3.5mm 0 0; padding: 2mm 3mm 2mm 8mm;
+         font-size: 9.9px; line-height: 1.6; }
+.notes li { margin: .2mm 0; }
+
+/* ---------- ลายเซ็น ---------- */
+.signs { display: flex; gap: 4mm; margin-top: 4mm; }
+.signs > div { flex: 1; border: .5pt solid #111; }
+.signs .bd { padding: 3mm 3mm 2.5mm; text-align: center; }
+.signs .line { border-bottom: .5pt dotted #111; height: 15mm; margin-bottom: 1.6mm; }
+.signs small { display: block; color: #333; font-size: 9.8px; line-height: 1.55; }
+.signs .stamp { font-size: 9px; color: #888; margin-top: 1mm; }
+
+/* ---------- ท้ายกระดาษ ---------- */
+.footnote { margin-top: 5mm; border-top: .6pt solid #14532d; padding-top: 1.6mm;
+            font-size: 9.2px; color: #444; display: flex; gap: 5mm; align-items: flex-start; }
+.footnote .vh { white-space: nowrap; }
+.footnote code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 9px; color: #111; }
+.footnote .why { flex: 1; }
+
+/* ---------- ขึ้นหน้าใหม่ก่อนส่วนเงื่อนไข ----------
+   ตารางเงื่อนไขกับช่องลายเซ็นต้องอยู่หน้าเดียวกันเสมอ ผู้ขายจะได้ติ๊กแล้วเซ็นจบในแผ่นเดียว */
+.page2 { break-before: page; margin-top: 9mm; padding-top: 7mm; border-top: 1px dashed #b9c0c6; }
+.cont { display: flex; gap: 3mm; align-items: baseline; font-size: 9.6px; color: #444;
+        border-bottom: .5pt solid #111; padding-bottom: 1.2mm; margin-bottom: 3mm; }
+.cont b { color: #111; }
+.cont .r { margin-left: auto; }
+@media print { .page2 { margin-top: 0; padding-top: 0; border-top: 0; } }
+
+/* พื้นเทาของหน้าจอต้องไม่ติดไปกับกระดาษ — วางท้ายไฟล์เพราะ specificity เท่ากับ body.print-body */
+@media print { body.print-body { background: #fff; } }
+
+/* พื้นรอบกระดาษตอนดูบนจอ ให้มืดตามแอปได้ (js/theme.js ติด data-theme ไว้ที่ <html>)
+   แต่ตัวกระดาษยังขาวหมึกดำเสมอ — เอกสารต้องเหมือนตอนพิมพ์ออกมาจริง */
+@media screen {
+  [data-theme="dark"] body.print-body { background: #12171d; }
+}

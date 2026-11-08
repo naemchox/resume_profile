@@ -1,0 +1,11 @@
+name = "stock-line-bot"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+
+# ทุก 5 นาที — โค้ดจะเช็กเองว่าถึงรอบที่ผู้ใช้ตั้งไว้หรือยัง
+[triggers]
+crons = ["*/5 * * * *"]
+
+[[kv_namespaces]]
+binding = "STATE"
+id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"

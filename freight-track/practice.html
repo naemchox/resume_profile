@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<!-- แบบฝึกคนขับ — กันการเชื่อมต่อออกนอกเครื่องทุกชนิดที่ระดับเบราว์เซอร์ (connect-src 'none')
+     ต่อให้โค้ดผิดพลาด ก็ส่งอะไรเข้า Firebase / Apps Script / Google Sheet ไม่ได้ -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'none'; frame-src 'none'; worker-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'">
+<script src="js/practice/theme.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>แบบฝึกคนขับ · FreightTrack</title>
+<meta name="description" content="ฝึกส่งงานแบบหน้าคนขับจริง ด้วยงานสุ่ม ไม่เชื่อมต่อระบบจริง">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#f4f3f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1f1c1b" media="(prefers-color-scheme: dark)">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/apple.css">
+<link rel="stylesheet" href="css/driver.css">
+<link rel="stylesheet" href="css/practice.css">
+</head>
+<body class="driver-body drv">
+<header class="appbar">
+  <div class="wrap-wide appbar-inner">
+    <a class="brand" href="index-staff.html">
+      <span class="brand-mark">FT</span>
+      <span>
+        <span class="brand-name">ขนส่งตัวอย่าง</span><br>
+        <span class="brand-sub">EXAMPLE TRANSPORT CO., LTD.</span>
+      </span>
+    </a>
+    <span class="appbar-role hide-sm">แบบฝึกคนขับ</span>
+  </div>
+</header>
+<div class="pr-bar" role="note">
+  🎓 โหมดฝึก — งานทั้งหมดสุ่มขึ้นมา ไม่ใช่งานจริง
+  <small>ไม่มีอะไรถูกส่งเข้าระบบ · ปิดหรือรีเฟรชหน้านี้ = เริ่มใหม่</small>
+</div>
+<main style="padding-top:16px">
+  <div class="driver-shell" id="app"></div>
+</main>
+<script type="module" src="js/practice/practice.js"></script>
+</body>
+</html>

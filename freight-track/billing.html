@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<script src="js/theme-init.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>รายได้ · วางบิล · FreightTrack</title>
+<meta name="description" content="กรอกค่าขนส่งของแต่ละเที่ยว วางบิล และบันทึกการชำระเงิน">
+<meta name="theme-color" content="#f4f3f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1f1c1b" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/apple.css">
+<!-- office.css โหลดหลัง apple.css — โทนเดียวกับหน้าแรก (index.html) และหน้าคนขับ -->
+<link rel="stylesheet" href="css/office.css">
+</head>
+<body class="ofc ofc-billing">
+<!-- โครงหน้ารอโหลด — ขึ้นทันทีจาก HTML/CSS ก่อน JavaScript ทำงาน แล้วสลับเป็นหน้าจริงตอนวาดเสร็จ (ui.js → shell) -->
+<div class="skel" aria-hidden="true">
+  <div class="skel-bar"></div>
+  <div class="skel-page">
+    <i class="sk sk-eyebrow"></i>
+    <i class="sk sk-title"></i>
+    <i class="sk sk-line"></i>
+    <div class="skel-kpis"><i class="sk"></i><i class="sk"></i><i class="sk"></i><i class="sk"></i></div>
+    <div class="skel-card">
+      <i class="sk sk-h"></i>
+      <i class="sk sk-row"></i><i class="sk sk-row"></i><i class="sk sk-row"></i><i class="sk sk-row"></i><i class="sk sk-row"></i>
+    </div>
+  </div>
+</div>
+<main class="page">
+<div class="wrap-wide">
+
+  <!-- ราคาน้ำมันวันนี้ ปตท. + บางจาก (js/fuelPrice.js) -->
+  <div id="fuelSlot" class="no-print" style="margin-bottom:16px"></div>
+
+  <div class="page-head">
+    <div>
+      <p class="eyebrow eyebrow-accent">การเงิน · ทีมบัญชี</p>
+      <h1 class="page-title" style="margin-top:6px">รายได้ · วางบิล</h1>
+      <p class="muted small" style="margin-top:4px">ค่าขนส่งรายบิล (ตาม Amount แก้ได้) → เลือกบิล สร้างใบวางบิล → ส่งลิงก์ให้ลูกค้า → ยืนยันรับเงิน</p>
+    </div>
+    <div class="row gap-10 no-print">
+      <a class="btn btn-ghost btn-sm" href="dashboard.html">ดู Dashboard →</a>
+    </div>
+  </div>
+
+  <div id="demoBarSlot" style="margin-bottom:18px"></div>
+
+  <div class="tabs billview-tabs no-print" id="viewTabs" role="tablist" style="margin-bottom:18px">
+    <button class="tab" role="tab" data-view="trips">บิล · ค่าขนส่ง</button>
+    <button class="tab" role="tab" data-view="bills">ใบวางบิล<span class="cnt" id="billCount"></span></button>
+    <button class="tab" role="tab" data-view="costs">ค่าใช้จ่าย</button>
+  </div>
+
+  <!-- ============ ค่าใช้จ่าย (ค่ารอบคนขับ · js/billingCosts.js) ============ -->
+  <div id="costsView" hidden>
+    <div class="grid g4" id="costKpis" style="margin-bottom:20px"></div>
+    <div class="card" style="overflow:hidden">
+      <div style="padding:14px 16px">
+        <div class="row between wraps gap-12" style="align-items:flex-end">
+          <b class="grow">ค่ารอบคนขับ</b>
+          <div class="row gap-8 wraps">
+            <label class="bill-today"><input type="checkbox" id="cOnlyToday"> เฉพาะวันนี้</label>
+            <label class="bill-range">วันที่ <input class="input" type="date" id="cFrom" aria-label="ตั้งแต่"> – <input class="input" type="date" id="cTo" aria-label="ถึง"></label>
+            <input class="input" id="cq" placeholder="🔍 ค้นหาชื่อคนขับ · ทะเบียน" style="width:min(240px,60vw)" autocomplete="off">
+            <button class="btn btn-ghost btn-sm" id="costExport" type="button">⬇ บันทึกเป็น Excel</button>
+          </div>
+        </div>
+      </div>
+      <div id="costRows" class="cost-list"></div>
+      <div id="costEmpty"></div>
+    </div>
+    <p class="of-hint">
+      ยอด = ค่ารอบรายคนที่กรอกในหน้าหลังบ้าน (ค่ารอบ น้ำมัน ทางด่วน ฯลฯ) · นับตามวันที่ออกเดินทางของเที่ยว · ไม่นับเที่ยวที่ยกเลิก ·
+      แตะชื่อคนขับเพื่อดูงาน
+    </p>
+  </div>
+
+  <!-- ============ ใบวางบิล ============ -->
+  <div id="billsView" hidden>
+    <div class="grid g4" id="billKpis" style="margin-bottom:20px"></div>
+    <div class="card" style="overflow:hidden">
+      <div style="padding:14px 16px 0">
+        <div class="row between wraps gap-12" style="align-items:flex-end">
+          <div class="tabs grow" id="billTabs" role="tablist"></div>
+          <div class="row gap-8 wraps">
+            <label class="bill-range">วันที่วางบิล <input class="input" type="date" id="bFrom" aria-label="ตั้งแต่"> – <input class="input" type="date" id="bTo" aria-label="ถึง"></label>
+            <input class="input" id="bq" placeholder="🔍 ค้นหา เลขใบวางบิล · ลูกค้า · SO · Invoice" style="width:min(280px,60vw)" autocomplete="off">
+            <button class="btn btn-ghost btn-sm" id="exportBtn" type="button">⬇ ส่งออก Excel</button>
+          </div>
+        </div>
+      </div>
+      <div class="scroll-x">
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>เลขที่ · วันที่วางบิล</th>
+              <th>ลูกค้า</th>
+              <th class="right">รายการ</th>
+              <th class="right">ยอดเงิน</th>
+              <th>ครบกำหนด</th>
+              <th>ฝั่งเรา</th>
+              <th>ฝั่งลูกค้า</th>
+            </tr>
+          </thead>
+          <tbody id="billRows"></tbody>
+        </table>
+      </div>
+      <div id="billEmpty"></div>
+    </div>
+    <p class="of-hint">
+      รวมกลุ่มตามผู้รับปลายทาง (แตะหัวกลุ่มเพื่อย่อ/ขยาย) · "ชำระหน้างาน" = บิลที่ผู้รับจ่ายตอนส่งของ และพนักงานยืนยันรับเงินแล้ว (แตะเพื่อดูหลักฐาน) ·
+      ฝั่งลูกค้า = ที่ลูกค้ากดในลิงก์ · ฝั่งเรา = กด "ยืนยันรับเงิน" หลังตรวจยอด ·
+      ยังไม่คิด VAT / หัก ณ ที่จ่าย · รับเงินบางส่วนไม่ได้
+    </p>
+  </div>
+
+  <!-- ============ เที่ยว · ค่าขนส่ง ============ -->
+  <div id="tripsView">
+  <div class="grid g4" id="kpis" style="margin-bottom:20px"></div>
+  <!-- เงินสดค้างที่คนขับ (js/billing.js paintCash) -->
+  <div id="cashSlot" class="no-print"></div>
+
+  <div class="card" style="overflow:hidden">
+    <div style="padding:14px 16px 0">
+      <div class="row between wraps gap-12" style="align-items:flex-end">
+        <div class="tabs grow" id="tabs" role="tablist"></div>
+        <div class="row gap-8 wraps">
+          <label class="bill-today"><input type="checkbox" id="onlyToday"> เฉพาะวันนี้</label>
+          <label class="bill-range">วันที่ <input class="input" type="date" id="from" aria-label="ตั้งแต่"> – <input class="input" type="date" id="to" aria-label="ถึง"></label>
+          <input class="input" id="q" placeholder="🔍 ค้นหา Invoice · ผู้รับ · เที่ยว · ทะเบียน · คนขับ" style="width:min(300px,60vw)" autocomplete="off">
+        </div>
+      </div>
+    </div>
+    <div id="bulkBar" class="bill-bulk no-print" hidden></div>
+    <div class="scroll-x">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th style="width:36px"><input type="checkbox" id="checkAll" aria-label="เลือกทั้งหมดที่แสดง"></th>
+            <th>ผู้รับปลายทาง · Invoice</th>
+            <th>วันที่ / เที่ยว</th>
+            <th>ผู้ขนส่ง · คนขับ</th>
+            <th class="right">น้ำหนัก</th>
+            <th class="right" style="width:150px">ค่าขนส่ง (รายได้)</th>
+            <th>วางบิล</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div id="emptyState"></div>
+  </div>
+
+  <p class="of-hint">
+    ☑ ติ๊กบิล แล้วกด "สร้างใบวางบิล…" (เลขที่ใบตั้งเป็นเลข Invoice ให้ แก้ได้) · บิลที่ผู้รับจ่ายหน้างาน (เงินโอน/เงินสด) ไม่ต้องวางบิล — กดป้ายใต้สถานะเพื่อดูหลักฐานแล้วยืนยันรับเงิน · ค่าขนส่งดึงจาก Amount ของไฟล์อัพเดตเลขที่บิล แก้เองได้ · บิล/เที่ยวที่ยกเลิกไม่แสดง
+  </p>
+  </div>
+</div>
+</main>
+
+<script type="module" src="js/firebase.js"></script>
+<script type="module" src="js/billing.js"></script>
+</body>
+</html>

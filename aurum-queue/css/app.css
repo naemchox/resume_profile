@@ -1,0 +1,619 @@
+/* ============================================================
+   AURUM — app.css : components, states, the Gilded Ledger
+   ============================================================ */
+
+/* ---------- NAV ---------- */
+.nav{
+  position:fixed; inset:0 0 auto 0; z-index:60;
+  display:flex; align-items:center; gap:var(--s5);
+  padding:var(--s4) var(--gutter);
+  transition:background var(--m-base), backdrop-filter var(--m-base), border-color var(--m-base), padding var(--m-base);
+  border-bottom:1px solid transparent;
+}
+.nav.stuck{
+  background:color-mix(in oklab, var(--c-page) 98%, transparent);
+  backdrop-filter:blur(18px) saturate(1.3);
+  border-bottom-color:var(--c-border);
+  padding-block:var(--s3);
+}
+.brandmark{display:flex; align-items:center; gap:var(--s3); margin-right:auto}
+.brandmark .mk{
+  width:30px; height:30px; flex:none; background:var(--foil); background-size:200% 100%;
+  -webkit-mask:var(--motif-mask) center/contain no-repeat; mask:var(--motif-mask) center/contain no-repeat;
+  animation:foilSweep 9s ease-in-out infinite;
+}
+.brandmark .wordmark{font-family:var(--f-display); font-size:1.42rem; letter-spacing:.24em; text-transform:uppercase; line-height:1.15}
+.brandmark .sub{font-family:var(--f-mono); font-size:.6rem; letter-spacing:.3em; text-transform:uppercase; color:var(--c-muted); display:block; margin-top:2px}
+.navlinks{display:flex; align-items:center; gap:var(--s5); font-size:var(--t-small)}
+.navlinks a{position:relative; color:var(--c-muted); transition:color var(--m-fast); padding-block:4px}
+.navlinks a:hover,.navlinks a[aria-current]{color:var(--c-ink)}
+.navlinks a::after{
+  content:""; position:absolute; left:50%; bottom:-9px; width:9px; height:9px; opacity:0;
+  transform:translateX(-50%) scale(.4); transition:opacity var(--m-fast), transform var(--m-fast);
+  background:var(--c-action);
+  -webkit-mask:var(--motif-mask) center/contain no-repeat; mask:var(--motif-mask) center/contain no-repeat;
+}
+.navlinks a[aria-current]::after{opacity:1; transform:translateX(-50%) scale(1)}
+/* the nav link rules are more specific than .btn — restate the button's own colour */
+.navlinks a.btn,.navlinks a.btn:hover{color:var(--fg)}
+.navlinks a.btn::after{display:none}
+.navtoggle{display:none; background:none; border:1px solid var(--c-border); border-radius:var(--r-md); padding:8px 10px; cursor:pointer}
+@media(max-width:860px){
+  /* a phone needs the height back — the mark and the name are enough */
+  .brandmark .mk{width:25px; height:25px}
+  .brandmark .wordmark{font-size:1.12rem; letter-spacing:.2em}
+  .brandmark .sub{display:none}
+  /* fixed height on a phone: the bar is already compact, and a nav that does not
+     resize on scroll lets the sticky step titles sit against it exactly */
+  .nav,.nav.stuck{padding-block:11px}
+  .navlinks{position:absolute; top:100%; left:0; right:0; flex-direction:column; align-items:stretch; gap:0;
+    background:var(--c-surface); border-bottom:1px solid var(--c-border); padding:var(--s3) var(--gutter) var(--s5);
+    transform:translateY(-12px); opacity:0; pointer-events:none; transition:all var(--m-base)}
+  .navlinks.open{transform:none; opacity:1; pointer-events:auto}
+  .navlinks a{padding:var(--s3) 0; border-bottom:1px solid var(--c-border)}
+  .navlinks a::after{display:none}
+  .navtoggle{display:block}
+  .navlinks .btn{margin-top:var(--s3); justify-content:center}
+}
+
+/* ---------- BUTTONS ---------- */
+.btn{
+  --bg:transparent; --fg:var(--c-ink); --bd:var(--c-line);
+  position:relative; display:inline-flex; align-items:center; justify-content:center; gap:var(--s2);
+  padding:13px 26px; border:1px solid var(--bd); background:var(--bg); color:var(--fg);
+  border-radius:var(--r-md); cursor:pointer; font-size:var(--t-small); font-weight:500;
+  letter-spacing:.09em; text-transform:uppercase; white-space:nowrap;
+  transition:transform var(--m-fast), box-shadow var(--m-fast), background var(--m-fast), color var(--m-fast), border-color var(--m-fast), opacity var(--m-fast);
+  overflow:hidden;
+}
+.btn:hover{transform:translateY(-2px); box-shadow:var(--e-md)}
+.btn:active{transform:translateY(0) scale(.985); transition-duration:60ms}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.4; pointer-events:none; transform:none}
+.btn-gold{--bg:var(--foil); --fg:var(--c-on-action); --bd:transparent; background-size:200% 100%; font-weight:600}
+.btn-gold:hover{background-position:100% 50%}
+/* the gold sweep — one signature micro-interaction, reused everywhere */
+.btn-gold::after{
+  content:""; position:absolute; inset:0; transform:translateX(-120%) skewX(-18deg);
+  background:linear-gradient(90deg,transparent,oklch(1 0 0/.55),transparent); width:52%;
+}
+.btn-gold:hover::after{animation:sweep 700ms cubic-bezier(.16,1,.3,1)}
+@keyframes sweep{to{transform:translateX(320%) skewX(-18deg)}}
+.btn-ghost{--bd:var(--c-border); --fg:var(--c-muted)}
+.btn-ghost:hover{--fg:var(--c-ink); --bd:var(--c-line)}
+.btn-sm{padding:8px 15px; font-size:.72rem}
+.btn-block{width:100%}
+.btn-danger{--bd:var(--c-err-bd); --fg:var(--c-err-fg)}
+.btn-danger:hover{background:var(--c-err-bg)}
+
+/* ---------- INPUTS ---------- */
+.field{display:flex; flex-direction:column; gap:7px}
+.field > label,.lbl{
+  font-family:var(--f-mono); font-size:var(--t-label); letter-spacing:.24em;
+  text-transform:uppercase; color:var(--c-muted);
+}
+.input,.select,.textarea{
+  width:100%; padding:12px 14px; background:var(--c-sunken); color:var(--c-ink);
+  border:1px solid var(--c-border); border-radius:var(--r-md); font-size:.95rem;
+  transition:border-color var(--m-fast), background var(--m-fast), box-shadow var(--m-fast);
+}
+.input::placeholder,.textarea::placeholder{color:color-mix(in oklab,var(--c-muted) 62%,transparent)}
+.input:hover,.select:hover,.textarea:hover{border-color:var(--c-line)}
+.input:focus,.select:focus,.textarea:focus{
+  outline:none; border-color:var(--c-action); background:var(--c-surface);
+  box-shadow:0 0 0 3px color-mix(in oklab,var(--c-action) 22%,transparent);
+}
+.select{appearance:none; cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 14px center; padding-right:38px}
+.textarea{min-height:96px; resize:vertical; line-height:1.6}
+.hint{font-size:.78rem; color:var(--c-muted); line-height:1.5}
+.err-text{font-size:.78rem; color:var(--c-err-fg)}
+.input[aria-invalid="true"]{border-color:var(--c-err-bd)}
+/* range + native pickers wear the brand, never the browser default blue */
+input[type="range"]{
+  -webkit-appearance:none; appearance:none; width:100%; height:4px; border-radius:var(--r-full);
+  background:linear-gradient(90deg, var(--c-line), var(--c-action)); cursor:pointer;
+}
+input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none; width:19px; height:19px; border-radius:50%; cursor:pointer;
+  background:var(--foil); background-size:200% 100%; border:1px solid oklch(1 0 0/.22); box-shadow:var(--e-sm);
+}
+input[type="range"]::-moz-range-thumb{
+  width:19px; height:19px; border-radius:50%; cursor:pointer; border:1px solid oklch(1 0 0/.22);
+  background:oklch(.8 var(--ca) var(--h)); box-shadow:var(--e-sm);
+}
+input[type="range"]:focus-visible{outline:2px solid var(--c-action); outline-offset:5px}
+input,select,textarea{accent-color:var(--c-action)}
+:root:not([data-field="cream"]) input[type="date"]::-webkit-calendar-picker-indicator,
+:root:not([data-field="cream"]) input[type="time"]::-webkit-calendar-picker-indicator{filter:invert(.72); cursor:pointer}
+
+.switch{display:inline-flex; align-items:center; gap:var(--s3); cursor:pointer; user-select:none}
+.switch input{position:absolute; opacity:0; width:0; height:0}
+.switch .track{width:42px; height:23px; border-radius:var(--r-full); background:var(--c-border);
+  border:1px solid var(--c-border); position:relative; transition:background var(--m-fast), border-color var(--m-fast); flex:none}
+.switch .track::after{content:""; position:absolute; top:2px; left:2px; width:17px; height:17px; border-radius:var(--r-full);
+  background:var(--c-muted); transition:transform var(--m-base), background var(--m-fast)}
+.switch input:checked + .track{background:color-mix(in oklab,var(--c-action) 34%,transparent); border-color:var(--c-action)}
+.switch input:checked + .track::after{transform:translateX(19px); background:var(--c-action)}
+.switch input:focus-visible + .track{outline:2px solid var(--c-action); outline-offset:3px}
+
+/* ---------- CARDS & SURFACES ---------- */
+.card{
+  position:relative; background:var(--c-surface); border:1px solid var(--c-border);
+  border-radius:var(--r-lg); padding:var(--s5);
+  transition:border-color var(--m-base), transform var(--m-base), box-shadow var(--m-base);
+}
+.card-hover:hover{border-color:var(--c-line); transform:translateY(-3px); box-shadow:var(--e-md)}
+/* gilded top edge — appears on hover / on the focal card */
+.card-foil::before{
+  content:""; position:absolute; inset:0 0 auto 0; height:1px; background:var(--foil);
+  background-size:200% 100%; opacity:0; transition:opacity var(--m-base);
+}
+.card-foil:hover::before,.card-foil.is-focal::before{opacity:1; animation:foilSweep 6s ease-in-out infinite}
+.card.is-focal{border-color:color-mix(in oklab,var(--c-action) 46%,var(--c-border))}
+
+.tag{
+  display:inline-flex; align-items:center; gap:6px; padding:4px 11px; border-radius:var(--r-full);
+  border:1px solid var(--c-border); background:var(--c-sunken);
+  font-family:var(--f-mono); font-size:.66rem; letter-spacing:.14em; text-transform:uppercase; color:var(--c-muted);
+}
+.tag-gold{border-color:color-mix(in oklab,var(--c-action) 48%,transparent); color:var(--c-action);
+  background:color-mix(in oklab,var(--c-action) 11%,transparent)}
+.tag-ok{border-color:var(--c-ok-bd); color:var(--c-ok-fg); background:color-mix(in oklab,var(--c-ok-bg) 55%,transparent)}
+.tag-warn{border-color:var(--c-warn-bd); color:var(--c-warn-fg); background:color-mix(in oklab,var(--c-warn-bg) 55%,transparent)}
+.tag-err{border-color:var(--c-err-bd); color:var(--c-err-fg); background:color-mix(in oklab,var(--c-err-bg) 55%,transparent)}
+.tag-info{border-color:var(--c-info-bd); color:var(--c-info-fg); background:color-mix(in oklab,var(--c-info-bg) 55%,transparent)}
+
+/* ---------- THE GILDED LEDGER (signature) ----------
+   The booking summary is a foil-edged concierge card that
+   composes itself line by line as the guest chooses.        */
+.ledger{
+  position:sticky; top:96px; background:var(--c-sunken);
+  border:1px solid var(--c-border); border-radius:var(--r-lg);
+  padding:var(--s6) var(--s5) var(--s5); overflow:hidden;
+}
+.ledger::before{content:""; position:absolute; inset:0 0 auto 0; height:2px; background:var(--foil); background-size:200% 100%; animation:foilSweep 8s ease-in-out infinite}
+.ledger .wm{position:absolute; right:-30%; bottom:-24%; width:290px; aspect-ratio:1; opacity:.045; background:var(--c-action);
+  -webkit-mask:var(--motif-mask) center/contain no-repeat; mask:var(--motif-mask) center/contain no-repeat; transform:rotate(14deg)}
+.ledger-hd{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:var(--s5); position:relative}
+.ledger-no{font-family:var(--f-mono); font-size:.66rem; letter-spacing:.2em; color:var(--c-muted)}
+.ledger-row{
+  display:grid; grid-template-columns:auto 1fr auto; align-items:baseline; gap:var(--s3);
+  padding-block:11px; border-bottom:1px dashed var(--c-border); position:relative;
+}
+.ledger-row .k{font-family:var(--f-mono); font-size:var(--t-label); letter-spacing:.2em; text-transform:uppercase; color:var(--c-muted); white-space:nowrap}
+.ledger-row .v{font-family:var(--f-display); font-size:1.12rem; line-height:1.45; text-align:right; grid-column:3}
+.ledger-row .dots{border-bottom:1px dotted var(--c-border); transform:translateY(-4px)}
+.ledger-row.pending .v{color:color-mix(in oklab,var(--c-muted) 55%,transparent); font-style:italic}
+.ledger-row.filled{animation:ledgerInk 520ms cubic-bezier(.16,1,.3,1)}
+@keyframes ledgerInk{
+  0%{opacity:.25; transform:translateY(6px); filter:blur(2px)}
+  100%{opacity:1; transform:none; filter:blur(0)}
+}
+.ledger-total{display:flex; justify-content:space-between; align-items:baseline; margin-top:var(--s5); padding-top:var(--s4); border-top:1px solid var(--c-line)}
+.ledger-total .amt{font-family:var(--f-display); font-size:2.1rem; color:var(--c-action)}
+
+/* ============================================================
+   THE BOOKING DESK — three panes, one page, any order
+   left: calendar + time · middle: service · right: artisan + confirm
+   ============================================================ */
+.desk{
+  display:grid; grid-template-columns:340px minmax(0,1fr) 400px;
+  gap:clamp(14px,1.6vw,24px); align-items:start;
+}
+.pane{
+  background:var(--c-surface); border:1px solid var(--c-border); border-radius:var(--r-lg);
+  padding:var(--s5); position:relative; min-width:0;
+  display:flex; flex-direction:column;
+}
+/* The middle (service) pane runs its natural height and sets the page length;
+   the two side panes pin beside it and scroll inside themselves, so every step
+   stays reachable without ever leaving the screen. */
+.pane.sticky{position:sticky; top:96px; max-height:calc(100vh - 118px)}
+.pane.sticky .pane-body{
+  flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain;
+  padding-right:8px; margin-right:-8px;
+}
+.pane-hd{display:flex; align-items:baseline; gap:var(--s3); margin-bottom:var(--s4)}
+.pane-hd .no{
+  font-family:var(--f-mono); font-size:.62rem; letter-spacing:.2em; color:var(--c-action);
+  border:1px solid color-mix(in oklab,var(--c-action) 42%,transparent); border-radius:var(--r-sm);
+  padding:2px 7px; flex:none;
+}
+.pane-hd h2{font-size:1.32rem; line-height:1.3; flex:1; min-width:0}
+.pane-hd .done{
+  width:17px; height:17px; flex:none; background:var(--c-action); opacity:0; transition:opacity var(--m-base);
+  -webkit-mask:var(--motif-mask) center/contain no-repeat; mask:var(--motif-mask) center/contain no-repeat;
+}
+.pane[data-done="true"] .pane-hd .done{opacity:1}
+.pane-note{font-size:.78rem; color:var(--c-muted); line-height:1.55; margin-bottom:var(--s4)}
+.pane-sub{
+  display:flex; align-items:center; gap:var(--s3); margin:var(--s5) 0 var(--s3);
+  font-family:var(--f-mono); font-size:var(--t-label); letter-spacing:.22em;
+  text-transform:uppercase; color:var(--c-muted);
+}
+.pane-sub::after{content:""; flex:1; height:1px; background:var(--c-border)}
+
+/* ---------- CALENDAR ---------- */
+.cal-hd{display:flex; align-items:center; gap:var(--s2); margin-bottom:var(--s4)}
+.cal-hd .mon{
+  flex:1; font-family:var(--f-mono); font-size:.76rem; font-weight:500;
+  letter-spacing:.26em; text-transform:uppercase; color:var(--c-action);
+}
+.cal-nav{
+  width:28px; height:28px; display:grid; place-items:center; flex:none; cursor:pointer;
+  background:none; border:1px solid var(--c-border); border-radius:var(--r-md);
+  color:var(--c-muted); transition:all var(--m-fast); font-size:.8rem; line-height:1;
+}
+.cal-nav:hover:not(:disabled){color:var(--c-action); border-color:var(--c-action); transform:translateY(-1px)}
+.cal-nav:disabled{opacity:.25; cursor:not-allowed}
+.cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:2px}
+.cal-dow{
+  text-align:center; padding-bottom:6px; font-family:var(--f-mono); font-size:.6rem;
+  letter-spacing:.1em; color:var(--c-muted); opacity:.75;
+}
+.cal-day{
+  aspect-ratio:1; display:grid; place-items:center; position:relative; cursor:pointer;
+  background:none; border:none; border-radius:var(--r-full); padding:0;
+  font-family:var(--f-display); font-size:1.02rem; font-variant-numeric:lining-nums tabular-nums;
+  color:var(--c-ink); transition:background var(--m-fast), color var(--m-fast), transform var(--m-fast);
+}
+.cal-day:hover:not(:disabled){background:color-mix(in oklab,var(--c-action) 15%,transparent); color:var(--c-action)}
+.cal-day:disabled{color:var(--c-muted); opacity:.32; cursor:not-allowed}
+.cal-day.out{visibility:hidden}
+.cal-day[aria-pressed="true"]{
+  background:var(--foil); background-size:200% 100%; color:var(--c-on-action);
+  font-weight:600; transform:scale(1.04); box-shadow:var(--e-sm);
+}
+.cal-day.today::after{
+  content:""; position:absolute; bottom:14%; width:4px; height:4px; border-radius:50%;
+  background:var(--c-action);
+}
+.cal-day[aria-pressed="true"].today::after{background:var(--c-on-action)}
+.cal-legend{
+  display:flex; gap:var(--s4); margin-top:var(--s4); padding-top:var(--s3);
+  border-top:1px solid var(--c-border); font-size:.68rem; color:var(--c-muted); flex-wrap:wrap;
+}
+.cal-legend i{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; vertical-align:1px}
+
+/* ---------- SERVICE PANE ---------- */
+.svc{
+  display:grid; grid-template-columns:1fr auto; gap:4px var(--s4); width:100%; text-align:left;
+  padding:var(--s4); border:1px solid var(--c-border); border-radius:var(--r-md);
+  background:var(--c-sunken); cursor:pointer; transition:all var(--m-base); position:relative; overflow:hidden;
+}
+.svc + .svc{margin-top:8px}
+.svc:hover:not(:disabled){border-color:var(--c-line); transform:translateY(-2px); box-shadow:var(--e-sm)}
+.svc[aria-pressed="true"]{border-color:var(--c-action); background:color-mix(in oklab,var(--c-action) 9%,var(--c-surface))}
+.svc[aria-pressed="true"]::before{content:""; position:absolute; left:0; top:0; bottom:0; width:2px; background:var(--foil)}
+.svc:disabled{opacity:.42; cursor:not-allowed}
+.svc .n{grid-area:1/1; font-family:var(--f-display); font-size:1.18rem; line-height:1.35}
+.svc .p{grid-area:1/2; font-family:var(--f-mono); font-size:.95rem; color:var(--c-action); text-align:right; white-space:nowrap}
+.svc .m{grid-area:2/1; font-size:.76rem; color:var(--c-muted)}
+.svc .s{grid-area:2/2; text-align:right; font-size:.66rem; color:var(--c-muted); white-space:nowrap}
+.svc .d{grid-area:3/1/auto/-1; font-size:.78rem; color:var(--c-muted); margin-top:4px; line-height:1.5}
+
+/* ---------- ARTISAN PANE ---------- */
+.who{
+  display:flex; align-items:center; gap:var(--s3); width:100%; text-align:left;
+  padding:11px var(--s4) 11px 11px; border:1px solid var(--c-border); border-radius:var(--r-md);
+  background:var(--c-sunken); cursor:pointer; transition:all var(--m-base); position:relative; overflow:hidden;
+}
+.who + .who{margin-top:8px}
+.who:hover{border-color:var(--c-line); transform:translateY(-2px)}
+.who[aria-pressed="true"]{border-color:var(--c-action); background:color-mix(in oklab,var(--c-action) 9%,var(--c-surface))}
+.who[aria-pressed="true"]::before{content:""; position:absolute; left:0; top:0; bottom:0; width:2px; background:var(--foil)}
+.who .nm{font-family:var(--f-display); font-size:1.05rem; line-height:1.35}
+.who .tt{font-size:.72rem; color:var(--c-muted)}
+
+/* the confirm block keeps the ledger's foil edge, condensed */
+.confirm{
+  margin-top:var(--s5); padding-top:var(--s5); border-top:1px solid var(--c-line); position:relative;
+}
+.confirm .ledger-row{padding-block:8px}
+.confirm .ledger-row .v{font-size:1rem}
+.mini-grid{display:grid; grid-template-columns:1fr 1fr; gap:var(--s3)}
+@media(max-width:1180px){
+  .desk{grid-template-columns:320px minmax(0,1fr)}
+  .desk .pane-artisan{grid-column:1/-1}
+}
+@media(max-width:840px){
+  .desk{grid-template-columns:1fr}
+  .desk .pane-artisan{grid-column:auto}
+}
+/* below the wide breakpoint the panes stack — let them run their full height */
+@media(max-width:1180px), (max-height:620px){
+  .pane.sticky{position:static; max-height:none}
+  .pane.sticky .pane-body{overflow:visible; padding-right:0; margin-right:0}
+}
+
+/* ============================================================
+   NARROW SCREENS — once the three columns break, the confirm
+   action leaves the far-away pane and lives in a bar that is
+   always within thumb reach.
+   ============================================================ */
+.deskbar{display:none}
+
+@media(max-width:1180px){
+  #cta{display:none}                       /* the bar owns the action now */
+  .confirm > form > .hint{display:none}
+  /* scoped with :has so the clearance only exists on the page that has the bar,
+     and disappears by itself once the bar is removed after a booking */
+  body:has(#deskbar){padding-bottom:104px}
+  body:has(#deskbar) .toasts{bottom:calc(94px + env(safe-area-inset-bottom, 0px))}
+
+  .deskbar{
+    display:flex; position:fixed; inset:auto 0 0 0; z-index:70;
+    align-items:center; gap:var(--s3);
+    padding:11px var(--gutter) calc(11px + env(safe-area-inset-bottom, 0px));
+    background:color-mix(in oklab, var(--c-page) 93%, transparent);
+    backdrop-filter:blur(18px) saturate(1.3);
+    border-top:1px solid var(--c-border);
+    box-shadow:0 -8px 28px oklch(0 0 0/.30);
+  }
+  .deskbar::before{
+    content:""; position:absolute; inset:0 0 auto 0; height:1px;
+    background:var(--foil); background-size:200% 100%; opacity:.55;
+  }
+  .deskbar .sum{flex:1; min-width:0}
+  .deskbar .sum b{
+    display:block; font-family:var(--f-display); font-size:1.02rem; line-height:1.35;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .deskbar .sum span{
+    display:block; font-size:.68rem; color:var(--c-muted); line-height:1.4;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .deskbar .btn{flex:none; padding:12px 18px}
+}
+
+/* phone: the panes become three stacked steps with sticky titles */
+@media(max-width:840px){
+  .desk{gap:12px}
+  .pane{padding:0 var(--s4) var(--s5); border-radius:var(--r-md)}
+  .pane-hd{
+    position:sticky; top:53px; z-index:6;
+    margin:0 calc(var(--s4) * -1) var(--s4); padding:13px var(--s4);
+    background:color-mix(in oklab, var(--c-surface) 94%, transparent);
+    backdrop-filter:blur(12px) saturate(1.2);
+    border-bottom:1px solid var(--c-border);
+    border-radius:var(--r-md) var(--r-md) 0 0;
+  }
+  .pane-hd h2{font-size:1.12rem}
+  .pane-note{margin-top:calc(var(--s2) * -1)}
+
+  .cal-day{font-size:.94rem}
+  .cal-legend{font-size:.64rem; gap:var(--s3)}
+  .slots{grid-template-columns:repeat(auto-fill,minmax(74px,1fr)); gap:6px}
+  .slot{padding:10px 4px; font-size:.82rem}
+
+  .svc{padding:13px var(--s4)}
+  .svc .n{font-size:1.08rem}
+  .svc .d{display:none}                    /* the blurb is desktop-only detail */
+  .mini-grid{grid-template-columns:1fr}
+}
+
+@media(max-width:420px){
+  .desk{gap:10px}
+  .pane{padding:0 13px var(--s4)}
+  .pane-hd{margin-inline:-13px; padding-inline:13px}
+  .cal-grid{gap:1px}
+  .cal-day{font-size:.88rem}
+  .slots{grid-template-columns:repeat(3,1fr)}
+  .deskbar .sum b{font-size:.94rem}
+  .deskbar .btn{padding:11px 14px; font-size:.68rem}
+}
+
+/* ---------- THE TIME LEDGER (slot grid as an editorial ledger) ---------- */
+.slotgroup + .slotgroup{margin-top:var(--s5)}
+.slotgroup-hd{display:flex; align-items:center; gap:var(--s3); margin-bottom:var(--s3)}
+.slotgroup-hd .lbl{white-space:nowrap}
+.slotgroup-hd .ln{flex:1; height:1px; background:var(--c-border)}
+.slots{display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:7px}
+.slot{
+  position:relative; padding:11px 6px; border:1px solid var(--c-border); border-radius:var(--r-md);
+  background:var(--c-sunken); cursor:pointer; text-align:center;
+  font-family:var(--f-mono); font-size:.86rem; font-variant-numeric:tabular-nums; letter-spacing:.02em;
+  transition:all var(--m-fast); overflow:hidden;
+}
+.slot:hover:not(:disabled){border-color:var(--c-action); color:var(--c-action); transform:translateY(-2px)}
+.slot[aria-pressed="true"]{background:var(--foil); background-size:200% 100%; color:var(--c-on-action); border-color:transparent; font-weight:600}
+.slot:disabled{opacity:.28; cursor:not-allowed; text-decoration:line-through; text-decoration-thickness:1px}
+.slot .why{display:block; font-family:var(--f-body); font-size:.58rem; letter-spacing:.1em; text-transform:uppercase; color:var(--c-muted); margin-top:2px}
+.slot.scarce::after{content:""; position:absolute; top:5px; right:5px; width:5px; height:5px; border-radius:50%; background:var(--c-warn-fg)}
+
+/* ---------- PORTRAIT ----------
+   the motif used as an image mask; the mask lives on ::before so the
+   initial stays legible on top of it */
+.portrait{
+  position:relative; isolation:isolate;
+  width:56px; height:56px; flex:none; display:grid; place-items:center;
+  color:var(--c-on-action); font-family:var(--f-display); font-size:1.15rem;
+  font-weight:600; line-height:1; padding-top:6px; text-shadow:0 1px 0 oklch(1 0 0/.25);
+}
+.portrait::before{
+  content:""; position:absolute; inset:0; z-index:-1;
+  background:var(--foil); background-size:200% 100%;
+  -webkit-mask:var(--motif-mask) center/contain no-repeat; mask:var(--motif-mask) center/contain no-repeat;
+}
+.portrait-lg{width:96px; height:96px; font-size:2rem; padding-top:10px}
+
+/* ---------- DATE RAIL ---------- */
+.daterail{display:flex; gap:8px; overflow-x:auto; padding-bottom:var(--s2); scroll-snap-type:x mandatory}
+.daybtn{
+  flex:none; scroll-snap-align:start; width:76px; padding:11px 4px; border-radius:var(--r-md);
+  border:1px solid var(--c-border); background:var(--c-sunken); cursor:pointer; text-align:center;
+  transition:all var(--m-fast);
+}
+.daybtn:hover:not(:disabled){border-color:var(--c-line); transform:translateY(-2px)}
+.daybtn .dw{font-family:var(--f-mono); font-size:.6rem; letter-spacing:.16em; text-transform:uppercase; color:var(--c-muted)}
+.daybtn .dd{font-family:var(--f-display); font-size:1.6rem; line-height:1.2}
+.daybtn .dm{font-size:.62rem; color:var(--c-muted)}
+.daybtn[aria-pressed="true"]{background:var(--foil); background-size:200% 100%; border-color:transparent; color:var(--c-on-action)}
+.daybtn[aria-pressed="true"] .dw,.daybtn[aria-pressed="true"] .dm{color:color-mix(in oklab,var(--c-on-action) 78%,transparent)}
+.daybtn:disabled{opacity:.3; cursor:not-allowed}
+.daybtn .free{font-family:var(--f-mono); font-size:.58rem; color:var(--c-action); margin-top:2px}
+.daybtn[aria-pressed="true"] .free{color:var(--c-on-action)}
+
+/* ---------- UI STATES (never skipped) ---------- */
+.state{display:grid; place-items:center; gap:var(--s4); text-align:center; padding:var(--s8) var(--s5); color:var(--c-muted)}
+.state h3{color:var(--c-ink)}
+.skel{background:linear-gradient(90deg,var(--c-sunken) 25%,var(--c-border) 50%,var(--c-sunken) 75%);
+  background-size:220% 100%; animation:shimmer 1.5s linear infinite; border-radius:var(--r-md)}
+@keyframes shimmer{to{background-position:-220% 0}}
+.skel-line{height:12px; margin-bottom:9px}
+.skel-slot{height:44px}
+
+/* ---------- TOASTS ---------- */
+.toasts{position:fixed; right:var(--s5); bottom:var(--s5); z-index:200; display:flex; flex-direction:column; gap:var(--s3); max-width:min(380px,calc(100vw - 40px))}
+.toast{
+  display:flex; gap:var(--s3); align-items:flex-start; padding:14px 16px;
+  background:var(--c-surface); border:1px solid var(--c-border); border-left:2px solid var(--c-action);
+  border-radius:var(--r-md); box-shadow:var(--e-lg); font-size:.86rem; line-height:1.55;
+  animation:toastIn 320ms cubic-bezier(.16,1,.3,1);
+}
+.toast.out{animation:toastOut 240ms cubic-bezier(.4,0,1,1) forwards}
+.toast.ok{border-left-color:var(--c-ok-fg)} .toast.err{border-left-color:var(--c-err-fg)} .toast.warn{border-left-color:var(--c-warn-fg)}
+@keyframes toastIn{from{opacity:0; transform:translateX(24px) scale(.97)}}
+@keyframes toastOut{to{opacity:0; transform:translateX(24px) scale(.97)}}
+
+/* ---------- MODAL ---------- */
+.modal{border:none; padding:0; background:transparent; max-width:min(560px,calc(100vw - 32px)); width:100%}
+.modal::backdrop{background:oklch(.08 .01 var(--h)/.72); backdrop-filter:blur(6px)}
+.modal[open]{animation:modalIn 260ms cubic-bezier(.16,1,.3,1)}
+.modal[open]::backdrop{animation:fadeIn 260ms ease}
+@keyframes modalIn{from{opacity:0; transform:scale(.96) translateY(10px)}}
+@keyframes fadeIn{from{opacity:0}}
+.modal-inner{background:var(--c-surface); border:1px solid var(--c-border); border-radius:var(--r-lg); padding:var(--s6); position:relative; overflow:hidden}
+.modal-inner::before{content:""; position:absolute; inset:0 0 auto 0; height:2px; background:var(--foil); background-size:200% 100%}
+
+/* ---------- TABLE / ADMIN ---------- */
+.tbl{width:100%; border-collapse:collapse; font-size:.86rem}
+.tbl th{
+  text-align:left; padding:11px 14px; font-family:var(--f-mono); font-size:var(--t-label);
+  letter-spacing:.2em; text-transform:uppercase; color:var(--c-muted);
+  border-bottom:1px solid var(--c-border); white-space:nowrap; background:var(--c-sunken);
+  position:sticky; top:0; z-index:2;
+}
+.tbl td{padding:13px 14px; border-bottom:1px solid var(--c-border); vertical-align:middle}
+.tbl tbody tr{transition:background var(--m-fast)}
+.tbl tbody tr:hover{background:color-mix(in oklab,var(--c-action) 5%,transparent)}
+.tblwrap{overflow:auto; max-height:min(62vh,620px); border:1px solid var(--c-border); border-radius:var(--r-lg); background:var(--c-surface)}
+
+/* ---------- ADMIN SHELL ---------- */
+.adminwrap{display:grid; grid-template-columns:236px 1fr; min-height:100vh}
+.sidebar{
+  border-right:1px solid var(--c-border); background:var(--c-sunken); padding:var(--s5) var(--s4);
+  position:sticky; top:0; height:100vh; overflow:auto; display:flex; flex-direction:column; gap:var(--s2);
+}
+.sidebar .brandmark{margin-bottom:var(--s6)}
+.sidenav{display:flex; flex-direction:column; gap:2px}
+.sidenav button{
+  display:flex; align-items:center; gap:11px; width:100%; text-align:left; padding:10px 12px;
+  border:1px solid transparent; border-radius:var(--r-md); background:none; cursor:pointer;
+  color:var(--c-muted); font-size:.86rem; transition:all var(--m-fast);
+}
+.sidenav button:hover{color:var(--c-ink); background:var(--c-surface)}
+.sidenav button[aria-current="page"]{color:var(--c-action); border-color:color-mix(in oklab,var(--c-action) 34%,transparent);
+  background:color-mix(in oklab,var(--c-action) 9%,transparent)}
+.sidenav .ic{width:15px; height:15px; flex:none; background:currentColor;
+  -webkit-mask-position:center; mask-position:center; -webkit-mask-size:contain; mask-size:contain;
+  -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat}
+.adminmain{padding:var(--s6) clamp(20px,3.5vw,44px) var(--s9); min-width:0}
+.adminhd{display:flex; align-items:flex-end; gap:var(--s4); flex-wrap:wrap; margin-bottom:var(--s6)}
+.adminhd h1{font-size:clamp(1.8rem,3vw,2.6rem)}
+@media(max-width:900px){
+  .adminwrap{grid-template-columns:1fr}
+  .sidebar{position:static; height:auto; border-right:none; border-bottom:1px solid var(--c-border); flex-direction:column}
+  .sidenav{flex-direction:row; overflow-x:auto}
+  .sidenav button{white-space:nowrap}
+}
+
+/* ---------- STAT TILES ---------- */
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(178px,1fr)); gap:var(--s3)}
+.stat{background:var(--c-surface); border:1px solid var(--c-border); border-radius:var(--r-lg); padding:var(--s4) var(--s5); position:relative; overflow:hidden}
+.stat .k{font-family:var(--f-mono); font-size:var(--t-label); letter-spacing:.2em; text-transform:uppercase; color:var(--c-muted)}
+.stat .v{font-family:var(--f-display); font-size:clamp(2rem,3.4vw,2.9rem); line-height:1.2; margin-top:6px}
+.stat .d{font-size:.76rem; color:var(--c-muted); margin-top:3px}
+.stat.gold .v{color:var(--c-action)}
+
+/* ---------- TIMELINE (day board) ---------- */
+.board{display:grid; gap:var(--s3)}
+.laneshead{display:grid; grid-template-columns:var(--lanew,150px) 1fr; gap:var(--s3); align-items:end}
+.hoursbar{position:relative; height:20px; border-bottom:1px solid var(--c-border)}
+.hoursbar span{position:absolute; transform:translateX(-50%); font-family:var(--f-mono); font-size:.62rem; color:var(--c-muted)}
+.lane{display:grid; grid-template-columns:var(--lanew,150px) 1fr; gap:var(--s3); align-items:stretch}
+.lane-who{display:flex; align-items:center; gap:10px; padding:8px 0; min-width:0}
+.lane-who .nm{font-size:.86rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.lane-who .rl{font-size:.66rem; color:var(--c-muted)}
+.lane-track{position:relative; background:var(--c-sunken); border:1px solid var(--c-border); border-radius:var(--r-md); min-height:56px; overflow:hidden}
+.lane-track .grid-h{position:absolute; top:0; bottom:0; width:1px; background:var(--c-border); opacity:.55}
+.lane-track .off{position:absolute; top:0; bottom:0; background:repeating-linear-gradient(45deg,transparent,transparent 5px,color-mix(in oklab,var(--c-muted) 16%,transparent) 5px,color-mix(in oklab,var(--c-muted) 16%,transparent) 10px)}
+.appt{
+  position:absolute; top:5px; bottom:5px; border-radius:var(--r-sm); padding:5px 8px; cursor:pointer;
+  background:color-mix(in oklab,var(--c-action) 20%,var(--c-surface));
+  border:1px solid color-mix(in oklab,var(--c-action) 52%,transparent);
+  font-size:.72rem; line-height:1.4; overflow:hidden; transition:all var(--m-fast);
+}
+.appt:hover{transform:translateY(-2px); box-shadow:var(--e-md); z-index:3; background:color-mix(in oklab,var(--c-action) 30%,var(--c-surface))}
+.appt .t{font-family:var(--f-mono); font-size:.6rem; opacity:.8}
+.appt[data-status="done"]{background:color-mix(in oklab,var(--c-ok-fg) 15%,var(--c-surface)); border-color:var(--c-ok-bd)}
+.appt[data-status="cancelled"]{background:var(--c-sunken); border-color:var(--c-border); opacity:.55; text-decoration:line-through}
+.appt[data-status="noshow"]{background:color-mix(in oklab,var(--c-err-fg) 15%,var(--c-surface)); border-color:var(--c-err-bd)}
+.nowline{position:absolute; top:0; bottom:0; width:1px; background:var(--c-err-fg); z-index:4}
+.nowline::before{content:""; position:absolute; top:-3px; left:-3px; width:7px; height:7px; border-radius:50%; background:var(--c-err-fg)}
+
+/* the day board keeps its shape and scrolls sideways rather than crushing */
+@media(max-width:820px){
+  .board{overflow-x:auto; padding-bottom:var(--s2)}
+  .laneshead,.lane{min-width:680px}
+  .lane,.laneshead{--lanew:124px}
+}
+
+/* ---------- BAR CHART (analytics, no library) ---------- */
+.bars{display:flex; align-items:stretch; gap:8px; height:210px; padding-top:var(--s4)}
+/* the 1fr row gives the bar a definite height to take its percentage from */
+.bars .b{flex:1; display:grid; grid-template-rows:1fr auto; gap:7px; min-width:0}
+.bars .bcol{display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:5px; min-height:0}
+.bars .b i{display:block; width:min(100%,64px); margin-inline:auto; border-radius:2px 2px 0 0;
+  background:linear-gradient(180deg, oklch(.88 calc(var(--ca)*.85) var(--h)), oklch(.62 calc(var(--ca)*.75) var(--h)));
+  box-shadow:inset 0 0 0 1px oklch(1 0 0/.10);
+  height:var(--v); transition:height 700ms cubic-bezier(.16,1,.3,1); min-height:3px}
+.bars .b span{font-family:var(--f-mono); font-size:.6rem; color:var(--c-muted); text-align:center;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%}
+.bars .b b{font-family:var(--f-mono); font-size:.68rem; font-weight:500; color:var(--c-action)}
+
+/* ---------- MARQUEE ---------- */
+.marquee{overflow:hidden; mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.marquee-track{display:flex; gap:var(--s7); width:max-content; animation:marq 42s linear infinite}
+.marquee:hover .marquee-track{animation-play-state:paused}
+@keyframes marq{to{transform:translateX(-50%)}}
+.marquee-item{font-family:var(--f-display); font-size:1.5rem; color:var(--c-muted); display:flex; align-items:center; gap:var(--s5); white-space:nowrap}
+
+/* ---------- FAQ ---------- */
+.faq details{border-bottom:1px solid var(--c-border); padding-block:var(--s4)}
+.faq summary{cursor:pointer; list-style:none; display:flex; gap:var(--s4); align-items:baseline;
+  font-family:var(--f-display); font-size:1.28rem; line-height:1.5; transition:color var(--m-fast)}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary:hover{color:var(--c-action)}
+.faq summary::after{content:"+"; margin-left:auto; font-family:var(--f-mono); font-size:1.2rem; color:var(--c-action); transition:transform var(--m-base)}
+.faq details[open] summary::after{transform:rotate(45deg)}
+.faq .ans{padding-top:var(--s3); color:var(--c-muted); max-width:70ch}
+
+/* ---------- COMPARISON TABLE ---------- */
+.cmp{width:100%; border-collapse:collapse; font-size:.9rem}
+.cmp th,.cmp td{padding:14px 16px; border-bottom:1px solid var(--c-border); text-align:left}
+.cmp thead th{font-family:var(--f-mono); font-size:var(--t-label); letter-spacing:.18em; text-transform:uppercase; color:var(--c-muted)}
+.cmp .us{background:color-mix(in oklab,var(--c-action) 8%,transparent); color:var(--c-ink)}
+.cmp thead .us{color:var(--c-action)}
+.cmp tbody th{font-weight:400; color:var(--c-muted); font-family:var(--f-body); font-size:.86rem; text-transform:none; letter-spacing:0}
+
+/* ---------- SKIP LINK ---------- */
+.skip{position:absolute; left:-9999px; top:0; z-index:999; padding:12px 18px; background:var(--c-action); color:var(--c-on-action); border-radius:0 0 var(--r-md) 0}
+.skip:focus{left:0}
+
+/* ---------- MISC ---------- */
+.sr{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0}
+.row{display:flex; gap:var(--s3); align-items:center; flex-wrap:wrap}
+.row-end{margin-left:auto}
+.sep{width:1px; align-self:stretch; background:var(--c-border)}

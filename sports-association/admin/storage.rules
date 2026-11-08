@@ -1,0 +1,28 @@
+rules_version = '2';
+
+// Sample Sports — ไฟล์รูปตาม path ใน CONTRACT.md
+// อ่าน: ทุกคน · เขียน: แอดมิน (มี doc ใน admins/{uid}) · เฉพาะรูป ไม่เกิน 10MB
+// ใช้ firestore.exists() ข้ามบริการ: service agent ของ Storage ต้องมี role "Firebase Rules Firestore Service Agent"
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAdmin() {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid));
+    }
+
+    function isImageUnder10MB() {
+      return request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // news/{newsId}/{file}, banners/{bannerId}/{file}, events/{eventId}/{file},
+    // albums/{albumId}/{photoId}.jpg, site/{key}/{file}
+    match /{folder}/{id}/{file} {
+      allow read: if folder in ['news', 'banners', 'events', 'albums', 'site'];
+      allow create, update: if folder in ['news', 'banners', 'events', 'albums', 'site']
+        && isAdmin() && isImageUnder10MB();
+      allow delete: if folder in ['news', 'banners', 'events', 'albums', 'site'] && isAdmin();
+    }
+  }
+}

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>อัลบั้มรูป · Sample Sports Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="is-checking">
+  <div class="layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="backdrop" id="backdrop"></div>
+    <div class="main">
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <h1>อัลบั้มรูป</h1>
+            <p>Photo Gallery จัดตามรายการแข่ง · กดที่อัลบั้มเพื่ออัปโหลดหรือจัดการรูป</p>
+          </div>
+          <button class="btn btn-primary" id="add-btn" data-write>+ สร้างอัลบั้ม</button>
+        </div>
+
+        <div class="toolbar">
+          <input type="search" class="search" id="search" placeholder="ค้นหาชื่ออัลบั้ม…">
+          <select id="filter-status" style="width:auto">
+            <option value="">ทุกสถานะ</option>
+            <option value="published">เผยแพร่</option>
+            <option value="draft">ฉบับร่าง</option>
+          </select>
+        </div>
+
+        <div class="grid" id="grid"></div>
+        <div class="card empty-state" id="empty">ยังไม่มีข้อมูล</div>
+      </main>
+    </div>
+  </div>
+
+  <dialog id="edit-dialog">
+    <form class="dlg" id="edit-form" novalidate>
+      <div class="dlg-head">
+        <h2 id="dlg-title">สร้างอัลบั้ม</h2>
+        <button type="button" class="dlg-close" data-close aria-label="ปิด">×</button>
+      </div>
+      <div class="dlg-body">
+        <div class="field">
+          <label for="f-event">ผูกกับรายการแข่ง (ไม่บังคับ)</label>
+          <select id="f-event"><option value="">— ไม่ผูก —</option></select>
+          <div class="hint">เลือกแล้วจะเติมชื่อและวันที่ให้ (แก้ต่อได้)</div>
+        </div>
+        <div class="field">
+          <label for="f-title">ชื่ออัลบั้ม <span class="req">*</span></label>
+          <input type="text" id="f-title" maxlength="200" required>
+        </div>
+        <div class="field">
+          <label for="f-date">วันที่ <span class="req">*</span></label>
+          <input type="date" id="f-date" required>
+        </div>
+        <div class="field">
+          <span class="label">สถานะ</span>
+          <div style="display:flex;gap:20px;flex-wrap:wrap">
+            <label class="check"><input type="radio" name="status" value="draft" checked> ฉบับร่าง (ยังไม่แสดงบนเว็บ)</label>
+            <label class="check"><input type="radio" name="status" value="published"> เผยแพร่</label>
+          </div>
+          <div class="hint">แนะนำให้อัปโหลดรูปให้ครบก่อน แล้วค่อยเปลี่ยนเป็นเผยแพร่</div>
+        </div>
+      </div>
+      <div class="dlg-foot">
+        <button type="button" class="btn btn-secondary" data-close>ยกเลิก</button>
+        <button type="button" class="btn btn-secondary" id="preview-btn">ดูตัวอย่าง</button>
+        <button type="submit" class="btn btn-primary" data-write>บันทึก</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="js/pages/albums.js"></script>
+</body>
+</html>

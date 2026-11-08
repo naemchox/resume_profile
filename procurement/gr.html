@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>รับของ / ตรวจรับงาน — ระบบจัดซื้อจัดจ้าง</title>
+<link rel="stylesheet" href="css/app.css">
+<script src="js/theme.js"></script>
+</head>
+<body>
+<main id="app"><div class="spinner">…</div></main>
+
+<script type="module">
+import { sb } from './js/supabase.js';
+import { t, pick, fmtDate, fmtDateTime, isoDate } from './js/i18n.js';
+import { requirePage, me, has, hasAny } from './js/auth.js';
+import { masters, flow, insert, update, remove } from './js/api.js';
+import { dateField, parseBeDate, toIso, isoToBe } from './js/datefield.js';
+import { fmt, fmtQty } from './js/money.js';
+import { openFile, fileLabel } from './js/storage.js';
+import { el, $, shell, pageTitle, table, confirmBox, badge, ok, fail, spinner, errText } from './js/ui.js';
+
+const un = ({ data, error }) => { if (error) throw error; return data; };
+
+const days = (a, b) => Math.round((new Date(a) - new Date(b)) / 86400000);
+
+const u = await requirePage('gr.html');
+if (u) {
+  shell('gr.html');
+  const poId = new URLSearchParams(location.search).get('po');
+  poId ? await detail(poId) : await listView();
+}
+
+
+// ===========================================================================
+// รายการใบสั่งซื้อที่ยังต้องรับของ
+// ===========================================================================
+async function listView() {
+  const app = $('#app');
+  app.textContent = '';
+  app.append(pageTitle('gr.title'));
+
+  const box = el('div', {}, spinner());
+  app.append(el('div', { class: 'card' }, el('h2', {}, t('gr.forPo')), box));
+
+  try {
+    const [pos, vendors] = await Promise.all([
+      sb.from('pos').select('*')
+        .in('status', ['issued', 'partially_received', 'received'])
+        .order('promised_date').then(un),
+      masters.vendors(),
+    ]);
+    const vById = new Map(vendors.map((v) => [v.id, v]));
+
+    const ids = pos.map((p) => p.id);
+    const [recv, dels] = await Promise.all([
+      ids.length ? sb.from('v_po_line_received').select('*').in('po_id', ids).then(un) : [],
+      ids.length ? sb.from('deliveries').select('id, po_id').in('po_id', ids).then(un) : [],
+    ]);
+    const grs = dels.length
+      ? await sb.from('grs').select('delivery_id').in('delivery_id', dels.map((d) => d.id)).then(un)
+      : [];
+    const inspected = new Set(grs.map((g) => g.delivery_id));
+
+    box.textContent = '';
+    box.append(pos.length
+      ? table([t('po.no'), t('quote.vendor'), t('po.promisedDate'), t('gr.progress'),
+               t('gr.notInspected'), t('common.status')],
+          pos.map((p) => {
+            const lines = recv.filter((r) => r.po_id === p.id);
+            const ordered = lines.reduce((s, r) => s + Number(r.qty_ordered), 0);
+            const got = lines.reduce((s, r) => s + Number(r.qty_accepted), 0);
+            const pctDone = ordered ? Math.min(100, (got / ordered) * 100) : 0;
+            const waiting = dels.filter((d) => d.po_id === p.id && !inspected.has(d.id)).length;
+            const late = p.status !== 'received' && days(new Date(), p.promised_date) > 0;
+            const v = vById.get(p.vendor_id);
+            return el('tr', {},
+              el('td', {}, el('a', { href: `gr.html?po=${p.id}` }, p.po_no)),
+              el('td', {}, v ? `${v.code} — ${pick(v, 'name')}` : '—'),
+              el('td', {}, fmtDate(p.promised_date),
+                late ? el('div', { class: 'badge red' }, t('gr.late')) : null),
+              el('td', { style: 'min-width:140px' },
+                el('div', { class: 'meter' }, el('i', { style: `width:${pctDone}%` })),
+                el('small', { class: 'faint' }, `${fmtQty(got)} / ${fmtQty(ordered)}`)),
+              el('td', { class: 'ta-center' },
+                waiting ? el('span', { class: 'badge amber' }, String(waiting)) : '—'),
+              el('td', {}, badge(p.status, 'poStatus')));
+          }))
+      : el('p', { class: 'faint' }, t('gr.noPo')));
+  } catch (e) { box.textContent = ''; fail(e); }
+}
+
+// ===========================================================================
+// หน้าทำงานของใบสั่งซื้อหนึ่งใบ
+// ===========================================================================
+async function detail(poId) {
+  const app = $('#app');
+  app.textContent = '';
+  app.append(spinner());
+
+  let po, poLines, recv, dels, delLines, grs, grLines, vendor, people, retention;
+  // ตาราง delivery_lines มาทีหลัง (db/18) ถามหาก่อนหนึ่งครั้ง จะได้ไม่สร้างใบส่งมอบเปล่าค้างไว้
+  // ตอนที่ขั้นบันทึกจำนวนพังเพราะยังไม่ได้รันไฟล์นั้น
+  const delLinesReady = !(await sb.from('delivery_lines')
+    .select('id', { count: 'exact', head: true })).error;
+  try {
+    po = await sb.from('pos').select('*').eq('id', poId).maybeSingle().then(un);
+    if (!po) throw new Error(t('pr.notFound'));
+    [poLines, recv, dels, vendor, retention] = await Promise.all([
+      sb.from('po_lines').select('*').eq('po_id', poId).order('seq').then(un),
+      sb.from('v_po_line_received').select('*').eq('po_id', poId).then(un),
+      sb.from('deliveries').select('*').eq('po_id', poId)
+        .order('delivered_date', { ascending: false }).then(un),
+      sb.from('vendors').select('*').eq('id', po.vendor_id).maybeSingle().then(un),
+      sb.from('retention_releases').select('*').eq('po_id', poId).maybeSingle().then(un),
+    ]);
+    // ตารางนี้มาทีหลัง (db/18_delivery_lines.sql) ชุดที่ยังไม่ได้รันไฟล์นั้นต้องไม่พังทั้งหน้า
+    // ไม่มีบรรทัดจำนวน = ถอยไปใช้ยอดค้างของใบสั่งซื้อเหมือนพฤติกรรมเดิม
+    delLines = dels.length
+      ? await sb.from('delivery_lines').select('*').in('delivery_id', dels.map((d) => d.id))
+          .then(({ data, error }) => {
+            if (error) { console.warn('[gr] delivery_lines unavailable:', error.message); return []; }
+            return data;
+          })
+      : [];
+    grs = dels.length
+      ? await sb.from('grs').select('*').in('delivery_id', dels.map((d) => d.id)).then(un) : [];
+    grLines = grs.length
+      ? await sb.from('gr_lines').select('*').in('gr_id', grs.map((g) => g.id)).then(un) : [];
+    const ids = [...new Set([...dels.map((d) => d.recorded_by),
+                             ...grs.map((g) => g.inspected_by)].filter(Boolean))];
+    people = new Map(ids.length
+      ? (await sb.from('user_profiles').select('id, full_name_th, full_name_en')
+          .in('id', ids).then(un)).map((x) => [x.id, x])
+      : []);
+  } catch (e) { app.textContent = ''; fail(e); return; }
+
+  const reload = () => detail(poId);
+  const recvBy = new Map(recv.map((r) => [r.po_line_id, r]));
+  const grOf = (delId) => grs.find((g) => g.delivery_id === delId);
+  const nameOf = (id) => (id && people.get(id)) ? pick(people.get(id), 'full_name') : '—';
+
+  // จำนวนที่ยังค้างส่งของแต่ละบรรทัด = สั่ง − รับแล้ว (ของที่ตีกลับไม่นับว่ารับ)
+  const remainingOf = (pl) => {
+    const r = recvBy.get(pl.id);
+    return Math.max(0, Number(pl.qty) - Number(r?.qty_accepted ?? 0));
+  };
+  const totalRemaining = poLines.reduce((s, pl) => s + remainingOf(pl), 0);
+
+  // จำนวนที่ผู้ขายส่งมาในใบส่งมอบใบหนึ่ง แยกรายบรรทัด
+  const deliveredOf = (delId, plId) =>
+    Number(delLines.find((x) => x.delivery_id === delId && x.po_line_id === plId)?.qty ?? 0);
+  // ใบเก่าที่บันทึกไว้ก่อนมีตาราง delivery_lines ไม่มีบรรทัดจำนวน
+  // ใบพวกนั้นให้ถอยไปใช้ยอดค้างของใบสั่งซื้อเหมือนเดิม ไม่งั้นตรวจรับไม่ได้เลย
+  const hasDelLines = (delId) => delLines.some((x) => x.delivery_id === delId);
+  // เพดานที่กรอกได้ของบรรทัดหนึ่ง ในใบส่งมอบใบหนึ่ง
+  const capOf = (delId, pl) => hasDelLines(delId)
+    ? Math.min(deliveredOf(delId, pl.id), remainingOf(pl))
+    : remainingOf(pl);
+
+  const delById = new Map(dels.map((d) => [d.id, d]));
+  // จำนวน "ส่งมอบ" ของใบเดิมแก้ย้อนหลังได้ ถ้าใบนั้นยังไม่ถูกตรวจรับ
+  //   ฝ่ายจัดซื้อ — เฉพาะใบที่ตัวเองบันทึก (db/18_delivery_lines.sql)
+  //   แอดมิน      — ใบไหนก็ได้ เพราะเป็นคนแก้ของที่คนอื่นคีย์ผิดให้ (db/19_delivery_lines_admin_edit.sql)
+  // เงื่อนไขตรงนี้ต้องตรงกับนโยบายที่ฐาน ไม่งั้นจะกลายเป็นพิมพ์ได้แต่กดเซฟแล้วเด้ง
+  const canEditQty = (delId) => {
+    const d = delById.get(delId);
+    if (!d || grOf(d.id)) return false;
+    return has('admin') || (hasAny('purchasing', 'admin') && d.recorded_by === me.id);
+  };
+
+  // ลบใบส่งมอบที่คีย์ผิด/คีย์ซ้ำได้ เฉพาะใบที่ยังไม่ถูกตรวจรับ (db/20_delete_delivery.sql)
+  //   แอดมิน = ใบไหนก็ได้ · ฝ่ายจัดซื้อ = เฉพาะใบของตัวเอง
+  // เงื่อนไขต้องตรงกับนโยบายที่ฐาน ไม่งั้นจะขึ้นปุ่มให้กดแล้วเด้ง
+  const canDeleteDelivery = (d) => !grOf(d.id)
+    && (has('admin') || (has('purchasing') && d.recorded_by === me.id));
+
+  const canRecordDelivery = hasAny('purchasing', 'admin')
+                    && ['issued', 'partially_received', 'received', 'invoiced'].includes(po.status);
+  // ใครก็ตามที่มีสิทธิ์รับของ พิมพ์จำนวน "รับ / ตีกลับ" ได้ทั้งในตารางและในกล่องตรวจรับ
+  const canInspect = hasAny('inspector', 'purchasing', 'admin');
+  const canEnterQty = canInspect;
+  // แอดมินกับฝ่ายจัดซื้อบันทึกส่งมอบแล้วตรวจรับต่อเองได้ (db/16_gr_by_purchasing.sql)
+  const canSelfInspect = hasAny('purchasing', 'admin');
+
+  app.textContent = '';
+  app.append(pageTitle('gr.title',
+    el('a', { class: 'btn small', href: `po.html?id=${poId}` }, t('po.title')),
+    el('a', { class: 'btn small', href: 'gr.html', style: 'margin-left:.3rem' }, t('gr.forPo'))));
+
+  // ---- หัวเรื่อง ----
+  const late = po.status !== 'received' && days(new Date(), po.promised_date) > 0;
+  app.append(el('div', { class: 'card' },
+    el('h2', { style: 'margin:0' }, po.po_no, ' ', badge(po.status, 'poStatus')),
+    el('p', { class: 'muted', style: 'margin:.3rem 0 .7rem' },
+      vendor ? `${vendor.code} — ${pick(vendor, 'name')}` : ''),
+    el('div', { class: 'grid g3' },
+      el('div', {}, el('small', { class: 'faint' }, t('po.promisedDate')),
+        el('div', {}, fmtDate(po.promised_date))),
+      el('div', {}, el('small', { class: 'faint' }, t('po.warranty')),
+        el('div', {}, `${po.warranty_days ?? 0} ${t('common.days')}`)),
+      el('div', {}, el('small', { class: 'faint' }, t('common.grandTotal')),
+        el('div', { class: 'num' }, fmt(po.grand_total)))),
+    late
+      ? el('div', { class: 'notice warn', style: 'margin-top:.8rem' },
+          t('gr.lateBy', { days: days(new Date(), po.promised_date) }))
+      : null));
+
+  // ---- ความคืบหน้า ----
+  // การ์ดนี้เป็นประตูเดียวของการรับของแล้ว — ไม่มีปุ่ม "บันทึกการส่งมอบ" แยกอีกต่อไป
+  // ใบตรวจรับผูกกับใบส่งมอบเสมอ (grs.delivery_id NOT NULL) ใบส่งมอบจึงยังต้องเกิด
+  // แต่เกิดเองตอนกดบันทึก ไม่ต้องให้คนเดินสองรอบ
+
+  // ใบที่จะลงผลตรวจ — ระบบเลือกให้เอง ไม่ต้องมีดรอปดาวน์ให้คนกรอกเลือกเอง
+  //   มีใบที่ยังไม่ตรวจรับ → ลงใบล่าสุด (dels เรียงวันใหม่ไปเก่า) วันที่ใช้ตามใบนั้น
+  //   ไม่มีเลย         → สร้างใบของวันนี้ให้ตอนกดบันทึก
+  const openDels = dels.filter((d) => !grOf(d.id) && (canSelfInspect || d.recorded_by !== me.id));
+  const targetDel = openDels[0] ?? null;
+  const canOpenNew = canRecordDelivery && delLinesReady;
+  const isNewDel = () => !targetDel;
+  const targetId = () => targetDel?.id ?? null;
+  const inline = canEnterQty && totalRemaining > 0 && (targetDel || canOpenNew);
+
+  const progRows = poLines.map((pl) => {
+    const r = recvBy.get(pl.id);
+    return {
+      pl, r, rem: remainingOf(pl), cap: 0,
+      dlv: el('input', { type: 'number', step: 'any', min: '0', class: 'num' }),
+      acc: el('input', { type: 'number', step: 'any', min: '0', class: 'num' }),
+      rej: el('input', { type: 'number', step: 'any', min: '0', class: 'num' }),
+      why: el('input', { type: 'text' }),
+    };
+  });
+
+  const progErr = el('p', { class: 'err-line hidden' });
+
+  // ---- วันที่ส่งจริง ----
+  // ช่องเดียวกับข้อกำหนดงาน (พิมพ์ วว/ดด/ปปปป พ.ศ. หรือกดปฏิทิน)
+  // ใบใหม่ตั้งต้นเป็นวันนี้ · ใบเดิมดึงวันที่ที่บันทึกไว้มาให้แก้
+  // (ฐานยอมให้แก้เฉพาะเจ้าของใบ และเฉพาะใบที่ยังไม่มีผลตรวจรับ — 03_rls.sql purchasing_update)
+  const delDate = dateField(isoToBe(targetDel?.delivered_date ?? isoDate()));
+  // เพดานของ "รับ + ตีกลับ" = จำนวนที่ส่งมาในใบนั้น และไม่เกินยอดที่ยังค้างส่ง
+  // ช่องส่งมอบที่พิมพ์ได้ต้องอ่านจากค่าสดๆ เพราะคนกำลังแก้อยู่ ช่องที่ล็อกใช้ค่าที่บันทึกไว้
+  const capNow = (x) => x.dlv.disabled
+    ? x.cap
+    : Math.min(Number(x.dlv.value) || 0, x.rem);
+
+  // ตัดค่าลงให้ "รับ + ตีกลับ" ไม่เกินเพดาน แทนการปล่อยให้กรอกเกินแล้วค่อยเตือนตอนกดบันทึก
+  for (const x of progRows) {
+    const clamp = (a, b) => a.addEventListener('input', () => {
+      const c = capNow(x);
+      if ((Number(a.value) || 0) + (Number(b.value) || 0) > c + 1e-9) {
+        a.value = String(Math.max(0, c - (Number(b.value) || 0)));
+      }
+    });
+    clamp(x.acc, x.rej); clamp(x.rej, x.acc);
+    x.dlv.addEventListener('input', () => {
+      if (Number(x.dlv.value) > x.rem) x.dlv.value = String(x.rem);
+      const c = capNow(x);
+      // บรรทัดที่เพิ่งเติมจำนวนส่งมอบ ต้องกรอกผลตรวจต่อได้ทันที ไม่ต้องสลับใบไปกลับ
+      for (const n of [x.acc, x.rej, x.why]) {
+        n.disabled = !c;
+        if (!c) n.value = '';
+      }
+      x.acc.max = c || null;
+      x.rej.max = c || null;
+      if ((Number(x.acc.value) || 0) + (Number(x.rej.value) || 0) > c + 1e-9) {
+        x.acc.value = String(Math.max(0, c - (Number(x.rej.value) || 0)));
+      }
+    });
+  }
+
+  // ช่องกรอกผูกกับใบส่งมอบที่เลือกอยู่ เปลี่ยนใบเมื่อไหร่ เพดานกับช่องที่ล็อกต้องเปลี่ยนตาม
+  function syncProgRows() {
+    const isNew = isNewDel();
+    // โหมดส่งมอบใหม่: พิมพ์ได้เสมอ ตั้งต้นเป็นยอดค้าง (กรณีปกติคือผู้ขายส่งมาครบตามที่เหลือ)
+    // โหมดใบเดิม: พิมพ์แก้ได้ถ้าเป็นใบของตัวเองที่ยังไม่ถูกตรวจรับ — คีย์ผิดแล้วกลับมาแก้ได้
+    //             ใบของคนอื่น/ใบที่ตรวจรับแล้ว ล็อกไว้ตามจำนวนที่บันทึกไว้
+    // ไม่มีตาราง delivery_lines (หรือยังไม่ได้ grant) = แก้แล้วบันทึกไม่ลง ล็อกไว้ดีกว่าให้พิมพ์ลมๆ
+    const editable = delLinesReady && (isNew || canEditQty(targetId()));
+    for (const x of progRows) {
+      const cap = isNew ? x.rem : capOf(targetId(), x.pl);
+      x.cap = cap;
+      x.dlv.disabled = !editable || !x.rem;
+      x.dlv.value = cap ? String(cap) : '';
+      for (const n of [x.acc, x.rej, x.why]) {
+        n.disabled = !cap;
+        if (!cap) n.value = '';
+      }
+      x.acc.max = cap || null;
+      x.rej.max = cap || null;
+    }
+  }
+
+  const numCell = (input, doneLabel, doneQty) =>
+    el('td', {}, input,
+      Number(doneQty) ? el('div', { class: 'faint ta-right' }, `${doneLabel} ${fmtQty(doneQty)}`) : null);
+
+  app.append(el('div', { class: 'card' },
+    el('h2', {}, t('gr.progress')),
+    table(inline
+      ? [t('common.seq'), t('common.description'),
+         { label: t('gr.ordered'), align: 'right' },
+         { label: t('gr.remaining'), align: 'right' },
+         { label: t('gr.qtyDelivered'), align: 'right' },
+         { label: t('gr.qtyAccepted'), align: 'right' },
+         { label: t('gr.qtyRejected'), align: 'right' },
+         t('gr.rejectReason')]
+      : [t('common.seq'), t('common.description'),
+         { label: t('gr.ordered'), align: 'right' },
+         { label: t('gr.remaining'), align: 'right' },
+         { label: t('gr.qtyAccepted'), align: 'right' },
+         { label: t('gr.qtyRejected'), align: 'right' }],
+      progRows.map((x) => el('tr', {},
+        el('td', {}, String(x.pl.seq)),
+        el('td', {}, el('b', {}, x.pl.description)),
+        el('td', { class: 'num' }, `${fmtQty(x.pl.qty)} ${x.pl.unit}`),
+        el('td', { class: 'num' },
+          x.rem ? el('b', {}, fmtQty(x.rem)) : el('span', { class: 'faint' }, '—')),
+        inline ? el('td', {}, x.dlv) : null,
+        inline
+          ? numCell(x.acc, t('gr.alreadyAccepted'), x.r?.qty_accepted ?? 0)
+          : el('td', { class: 'num' }, fmtQty(x.r?.qty_accepted ?? 0)),
+        inline
+          ? numCell(x.rej, t('gr.alreadyRejected'), x.r?.qty_rejected ?? 0)
+          : el('td', { class: 'num' }, fmtQty(x.r?.qty_rejected ?? 0)),
+        inline ? el('td', {}, x.why) : null))),
+    !totalRemaining ? el('p', { class: 'faint' }, t('gr.noRemaining')) : null,
+    inline
+      ? el('div', {},
+          progErr,
+          el('div', { class: 'row', style: 'gap:.5rem;margin-top:.6rem;flex-wrap:wrap' },
+            el('small', { class: 'faint' }, t('gr.deliveredDate')),
+            el('div', { style: 'width:10rem;flex:0 0 auto' }, delDate.el),
+            el('div', { class: 'spacer' }),
+            el('button', { class: 'btn primary', onclick: onSaveProgress }, t('gr.saveReceipt'))))
+      : (canEnterQty && totalRemaining && delLinesReady
+          ? el('p', { class: 'faint', style: 'margin-top:.6rem' }, t('gr.needDelivery'))
+          : null),
+    canRecordDelivery && !delLinesReady && totalRemaining
+      ? el('div', { class: 'notice warn', style: 'margin-top:.6rem' }, t('gr.needMigration'))
+      : null));
+
+  if (inline) syncProgRows();
+
+  // บันทึกจากตารางความคืบหน้า — ลงใบที่ยังไม่ตรวจรับใบล่าสุด ถ้าไม่มีก็สร้างใบของวันนี้ให้
+  async function onSaveProgress() {
+    const showErr = (m) => { progErr.textContent = m; progErr.classList.remove('hidden'); };
+    progErr.classList.add('hidden');
+    const isNew = isNewDel();
+
+    const sent = progRows
+      .map((x) => ({ x, q: Number(x.dlv.value) || 0 }))
+      .filter((y) => y.q > 0);
+    const picked = progRows
+      .map((x) => ({ r: x, a: Number(x.acc.value) || 0, j: Number(x.rej.value) || 0 }))
+      .filter((y) => y.a > 0 || y.j > 0);
+
+    // ใบเดิมที่แก้ช่องส่งมอบได้ — จำนวนที่ต่างจากที่บันทึกไว้ ต้องเขียนทับก่อนลงผลตรวจ
+    const changed = !isNew && delLinesReady && canEditQty(targetId())
+      ? progRows.filter((x) =>
+          Math.abs((Number(x.dlv.value) || 0) - deliveredOf(targetId(), x.pl.id)) > 1e-9)
+      : [];
+
+    if (isNew && !sent.length) return showErr(t('gr.needDeliveryQty'));
+    if (!isNew && !picked.length && !changed.length) return showErr(t('gr.needQty'));
+    const overSent = sent.find((y) => y.q > y.x.rem + 1e-9);
+    if (overSent) return showErr(`${t('gr.overDelivered')} — ${overSent.x.pl.description}`);
+    const over = picked.find((y) => y.a + y.j > capNow(y.r) + 1e-9);
+    if (over) return showErr(`${t('gr.overInspect')} — ${over.r.pl.description}`);
+
+    const dt = parseBeDate(delDate.input.value);
+    if (!dt) { delDate.input.classList.add('bad'); return showErr(t('gr.badDate')); }
+    const isoPicked = toIso(dt);
+
+    let delId = targetId();
+    if (isNew) {
+      // ใบส่งมอบเกิดก่อนเสมอ ถ้าขั้นตรวจรับพลาดทีหลัง ใบส่งมอบยังอยู่
+      // กดบันทึกซ้ำได้เลย รอบหน้าระบบจะลงผลตรวจในใบนั้นให้เอง
+      try {
+        const [d] = await insert('deliveries',
+          { po_id: poId, delivered_date: isoPicked, recorded_by: me.id });
+        await insert('delivery_lines', sent.map((y) => ({
+          delivery_id: d.id, po_line_id: y.x.pl.id, qty: y.q,
+        })));
+        delId = d.id;
+      } catch (e) { fail(e); return; }
+      if (!picked.length) { ok(t('common.saved')); reload(); return; }
+    }
+    // แก้วันที่ของใบเดิม — ต้องเขียนก่อนลงผลตรวจ เพราะพอมีใบตรวจรับแล้วฐานจะล็อกไม่ให้แก้อีก
+    if (!isNew && isoPicked !== String(targetDel.delivered_date ?? '').slice(0, 10)) {
+      try { await update('deliveries', delId, { delivered_date: isoPicked }); }
+      catch (e) { return showErr(errText(e)); }
+      if (!picked.length && !changed.length) { ok(t('common.saved')); reload(); return; }
+    }
+    if (changed.length) {
+      try { await saveDeliveredQty(delId, changed); }
+      catch (e) { return showErr(errText(e)); }
+      if (!picked.length) { ok(t('common.saved')); reload(); return; }
+    }
+    await commitInspection(delId, picked);
+  }
+
+  // แก้จำนวนที่ส่งมอบของใบเดิม = ลบบรรทัดเดิมแล้วใส่ใหม่
+  // ฐานเปิดให้เจ้าของใบ insert/delete ได้ แต่ไม่มีนโยบาย update (db/18_delivery_lines.sql)
+  // ถ้าเขียน update ตรงๆ RLS จะกรองทิ้งเงียบๆ ได้ 0 แถว แล้วหน้าจะโกหกว่าบันทึกแล้ว
+  // ทำทีละบรรทัด พลาดกลางทางบรรทัดที่เหลือยังอยู่ครบ กดซ้ำได้เลย
+  async function saveDeliveredQty(delId, rows) {
+    for (const x of rows) {
+      const q = Number(x.dlv.value) || 0;
+      const cur = delLines.find((l) => l.delivery_id === delId && l.po_line_id === x.pl.id);
+      if (cur) await remove('delivery_lines', cur.id);
+      if (q > 0) {
+        await insert('delivery_lines', { delivery_id: delId, po_line_id: x.pl.id, qty: q });
+      }
+    }
+  }
+
+  // ---- การส่งมอบ ----
+  // การ์ดนี้เป็นบันทึกย้อนหลังอย่างเดียวแล้ว การสร้างใบส่งมอบย้ายไปอยู่ในตารางความคืบหน้า
+  const delCard = el('div', { class: 'card' },
+    el('h2', { style: 'margin:0 0 .6rem' }, t('gr.deliveries')));
+
+  if (!dels.length) {
+    delCard.append(el('p', { class: 'faint' }, t('gr.noDeliveries')));
+  } else {
+    for (const d of dels) {
+      const g = grOf(d.id);
+      const lateDays = days(d.delivered_date, po.promised_date);
+      // กติกาแยกหน้าที่บังคับที่ฐาน — ตรงนี้แค่บอกล่วงหน้าว่ากดไปก็ไม่ผ่าน
+      const ownDelivery = d.recorded_by === me.id && !canSelfInspect;
+
+      const box = el('div', { class: 'card', style: 'box-shadow:none;border:1px solid var(--line)' },
+        el('div', { class: 'row' },
+          el('div', {},
+            el('b', {}, d.delivery_no || d.vendor_doc_no || fmtDate(d.delivered_date)),
+            ' ',
+            g ? el('span', { class: 'badge green' }, g.gr_no ?? t('gr.inspected'))
+              : el('span', { class: 'badge amber' }, t('gr.notInspected')),
+            ' ',
+            lateDays > 0
+              ? el('span', { class: 'badge red' }, t('gr.lateBy', { days: lateDays }))
+              : el('span', { class: 'badge grey' }, t('gr.onTime'))),
+          el('div', { class: 'spacer' }),
+          !g && canInspect
+            ? el('button', {
+                class: 'btn primary small', disabled: ownDelivery || !totalRemaining,
+                title: ownDelivery ? t('gr.segregation')
+                     : !totalRemaining ? t('gr.noRemaining') : null,
+                onclick: () => onInspect(d) }, t('gr.inspect'))
+            : null,
+          canDeleteDelivery(d)
+            ? el('button', { class: 'btn small danger', style: 'margin-left:.4rem',
+                title: t('gr.deleteDelivery'),
+                onclick: () => onDeleteDelivery(d) }, t('common.delete'))
+            : null),
+        el('div', { class: 'grid g3', style: 'margin-top:.6rem' },
+          el('div', {}, el('small', { class: 'faint' }, t('gr.deliveredDate')),
+            el('div', {}, fmtDate(d.delivered_date))),
+          el('div', {}, el('small', { class: 'faint' }, t('gr.vendorDocNo')),
+            el('div', {}, d.vendor_doc_no || '—')),
+          el('div', {}, el('small', { class: 'faint' }, t('gr.recordedBy')),
+            el('div', {}, nameOf(d.recorded_by)))),
+        hasDelLines(d.id)
+          ? el('div', { style: 'margin-top:.6rem' },
+              table([t('common.description'), { label: t('gr.qtyDelivered'), align: 'right' }],
+                delLines.filter((x) => x.delivery_id === d.id).map((x) => {
+                  const pl = poLines.find((l) => l.id === x.po_line_id);
+                  return el('tr', {},
+                    el('td', {}, pl?.description ?? '—'),
+                    el('td', { class: 'num' }, `${fmtQty(x.qty)} ${pl?.unit ?? ''}`));
+                })))
+          : null,
+        d.note ? el('p', { class: 'faint', style: 'margin:.5rem 0 0' }, d.note) : null,
+        d.attachment_path
+          ? el('p', { style: 'margin:.5rem 0 0' },
+              el('button', { class: 'btn small',
+                onclick: () => openFile(d.attachment_path).catch((e) => fail(e)) },
+                fileLabel(d.attachment_path)))
+          : null);
+
+      if (ownDelivery && !g && canInspect) {
+        box.append(el('p', { class: 'faint', style: 'margin:.5rem 0 0' }, t('gr.segregation')));
+      }
+
+      if (g) {
+        const gl = grLines.filter((x) => x.gr_id === g.id);
+        box.append(el('div', { style: 'margin-top:.7rem' },
+          el('div', { class: 'row', style: 'gap:.5rem' },
+            el('span', { class: 'muted' }, t('gr.result') + ':'),
+            el('span', { class: 'badge ' + (g.result === 'accepted' ? 'green'
+                                          : g.result === 'rejected' ? 'red' : 'amber') },
+               t('grResult.' + g.result)),
+            el('span', { class: 'faint' },
+               `${t('gr.inspectedBy')} ${nameOf(g.inspected_by)} · ${fmtDateTime(g.inspected_at)}`)),
+          g.reason ? el('p', { class: 'faint' }, g.reason) : null,
+          table([t('common.description'), { label: t('gr.qtyAccepted'), align: 'right' },
+                 { label: t('gr.qtyRejected'), align: 'right' }, t('gr.rejectReason')],
+            gl.map((x) => {
+              const pl = poLines.find((l) => l.id === x.po_line_id);
+              return el('tr', {},
+                el('td', {}, pl?.description ?? '—'),
+                el('td', { class: 'num' }, fmtQty(x.qty_accepted)),
+                el('td', { class: 'num' }, fmtQty(x.qty_rejected)),
+                el('td', {}, x.reason || '—'));
+            }))));
+      }
+      delCard.append(box);
+    }
+  }
+  app.append(delCard);
+
+  // ---- เงินประกันผลงาน ----
+  if (retention) {
+    const due = new Date(retention.due_date);
+    const notDue = new Date() < due;
+    app.append(el('div', { class: 'card' },
+      el('h2', {}, t('gr.retention')),
+      el('div', { class: 'grid g3' },
+        el('div', {}, el('small', { class: 'faint' }, t('common.amount')),
+          el('div', { class: 'num' }, fmt(retention.amount))),
+        el('div', {}, el('small', { class: 'faint' }, t('pay.retentionDue')),
+          el('div', {}, fmtDate(retention.due_date)))),
+      retention.confirmed_at
+        ? el('div', { class: 'notice ok', style: 'margin-top:.7rem' },
+            `${t('gr.retentionConfirmed')} — ${nameOf(retention.confirmed_by)} · ${fmtDateTime(retention.confirmed_at)}`)
+        : canInspect
+          ? el('div', { style: 'margin-top:.7rem' },
+              notDue ? el('div', { class: 'notice warn' }, t('gr.retentionNotDue')) : null,
+              el('button', { class: 'btn primary', disabled: notDue, onclick: async () => {
+                if (!await confirmBox(t('gr.confirmRetention'))) return;
+                try { await flow.confirmRetention(poId); ok(t('common.saved')); reload(); }
+                catch (e) { fail(e); }
+              } }, t('gr.confirmRetention')))
+          : null));
+  }
+
+  // ---- ตรวจรับ ----
+  async function onInspect(d) {
+    // เพดานคือจำนวนที่ผู้ขายส่งมาในใบนี้ ไม่ใช่ยอดค้างทั้งใบสั่งซื้อ — ของที่ยังไม่มาถึงตรวจไม่ได้
+    // ใบเก่าที่บันทึกไว้ก่อนมีตาราง delivery_lines ไม่มีบรรทัดจำนวน capOf ถอยไปใช้ยอดค้างให้เอง
+    const rows = poLines.map((pl) => {
+      const cap = capOf(d.id, pl);
+      const acc = el('input', { type: 'number', step: 'any', min: '0', max: String(cap), class: 'num', disabled: !cap });
+      const rej = el('input', { type: 'number', step: 'any', min: '0', max: String(cap), class: 'num', disabled: !cap });
+      const why = el('input', { type: 'text', disabled: !cap });
+      acc.value = cap || '';
+      return { pl, cap, acc, rej, why };
+    }).filter((r) => r.cap > 0 || !hasDelLines(d.id));
+
+    const err = el('p', { class: 'err-line hidden' });
+    const body = el('div', {},
+      el('div', { class: 'table-wrap' }, el('table', {},
+        el('thead', {}, el('tr', {},
+          el('th', {}, t('common.description')),
+          el('th', { class: 'ta-right' }, t('gr.qtyDelivered')),
+          el('th', { class: 'ta-right' }, t('gr.qtyAccepted')),
+          el('th', { class: 'ta-right' }, t('gr.qtyRejected')),
+          el('th', {}, t('gr.rejectReason')))),
+        el('tbody', {}, ...rows.map((r) => el('tr', {},
+          el('td', {}, el('b', {}, r.pl.description),
+            el('div', { class: 'faint' }, r.pl.unit)),
+          el('td', { class: 'num' }, fmtQty(r.cap)),
+          el('td', {}, r.acc), el('td', {}, r.rej), el('td', {}, r.why)))))),
+      err);
+
+    const res = await modalConfirm(`${t('gr.inspect')} — ${fmtDate(d.delivered_date)}`, body, () => {
+      const picked = rows
+        .map((r) => ({ r, a: Number(r.acc.value) || 0, j: Number(r.rej.value) || 0 }))
+        .filter((x) => x.a > 0 || x.j > 0);
+      if (!picked.length) { err.textContent = t('gr.needQty'); err.classList.remove('hidden'); return; }
+      const over = picked.find((x) => x.a + x.j > x.r.cap + 1e-9);
+      if (over) {
+        err.textContent = `${t('gr.overInspect')} — ${over.r.pl.description}`;
+        err.classList.remove('hidden');
+        return;
+      }
+      return picked;
+    });
+    if (!res) return;
+    await commitInspection(d.id, res);
+  }
+
+  // ลบใบส่งมอบทั้งใบ — บรรทัดจำนวนหายตามเองด้วย FK on delete cascade
+  // ไฟล์แนบในคลังไม่ลบตาม ตามหลักของ db/10_storage.sql (หลักฐานที่เคยแนบต้องตามกลับได้)
+  async function onDeleteDelivery(d) {
+    const no = d.delivery_no || d.vendor_doc_no || fmtDate(d.delivered_date);
+    if (!await confirmBox(t('gr.confirmDeleteDelivery', { no }), t('common.delete'))) return;
+    try { await remove('deliveries', d.id); ok(t('common.saved')); reload(); }
+    catch (e) { fail(e); }
+  }
+
+  // บันทึกผลตรวจรับลงฐาน — ใช้ร่วมกันทั้งตารางความคืบหน้าและกล่องตรวจรับ
+  // ผลรวมคิดจากตัวเลขที่กรอก ไม่ให้คนตรวจเลือกเองว่าจะบอกว่า "รับครบ"
+  async function commitInspection(deliveryId, picked) {
+    const anyRej = picked.some((x) => x.j > 0);
+    const anyAcc = picked.some((x) => x.a > 0);
+    const result = !anyAcc ? 'rejected' : anyRej ? 'partially_accepted' : 'accepted';
+
+    try {
+      const [gr] = await insert('grs', {
+        delivery_id: deliveryId, result, inspected_by: me.id,
+        reason: picked.map((x) => x.r.why.value.trim()).filter(Boolean).join(' · ') || null,
+      });
+      await insert('gr_lines', picked.map((x) => ({
+        gr_id: gr.id, po_line_id: x.r.pl.id,
+        qty_accepted: x.a, qty_rejected: x.j,
+        reason: x.r.why.value.trim() || null,
+      })));
+      ok(t('common.saved')); reload();
+    } catch (e) { fail(e); }
+  }
+}
+
+// กล่องยืนยันที่ "ไม่ปิดถ้ายังตรวจไม่ผ่าน" — modal() ของ ui.js ปิดทุกครั้งที่กดปุ่ม
+// ใช้แนวเดียวกับ form.js เพื่อให้ข้อความเตือนค้างอยู่ในกล่องเดิม
+function modalConfirm(title, body, collect) {
+  return new Promise((resolve) => {
+    const close = (v) => { back.remove(); resolve(v); };
+    const box = el('div', { class: 'modal wide' },
+      el('header', {}, title),
+      el('section', {}, body),
+      el('footer', {},
+        el('button', { class: 'btn primary', onclick: () => {
+          const v = collect();
+          if (v !== undefined) close(v);
+        } }, t('common.confirm')),
+        el('button', { class: 'btn ghost', onclick: () => close(null) }, t('common.cancel'))));
+    const back = el('div', { class: 'backdrop',
+      onclick: (e) => { if (e.target === back) close(null); } }, box);
+    document.body.append(back);
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,272 @@
+rules_version = '2';
+
+// ============================================================
+// firestore.rules — FreightTrack
+//
+// ใคร
+//   พนักงาน (Back office)  ล็อกอิน Google + มีชื่อในคอลเลกชัน staff (รหัสเอกสาร = อีเมลตัวพิมพ์เล็ก)
+//   คนขับ                 บัตรผ่าน (custom token) จาก Apps Script — claims: role='driver', driverId
+//   คนนอก                 ไม่ได้ล็อกอิน — อ่านได้แค่หน้าติดตามพัสดุ (ต้องรู้เลข) ลิงก์เชิญ (ต้องรู้รหัส)
+//                         และใบวางบิลที่ได้ลิงก์ (ต้องรู้รหัส · ตอบกลับได้เฉพาะช่อง reply)
+//
+// สิทธิ์รายหน้าของพนักงาน — ชุดเดียวกับ js/access.js (แก้ที่หนึ่งต้องแก้อีกที่)
+//   admin = แก้ได้ทุกหน้า · บทบาทอื่นใช้ค่าตั้งต้นตามบทบาท เว้นแต่ admin ตั้งรายคนไว้ใน pages
+//
+// ข้อจำกัด: สิทธิ์แก้ไขเป็นระดับเอกสาร ไม่ใช่ระดับช่อง — ผู้ที่แก้หน้าใดหน้าหนึ่งของงานได้
+// (กระดานงาน / แจ้งงาน / วางบิล) เขียนเอกสารงานได้ทั้งใบ
+// · คนขับแก้งานของตัวเองได้เฉพาะช่องที่หน้าคนขับใช้ (สถานะเดินหน้า · ไทม์ไลน์/การชำระ/คืน Inv. ที่มีแต่เพิ่ม)
+// · admin ลด/ปิด/ถอดตัวเองไม่ได้ จึงเหลือ admin อย่างน้อย 1 คนเสมอ (QA TC-031)
+// ============================================================
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- พนักงาน ----------
+    function signedIn() { return request.auth != null; }
+    function isGoogle() {
+      return signedIn()
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && request.auth.token.email is string;
+    }
+    function email() { return request.auth.token.email.lower(); }
+    function staffPath() { return /databases/$(database)/documents/staff/$(email()); }
+    function staff() { return get(staffPath()).data; }
+    function isStaff() {
+      return isGoogle() && exists(staffPath())
+        && staff().get('active', true) != false
+        && staff().get('removed', false) != true;
+    }
+    function isAdmin() { return isStaff() && staff().role == 'admin'; }
+
+    // ค่าตั้งต้นของแต่ละบทบาท — ตรงกับ ROLES ใน js/access.js
+    function roleDefaults() {
+      return {
+        'exec':       { 'dashboard': 'view' },
+        'warehouse':  { 'ops': 'edit', 'customer': 'edit', 'drivers': 'edit', 'returns': 'edit' },
+        'accounting': { 'billing': 'edit', 'dashboard': 'view', 'returns': 'view' },
+        'pending':    {}
+      };
+    }
+    function level(page) {
+      let s = staff();
+      return s.role == 'admin'
+        ? 'edit'
+        : s.get('pages', {}).get(page, roleDefaults().get(s.role, {}).get(page, 'none'));
+    }
+    function canEdit(page) { return isStaff() && level(page) == 'edit'; }
+    // returns = หน้าคืนบิล (returns.html) แก้การคืน Inv. ในใบงาน
+    function canEditJobs() { return canEdit('ops') || canEdit('customer') || canEdit('billing') || canEdit('returns'); }
+    function canEditDrivers() { return canEdit('drivers') || canEdit('ops') || canEdit('customer'); }
+    function canEditAny() { return canEditJobs() || canEdit('drivers'); }
+    // อ่านข้อมูลงานได้ = พนักงานที่เห็นอย่างน้อยหนึ่งหน้า ("รอกำหนดสิทธิ์" ที่ยังไม่มีหน้า อ่านไม่ได้)
+    function staffReader() {
+      return isStaff()
+        && (staff().role != 'pending' || staff().get('pages', {}).values().hasAny(['view', 'edit']));
+    }
+
+    // ---------- คนขับ ----------
+    function myDriverId() { return request.auth.token.driverId; }
+    function driverDoc() { return get(/databases/$(database)/documents/drivers/$(myDriverId())).data; }
+    // บัตรผ่านคนขับใช้ได้เฉพาะคนที่ยังเปิดใช้งาน (และลิงก์คนขับภายนอกยังเปิด)
+    // ปิดใช้งานแล้ว บัตรผ่านเดิมที่ยังไม่หมดอายุก็ใช้ไม่ได้ทันที (QA TC-234)
+    function isDriver() {
+      return signedIn() && request.auth.token.get('role', '') == 'driver'
+        && driverDoc().get('active', true) != false
+        && driverDoc().get('linkActive', true) != false;
+    }
+    // งานนี้เป็นของคนขับคนนี้ (ข้อมูลเก่าบางใบมีแค่ driverId ไม่มี driverIds)
+    function assignedTo(d) {
+      return isDriver() && (myDriverId() in d.driverIds || d.driverId == myDriverId());
+    }
+    // คนขับเปลี่ยนตัวคนขับของงานเองไม่ได้
+    function keepsDrivers() {
+      return request.resource.data.get('driverIds', []) == resource.data.get('driverIds', [])
+        && request.resource.data.get('driverId', null) == resource.data.get('driverId', null);
+    }
+    // ช่องที่หน้าคนขับ/ผู้ช่วยแก้ได้ — ค่ารอบ เลขงาน ลูกค้า ฯลฯ เป็นของออฟฟิศ (QA TC-114)
+    function stepOf(s) { return {'new': 0, 'received': 1, 'loaded': 2, 'departed': 3, 'delivered': 4}.get(s, -1); }
+    function grows(k) {
+      return request.resource.data.get(k, []).size() >= resource.data.get(k, []).size();
+    }
+    function driverEdit() {
+      let next = request.resource.data.get('status', '');
+      let prev = resource.data.get('status', '');
+      return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'events', 'updatedAt', 'payments', 'payment', 'invoiceReturns', 'invoiceReturn'])
+        && (next == prev || (stepOf(prev) >= 0 && stepOf(next) > stepOf(prev)))
+        && grows('events') && grows('payments') && grows('invoiceReturns');
+    }
+
+    // ผู้รวบรวมบิลคืน (28 ต.ค.) — คนขับที่ออฟฟิศติ๊ก billCollector ในหน้าข้อมูลคนขับ
+    // อ่านงานของทุกคนได้ (หน้าผู้ช่วย → รวบรวมคืนบิล) · แก้ได้แค่ส่วนคืนบิล: ติ๊กได้ใบแล้ว (billIn) + บันทึกคืน Inv.
+    function isCollector() {
+      return isDriver() && driverDoc().get('billCollector', false) == true;
+    }
+    function collectorEdit() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['invoiceReturns', 'invoiceReturn', 'billIn', 'updatedAt', 'events'])
+        && grows('events') && grows('invoiceReturns');
+    }
+
+    // ---------- งาน ----------
+    match /jobs/{id} {
+      allow read: if staffReader() || assignedTo(resource.data) || isCollector();
+      allow create, delete: if canEditJobs();
+      allow update: if canEditJobs() || (assignedTo(resource.data) && keepsDrivers() && driverEdit());
+    }
+    match /shipments/{id} {
+      allow read: if staffReader() || assignedTo(resource.data) || isCollector();
+      allow create, delete: if canEditJobs();
+      allow update: if canEditJobs() || (assignedTo(resource.data) && keepsDrivers() && driverEdit())
+                    || (isCollector() && keepsDrivers() && collectorEdit());
+    }
+
+    // รายชื่อคนขับ — ไม่มี PIN อยู่ในนี้ (รหัสจริงอยู่ใน Google Sheet ที่ Apps Script ตรวจ)
+    match /drivers/{id} {
+      allow read: if staffReader() || isDriver();
+      allow write: if canEditDrivers();
+    }
+
+    // ลิงก์คนขับภายนอก (driver.html?k=…) — เก็บแยกจาก drivers เพราะคนขับทุกคนอ่าน drivers ได้
+    // ถ้าอยู่ใน drivers คนขับคนไหนก็เอา token ไปสวมเป็นคนขับภายนอกได้ (QA TC-058) · Apps Script อ่านด้วย service account
+    match /driverLinks/{id} {
+      allow read, write: if canEditDrivers();
+    }
+
+    match /meta/{id} {
+      allow read: if staffReader() || isDriver();
+      allow write: if canEditAny();
+    }
+
+    // ---------- ตัวนับรูปที่ขึ้น Storage รายเดือน (js/photoQuota.js · โควตาลูกค้า 10,000 รูป/เดือน) ----------
+    // เอกสารละเดือน photoUsage/yyyy-mm { count, updatedAt } · บวกได้ทีละ 1–50 ห้ามลด/ตั้งค่าเอง
+    match /photoUsage/{ym} {
+      allow read: if staffReader();
+      allow create: if (isStaff() || isDriver()) && ym.matches('^[0-9]{4}-[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['count', 'updatedAt'])
+        && request.resource.data.count is int
+        && request.resource.data.count >= 1 && request.resource.data.count <= 50;
+      allow update: if (isStaff() || isDriver())
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['count', 'updatedAt'])
+        && request.resource.data.count is int
+        && request.resource.data.count - resource.data.count >= 1
+        && request.resource.data.count - resource.data.count <= 50;
+    }
+
+    // ---------- หน้าติดตามพัสดุ (สาธารณะ — ต้องรู้เลข ดึงรายการทั้งหมดไม่ได้) ----------
+    match /trackKeys/{key} {
+      allow get: if true;
+      allow list: if false;
+      allow write: if canEditJobs();
+    }
+    // list เปิดแล้ว (6 พ.ย. 2026 — ผู้ใช้ตัดสินใจ): ปุ่ม "ดาวน์โหลดรีพอร์ต" หน้าติดตามดึงทุกใบตามช่วงวันที่สร้างงาน (js/jobReport.js)
+    // ใครเปิดหน้าติดตามได้ก็ดึงรายการทั้งหมดได้ · trackKeys ยังห้าม list เหมือนเดิม
+    match /trackData/{sid} {
+      allow get: if true;
+      allow list: if true;
+      allow write: if canEditJobs()
+        || (isDriver() && assignedTo(get(/databases/$(database)/documents/shipments/$(sid)).data));
+    }
+
+    // ---------- ใบวางบิล (js/bills.js) ----------
+    // รหัสเอกสาร = รหัสลับในลิงก์ที่ส่งให้ลูกค้า — คนนอกเปิดได้เฉพาะใบที่รู้รหัส และลิงก์ยังเปิดอยู่
+    // ลูกค้าแก้ได้เฉพาะช่อง reply (รับบิล · นัดชำระ · แจ้งชำระ) ระหว่างที่ใบยังรอชำระ
+    function validNotice(n) {
+      return n is map
+        && n.keys().hasOnly(['date', 'method', 'amount', 'slipUrl', 'slipName', 'at'])
+        && n.get('method', '') in ['เงินโอน', 'เงินสด', 'เครดิต']
+        && n.get('amount', 0) is number
+        && n.get('date', '') is string && n.get('date', '').size() <= 10
+        && n.get('slipUrl', '') is string && n.get('slipUrl', '').size() <= 2000
+        && n.get('slipName', '') is string && n.get('slipName', '').size() <= 120
+        && n.get('at', '') is string && n.get('at', '').size() <= 40;
+    }
+    function customerReply() {
+      let r = request.resource.data.reply;
+      return resource.data.get('linkActive', false) == true
+        && resource.data.status == 'open'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reply'])
+        && r is map
+        && r.keys().hasOnly(['viewedAt', 'receivedAt', 'receivedBy', 'promiseDate', 'note', 'notice', 'updatedAt',
+                             'payMode', 'notices', 'noticeKey'])
+        && r.get('viewedAt', '') is string && r.get('viewedAt', '').size() <= 40
+        && r.get('receivedAt', '') is string && r.get('receivedAt', '').size() <= 40
+        && r.get('updatedAt', '') is string && r.get('updatedAt', '').size() <= 40
+        && r.get('receivedBy', '') is string && r.get('receivedBy', '').size() <= 100
+        && r.get('promiseDate', '') is string && r.get('promiseDate', '').size() <= 10
+        && r.get('note', '') is string && r.get('note', '').size() <= 500
+        && (!('notice' in r) || validNotice(r.notice))
+        && (!('payMode' in r) || r.payMode in ['all', 'each'])
+        && validNotices(r);
+    }
+    // แจ้งชำระรายบิล (reply.notices — แยกจ่ายทีละบิล) — กฎวนตรวจทุกค่าใน map ไม่ได้
+    // จึงให้แก้ได้ทีละรายการ: noticeKey บอกว่าแก้รายการไหน ต้องเป็นรายการเดียวที่เปลี่ยน และผ่าน validNotice
+    // (ค่าที่มีอยู่แล้วผ่านการตรวจตอนเขียนมาทุกตัว) · ลำดับรายการต้องอยู่ในใบ · ลบรายการไม่ได้
+    function validNotices(r) {
+      let before = resource.data.get('reply', {}).get('notices', {});
+      let after = r.get('notices', {});
+      let changed = after.diff(before).affectedKeys();
+      return after is map && after.size() <= 200
+        && (changed.size() == 0 || (
+          r.get('noticeKey', '') is string
+          && r.noticeKey.matches('^[0-9]{1,3}$')
+          && int(r.noticeKey) < resource.data.get('items', []).size()
+          && changed.hasOnly([r.noticeKey])
+          && r.noticeKey in after
+          && validNotice(after[r.noticeKey])));
+    }
+    match /bills/{id} {
+      allow get: if staffReader() || resource.data.get('linkActive', false) == true;
+      allow list: if staffReader();
+      allow create, delete: if canEdit('billing');
+      allow update: if canEdit('billing') || customerReply();
+    }
+
+    // ---------- รายชื่อพนักงาน ----------
+    // admin ชุดแรก — ตรงกับ BOOTSTRAP_ADMINS ใน js/config.js · ใช้สร้างตัวเองครั้งแรกเท่านั้น
+    // (ถูกถอดแล้วเอกสารยังอยู่ จึงสร้างซ้ำเองไม่ได้)
+    function bootstrapAdmins() { return ['admin@example.com']; }
+    function bootstrapCreate() {
+      return email() in bootstrapAdmins() && request.resource.data.role == 'admin';
+    }
+    // เข้าร่วมด้วยลิงก์เชิญ: ลิงก์ยังเปิด ไม่หมดอายุ ได้บทบาทตามลิงก์ (ห้าม admin) ไม่มีสิทธิ์รายหน้าติดมา
+    function inviteCreate() {
+      let d = request.resource.data;
+      let inv = get(/databases/$(database)/documents/invites/$(d.joinedVia)).data;
+      return d.joinedVia is string
+        && inv.get('active', true) != false
+        && (inv.get('expiresMs', 0) == 0 || request.time.toMillis() < inv.get('expiresMs', 0))
+        && d.role == inv.get('role', 'pending')
+        && d.role != 'admin'
+        && d.get('pages', {}).size() == 0
+        && d.get('active', true) == true
+        && d.get('removed', false) == false;
+    }
+    match /staff/{mail} {
+      allow get: if isGoogle() && (mail == email() || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isAdmin()
+        || (isGoogle() && mail == email() && (bootstrapCreate() || inviteCreate()));
+      // ตัวเองแก้ได้แค่เวลาเข้าใช้ล่าสุด ชื่อ และรูป
+      // admin แก้คนอื่นได้ทุกช่อง · แก้ตัวเองได้เฉพาะช่องทั่วไป (ห้ามลดบทบาท/ปิด/ถอดตัวเอง → เหลือ admin ≥ 1 เสมอ)
+      allow update: if (isAdmin() && (mail != email()
+            || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'active', 'removed', 'pages'])))
+        || (isStaff() && mail == email()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLoginAt', 'uid', 'name', 'photoURL']));
+      allow delete: if isAdmin() && mail != email();
+    }
+
+    // ---------- ลิงก์เชิญ ----------
+    match /invites/{token} {
+      allow get: if true;                       // ต้องรู้รหัสลิงก์ถึงจะเปิดได้
+      allow list: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+        || (isGoogle() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uses', 'lastUsedAt']));
+    }
+
+    // อื่น ๆ ทั้งหมด — ปิด
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

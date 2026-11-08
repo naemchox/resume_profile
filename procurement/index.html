@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>เข้าสู่ระบบ — ระบบจัดซื้อจัดจ้าง</title>
+<link rel="stylesheet" href="css/app.css">
+<script src="js/theme.js"></script>
+</head>
+<body class="login-wrap">
+
+<!-- ฝั่งซ้าย: แนะนำระบบ -->
+<aside class="login-hero">
+  <div class="brand-mark">
+    <span class="mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+        <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+        <path d="M14 17.5h7M17.5 14v7"/>
+      </svg>
+    </span>
+    <span class="name"><b data-i18n="app.nameA"></b><span class="soft" data-i18n="app.nameB"></span></span>
+  </div>
+
+  <div class="hero-copy">
+    <h2 data-i18n="auth.heroTitle"></h2>
+    <p data-i18n="auth.heroSub"></p>
+  </div>
+
+  <div class="login-stats">
+    <div><b data-i18n="auth.stat1"></b><span data-i18n="auth.stat1Label"></span></div>
+    <div><b data-i18n="auth.stat2"></b><span data-i18n="auth.stat2Label"></span></div>
+    <div><b data-i18n="auth.stat3"></b><span data-i18n="auth.stat3Label"></span></div>
+  </div>
+</aside>
+
+<!-- ฝั่งขวา: ลงชื่อเข้าใช้ -->
+<main class="login-panel">
+  <div class="panel-top">
+    <div class="brand-mark">
+      <span class="mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+          <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+          <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+          <path d="M14 17.5h7M17.5 14v7"/>
+        </svg>
+      </span>
+      <span class="name"><b data-i18n="app.nameA"></b><span class="soft" data-i18n="app.nameB"></span></span>
+    </div>
+    <span class="spacer"></span>
+    <span id="themeSlot"></span>
+    <button type="button" class="lang-pill" id="langBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/>
+      </svg>
+      <span id="langBtnLabel"></span>
+    </button>
+  </div>
+
+  <div class="login-form">
+    <h1 data-i18n="auth.access"></h1>
+    <p class="lead" data-i18n="auth.accessSub"></p>
+
+    <div id="notConfigured" class="notice err hidden"></div>
+
+    <button type="button" class="btn google" id="googleBtn">
+      <svg class="g-logo" viewBox="0 0 18 18" aria-hidden="true">
+        <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.91c1.7-1.57 2.69-3.88 2.69-6.62z"/>
+        <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.26c-.81.54-1.84.86-3.05.86-2.35 0-4.34-1.58-5.05-3.71H.96v2.33A9 9 0 0 0 9 18z"/>
+        <path fill="#FBBC05" d="M3.95 10.71a5.41 5.41 0 0 1 0-3.42V4.96H.96a9 9 0 0 0 0 8.08l2.99-2.33z"/>
+        <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.96l2.99 2.33C4.66 5.16 6.65 3.58 9 3.58z"/>
+      </svg>
+      <span data-i18n="auth.google">เข้าสู่ระบบด้วย Google</span>
+    </button>
+
+    <p id="loginErr" class="err-line hidden"></p>
+
+    <div id="bootstrapBox" class="hidden" style="margin-top:1.2rem;padding-top:1rem;border-top:1px solid var(--line)">
+      <p class="faint" data-i18n="auth.bootstrapHint"></p>
+      <button class="btn" id="bootstrapBtn" data-i18n="auth.bootstrap"></button>
+    </div>
+  </div>
+
+  <div class="login-foot" id="loginFoot">
+    <span class="dot"></span>
+    <span data-i18n="auth.sysStatus"></span>
+    <b class="state" id="sysState"></b>
+    <span class="spacer"></span>
+    <a href="#" data-i18n="auth.privacy"></a>
+    <a href="#" data-i18n="auth.terms"></a>
+  </div>
+</main>
+
+<script type="module">
+import { sb, configured } from './js/supabase.js';
+import { t, apply, toggleLang, lang } from './js/i18n.js';
+import { signInWithGoogle, loadMe } from './js/auth.js';
+import { flow, invites } from './js/api.js';
+import { errText, $, ok, themeToggle } from './js/ui.js';
+
+apply();
+document.title = `${t('auth.signIn')} — ${t('app.name')}`;
+$('#langBtnLabel').textContent = lang === 'th' ? 'EN' : 'ไทย';
+$('#langBtn').onclick = () => { toggleLang(); location.reload(); };
+$('#themeSlot').replaceWith(themeToggle('lang-pill theme-toggle'));
+
+$('#sysState').textContent = t(configured ? 'auth.sysOk' : 'auth.sysDown');
+if (!configured) $('#loginFoot').classList.add('down');
+
+const err = $('#loginErr');
+const showErr = (msg) => { err.textContent = msg; err.classList.remove('hidden'); };
+
+if (!configured) {
+  const box = $('#notConfigured');
+  box.textContent = t('msg.notConfigured');
+  box.classList.remove('hidden');
+  $('#googleBtn').disabled = true;
+} else {
+  // Google เด้งกลับมาพร้อม error ได้ เช่นผู้ใช้กดยกเลิก หรือโดนกติกาโดเมนตัด
+  // ต้องอ่านทั้ง query และ hash เพราะแล้วแต่ flow ที่ Supabase ใช้ (pkce / implicit)
+  const params = new URLSearchParams(location.search);
+  const hash = new URLSearchParams(location.hash.slice(1));
+  const oauthErr = params.get('error_description') || params.get('error')
+                || hash.get('error_description')   || hash.get('error');
+  if (oauthErr) {
+    showErr(decodeURIComponent(oauthErr.replace(/\+/g, ' ')));
+    history.replaceState({}, '', location.pathname);
+  }
+
+  // ลิงก์เชิญ — โทเคนต้องรอดข้ามการเด้งไป Google ให้ได้ (redirectTo ตัด query ทิ้ง)
+  // จึงพักไว้ใน localStorage ก่อน แล้วล้าง URL ไม่ให้โทเคนค้างอยู่ในแถบที่อยู่
+  const INVITE_KEY = 'proc.invite';
+  const fromUrl = params.get('invite');
+  if (fromUrl) {
+    localStorage.setItem(INVITE_KEY, fromUrl);
+    history.replaceState({}, '', location.pathname);
+  }
+  const pendingInvite = localStorage.getItem(INVITE_KEY);
+
+  // เข้าระบบอยู่แล้ว (หรือเพิ่งกลับมาจาก Google) — ตัดสินว่าจะพาไปไหนต่อ
+  let u = await loadMe();
+
+  // รับคำเชิญให้อัตโนมัติ: มีโทเคนจากลิงก์ หรือยังไม่มีตำแหน่ง (ลองจับคู่จากอีเมล)
+  if (u && u.active !== false && (pendingInvite || !u.roles.length)) {
+    try {
+      const msg = await invites.claim(pendingInvite);
+      localStorage.removeItem(INVITE_KEY);
+      if (msg) { ok(t('invite.claimed')); u = await loadMe(); }
+    } catch (ex) {
+      localStorage.removeItem(INVITE_KEY);   // คำเชิญใช้ไม่ได้แล้ว อย่าให้ค้างวนซ้ำ
+      showErr(errText(ex));
+    }
+  }
+
+  if (u) {
+    if (u.active === false) {
+      showErr(t('auth.inactive'));
+      await sb.auth.signOut();          // ออกให้เลย แต่ไม่เด้งหน้า ผู้ใช้จะได้อ่านสาเหตุทัน
+    } else if (u.roles.length) {
+      location.replace('home.html');
+    } else {
+      // ยังไม่มีตำแหน่ง — ถ้าระบบยังไม่มีแอดมินเลย ให้ตั้งตัวเองเป็นคนแรกได้
+      showErr(t('auth.noRole'));
+      $('#bootstrapBox').classList.remove('hidden');
+    }
+  } else if (pendingInvite) {
+    // ยังไม่ล็อกอิน — บอกให้รู้ว่าลิงก์เชิญรับไว้แล้ว รอแค่กดล็อกอิน
+    const box = $('#notConfigured');
+    box.textContent = t('invite.claimPending');
+    box.className = 'notice info';
+  }
+}
+
+$('#googleBtn').onclick = async () => {
+  const btn = $('#googleBtn');
+  err.classList.add('hidden');
+  btn.disabled = true;
+  btn.querySelector('span').textContent = t('auth.redirecting');
+  try {
+    await signInWithGoogle();           // สำเร็จ = เบราว์เซอร์ออกไปหน้า Google แล้ว
+  } catch (ex) {
+    showErr(errText(ex));
+    btn.disabled = false;
+    btn.querySelector('span').textContent = t('auth.google');
+  }
+};
+
+$('#bootstrapBtn').onclick = async () => {
+  try {
+    await flow.bootstrapAdmin();
+    ok(t('common.saved'));
+    location.replace('admin.html');
+  } catch (ex) {
+    showErr(errText(ex));
+  }
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,1543 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard · FreightTrack</title>
+<meta name="description" content="Dashboard ภาพรวมการขนส่ง และแนวโน้มยอดส่ง รายได้ กำไร">
+<meta name="theme-color" content="#f4f3f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1f1c1b" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+/* เปลี่ยนชื่อระบบ CST → FT (4 ต.ค. 2569) — ย้ายข้อมูลในเครื่องจากชื่อเก่า "cst." / "cst-" มาชื่อใหม่ครั้งเดียว
+   ล็อกอินที่ค้างอยู่ งานของคนขับที่ยังไม่ได้ส่ง (กล่องขาออก) และธีมที่เลือกไว้จึงไม่หาย · ชื่อใหม่มีค่าอยู่แล้ว = ไม่ทับ */
+(() => {
+  const OLD = 'c' + 'st';                     /* เขียนแยกไว้ กันการค้นหา-แทนที่ชื่อระบบรอบหน้าเปลี่ยนตัวนี้ไปด้วย */
+  for (const name of ['localStorage', 'sessionStorage']){
+    try{
+      const st = window[name], keys = [];
+      for (let i = 0; i < st.length; i++){ const k = st.key(i); if (k && (k.startsWith(OLD + '.') || k.startsWith(OLD + '-'))) keys.push(k); }
+      keys.forEach(k => { const nk = 'ft' + k.slice(3); if (st.getItem(nk) === null) st.setItem(nk, st.getItem(k)); st.removeItem(k); });
+    }catch{}
+  }
+})();
+</script>
+<script>
+/* ใส่ธีมที่เคยเลือกไว้ก่อนวาดหน้า กันจอกะพริบขาว (ไม่เคยเลือก = ตามระบบ) */
+try { const t = localStorage.getItem('ft-theme'); if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; } catch {}
+</script>
+<style>
+/* ขนาดทุกตัวถอดจาก "dashboard and report template.pdf" หน้า 2–3
+   1 pt ในแบบ = 1.65 px บนเว็บ (หน้ากว้างเต็มที่ 790 pt → 1,304 px)
+   กราฟเป็น SVG ที่ใช้พิกัด pt ของแบบตรง ๆ แล้วยืดตามความกว้างการ์ด */
+:root{
+  --navy:#0a1424; --bg:#f4f7fa; --card:#fff; --line:#dde5ee; --pill:#c4d0de;
+  --text:#0d1c30; --text-2:#41556e; --text-3:#77889d;
+  --amber:#f5a524; --amber-dim:#c9821a; --amber-ink:#8a5a0c; --amber-wash:#fff6e6;
+  --blue:#2a78d6; --orange:#eb6834; --green:#1baf7a; --slate:#33465f;
+  --ok:#0ca30c; --warn:#fab219; --bad:#d03b3b;
+  --grid:#dde5ee; --axis:#77889d; --shade:#f4f7fa;
+  color-scheme:light;
+  --sans:"IBM Plex Sans Thai","IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+/* ---------- Dark mode · ชุด "กราไฟต์" ----------
+   เทาดำกลาง ๆ ไม่อมสี · สีกราฟหม่นแบบหมึกพิมพ์ · ส้มแบรนด์ลดความสด · ไม่มีแสงเรืองหรือไล่สี
+   แยกชั้นด้วยความสว่างทีละขั้น: พื้น #141414 < การ์ด #1c1c1c < เส้น #2a2a2a
+   ตามระบบ (prefers-color-scheme) เว้นแต่ผู้ใช้กดปุ่มเลือกเอง (data-theme บน <html>) */
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#141414; --card:#1c1c1c; --line:#2a2a2a; --pill:#3a3a3a;
+    --text:#e7e5e2; --text-2:#a3a09b; --text-3:#716e69;
+    --amber:#d9a03f; --amber-dim:#e3b563; --amber-ink:#e3b563; --amber-wash:#2a2419;
+    --blue:#7d9cc4; --orange:#c98563; --green:#86ad8d; --slate:#b8b4ae;
+    --ok:#86ad8d; --warn:#d6b26a; --bad:#cf7a6f;
+    --grid:#262626; --axis:#5c5a57; --shade:#202020;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141414; --card:#1c1c1c; --line:#2a2a2a; --pill:#3a3a3a;
+  --text:#e7e5e2; --text-2:#a3a09b; --text-3:#716e69;
+  --amber:#d9a03f; --amber-dim:#e3b563; --amber-ink:#e3b563; --amber-wash:#2a2419;
+  --blue:#7d9cc4; --orange:#c98563; --green:#86ad8d; --slate:#b8b4ae;
+  --ok:#86ad8d; --warn:#d6b26a; --bad:#cf7a6f;
+  --grid:#262626; --axis:#5c5a57; --shade:#202020;
+  color-scheme:dark;
+}
+[data-theme="dark"] .appbar{background:rgba(14,14,14,.94);border-bottom-color:rgba(255,255,255,.07)}
+[data-theme="dark"] .brand-mark{background:var(--amber);box-shadow:none}
+[data-theme="dark"] .appnav a{color:#a3a09b}
+[data-theme="dark"] .brand-sub{color:#716e69}
+[data-theme="dark"] .appbar-role{color:#8a8782;border-color:rgba(255,255,255,.12)}
+[data-theme="dark"] .theme-btn{color:#a3a09b;border-color:rgba(255,255,255,.12)}
+[data-theme="dark"] .appnav a:hover{color:#e7e5e2}
+[data-theme="dark"] .appnav a[aria-current="page"]{background:var(--amber-wash);color:var(--amber-ink)}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .appbar{background:rgba(14,14,14,.94);border-bottom-color:rgba(255,255,255,.07)}
+  :root:not([data-theme="light"]) .brand-mark{background:var(--amber);box-shadow:none}
+  :root:not([data-theme="light"]) .appnav a{color:#a3a09b}
+  :root:not([data-theme="light"]) .brand-sub{color:#716e69}
+  :root:not([data-theme="light"]) .appbar-role{color:#8a8782;border-color:rgba(255,255,255,.12)}
+  :root:not([data-theme="light"]) .theme-btn{color:#a3a09b;border-color:rgba(255,255,255,.12)}
+  :root:not([data-theme="light"]) .appnav a:hover{color:#e7e5e2}
+  :root:not([data-theme="light"]) .appnav a[aria-current="page"]{background:var(--amber-wash);color:var(--amber-ink)}
+}
+/* ระหว่างตรวจสิทธิ์ ยังไม่โชว์เนื้อหา (js/auth.js) */
+body.gating main{visibility:hidden}
+/* ผู้ใช้ที่ล็อกอิน + ปุ่มออก — ชุดเดียวกับ css/app.css */
+.appbar-user{display:flex;align-items:center;gap:8px;flex:none;padding-left:10px;border-left:1px solid rgba(255,255,255,.12)}
+.appbar-user[hidden]{display:none}
+.appbar-user-name{display:flex;flex-direction:column;align-items:flex-end;line-height:1.2;font-size:12.5px;font-weight:600;color:#dfe7f0;
+  max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.appbar-user-name small{font-size:10.5px;font-weight:500;color:#8ba0b8}
+.appbar-out{font:inherit;font-size:12px;font-weight:600;color:#a9bcd2;background:transparent;cursor:pointer;
+  border:1px solid rgba(255,255,255,.14);border-radius:7px;padding:5px 10px}
+.appbar-out:hover{background:rgba(255,255,255,.08);color:#fff}
+.appbar-out .sm{display:none}
+.appnav a{white-space:nowrap}
+
+@media (max-width:820px){.appbar-user-name{display:none} .appbar-out .lg{display:none} .appbar-out .sm{display:inline}}
+[data-theme="dark"] .appbar-user-name{color:#e7e5e2}
+[data-theme="dark"] .appbar-user-name small,[data-theme="dark"] .appbar-out{color:#a3a09b}
+.theme-btn{
+  flex:none;width:34px;height:34px;border-radius:8px;display:grid;place-items:center;
+  background:transparent;border:1px solid rgba(255,255,255,.14);color:#a9bcd2;font-size:15px;line-height:1;
+  transition:background .18s,color .18s;
+}
+.theme-btn:hover{background:rgba(255,255,255,.08);color:#fff}
+body,.card,.kpi,.pill{transition:background-color .2s,border-color .2s,color .2s}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;cursor:pointer}
+
+.wrap{max-width:1390px;margin:0 auto;padding:0 43px}
+
+/* ---------- แถบบน — ให้ตรงกับหน้าอื่น (css/app.css) ---------- */
+.appbar{
+  position:sticky;top:0;z-index:60;
+  background:rgba(10,20,36,.94);
+  backdrop-filter:saturate(1.4) blur(12px);-webkit-backdrop-filter:saturate(1.4) blur(12px);
+  border-bottom:1px solid rgba(255,255,255,.09);
+}
+.appbar-inner{display:flex;align-items:center;gap:20px;height:62px}
+.brand{display:flex;align-items:center;gap:11px;flex:none;font-size:15px;line-height:1.62}  /* หน้าอื่นได้ค่านี้จาก body ใน css/base.css */
+.brand-mark{
+  width:32px;height:32px;border-radius:8px;flex:none;display:grid;place-items:center;
+  background:linear-gradient(145deg,var(--amber),#e08a10);box-shadow:0 2px 10px rgba(245,165,36,.34);
+  font-family:var(--mono);font-weight:600;font-size:13px;letter-spacing:-.03em;color:var(--navy);
+}
+.appbar .wrap-wide{width:min(100% - 40px,1400px);margin-inline:auto}
+.brand-name{font-weight:600;font-size:15px;letter-spacing:-.01em;line-height:1.15;color:#fff}
+.brand-sub{font-family:var(--mono);font-size:9.5px;letter-spacing:.19em;text-transform:uppercase;color:#7f95af}
+.appbar-role{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;
+  color:#8ba0b8;border:1px solid rgba(255,255,255,.14);border-radius:99px;padding:3px 10px;
+}
+.appnav{display:flex;align-items:center;gap:2px;margin-left:auto}
+.appnav a{padding:7px 13px;border-radius:8px;font-size:13.5px;font-weight:500;color:#a9bcd2;transition:background .18s,color .18s}
+.appnav a:hover{background:rgba(255,255,255,.08);color:#fff}
+.appnav a[aria-current="page"]{background:rgba(245,165,36,.16);color:var(--amber)}
+@media (max-width:760px){.appbar-role{display:none}}
+@media (max-width:820px){
+  .appnav{gap:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .appnav::-webkit-scrollbar{display:none}
+  .appnav a{padding:7px 10px;font-size:12.5px}
+  .brand-sub{display:none}
+}
+/* แถบหัวแน่น (เมนูครบ + ผู้ใช้ + ปุ่มเลือกฝั่ง) — เมนูหดและเลื่อนซ้ายขวาได้ ผู้ใช้กับปุ่มต้องมองเห็นเสมอ */
+.appnav{min-width:0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.appnav::-webkit-scrollbar{display:none}
+@media (max-width:1320px){ .appnav a{padding:7px 9px;font-size:13px} .appbar-inner{gap:14px} }
+@media (max-width:1200px){ .appbar-user-name{display:none} .appbar-user{border-left:0;padding-left:0} }
+/* มือถือ: สองแถว — บนเป็นโลโก้กับปุ่ม ล่างเป็นเมนูเต็มความกว้าง */
+@media (max-width:820px){
+  .appbar-inner{flex-wrap:wrap;height:auto;padding:8px 0;row-gap:4px}
+  .appbar-inner > .appnav{order:3;flex:1 0 100%;margin-left:-6px !important;justify-content:flex-start}
+  .appbar-inner > .appnav ~ .appbar-user,.appbar-inner > .appnav ~ .theme-btn{order:2}
+  .appbar-inner > .appnav ~ .appbar-user{margin-left:auto !important}
+  .appbar-inner > .appbar-user ~ .theme-btn{margin-left:0 !important}
+}
+
+/* ---------- หัว dashboard ---------- */
+.dash{padding:17px 0 0}
+.dash + .dash{margin-top:40px;padding-top:40px;border-top:1px solid var(--line)}
+.dash-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.eyebrow{font-size:11.4px;font-weight:600;color:var(--amber-dim)}
+.title{font-size:20.8px;font-weight:700;letter-spacing:-.01em;margin-top:5px;line-height:1.3}
+.filters{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pill{
+  display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 13px;border-radius:999px;
+  background:var(--card);border:1.2px solid var(--pill);font-size:10.9px;white-space:nowrap;
+}
+.pill-date{background:var(--amber-wash);border:1.6px solid var(--amber);color:var(--amber-ink);font-weight:600}
+.pill-go{background:var(--amber);border-color:var(--amber);color:var(--navy);font-weight:600}
+.pill-xl{font-weight:600;cursor:pointer}
+.pill-xl:disabled{opacity:.6;cursor:progress}
+.pill .caret{font-size:9px}
+.pill select,.pill input{border:0;background:transparent;font:inherit;color:inherit;outline:none;padding:0;cursor:pointer}
+.pill select{font-weight:600;max-width:140px}
+.pill input[type=date]{font-family:var(--mono);font-size:10.4px;width:112px}
+.pill:focus-within{box-shadow:0 0 0 3px rgba(245,165,36,.25)}
+.pill-check input{width:13px;height:13px;margin:0 2px 0 0;accent-color:var(--amber)}
+.pill-check:has(input:checked){background:var(--amber-wash);border-color:var(--amber);color:var(--amber-ink);font-weight:600}
+.pill-date:has(input:disabled){opacity:.45}
+.pill-date input:disabled{cursor:not-allowed}
+.live{font-size:10.4px;color:var(--text-3);margin-top:3px}
+.live[data-tone="ok"]::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);margin-right:6px;vertical-align:1px}
+.live[data-tone="bad"]{color:var(--bad);font-weight:600}
+.live-row{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;margin-top:3px}
+.live-row .live{margin-top:0}
+.refresh{font:inherit;font-size:10.4px;font-weight:600;color:var(--amber-ink);background:var(--amber-wash);
+  border:1px solid var(--amber);border-radius:99px;padding:2px 10px;cursor:pointer}
+.refresh:hover{background:var(--amber);color:var(--navy)}
+.refresh:disabled{opacity:.6;cursor:progress}
+@media print{.refresh{display:none}}
+.kpi-value.is-none{color:var(--text-3)}
+.nodata{display:grid;place-items:center;min-height:64px;margin-top:10px;border-radius:8px;background:var(--bg);color:var(--text-3);font-size:10.9px;text-align:center;padding:10px}
+.stack .nodata{flex:1;margin-top:0;min-height:0;height:100%;padding:0}
+table.t td.empty-row{text-align:center;color:var(--text-3)}
+
+/* ---------- ตัวเลขสำคัญ ---------- */
+.kpis{display:grid;gap:6px;margin-bottom:7px}
+.kpis-8{grid-template-columns:repeat(8,minmax(0,1fr))}
+.kpis-5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.kpi{
+  background:var(--card);border:1.2px solid var(--line);border-left:2.6px solid var(--amber);
+  border-radius:7px;padding:7px 11px 9px;min-width:0;
+}
+.kpi-label{font-size:10px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi-value{font-family:var(--mono);font-weight:600;font-size:16.7px;line-height:1.35;margin-top:3px;white-space:nowrap}
+.kpi-value .baht{font-family:var(--sans);font-weight:700}
+.kpi-value .unit{font-family:var(--sans);font-weight:600}
+.kpi-sub{font-size:10px;color:var(--text-3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- การ์ด ---------- */
+.grid{display:grid;gap:7px;margin-bottom:7px}
+.g-overview-1,.g-trend-1{grid-template-columns:464.3fr 320.2fr}
+.g-overview-2{grid-template-columns:524.3fr 260.2fr}
+.g-trend-2{grid-template-columns:1fr 1fr}
+.card{background:var(--card);border:1.2px solid var(--line);border-radius:10px;padding:9px 10.5px 10px;min-width:0}
+.card-title{font-size:12.5px;font-weight:600}
+.card-sub{font-size:10.4px;color:var(--text-2);margin-top:3px}
+.legend{display:flex;gap:14px;font-size:10.4px;color:var(--text-2);margin-top:7px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+svg.chart{display:block;width:100%;height:auto;overflow:visible;font-family:var(--sans)}
+
+/* ---------- ตาราง ---------- */
+table.t{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10.9px}
+table.t th{font-weight:600;color:var(--text-2);text-align:left;padding:6px 6px 5px;border-bottom:1.2px solid var(--text);white-space:nowrap}
+table.t td{padding:0 6px;height:26px;border-bottom:1.2px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+table.t .r{text-align:right}
+table.t tr.total td{font-weight:700}
+table.t.sm{font-size:10.4px}
+table.t.sm td{height:23.6px}
+.cellbar{display:block;height:8px;border-radius:4px;background:var(--blue)}
+.sec{margin-top:10px}
+
+/* ---------- แถบสัดส่วน ---------- */
+.stack{display:flex;gap:2.8px;height:21.6px;margin-top:11px}
+.stack span{border-radius:5px;min-width:2.6px}
+.keys{list-style:none;margin-top:10px}
+.keys li{display:flex;align-items:center;font-size:10.9px;height:20.5px}
+.keys i{width:10px;height:10px;border-radius:2px;margin-right:6px;flex:none}
+.keys b{margin-left:auto;font-weight:700}
+
+/* ---------- กล่องอธิบาย ---------- */
+.note{background:var(--bg);border-radius:8px;padding:10px 11px 11px;margin-top:10px;font-size:10.9px;line-height:1.55}
+.note h4{font-size:10.9px;font-weight:700;margin-bottom:2px}
+.note ul{padding-left:17px}
+.note li b{font-weight:700}
+.note li span,.note p{color:var(--text-2)}
+.note p{margin-top:4px}
+
+@media (max-width:1100px){
+  .kpis-8{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .g-overview-1,.g-overview-2,.g-trend-1,.g-trend-2{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:640px){
+  .wrap{padding:0 16px}
+  .appbar .wrap-wide{width:calc(100% - 28px)}
+  .kpis-8,.kpis-5{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .table-scroll{overflow-x:auto}
+  .table-scroll table.t{min-width:560px}
+}
+/* ออก Report = พิมพ์หน้านี้ — กระดาษ A4 แนวตั้ง ตัวเลขสำคัญแถวละ 4 ช่อง กราฟยังเรียง 2 คอลัมน์ (ไม่ยุบเป็นแถวเดียวแบบมือถือ)
+   การ์ดไม่ถูกตัดกลางหน้า ถ้าที่เหลือไม่พอจะยกทั้งแถวไปหน้าถัดไป และแต่ละ dashboard เริ่มหน้าใหม่ */
+@page{size:A4 portrait;margin:8mm}
+@media print{
+  .appbar,.filters .pill-go,.filters .pill-xl{display:none}
+  .pill{border-color:transparent}
+  body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .theme-btn{display:none}
+  /* พิมพ์เป็นโทนสว่างเสมอ แม้หน้าจออยู่ใน dark mode — :not(#_) ดันน้ำหนักให้ชนะกฎ dark ทุกแบบ */
+  :root:not(#_){
+    --navy:#0a1424; --bg:#f4f7fa; --card:#fff; --line:#dde5ee; --pill:#c4d0de;
+    --text:#0d1c30; --text-2:#41556e; --text-3:#77889d;
+    --amber:#f5a524; --amber-dim:#c9821a; --amber-ink:#8a5a0c; --amber-wash:#fff6e6;
+    --blue:#2a78d6; --orange:#eb6834; --green:#1baf7a; --slate:#33465f;
+    --ok:#0ca30c; --warn:#fab219; --bad:#d03b3b;
+    --grid:#dde5ee; --axis:#77889d; --shade:#f4f7fa;
+    color-scheme:light;
+  }
+  .wrap{max-width:none;padding:0 2px}
+  .wrap > main,main.wrap{padding-bottom:0 !important}
+  .kpis-8{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .kpis-5{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .g-overview-1,.g-trend-1{grid-template-columns:minmax(0,464.3fr) minmax(0,320.2fr)}
+  .g-overview-2{grid-template-columns:minmax(0,524.3fr) minmax(0,260.2fr)}
+  .g-trend-2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  /* ย่อให้เลย์เอาต์กว้าง ~815 px บนกระดาษกว้าง 194 มม. — หนึ่ง dashboard ต่อหนึ่งหน้า */
+  .dash{zoom:.9}
+  .card,.kpi{overflow:hidden}
+  .table-scroll{overflow:visible}
+  .table-scroll table.t{min-width:0}
+  /* กระดาษแนวตั้งแคบ — ให้ชื่อยาวขึ้นบรรทัดใหม่แทนการตัดเป็น … */
+  table.t td{white-space:normal;overflow:visible;height:auto;padding-top:5px;padding-bottom:5px;line-height:1.35}
+  /* ตารางค่าใช้จ่ายต่อคนขับ: ย้ายความกว้างจากคอลัมน์แถบกราฟไปให้คอลัมน์ชื่อ */
+  .g-overview-2 .table-scroll col:nth-child(1){width:20% !important}
+  .g-overview-2 .table-scroll col:nth-child(6){width:8.58% !important}
+  .dash{padding-top:0}
+  .dash + .dash{margin-top:0;padding-top:0;border-top:0;break-before:page}
+  .dash-head,.kpis,.grid,.card,.kpi{break-inside:avoid}
+}
+.pq{margin-bottom:7px}
+.pq-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.pq-num{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.pq-track{height:8px;border-radius:4px;background:var(--shade);margin:8px 0 6px;overflow:hidden}
+.pq-track i{display:block;height:100%;border-radius:4px;background:var(--ok);transition:width .4s}
+.pq[data-lv="70"] .pq-track i,.pq[data-lv="80"] .pq-track i{background:var(--warn)}
+.pq[data-lv="90"] .pq-track i,.pq[data-lv="100"] .pq-track i{background:var(--bad)}
+.pq-note{font-size:12px;color:var(--text-2)}
+.pq[data-lv="90"] .pq-note,.pq[data-lv="100"] .pq-note{color:var(--bad);font-weight:600}
+</style>
+<link rel="stylesheet" href="css/apple.css">
+<!-- dashboard.css โหลดหลัง apple.css — โทนเดียวกับหน้าแรก (index.html) · เฉพาะบนจอ Report ที่พิมพ์ไม่เปลี่ยน -->
+<link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body class="gating dsh">
+
+<header class="appbar">
+  <div class="wrap-wide appbar-inner">
+    <a class="brand" href="dashboard.html">
+      <span class="brand-mark">FT</span>
+      <span>
+        <span class="brand-name">ขนส่งตัวอย่าง</span><br>
+        <span class="brand-sub">EXAMPLE TRANSPORT CO., LTD.</span>
+      </span>
+    </a>
+    <nav class="appnav" id="appNav"></nav>
+    <div class="appbar-user" id="appUser" hidden></div>
+    <button class="theme-btn" id="themeBtn" type="button"></button>
+  </div>
+</header>
+
+<main class="wrap" style="padding-bottom:48px">
+
+  <!-- =========================================================
+       Dashboard 1 — ภาพรวมการขนส่ง (แบบหน้า 2)
+       ========================================================= -->
+  <section class="dash" id="overview">
+    <div class="dash-head">
+      <div>
+        <p class="eyebrow">Dashboard</p>
+        <h1 class="title">ภาพรวมการขนส่ง</h1>
+        <p class="live-row"><span class="live" id="liveState">กำลังโหลดข้อมูลจากชีต Master…</span>
+          <button class="refresh" type="button" data-refresh title="ดึงข้อมูลจากชีต Master ใหม่เดี๋ยวนี้">↻ รีเฟรชข้อมูล</button></p>
+      </div>
+      <div class="filters">
+        <label class="pill pill-check"><input type="checkbox" data-today> เฉพาะวันนี้</label>
+        <label class="pill pill-date">📅 <input type="date" data-f="from" aria-label="วันเริ่มต้น"> – <input type="date" data-f="to" aria-label="วันสุดท้าย"></label>
+        <label class="pill">ผู้ขนส่ง: <select data-f="carrier"><option value="">ทั้งหมด</option></select></label>
+        <label class="pill">ภาค: <select data-f="region"><option value="">ทั้งหมด</option></select></label>
+        <label class="pill">คนขับ: <select data-f="driver"><option value="">ทั้งหมด</option></select></label>
+        <button class="pill pill-go" type="button" data-print>⬇ ออก Report</button>
+        <button class="pill pill-xl" type="button" data-xlsx>⬇ บันทึกเป็น Excel</button>
+        <!-- รายงานสรุปการขนส่ง แบบเอกสาร (template หน้า 4–5) — เปิดแท็บใหม่ พิมพ์/PDF/Excel ได้ (31 ต.ค.) -->
+        <button class="pill pill-go" type="button" data-sumreport>📄 รายงานสรุป</button>
+      </div>
+    </div>
+
+    <div class="kpis kpis-8" id="ovKpis"></div>
+
+    <!-- รูปที่ขึ้น Storage เดือนนี้ เทียบโควตา 10,000 รูป (js/photoQuota.js · นับจาก Firestore photoUsage ไม่ใช่ชีต Master) -->
+    <div class="card pq no-print" id="photoQuota">
+      <div class="pq-row">
+        <span class="card-title">รูปใน Storage เดือนนี้</span>
+        <span class="pq-num" data-pqnum>–</span>
+      </div>
+      <div class="pq-track"><i data-pqbar style="width:0"></i></div>
+      <div class="pq-note" data-pqnote>กำลังโหลด…</div>
+    </div>
+
+    <div class="grid g-overview-1">
+      <div class="card">
+        <h3 class="card-title">จำนวนรอบการวิ่งรายสัปดาห์ แยกตามผู้ขนส่ง</h3>
+        <div class="legend" id="legRuns"></div>
+        <div id="chWeeklyRuns"></div>
+      </div>
+      <div class="card">
+        <h3 class="card-title">ค่าใช้จ่ายแยกตามประเภท (บาท)</h3>
+        <p class="card-sub" id="costTotal"></p>
+        <div id="chCostProv"></div>
+      </div>
+    </div>
+
+    <div class="grid g-overview-2">
+      <div class="card">
+        <h3 class="card-title">ค่าใช้จ่ายต่อคนขับ</h3>
+        <div class="table-scroll">
+          <table class="t" style="margin-top:6px">
+            <colgroup>
+              <col style="width:9.97%"><col style="width:12.02%"><col style="width:5.87%"><col style="width:6%">
+              <col style="width:17.17%"><col style="width:18.61%"><col style="width:8.66%"><col style="width:8.66%"><col style="width:13.04%">
+            </colgroup>
+            <thead><tr>
+              <th>คนขับ</th><th>ผู้ขนส่ง</th><th class="r">รอบ</th><th class="r">Bill</th>
+              <th class="r">ค่าใช้จ่ายรวม (฿)</th><th></th><th class="r">ต่อรอบ</th><th class="r">ต่อ Bill</th><th class="r">Inv. ค้างคืน</th>
+            </tr></thead>
+            <tbody id="driverRows"></tbody>
+          </table>
+        </div>
+
+        <h3 class="card-title sec">การวางบิล (บาท)</h3>
+        <table class="t sm" style="margin-top:6px">
+          <colgroup><col style="width:47.5%"><col style="width:26.25%"><col style="width:26.25%"></colgroup>
+          <thead><tr><th>สถานะ</th><th class="r">ฝั่งเรา</th><th class="r">ฝั่งลูกค้า</th></tr></thead>
+          <tbody id="billingRows"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">สถานะการคืนเอกสาร Inv.</h3>
+        <div class="stack" id="invStack"></div>
+        <ul class="keys" id="invKeys"></ul>
+
+        <h3 class="card-title" style="margin-top:12px">ช่องทางการชำระเงิน (ตามยอดเงิน)</h3>
+        <div class="stack" id="payStack"></div>
+        <ul class="keys" id="payKeys"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       Dashboard 2 — แนวโน้ม: ยอดส่ง รายได้ และกำไร (แบบหน้า 3)
+       ========================================================= -->
+  <section class="dash" id="trend">
+    <div class="dash-head">
+      <div>
+        <p class="eyebrow">Dashboard · แนวโน้ม</p>
+        <h1 class="title">ยอดส่ง รายได้ และกำไร</h1>
+      </div>
+      <div class="filters">
+        <label class="pill pill-check"><input type="checkbox" data-today> เฉพาะวันนี้</label>
+        <label class="pill pill-date">📅 <input type="date" data-f="from" aria-label="วันเริ่มต้น"> – <input type="date" data-f="to" aria-label="วันสุดท้าย"></label>
+        <label class="pill">ดูราย: <select data-f="by"><option value="week">สัปดาห์</option><option value="month">เดือน</option></select></label>
+        <label class="pill">ผู้ขนส่ง: <select data-f="carrier"><option value="">ทั้งหมด</option></select></label>
+        <button class="pill pill-go" type="button" data-print>⬇ ออก Report</button>
+        <button class="pill pill-xl" type="button" data-xlsx>⬇ บันทึกเป็น Excel</button>
+      </div>
+    </div>
+
+    <div class="kpis kpis-5" id="trKpis"></div>
+
+    <div class="grid g-trend-1">
+      <div class="card">
+        <h3 class="card-title">รายได้ ต้นทุน และกำไร <span data-unit>รายสัปดาห์</span> (บาท)</h3>
+        <div class="legend" id="legMoney"></div>
+        <div id="chMoney"></div>
+      </div>
+      <div class="card">
+        <h3 class="card-title">สรุปรายเดือน</h3>
+        <div class="table-scroll">
+          <table class="t" style="margin-top:6px">
+            <colgroup>
+              <col style="width:26.86%"><col style="width:18.12%"><col style="width:14.15%">
+              <col style="width:14.44%"><col style="width:14.18%"><col style="width:12.25%">
+            </colgroup>
+            <thead><tr>
+              <th>เดือน</th><th class="r">ยอดส่ง (บิล)</th><th class="r">รายได้</th>
+              <th class="r">ต้นทุน</th><th class="r">กำไร</th><th class="r">% กำไร</th>
+            </tr></thead>
+            <tbody id="monthRows"></tbody>
+          </table>
+        </div>
+        <div class="note">
+          <h4>คำนวณจากอะไร</h4>
+          <ul>
+            <li><b>ยอดส่ง</b> <span>= จำนวนบิลที่ส่งสำเร็จ (ปิดงานแล้ว)</span></li>
+            <li><b>รายได้</b> <span>= ค่าขนส่งที่วางบิลเรียกเก็บ (ฝั่งเรา)</span></li>
+            <li><b>ต้นทุน</b> <span>= ค่าใช้จ่ายทุกรายการที่บันทึกในแต่ละรอบ (หน้าหลังบ้าน · คลัง)</span></li>
+            <li><b>กำไร</b> <span>= รายได้ − ต้นทุน</span></li>
+          </ul>
+          <p id="partialNote"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g-trend-2">
+      <div class="card">
+        <h3 class="card-title">ยอดส่ง<span data-unit>รายสัปดาห์</span> (จำนวนบิล)</h3>
+        <div id="chBills"></div>
+      </div>
+      <div class="card">
+        <h3 class="card-title">อัตรากำไร<span data-unit>รายสัปดาห์</span> (% ของรายได้)</h3>
+        <div id="chMargin"></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script type="module" src="js/firebase.js"></script>
+<script type="module">
+/* ============================================================
+   Dashboard — ตัวเลขจากชีตรวม (Master data) เท่านั้น (อ่านอย่างเดียว)
+
+   ลูกค้าขอ 12 ต.ค.: ทุกหัวข้อในหน้านี้ต้องตรงกับชีต Master — หน้าตาเหมือนเดิม เปลี่ยนแค่แหล่งข้อมูล
+   ดึงผ่าน Apps Script (doGet ?action=master · AppsScript-master.gs masterJson_) ทุก 90 วินาที
+   แล้วแปลงแถวในชีตเป็นโครงเดียวกับข้อมูลในแอป (fromMaster) โค้ดวาดด้านล่างจึงใช้ของเดิมได้
+
+     Shipments 1 แถว → 1 เที่ยว   Bills 1 แถว → 1 จุดส่ง (จับคู่เที่ยวด้วย Shipment No.)
+     ช่องทางชำระเงิน → ช่องทางของบิล (จับคู่ด้วย Invoice)   Billing → การ์ดการวางบิล (แบบเดียวกับแท็บ Report)
+     Drivers + ชื่อในช่อง E → รายชื่อคนขับในตัวกรอง
+
+   ไม่ใช้ js/store.js เพราะ store เติมข้อมูลเดโม่ให้เองเมื่อเครื่องยังว่าง และเขียนกลับขึ้นคลาวด์ได้
+
+   ส่วนที่ชีตยังไม่มีค่า จะขึ้น "ยังไม่มีข้อมูล" และขึ้นตัวเลขเองทันทีที่ชีตมีค่า
+   ============================================================ */
+import { gate, getSession, backToPicker } from './js/auth.js';
+import { navItems, roleLabel } from './js/access.js';
+import { driverUrl, COMPANY } from './js/config.js';
+import { apiGet } from './js/api.js';
+import { watchPhotos, quotaLevel, quotaWarning, PHOTO_LIMIT } from './js/photoQuota.js';
+
+/* ---------- ด่านสิทธิ์ + เมนูตามสิทธิ์ (เหมือนหน้าอื่นที่ใช้ js/ui.js) ---------- */
+await gate('dashboard');
+{
+  const ses = getSession(), drv = driverUrl();
+  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  document.getElementById('appNav').innerHTML = navItems(ses, drv)
+    .map(n => `<a href="${esc(n.href)}"${n.key === 'dashboard' ? ' aria-current="page"' : ''}>${esc(n.label)}</a>`).join('');
+  const who = ses.staff, box = document.getElementById('appUser');
+  if (who){
+    box.innerHTML = `<span class="appbar-user-name" title="${esc(who.email)}">${esc(who.name || who.email)}<small>${esc(roleLabel(who.role))}</small></span>
+      <button class="appbar-out" type="button" title="ออกจากระบบฝั่งนี้ แล้วกลับไปเลือกฝั่งใหม่"><span class="lg">กลับไปหน้าเลือกผู้ใช้</span><span class="sm">← เลือกฝั่ง</span></button>`;
+    box.hidden = false;
+    /* ออกจากระบบด้วย ไม่งั้นหน้าเลือกฝั่งพากลับมาฝั่งเดิมทันที */
+    box.querySelector('button').onclick = () => {
+      if (confirm('ออกจากบัญชี Back office นี้ แล้วกลับไปหน้าเลือกฝั่ง?')) backToPicker();
+    };
+  }
+  document.body.classList.remove('gating');
+}
+
+/* ---------- รูปที่ขึ้น Storage เดือนนี้ (โควตา 10,000 รูป) — realtime จาก Firestore ---------- */
+watchPhotos((count) => {
+  const box = document.getElementById('photoQuota');
+  const lv = quotaLevel(count), fmt = (v) => Number(v).toLocaleString('en-US');
+  box.dataset.lv = lv;
+  box.querySelector('[data-pqnum]').textContent = `${fmt(count)} / ${fmt(PHOTO_LIMIT)} รูป`;
+  box.querySelector('[data-pqbar]').style.width = `${Math.min(100, count / PHOTO_LIMIT * 100)}%`;
+  box.querySelector('[data-pqnote]').textContent = quotaWarning(count)
+    || `ใช้ไป ${Math.floor(count / PHOTO_LIMIT * 100)}% · เหลือ ${fmt(PHOTO_LIMIT - count)} รูป · เริ่มนับใหม่ทุกวันที่ 1`;
+});
+
+
+/* ---------- ช่องข้อมูลที่ยังไม่มีในระบบ — ตกลงชื่อไว้ตรงนี้จุดเดียว ---------- */
+const LATER = {
+  revenue:    (j) => num(j.revenue),            /* job.revenue          ค่าขนส่งของเที่ยว (บาท) — กรอกที่ billing.html */
+  billing:    (j) => j.billing?.status || (num(j.revenue) ? 'ยังไม่วางบิล' : ''),  /* job.billing.status (billing.html) */
+  payMethod:  (s) => s.payment?.method || '',   /* stop.payment.method  เงินโอน | เครดิต | เงินสด (ของเก่า — ตอนนี้มาจากใบวางบิล ดู payMethodOf) */
+  invBackAt:  (s) => s.invoiceReturn?.date || s.invoiceReturn?.at || '', /* stop.invoiceReturn.date วันที่ได้เอกสาร Inv. คืน (ที่เลือกตอนบันทึก) · .at = เวลากดบันทึก */
+};
+/* ผู้ขนส่งที่ไม่นับใน Dashboard เลย (ไม่ขึ้นทั้งตัวเลข กราฟ และตัวกรอง) — ตอนนี้นับทุกราย
+   (29 ก.ย. เคยซ่อน SCG ไว้ แล้วยืนยันว่า SCG เป็นผู้ขนส่งจริงตามไฟล์ Excel จึงเอากลับมา) */
+const HIDDEN_CARRIERS = [];
+
+const BILL_STATES = ['ยังไม่วางบิล', 'รอชำระ', 'ชำระแล้ว'];
+const PAY_METHODS = ['เงินโอน', 'เครดิต', 'เงินสด'];
+
+/* ---------- ตัวช่วย ---------- */
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => [...document.querySelectorAll(s)];
+const sum = (a) => a.reduce((x, y) => x + y, 0);
+const num = (v) => { const x = Number(String(v ?? '').replace(/,/g, '')); return Number.isFinite(x) ? x : 0; };
+const n = (v, d = 0) => Number(v).toLocaleString('en-US', { minimumFractionDigits:d, maximumFractionDigits:d });
+const pct = (a, b, d = 1) => b ? n(a / b * 100, d) + '%' : '–';
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+/* สีอ้างตัวแปร CSS — สลับ light/dark แล้วกราฟเปลี่ยนสีตามเองโดยไม่ต้องวาดใหม่ */
+const C = { blue:'var(--blue)', orange:'var(--orange)', green:'var(--green)', slate:'var(--slate)', grid:'var(--grid)', axis:'var(--axis)',
+            text:'var(--text)', text2:'var(--text-2)', text3:'var(--text-3)', shade:'var(--shade)', ok:'var(--ok)', warn:'var(--warn)', bad:'var(--bad)' };
+const SERIES = [C.blue, C.orange, C.green, C.slate];
+const MON = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const NODATA = 'ยังไม่มีข้อมูล';
+
+const pad = (x) => String(x).padStart(2, '0');
+const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const toDate = (s) => { const [y, m, d] = String(s).slice(0, 10).split('-').map(Number); return new Date(y, (m || 1) - 1, d || 1); };
+const addDays = (d, k) => { const x = new Date(d); x.setDate(x.getDate() + k); return x; };
+const dayDiff = (a, b) => Math.round((toDate(ymd(b)) - toDate(ymd(a))) / 864e5);
+
+/* ตัวเลขที่วาดล่าสุด เก็บไว้ให้ปุ่ม "บันทึกเป็น Excel" (xlsxReport) — ไม่ต้องคำนวณซ้ำ */
+const REPORT = {};
+let kpiSink = null;
+function kpi(label, value, sub, { baht = false, unit = '' } = {}){
+  const none = value === null;
+  kpiSink?.push([label, none ? '–' : `${baht ? '฿' : ''}${value}${unit ? ' ' + unit : ''}`, none ? NODATA : (sub || '')]);
+  return `<div class="kpi">
+    <div class="kpi-label">${esc(label)}</div>
+    <div class="kpi-value${none ? ' is-none' : ''}">${none ? '–' : `${baht ? '<span class="baht">฿</span>' : ''}${esc(value)}${unit ? ` <span class="unit">${esc(unit)}</span>` : ''}`}</div>
+    <div class="kpi-sub">${none ? NODATA : (sub ? esc(sub) : '&nbsp;')}</div>
+  </div>`;
+}
+const T = (x, y, s, text, { anchor = 'start', w = 400, fill = C.text2 } = {}) =>
+  `<text x="${x}" y="${y}" font-size="${s}" font-weight="${w}" fill="${fill}" text-anchor="${anchor}">${esc(text)}</text>`;
+function barRight(x, y, w, h, r, fill){
+  if (w <= 0) return '';
+  r = Math.min(r, w, h / 2);
+  return `<path d="M${x} ${y}h${w - r}a${r} ${r} 0 0 1 ${r} ${r}v${h - 2 * r}a${r} ${r} 0 0 1 -${r} ${r}h-${w - r}z" fill="${fill}"/>`;
+}
+function barTop(x, y, w, h, r, fill){
+  if (h <= 0) return '';
+  r = Math.min(r, h, w / 2);
+  return `<path d="M${x} ${y + h}v-${h - r}a${r} ${r} 0 0 1 ${r} -${r}h${w - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}v${h - r}z" fill="${fill}"/>`;
+}
+const nodata = (text = NODATA) => `<div class="nodata">${esc(text)}</div>`;
+const legend = (items) => items.map(([label, color]) => `<span><i style="background:${color}"></i>${esc(label)}</span>`).join('');
+
+/** แกนตัวเลขกลม ๆ 4 ช่อง ครอบ lo..hi */
+function nice(lo, hi){
+  lo = Math.min(0, lo); hi = Math.max(0, hi);
+  const raw = (hi - lo) / 4 || 1;
+  const p = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 2.5, 5, 10].map((k) => k * p).find((s) => s >= raw);
+  const min = Math.floor(lo / step) * step, max = Math.max(Math.ceil(hi / step) * step, min + step);
+  const ticks = [];
+  for (let t = min; t <= max + step / 2; t += step) ticks.push(Math.round(t * 1e6) / 1e6);
+  return { min, max, ticks };
+}
+const kfmt = (t) => Math.abs(t) >= 1000 ? (t / 1000) + 'k' : String(t);
+
+/* ---------- แปลงข้อมูลดิบ ---------- */
+const dateOf = (j) => String(j.serviceDate || j.createdAt || '').slice(0, 10);
+function carrierOf(j){
+  const raw = String(j.carrier || j.source?.carrier || '');
+  if (/ตัวอย่าง/.test(raw)) return 'ขนส่งตัวอย่าง';
+  if (/พันธมิตร/.test(raw)) return 'พันธมิตร';
+  return raw.replace(/^บ\.ขนส่ง\s*/, '').replace(/^บริษัท\s*/, '').trim() || 'ไม่ระบุ';
+}
+function regionOf(j){
+  const v = String(j.vehicle || j.source?.vehicle || '');
+  if (/ตวอ|ตะวันออก/.test(v)) return 'ตะวันออก';
+  if (/กลาง/.test(v)) return 'กลาง';
+  return 'ไม่ระบุ';
+}
+/** ที่อยู่มักลงท้ายด้วย "อ.xxx จ.yyy" หรือ "อำเภอ จังหวัด" */
+function provinceOf(s){
+  const a = String(s.dropoff?.address || '');
+  if (/กรุงเทพ|กทม/.test(a)) return 'กรุงเทพมหานคร';
+  const m = a.match(/(?:จ\.|จังหวัด)\s*([^\s\d]+)/);
+  let p = m ? m[1] : (a.trim().split(/\s+/).pop() || '');
+  if (p === 'อยุธยา') p = 'พระนครศรีอยุธยา';
+  return /^[฀-๿]+$/.test(p) && !/^(ต|อ|ม)\./.test(p) ? p : 'ไม่ระบุ';
+}
+const counted = (j) => j.status !== 'cancelled' && !HIDDEN_CARRIERS.includes(carrierOf(j));
+const driversOf = (r) => (r.driverIds?.length ? r.driverIds : (r.driverId ? [r.driverId] : []));
+const deliveredAt = (s) => (s.events || []).filter((e) => e.status === 'delivered').map((e) => e.at).pop() || '';
+
+/* ค่าใช้จ่ายของเที่ยว — โครงเดียวกับ store.js (pay.base/items = ของเดิมก่อนแยกคน · pay.drivers = รายคน) */
+function costRows(pay){
+  const out = [];
+  if (num(pay?.base)) out.push({ amount:num(pay.base), note:'' });
+  (pay?.items || []).forEach((r) => out.push(r));
+  Object.values(pay?.drivers || {}).forEach((rows) => (rows || []).forEach((r) => out.push(r)));
+  return out;
+}
+const payTotal = (pay) => sum(costRows(pay).map((r) => num(r.amount)));
+const payFor = (pay, id) => sum((pay?.drivers?.[id] || []).map((r) => num(r.amount)));
+/* ไม่มีช่องประเภท — แยกจากหมายเหตุที่พิมพ์ (ตัวเลือกในหน้า ops) แถวที่ไม่มีหมายเหตุ = ค่ารอบ */
+const COST_TYPES = ['ค่าน้ำมัน', 'ค่ารอบคนขับ', 'ค่าทางด่วน', 'อื่น ๆ'];
+function costType(note){
+  note = String(note || '').trim();
+  if (/น้ำมัน|ดีเซล/.test(note)) return 'ค่าน้ำมัน';
+  if (/ทางด่วน|โทลเวย์|มอเตอร์เวย์/.test(note)) return 'ค่าทางด่วน';
+  if (!note || /ค่ารอบ|ค่าเที่ยว|ค่าจ้าง/.test(note)) return 'ค่ารอบคนขับ';
+  return 'อื่น ๆ';
+}
+
+/* ---------- ช่วงเวลา ---------- */
+/** แบ่ง from..to เป็นสัปดาห์ (จันทร์–อาทิตย์) หรือเดือน — ช่วงที่ไม่เต็มจะมี partial + days */
+function buckets(from, to, by){
+  const out = [];
+  const end = toDate(to);
+  let cur = toDate(from);
+  while (cur <= end && out.length < 400){
+    let stop;
+    if (by === 'month') stop = new Date(cur.getFullYear(), cur.getMonth() + 1, 0);
+    else stop = addDays(cur, (7 - ((cur.getDay() + 6) % 7)) - 1);
+    const full = by === 'month'
+      ? dayDiff(new Date(cur.getFullYear(), cur.getMonth(), 1), stop) + 1
+      : 7;
+    const last = stop > end ? end : stop;
+    const days = dayDiff(cur, last) + 1;
+    let a, b;
+    if (by === 'month'){ a = MON[cur.getMonth()]; b = String(cur.getFullYear() + 543); }
+    else if (cur.getMonth() === last.getMonth()){ a = `${cur.getDate()}–${last.getDate()}`; b = MON[cur.getMonth()]; }
+    else { a = `${cur.getDate()} ${MON[cur.getMonth()]}–`; b = `${last.getDate()} ${MON[last.getMonth()]}`; }
+    out.push({ from:ymd(cur), to:ymd(last), a, b, days, partial: days < full });
+    cur = addDays(last, 1);
+  }
+  return out;
+}
+const bucketOf = (B, d) => B.findIndex((b) => d >= b.from && d <= b.to);
+
+/* ---------- ตัวกรอง (ใช้ร่วมกันทั้งสองส่วน) ---------- */
+const today = new Date();
+const F = {
+  from: ymd(new Date(today.getFullYear(), today.getMonth() - 1, 1)),   /* ต้นเดือนที่แล้ว → วันนี้ */
+  to: ymd(today),
+  carrier: '', region: '', driver: '', by: 'week',
+};
+$$('[data-f]').forEach((el) => {
+  el.value = F[el.dataset.f];
+  el.addEventListener('change', () => {
+    F[el.dataset.f] = el.value;
+    if (F.from > F.to) [F.from, F.to] = [F.to, F.from];
+    render();
+  });
+});
+$$('[data-print]').forEach((b) => b.addEventListener('click', () => print()));
+$$('[data-xlsx]').forEach((b) => b.addEventListener('click', async () => {
+  if (!REPORT.trend) return;
+  b.disabled = true;
+  try{ await xlsxReport(); }
+  catch(err){ console.error('[dashboard] Excel', err); alertBar(err.message || 'บันทึก Excel ไม่สำเร็จ'); }
+  finally{ b.disabled = false; }
+}));
+
+/* "เฉพาะวันนี้" — เปิดหน้ามาติ๊กไว้เป็นค่าเริ่มต้น (เรียกท้ายไฟล์)
+   ติ๊กแล้วช่วงวันที่เป็นวันนี้วันเดียว (ล็อกช่องวันที่ไว้) เอาติ๊กออก = กลับช่วงเดิม (ต้นเดือนที่แล้ว → วันนี้)
+   มีกล่องนี้ทั้งสองส่วนของหน้า ใช้สถานะเดียวกัน */
+let beforeToday = null;
+function setToday(on){
+  if (on && !beforeToday){ beforeToday = { from:F.from, to:F.to }; F.from = F.to = ymd(new Date()); }
+  if (!on && beforeToday){ F.from = beforeToday.from; F.to = beforeToday.to; beforeToday = null; }
+  $$('[data-today]').forEach((cb) => { cb.checked = on; });
+  $$('input[data-f="from"], input[data-f="to"]').forEach((i) => { i.disabled = on; i.value = F[i.dataset.f]; });
+  render();
+}
+$$('[data-today]').forEach((cb) => cb.addEventListener('change', () => setToday(cb.checked)));
+
+function fillSelect(key, values, allLabel = 'ทั้งหมด'){
+  $$(`select[data-f="${key}"]`).forEach((sel) => {
+    const html = `<option value="">${allLabel}</option>` +
+      values.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join('');
+    if (sel.dataset.opts !== html){ sel.innerHTML = html; sel.dataset.opts = html; }
+    sel.value = values.some(([v]) => v === F[key]) ? F[key] : '';
+  });
+  if (!values.some(([v]) => v === F[key])) F[key] = '';
+}
+
+/* ---------- ข้อมูลจากชีตรวม (Master) ---------- */
+const DB = { jobs:null, shipments:null, drivers:null };
+/* ใบวางบิลของแอป — หน้านี้ไม่ใช้แล้ว (การ์ดการวางบิลอ่านแท็บ Billing ของชีตแทน · ดู MASTER_BILLING) */
+let BILLS = [];
+/* แท็บ Billing ของชีต: [{ side:'ฝั่งเรา'|'ฝั่งลูกค้า', until:'yyyy-mm-dd', amount, status }] */
+let MASTER_BILLING = [];
+let failed = '', lastSync = null;
+const POLL_MS = 90_000;
+
+/* คอลัมน์ในชีต (นับจาก 0) — ตรงกับหัวตารางของ template "master excel demo.xlsx" */
+const SH = { ship:0, date:1, carrier:2, plate:3, driver:4, region:5, round:9, fuel:10, toll:11, other:12, revenue:14,
+             photoLoad:16, photoDone:17, detail:21 };
+const BL = { ship:0, date:1, driver:4, invoice:6, delivery:7, customer:8, dest:9, province:10, weight:11, amount:12,
+             delivered:13, status:14, invBack:16 };
+const splitNames = (v) => String(v || '').split(/\s*[,،/·]\s*|\s+และ\s+/).map((x) => x.trim()).filter(Boolean);
+const key = (v) => String(v ?? '').replace(/\s+/g, '').replace(/\.0+$/, '');
+
+/** แถวดิบจากชีต → { jobs, shipments, drivers } โครงเดียวกับในแอป */
+function fromMaster(m){
+  const payBy = new Map((m.pay || []).map((r) => [key(r[0]), String(r[1] || '').trim()]));
+  const names = new Set((m.drivers || []).map((r) => String(r[0] || '').trim()).filter(Boolean));
+
+  const jobs = (m.shipments || []).map((r) => {
+    const ids = splitNames(r[SH.driver]);
+    ids.forEach((x) => names.add(x));
+    /* ค่าใช้จ่าย: ชีตมีแค่ยอดรวมของเที่ยวต่อหมวด — หมายเหตุตั้งให้ costType() แยกหมวดถูก
+       หลายคนขับ = แบ่งเท่ากัน (ยอดรวมของเที่ยวยังตรงกับชีต) · ไม่มีคนขับ = ไม่ผูกใคร */
+    const rows = [['ค่ารอบ', r[SH.round]], ['ค่าน้ำมัน', r[SH.fuel]], ['ค่าทางด่วน', r[SH.toll]], ['อื่น ๆ', r[SH.other]]]
+      .filter(([, v]) => num(v)).map(([note, v]) => ({ note, amount:num(v) }));
+    const pay = { items:[], drivers:{} };
+    if (!ids.length) pay.items = rows;
+    else ids.forEach((id, k) => {
+      pay.drivers[id] = rows.map((x) => {
+        const share = Math.floor(x.amount / ids.length * 100) / 100;
+        return { note:x.note, amount: k === ids.length - 1 ? Math.round((x.amount - share * (ids.length - 1)) * 100) / 100 : share };
+      });
+    });
+    return {
+      id: 'S:' + key(r[SH.ship]), code: key(r[SH.ship]),
+      serviceDate: String(r[SH.date] || ''), status: 'delivered',
+      carrier: String(r[SH.carrier] || ''),
+      vehicle: `${r[SH.region] || ''} ${r[SH.plate] || ''}`.trim(),     /* regionOf() อ่านคำว่า กลาง / ตะวันออก */
+      driverIds: ids, driverId: ids[0] || null,
+      pay, revenue: num(r[SH.revenue]),
+      /* รายงานสรุป: ทะเบียน/รถ + จำนวนรูป Q ขึ้นรถ · R ปิดงาน (น้อยสุดของทุกจุด — AppsScript-master.gs shipValuesFromJob_) */
+      plate: String(r[SH.plate] || ''), region: String(r[SH.region] || ''),
+      photosLoad: r[SH.photoLoad], photosDone: r[SH.photoDone],
+    };
+  });
+
+  const shipments = (m.bills || []).map((r, i) => ({
+    id: 'B:' + (key(r[BL.delivery]) || key(r[BL.invoice]) || i),
+    jobId: 'S:' + key(r[BL.ship]),
+    status: /ยกเลิก/.test(String(r[BL.status] || '')) ? 'cancelled' : 'delivered',
+    driverIds: [], driverId: null,                                       /* ใช้คนขับของเที่ยว */
+    customer: { name: String(r[BL.customer] || '') },
+    dropoff: { name: String(r[BL.dest] || ''), address: String(r[BL.province] || '') },   /* provinceOf() อ่านคำสุดท้าย */
+    cargo: { weightKg: num(r[BL.weight]) },
+    invoice: { number: key(r[BL.invoice]), amount: num(r[BL.amount]) },
+    payment: payBy.get(key(r[BL.invoice])) ? { method: payBy.get(key(r[BL.invoice])) } : null,
+    invoiceReturn: r[BL.invBack] ? { at: String(r[BL.invBack]) } : null,
+    events: r[BL.delivered] ? [{ status:'delivered', at: String(r[BL.delivered]) }] : [],
+  }));
+
+  const drivers = [...names].map((x) => ({ id:x, name:x }));
+  MASTER_BILLING = (m.billing || []).map((r) => ({
+    side: String(r[1] || '').trim(), until: String(r[4] || ''), amount: num(r[7]), status: String(r[10] || '').trim(),
+    /* รายการใบในรายงานสรุป ส่วนที่ 6 */
+    docNo: String(r[0] || ''), customer: String(r[2] || ''), item: String(r[3] || ''),
+    issued: String(r[5] || ''), due: String(r[6] || ''), method: String(r[8] || ''),
+  }));
+  return { jobs, shipments, drivers };
+}
+
+let loading = null;
+/** ดึงชีต Master — กดปุ่มรีเฟรชระหว่างที่กำลังดึงอยู่ จะรอรอบเดิม ไม่ยิงซ้อน */
+function loadMaster(){
+  return loading || (loading = pullMaster().finally(() => { loading = null; }));
+}
+async function pullMaster(){
+  try{
+    const m = await apiGet({ action:'master' }, { timeout: 45000 });
+    Object.assign(DB, fromMaster(m));
+    failed = '';
+    lastSync = new Date();
+  }catch(err){
+    console.error('[dashboard] อ่านชีต Master ไม่ได้', err);
+    failed = `อ่านชีต Master ไม่ได้ (${err.message})`;
+  }
+  render();
+}
+loadMaster();
+setInterval(() => { if (!document.hidden) loadMaster(); }, POLL_MS);
+/* ปุ่มรีเฟรช — ใช้ตอนเพิ่งแก้ชีตแล้วไม่อยากรอรอบ 1.5 นาที หรือรอบอัตโนมัติค้าง/ล้ม */
+$$('[data-refresh]').forEach((b) => b.addEventListener('click', async () => {
+  b.disabled = true;
+  b.textContent = 'กำลังดึงข้อมูล…';
+  await loadMaster();
+  b.disabled = false;
+  b.textContent = failed ? '↻ ลองอีกครั้ง' : '↻ รีเฟรชข้อมูล';
+}));
+document.addEventListener('visibilitychange', () => { if (!document.hidden && lastSync && Date.now() - lastSync > POLL_MS) loadMaster(); });
+
+/** งานและจุดส่งที่ผ่านตัวกรอง */
+function pick(){
+  const jobs = DB.jobs.filter(counted).filter((j) => {
+    const d = dateOf(j);
+    return d >= F.from && d <= F.to
+      && (!F.carrier || carrierOf(j) === F.carrier)
+      && (!F.region || regionOf(j) === F.region)
+      && (!F.driver || driversOf(j).includes(F.driver));
+  });
+  const byId = new Map(jobs.map((j) => [j.id, j]));
+  const stops = DB.shipments.filter((s) => byId.has(s.jobId) && s.status !== 'cancelled');
+  return { jobs, stops, byId };
+}
+
+/* ============================================================
+   วาด
+   ============================================================ */
+function render(){
+  const state = $('#liveState');
+  if (failed){ state.textContent = failed; state.dataset.tone = 'bad'; }
+  if (!DB.jobs || !DB.shipments || !DB.drivers){
+    if (!failed){ state.textContent = 'กำลังโหลดข้อมูลจากชีต Master…'; state.dataset.tone = ''; }
+    ['#ovKpis', '#trKpis'].forEach((s) => { $(s).innerHTML = ''; });
+    return;
+  }
+  if (!failed){
+    state.textContent = `ข้อมูลจากชีต Master · ดึงใหม่ทุก 1.5 นาที · ล่าสุด ${pad(lastSync.getHours())}:${pad(lastSync.getMinutes())} น.`;
+    state.dataset.tone = 'ok';
+  }
+
+  /* ตัวเลือกในตัวกรอง มาจากข้อมูลจริงทั้งหมด (ไม่ขึ้นกับช่วงวันที่) */
+  const live = DB.jobs.filter(counted);
+  const uniq = (a) => [...new Set(a)].sort((x, y) => x.localeCompare(y, 'th'));
+  fillSelect('carrier', uniq(live.map(carrierOf)).map((v) => [v, v]));
+  fillSelect('region', uniq(live.map(regionOf)).map((v) => [v, v]));
+  fillSelect('driver', DB.drivers.filter((d) => d.id && d.name)
+    .sort((a, b) => a.name.localeCompare(b.name, 'th')).map((d) => [d.id, d.name]));
+  $$('[data-f]').forEach((el) => { if (el.tagName === 'INPUT') el.value = F[el.dataset.f]; });
+
+  const data = pick();
+  renderOverview(data);
+  renderTrend(data);
+}
+
+/* ============================================================
+   Dashboard 1 — ภาพรวมการขนส่ง
+   ============================================================ */
+function renderOverview({ jobs, stops, byId }){
+  const runs = jobs.length, bills = stops.length;
+  const dests = sum(jobs.map((j) => new Set(stops.filter((s) => s.jobId === j.id).map((s) => s.dropoff?.name).filter(Boolean)).size));
+  const weight = sum(stops.map((s) => num(s.cargo?.weightKg)));
+  const cost = sum(jobs.map((j) => payTotal(j.pay)));
+  const hasCost = jobs.some((j) => costRows(j.pay).length);
+  const hasInv = DB.shipments.some((s) => LATER.invBackAt(s));
+  const back = stops.filter((s) => LATER.invBackAt(s)).length;
+
+  kpiSink = REPORT.ovKpis = [];
+  $('#ovKpis').innerHTML = [
+    kpi('รอบการวิ่ง (Shipment)', n(runs), 'รอบ'),
+    kpi('บิล / Invoice', n(bills), 'ใบ'),
+    kpi('จุดส่ง', n(dests), 'จุด'),
+    kpi('น้ำหนักรวม', n(weight), 'กก.'),
+    kpi('ค่าใช้จ่ายรวม', hasCost ? n(cost) : null, '', { baht:true }),
+    kpi('เฉลี่ยต่อรอบ', hasCost && runs ? n(Math.round(cost / runs)) : null, '', { baht:true }),
+    kpi('เฉลี่ยต่อ Bill', hasCost && bills ? n(Math.round(cost / bills)) : null, '', { baht:true }),
+    kpi('คืน Inv. แล้ว', hasInv ? pct(back, bills) : null, `${n(back)} / ${n(bills)}`),
+  ].join('');
+
+  /* --- แท่งซ้อน: รอบการวิ่งรายสัปดาห์ แยกผู้ขนส่ง (ช่วงยาวเกิน 16 สัปดาห์ = รายเดือน) --- */
+  {
+    let B = buckets(F.from, F.to, 'week');
+    if (B.length > 16) B = buckets(F.from, F.to, 'month');
+    const carriers = uniqOrder(jobs.map(carrierOf), ['ขนส่งตัวอย่าง', 'พันธมิตร']);
+    $('#legRuns').innerHTML = legend(carriers.map((c, i) => [c, SERIES[i % SERIES.length]]));
+    const grid = carriers.map(() => B.map(() => 0));
+    jobs.forEach((j) => { const i = bucketOf(B, dateOf(j)); if (i >= 0) grid[carriers.indexOf(carrierOf(j))][i]++; });
+    const totals = B.map((_, i) => sum(grid.map((r) => r[i])));
+    REPORT.runs = { B, carriers, grid, totals };
+
+    const x0 = 60.4, x1 = 477.5, yB = 279.4, plotH = 116;
+    const { max, ticks } = nice(0, Math.max(4, ...totals));
+    const Y = (v) => v / max * plotH;
+    let s = `<svg class="chart" viewBox="26.6 150 464.3 152" role="img" aria-label="จำนวนรอบการวิ่งรายสัปดาห์">`;
+    ticks.forEach((t) => {
+      s += `<line x1="${x0}" x2="${x1}" y1="${yB - Y(t)}" y2="${yB - Y(t)}" stroke="${C.grid}" stroke-width=".8"/>`;
+      s += T(56, yB - Y(t) + 2.6, 7.2, t, { anchor:'end' });
+    });
+    s += `<line x1="${x0}" x2="${x1}" y1="${yB}" y2="${yB}" stroke="${C.axis}" stroke-width=".8"/>`;
+    const step = (x1 - x0) / B.length, bw = Math.min(26, step * .56), every = Math.ceil(B.length / 12);
+    B.forEach((b, i) => {
+      const x = x0 + step * i + (step - bw) / 2, cx = x + bw / 2;
+      let y = yB;
+      const top = grid.map((r) => r[i] > 0).lastIndexOf(true);
+      grid.forEach((row, k) => {
+        if (!row[i]) return;
+        const h = Y(row[i]), hh = h - (k > 0 ? 1.6 : 0);
+        s += k === top ? barTop(x, y - h, bw, hh, 2.6, SERIES[k % SERIES.length])
+                       : `<rect x="${x}" y="${y - h}" width="${bw}" height="${hh}" fill="${SERIES[k % SERIES.length]}"/>`;
+        y -= h;
+      });
+      if (totals[i]) s += T(cx, y - 3.4, 7.6, totals[i], { anchor:'middle', w:600 });
+      if (i % every === 0){
+        s += T(cx, 289.4, 7.2, b.a, { anchor:'middle' });
+        s += T(cx, 297.4, 7.2, b.b, { anchor:'middle' });
+      }
+    });
+    if (!runs) s += T((x0 + x1) / 2, yB - plotH / 2, 8.5, 'ไม่มีงานในช่วงที่เลือก', { anchor:'middle', fill:C.text3 });
+    $('#chWeeklyRuns').innerHTML = s + '</svg>';
+  }
+
+  /* --- แท่งนอน: ค่าใช้จ่ายตามประเภท + บิลตามจังหวัด --- */
+  {
+    const byType = Object.fromEntries(COST_TYPES.map((t) => [t, 0]));
+    jobs.forEach((j) => costRows(j.pay).forEach((r) => { byType[costType(r.note)] += num(r.amount); }));
+    $('#costTotal').textContent = hasCost ? `รวม ฿${n(cost)}` : NODATA;
+
+    const ax = 592.1, full = 159.8;
+    let s = `<svg class="chart" viewBox="495.4 150 320.2 220" role="img" aria-label="ค่าใช้จ่ายแยกตามประเภท และจำนวนบิลแยกตามจังหวัด">`;
+    const cmax = Math.max(1, ...Object.values(byType));
+    COST_TYPES.forEach((label, i) => {
+      const v = byType[label], y = 157.9 + 17.73 * i, w = full * v / cmax;
+      s += barRight(ax, y, w, 11.3, 3, C.blue);
+      s += T(ax - 4.5, y + 8.6, 8.1, label, { anchor:'end', fill:C.text });
+      s += T(ax + w + 5, y + 8.5, 7.7, hasCost ? n(v) : '–', { w:600 });
+    });
+    s += `<line x1="${ax}" x2="${ax}" y1="153.9" y2="226.5" stroke="${C.axis}" stroke-width=".8"/>`;
+    s += T(502, 243.5, 7.6, 'จำนวนบิลแยกตามจังหวัด', { w:600, fill:C.text });
+
+    const count = {};
+    stops.forEach((st) => { const p = provinceOf(st); count[p] = (count[p] || 0) + 1; });
+    let prov = Object.entries(count).filter(([p]) => p !== 'ไม่ระบุ').sort((a, b) => b[1] - a[1]);
+    const rest = (count['ไม่ระบุ'] || 0) + sum(prov.slice(8).map((p) => p[1]));
+    prov = prov.slice(0, 8);
+    if (rest) prov.push(['จังหวัดอื่น ๆ', rest]);
+    REPORT.cost = { byType, hasCost, total: cost, prov };
+    const pmax = Math.max(1, ...prov.map((p) => p[1]));
+    prov.forEach(([label, v], i) => {
+      const y = 256.9 + 12.5 * i, w = full * v / pmax, other = label === 'จังหวัดอื่น ๆ';
+      s += barRight(ax, y, w, 6.1, 3, other ? C.axis : C.blue);
+      s += T(ax - 4.5, y + 6.1, 8.1, label, { anchor:'end', fill:C.text });
+      s += T(ax + w + 5, y + 6, 7.7, n(v), { w:600 });
+    });
+    if (!prov.length) s += T(ax + full / 2, 300, 8.1, 'ไม่มีบิลในช่วงที่เลือก', { anchor:'middle', fill:C.text3 });
+    s += `<line x1="${ax}" x2="${ax}" y1="252.9" y2="367" stroke="${C.axis}" stroke-width=".8"/>`;
+    $('#chCostProv').innerHTML = s + '</svg>';
+  }
+
+  /* --- ตารางค่าใช้จ่ายต่อคนขับ --- */
+  {
+    const names = new Map(DB.drivers.map((d) => [d.id, d.name]));
+    const st = {};
+    const row = (id) => (st[id] ||= { runs:0, bills:0, cost:0, owe:0, carriers:{} });
+    jobs.forEach((j) => {
+      const ids = driversOf(j);
+      ids.forEach((id) => {
+        const r = row(id);
+        r.runs++;
+        r.cost += payFor(j.pay, id);
+        r.carriers[carrierOf(j)] = (r.carriers[carrierOf(j)] || 0) + 1;
+      });
+      /* ค่าใช้จ่ายแบบเดิมที่ยังไม่แยกคน — เที่ยวที่มีคนขับคนเดียวยกให้คนนั้น (แบบเดียวกับหน้า ops) */
+      const legacy = num(j.pay?.base) + sum((j.pay?.items || []).map((x) => num(x.amount)));
+      if (legacy && ids.length === 1) row(ids[0]).cost += legacy;
+    });
+    stops.forEach((s) => {
+      const ids = driversOf(s).length ? driversOf(s) : driversOf(byId.get(s.jobId) || {});
+      ids.forEach((id) => {
+        if (!st[id]) return;
+        st[id].bills++;
+        if (!LATER.invBackAt(s)) st[id].owe++;
+      });
+    });
+    const list = Object.entries(st)
+      .filter(([id]) => !F.driver || id === F.driver)
+      .map(([id, r]) => ({ id, name: names.get(id) || '(ไม่พบในทะเบียน)', ...r,
+        carrier: Object.entries(r.carriers).sort((a, b) => b[1] - a[1])[0]?.[0] || '' }))
+      .sort((a, b) => b.cost - a.cost || b.runs - a.runs);
+    REPORT.drivers = { list, hasCost, hasInv };
+    const dmax = Math.max(1, ...list.map((d) => d.cost));
+    $('#driverRows').innerHTML = list.length ? list.map((d) => `<tr>
+      <td>${esc(d.name)}</td><td>${esc(d.carrier)}</td><td class="r">${n(d.runs)}</td><td class="r">${n(d.bills)}</td>
+      <td class="r">${hasCost ? n(d.cost) : '–'}</td>
+      <td>${hasCost ? `<span class="cellbar" style="width:${(d.cost / dmax * 52.9).toFixed(2)}%"></span>` : ''}</td>
+      <td class="r">${hasCost && d.runs ? n(Math.round(d.cost / d.runs)) : '–'}</td>
+      <td class="r">${hasCost && d.bills ? n(Math.round(d.cost / d.bills)) : '–'}</td>
+      <td class="r">${hasInv && d.owe ? n(d.owe) : '–'}</td>
+    </tr>`).join('') : `<tr><td colspan="9" class="empty-row">ไม่มีงานที่จ่ายคนขับในช่วงที่เลือก</td></tr>`;
+  }
+
+  /* --- การวางบิล ---
+     ฝั่งเรา   = สถานะของเที่ยว (วางบิล / ยืนยันรับเงิน)
+     ฝั่งลูกค้า = สิ่งที่ลูกค้าทำผ่านลิงก์ใบวางบิล: ยังไม่กดรับบิล · รับบิลแล้ว รอชำระ · แจ้งชำระแล้ว
+     ทั้งสองฝั่งนับเป็นค่าขนส่งของเที่ยวในช่วงที่เลือก */
+  {
+    /* จากแท็บ Billing ของชีต — แบบเดียวกับแท็บ Report: รวมยอด (H) ตามฝั่ง (B) และสถานะ (K)
+       ในช่วงที่เลือก นับจาก "งวดงานถึงวันที่" (E) · ใบที่ยกเลิกไม่นับ */
+    const ours = Object.fromEntries(BILL_STATES.map((k) => [k, 0]));
+    const theirs = Object.fromEntries(BILL_STATES.map((k) => [k, 0]));
+    const inRange = MASTER_BILLING.filter((b) => b.until >= F.from && b.until <= F.to);
+    inRange.forEach((b) => {
+      const box = b.side === 'ฝั่งเรา' ? ours : b.side === 'ฝั่งลูกค้า' ? theirs : null;
+      if (box && b.status in box) box[b.status] += b.amount;
+    });
+    const has = MASTER_BILLING.length > 0;
+    const label = { 'ยังไม่วางบิล':'ยังไม่วางบิล / ลูกค้ายังไม่รับบิล', 'รอชำระ':'วางบิลแล้ว รอชำระ', 'ชำระแล้ว':'ชำระแล้ว / ลูกค้าแจ้งชำระ' };
+    REPORT.billing = { ours, theirs, label, has };
+    $('#billingRows').innerHTML = has
+      ? BILL_STATES.map((k) => `<tr><td>${esc(label[k] || k)}</td><td class="r">${n(ours[k])}</td><td class="r">${n(theirs[k])}</td></tr>`).join('')
+      : `<tr><td colspan="3" class="empty-row">${NODATA}</td></tr>`;
+  }
+
+  /* --- สถานะการคืน Inv. (นับอายุจากวันที่ส่งสำเร็จ) --- */
+  if (hasInv){
+    let within7 = 0, over7 = 0;
+    stops.forEach((s) => {
+      if (LATER.invBackAt(s)) return;
+      const since = deliveredAt(s) || dateOf(byId.get(s.jobId) || {});
+      if (!since) return;
+      (dayDiff(toDate(since.slice(0, 10)), today) > 7 ? over7++ : within7++);
+    });
+    const parts = [['✔ คืนแล้ว', back, C.ok], ['⏱ ค้าง ≤ 7 วัน', within7, C.warn], ['⚠ ค้างเกิน 7 วัน', over7, C.bad]];
+    REPORT.inv = parts;
+    $('#invStack').innerHTML = parts.map(([, v, c]) => `<span style="flex:${v};background:${c}"></span>`).join('');
+    $('#invKeys').innerHTML = parts.map(([l, v, c]) => `<li><i style="background:${c}"></i>${esc(l)}<b>${n(v)}</b></li>`).join('');
+  } else {
+    REPORT.inv = null;
+    $('#invStack').innerHTML = nodata();
+    $('#invKeys').innerHTML = '';
+  }
+
+  /* --- ช่องทางการชำระเงิน (ตามยอดเงิน) — จากการยืนยันรับเงิน หรือที่ลูกค้าแจ้งชำระมา --- */
+  {
+    const amt = Object.fromEntries(PAY_METHODS.map((k) => [k, 0]));
+    jobs.forEach((j) => { const k = payMethodOf(j); if (k in amt) amt[k] += LATER.revenue(j); });
+    stops.forEach((s) => { const k = LATER.payMethod(s); if (k in amt) amt[k] += num(s.invoice?.amount); });
+    const total = sum(Object.values(amt));
+    REPORT.pay = { amt, total };
+    if (total){
+      const colors = [C.blue, C.orange, C.green];
+      $('#payStack').innerHTML = PAY_METHODS.map((k, i) => `<span style="flex:${amt[k]};background:${colors[i]}"></span>`).join('');
+      $('#payKeys').innerHTML = PAY_METHODS.map((k, i) => `<li><i style="background:${colors[i]}"></i>${esc(k)}<b>${pct(amt[k], total, 0)}</b></li>`).join('');
+    } else {
+      $('#payStack').innerHTML = nodata();
+      $('#payKeys').innerHTML = '';
+    }
+  }
+}
+
+/** ใบวางบิลที่มีผลของเที่ยว (ไม่นับใบที่ยกเลิก) */
+function billOf(j){
+  const id = j.billing?.billId;
+  const b = id ? BILLS.find((x) => x.id === id) : null;
+  return b && b.status !== 'cancelled' ? b : null;
+}
+/** สถานะฝั่งลูกค้าของเที่ยว — ใช้ชื่อเดียวกับ BILL_STATES */
+function custBillState(j){
+  if (!LATER.revenue(j)) return '';
+  const b = billOf(j);
+  if (!b) return LATER.billing(j) === 'ชำระแล้ว' ? 'ชำระแล้ว' : 'ยังไม่วางบิล';
+  if (b.status === 'paid' || b.reply?.notice?.at) return 'ชำระแล้ว';
+  if (b.reply?.receivedAt) return 'รอชำระ';
+  return 'ยังไม่วางบิล';
+}
+function payMethodOf(j){
+  const b = billOf(j);
+  return j.billing?.payMethod || b?.paid?.method || b?.reply?.notice?.method || '';
+}
+
+/** รายชื่อไม่ซ้ำ เรียงตามลำดับที่กำหนดก่อน ที่เหลือต่อท้าย */
+function uniqOrder(list, first){
+  const set = new Set(list);
+  return [...first.filter((x) => set.has(x)), ...[...set].filter((x) => !first.includes(x)).sort()];
+}
+
+/* ============================================================
+   Dashboard 2 — แนวโน้ม
+   ============================================================ */
+/* กราฟเส้น — g = เรขาคณิตในหน่วย pt ของแบบ, series = [{values, color, label, fmt}]
+   ช่วงสุดท้ายที่ไม่เต็ม (partial) = พื้นเทา + เส้นประ */
+function lineChart(g, series, B){
+  const N = B.length, last = N - 1, partial = N > 1 && B[last].partial;
+  const X = (i) => N === 1 ? (g.x0 + g.x1) / 2 : g.x0 + (g.x1 - g.x0) * i / last;
+  const all = series.flatMap((se) => se.values);
+  const { min, max, ticks } = nice(Math.min(0, ...all), Math.max(g.floor || 1, ...all));
+  const Y = (v) => g.yBase - (g.yBase - g.yTop) * (v - min) / (max - min);
+  let s = `<svg class="chart" viewBox="${g.vb}" role="img" aria-label="${esc(g.aria)}">`;
+  if (partial){
+    s += `<rect x="${X(last - 1)}" y="${g.yTop}" width="${X(last) - X(last - 1)}" height="${g.yBase - g.yTop}" fill="${C.shade}"/>`;
+    s += T((X(last - 1) + X(last)) / 2, g.yTop + g.fs * 1.05, g.fs, `${B[last].days} วัน`, { anchor:'middle' });
+  }
+  ticks.forEach((t) => {
+    s += `<line x1="${g.x0}" x2="${g.x1}" y1="${Y(t)}" y2="${Y(t)}" stroke="${t === 0 ? C.axis : C.grid}" stroke-width="${g.gw}"/>`;
+    s += T(g.x0 - g.tickGap, Y(t) + g.fs * .36, g.fs, g.tickFmt(t), { anchor:'end' });
+  });
+  const every = Math.ceil(N / 12);
+  B.forEach((b, i) => {
+    if (i % every) return;
+    s += T(X(i), g.yBase + g.fs * 1.12, g.fs, b.a, { anchor:'middle' });
+    s += T(X(i), g.yBase + g.fs * 2.12, g.fs, b.b, { anchor:'middle' });
+  });
+  const labelAt = partial ? last - 1 : last;
+  series.forEach((se) => {
+    const pts = se.values.map((v, i) => [X(i), Y(v)]);
+    const solid = partial ? pts.slice(0, last) : pts;
+    if (solid.length > 1) s += `<polyline points="${solid.map((p) => p.join(',')).join(' ')}" fill="none" stroke="${se.color}" stroke-width="${g.lw}" stroke-linejoin="round" stroke-linecap="round"/>`;
+    if (partial) s += `<line x1="${pts[last - 1][0]}" y1="${pts[last - 1][1]}" x2="${pts[last][0]}" y2="${pts[last][1]}" stroke="${se.color}" stroke-width="${g.lw}" stroke-dasharray="${g.lw * 1.6} ${g.lw * 1.6}"/>`;
+    if (N <= 40) pts.forEach(([x, y]) => { s += `<circle cx="${x}" cy="${y}" r="${g.r}" fill="${se.color}" stroke="var(--card)" stroke-width="${g.r * .3}"/>`; });
+    const y = pts[labelAt][1] + (se.dy || 0);
+    s += T(g.x1 + 4.7, y + g.lab[0], g.lab[2], se.label, { w:600, fill:C.text });
+    s += T(g.x1 + 4.7, y + g.lab[1], g.lab[3], se.fmt(se.values[labelAt]), { w:600 });
+  });
+  return s + '</svg>';
+}
+
+function renderTrend({ jobs, stops, byId }){
+  const B = buckets(F.from, F.to, F.by);
+  const hasRev = DB.jobs.some((j) => LATER.revenue(j));
+  const hasCost = jobs.some((j) => costRows(j.pay).length);
+  const done = stops.filter((s) => s.status === 'delivered');
+
+  const revW = B.map(() => 0), costW = B.map(() => 0), billsW = B.map(() => 0);
+  jobs.forEach((j) => {
+    const i = bucketOf(B, dateOf(j));
+    if (i < 0) return;
+    revW[i] += LATER.revenue(j);
+    costW[i] += payTotal(j.pay);
+  });
+  done.forEach((s) => { const i = bucketOf(B, dateOf(byId.get(s.jobId))); if (i >= 0) billsW[i]++; });
+
+  const rev = sum(revW), cost = sum(costW), profit = rev - cost;
+  const bills = done.length, runs = jobs.length;
+  kpiSink = REPORT.trKpis = [];
+  $('#trKpis').innerHTML = [
+    kpi('รายได้ (ค่าขนส่ง)', hasRev ? n(rev) : null, 'ตามบิลที่วาง (ฝั่งเรา)', { baht:true }),
+    kpi('ต้นทุน', hasCost ? n(cost) : null, 'ค่าน้ำมัน + ค่ารอบ + ทางด่วน + อื่น ๆ', { baht:true }),
+    kpi('กำไร', hasRev ? n(profit) : null, `อัตรากำไร ${pct(profit, rev)}`, { baht:true }),
+    kpi('ยอดส่ง', n(bills), `${n(runs)} รอบ · เฉลี่ย ${runs ? n(bills / runs, 1) : 0} บิล/รอบ`, { unit:'บิล' }),
+    kpi('กำไรเฉลี่ยต่อรอบ', hasRev && runs ? n(Math.round(profit / runs)) : null,
+        bills ? `ต่อ Bill ฿${n(Math.round(profit / bills))}` : '', { baht:true }),
+  ].join('');
+
+  const unit = F.by === 'month' ? 'รายเดือน' : 'รายสัปดาห์';
+  $$('[data-unit]').forEach((e) => { e.textContent = unit; });
+  const last = B[B.length - 1];
+  $('#partialNote').textContent = B.length > 1 && last.partial
+    ? `ช่วงสุดท้าย (พื้นสีเทา · เส้นประ) มีข้อมูลแค่ ${last.days} วัน ตัวเลขจึงต่ำกว่าปกติ ไม่ได้แปลว่ายอดตก`
+    : '';
+
+  /* --- รายได้ ต้นทุน กำไร --- */
+  const baht = (v) => '฿' + n(v);
+  const money = [];
+  if (hasRev) money.push({ values:revW, color:C.blue, label:'รายได้', fmt:baht });
+  if (hasCost) money.push({ values:costW, color:C.orange, label:'ต้นทุน', fmt:baht });
+  if (hasRev) money.push({ values:revW.map((v, i) => v - costW[i]), color:C.green, label:'กำไร', fmt:baht });
+  $('#legMoney').innerHTML = legend(money.map((m) => [m.label, m.color]));
+  $('#chMoney').innerHTML = money.length ? lineChart({
+    vb:'26.6 150 464.3 172', aria:`รายได้ ต้นทุน และกำไร ${unit}`,
+    x0:67.6, x1:431.3, yBase:302.6, yTop:164.3, floor:1000, tickFmt:kfmt,
+    tickGap:4.5, fs:6.8, gw:.75, lw:1.5, r:3, lab:[-2, 6.5, 7.5, 7.1],
+  }, money, B) : nodata(runs ? NODATA : 'ไม่มีงานในช่วงที่เลือก');
+
+  /* --- สรุปรายเดือน --- */
+  const months = buckets(F.from, F.to, 'month').map((m) => {
+    const js = jobs.filter((j) => dateOf(j) >= m.from && dateOf(j) <= m.to);
+    const ids = new Set(js.map((j) => j.id));
+    return { label:`${m.a} ${m.b}`, bills: done.filter((s) => ids.has(s.jobId)).length,
+             rev: sum(js.map(LATER.revenue)), cost: sum(js.map((j) => payTotal(j.pay))) };
+  });
+  REPORT.trend = { B, revW, costW, billsW, hasRev, hasCost, months, unit, rev, cost, bills };
+  kpiSink = null;
+  const money$ = (v, ok) => ok ? n(v) : '–';
+  $('#monthRows').innerHTML = months.map((m) =>
+    `<tr><td>${esc(m.label)}</td><td class="r">${n(m.bills)}</td><td class="r">${money$(m.rev, hasRev)}</td>` +
+    `<td class="r">${money$(m.cost, hasCost)}</td><td class="r">${money$(m.rev - m.cost, hasRev)}</td>` +
+    `<td class="r">${hasRev ? pct(m.rev - m.cost, m.rev) : '–'}</td></tr>`
+  ).join('') + `<tr class="total"><td>รวม</td><td class="r">${n(bills)}</td><td class="r">${money$(rev, hasRev)}</td>` +
+    `<td class="r">${money$(cost, hasCost)}</td><td class="r">${money$(profit, hasRev)}</td><td class="r">${hasRev ? pct(profit, rev) : '–'}</td></tr>`;
+
+  /* --- ยอดส่ง และ อัตรากำไร --- */
+  const small = { yBase:499.2, yTop:372.3, tickGap:5.5, fs:7.9, gw:.88, lw:1.76, r:3.5, lab:[-4, 7, 8.8, 8.4] };
+  $('#chBills').innerHTML = lineChart({
+    ...small, vb:'26.6 352 391.6 172', aria:`ยอดส่ง${unit}`, x0:73.5, x1:357.2, floor:4, tickFmt:String,
+  }, [{ values:billsW, color:C.slate, label:'ยอดส่ง', fmt:(v) => `${n(v)} บิล` }], B);
+
+  $('#chMargin').innerHTML = hasRev ? lineChart({
+    ...small, vb:'423 352 392.6 172', aria:`อัตรากำไร${unit}`, x0:470.3, x1:753.9, floor:10, tickFmt:(t) => t + '%',
+  }, [{ values:revW.map((v, i) => v ? (v - costW[i]) / v * 100 : 0), color:C.green, label:'อัตรากำไร',
+        fmt:(v) => Math.round(v) + '%' }], B) : nodata();
+}
+
+/* ============================================================
+   บันทึกเป็น Excel — ตัวเลขชุดเดียวกับที่วาดอยู่ (REPORT) ตามตัวกรองตอนนี้
+   ชีต ภาพรวม + แนวโน้ม · กราฟออกเป็นตารางตัวเลข (เอาไปทำกราฟใน Excel ต่อได้)
+   ============================================================ */
+function alertBar(text){ const s = $('#liveState'); s.textContent = text; s.dataset.tone = 'bad'; }
+async function xlsxReport(){
+  const X = await import('./js/xlsxExport.js');
+  const wb = await X.newBook();
+  const opt = (key) => { const sel = $(`select[data-f="${key}"]`); return F[key] ? sel?.selectedOptions[0]?.textContent || F[key] : 'ทั้งหมด'; };
+  const range = F.from === F.to ? thD(F.from) : `${thD(F.from)} – ${thD(F.to)}`;
+  const head = (ws, title) => {
+    X.line(ws, 'ขนส่งตัวอย่าง · FreightTrack', { size:10, color:'FF7F7F7F' });
+    X.line(ws, title, { size:15, bold:true, height:24 });
+    X.line(ws, `ช่วงวันที่ ${range} · ผู้ขนส่ง: ${opt('carrier')} · ภาค: ${opt('region')} · คนขับ: ${opt('driver')}`, { size:9 });
+    X.line(ws, $('#liveState').textContent, { size:9, color:'FF7F7F7F' });
+  };
+  const kpis = (ws, list) => X.table(ws, ['ตัวชี้วัด', 'ค่า', 'หมายเหตุ'], list, { align:{ 1:'right' } });
+  const bucketLabel = (b) => `${b.a} ${b.b}`;
+  const orDash = (v, ok) => ok ? v : '–';
+
+  /* --- ภาพรวม --- */
+  {
+    const ws = X.sheet(wb, 'ภาพรวม', [30, 18, 16, 12, 12, 16, 14, 14, 14], { landscape:true });
+    head(ws, 'ภาพรวมการขนส่ง');
+    X.heading(ws, 'ตัวเลขสำคัญ');
+    kpis(ws, REPORT.ovKpis);
+
+    const R = REPORT.runs;
+    X.heading(ws, `จำนวนรอบการวิ่ง${/^\d{4}$/.test(R.B[0]?.b) ? 'รายเดือน' : 'รายสัปดาห์'} แยกตามผู้ขนส่ง`);
+    X.table(ws, ['ช่วง', ...R.carriers, 'รวม'],
+      R.B.map((b, i) => [bucketLabel(b), ...R.grid.map((r) => r[i]), R.totals[i]]),
+      { fmt:Object.fromEntries([...R.carriers, 0].map((_, k) => [k + 1, X.FMT.int])),
+        total:['รวม', ...R.grid.map((r) => sum(r)), sum(R.totals)] });
+
+    const Cst = REPORT.cost;
+    X.heading(ws, 'ค่าใช้จ่ายแยกตามประเภท (บาท)');
+    X.table(ws, ['ประเภท', 'บาท'], COST_TYPES.map((t) => [t, orDash(Cst.byType[t], Cst.hasCost)]),
+      { fmt:{ 1:X.FMT.money }, total:['รวม', orDash(Cst.total, Cst.hasCost)] });
+    X.heading(ws, 'จำนวนบิลแยกตามจังหวัด');
+    X.table(ws, ['จังหวัด', 'บิล'], Cst.prov, { fmt:{ 1:X.FMT.int } });
+
+    const D = REPORT.drivers;
+    X.heading(ws, 'ค่าใช้จ่ายต่อคนขับ');
+    X.table(ws, ['คนขับ', 'ผู้ขนส่ง', 'รอบ', 'Bill', 'ค่าใช้จ่ายรวม (฿)', 'ต่อรอบ', 'ต่อ Bill', 'Inv. ค้างคืน'],
+      D.list.map((d) => [d.name, d.carrier, d.runs, d.bills,
+        orDash(d.cost, D.hasCost), orDash(d.runs ? Math.round(d.cost / d.runs) : '–', D.hasCost),
+        orDash(d.bills ? Math.round(d.cost / d.bills) : '–', D.hasCost), D.hasInv && d.owe ? d.owe : '–']),
+      { fmt:{ 2:X.FMT.int, 3:X.FMT.int, 4:X.FMT.money, 5:X.FMT.int, 6:X.FMT.int, 7:X.FMT.int } });
+
+    const Bl = REPORT.billing;
+    X.heading(ws, 'การวางบิล (บาท)');
+    X.table(ws, ['สถานะ', 'ฝั่งเรา', 'ฝั่งลูกค้า'], Bl.has
+      ? BILL_STATES.map((k) => [Bl.label[k] || k, Bl.ours[k], Bl.theirs[k]])
+      : [[NODATA, '–', '–']], { fmt:{ 1:X.FMT.money, 2:X.FMT.money } });
+
+    X.heading(ws, 'สถานะการคืนเอกสาร Inv.');
+    X.table(ws, ['สถานะ', 'บิล'], REPORT.inv ? REPORT.inv.map(([l, v]) => [l, v]) : [[NODATA, '–']], { fmt:{ 1:X.FMT.int } });
+
+    const P = REPORT.pay;
+    X.heading(ws, 'ช่องทางการชำระเงิน (ตามยอดเงิน)');
+    X.table(ws, ['ช่องทาง', 'บาท', 'สัดส่วน'], P.total
+      ? PAY_METHODS.map((k) => [k, P.amt[k], P.amt[k] / P.total])
+      : [[NODATA, '–', '–']], { fmt:{ 1:X.FMT.money, 2:X.FMT.pct } });
+  }
+
+  /* --- แนวโน้ม --- */
+  {
+    const T = REPORT.trend;
+    const ws = X.sheet(wb, 'แนวโน้ม', [26, 16, 16, 16, 16, 14], { landscape:true });
+    head(ws, 'ยอดส่ง รายได้ และกำไร');
+    X.heading(ws, 'ตัวเลขสำคัญ');
+    kpis(ws, REPORT.trKpis);
+
+    X.heading(ws, `ยอดส่ง รายได้ ต้นทุน และกำไร ${T.unit}`);
+    X.table(ws, ['ช่วง', 'ยอดส่ง (บิล)', 'รายได้', 'ต้นทุน', 'กำไร', '% กำไร'],
+      T.B.map((b, i) => [bucketLabel(b) + (b.partial ? ` (${b.days} วัน)` : ''), T.billsW[i],
+        orDash(T.revW[i], T.hasRev), orDash(T.costW[i], T.hasCost), orDash(T.revW[i] - T.costW[i], T.hasRev),
+        T.hasRev && T.revW[i] ? (T.revW[i] - T.costW[i]) / T.revW[i] : '–']),
+      { fmt:{ 1:X.FMT.int, 2:X.FMT.money, 3:X.FMT.money, 4:X.FMT.money, 5:X.FMT.pct } });
+
+    X.heading(ws, 'สรุปรายเดือน');
+    X.table(ws, ['เดือน', 'ยอดส่ง (บิล)', 'รายได้', 'ต้นทุน', 'กำไร', '% กำไร'],
+      T.months.map((m) => [m.label, m.bills, orDash(m.rev, T.hasRev), orDash(m.cost, T.hasCost),
+        orDash(m.rev - m.cost, T.hasRev), T.hasRev && m.rev ? (m.rev - m.cost) / m.rev : '–']),
+      { fmt:{ 1:X.FMT.int, 2:X.FMT.money, 3:X.FMT.money, 4:X.FMT.money, 5:X.FMT.pct },
+        total:['รวม', T.bills, orDash(T.rev, T.hasRev), orDash(T.cost, T.hasCost), orDash(T.rev - T.cost, T.hasRev),
+          T.hasRev && T.rev ? (T.rev - T.cost) / T.rev : '–'] });
+    X.gap(ws);
+    X.line(ws, 'ยอดส่ง = บิลที่ส่งสำเร็จ · รายได้ = ค่าขนส่งที่วางบิล (ฝั่งเรา) · ต้นทุน = ค่าใช้จ่ายทุกรายการของรอบ · กำไร = รายได้ − ต้นทุน', { size:9, color:'FF7F7F7F' });
+  }
+  await X.save(wb, `Report ${F.from === F.to ? F.from : `${F.from} ถึง ${F.to}`}`);
+}
+const thD = (s) => { const d = toDate(s); return `${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear() + 543}`; };
+
+/* ============================================================
+   รายงานสรุปการขนส่ง — แบบเอกสาร (template "dashboard and report template.pdf" หน้า 4–5 · ลูกค้าขอ 31 ต.ค.)
+   ข้อมูลชุดเดียวกับ Dashboard (ชีต Master + ตัวกรองตอนนี้) · เปิดเป็นแท็บใหม่ อ่านในมือถือได้
+   ในแท็บมีปุ่ม พิมพ์ / บันทึก PDF และ Excel (เรียกกลับมาที่หน้านี้ — window.opener)
+     1 สรุปภาพรวม · 2 ค่าใช้จ่ายแยกประเภท · 3 รายละเอียดรายรอบ · 4 ค่าใช้จ่ายต่อคนขับ
+     5 ติดตามการคืน Inv. (ใบที่ยังไม่คืน เรียงค้างนานสุด) · 6 การวางบิล/ชำระเงิน · ช่องเซ็น
+   รูปถ่ายครบ = รูปขึ้นรถ (Q) และรูปปิดงานทุกจุด (R) อย่างน้อยขั้นละ 2 รูป (store.js MIN_PHOTOS_BY)
+   ============================================================ */
+const PHOTO_MIN = 2;
+const dmy = (s) => { if (!s) return '–'; const d = toDate(s); return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${String(d.getFullYear() + 543).slice(2)}`; };
+function photoState(j){
+  const q = j.photosLoad, r = j.photosDone;
+  if ((q === '' || q == null) && (r === '' || r == null)) return { ok:null, text:'–' };
+  const ok = num(q) >= PHOTO_MIN && num(r) >= PHOTO_MIN;
+  return { ok, text: ok ? '✔ ครบ' : `⚠ ขึ้นรถ ${num(q)} · ส่ง ${num(r)}` };
+}
+
+function summaryData(){
+  const { jobs, stops, byId } = pick();
+  const names = new Map(DB.drivers.map((d) => [d.id, d.name]));
+  const drvNames = (j) => driversOf(j).map((id) => names.get(id) || id).join(', ') || '–';
+  const opt = (k) => { const sel = $(`select[data-f="${k}"]`); return F[k] ? sel?.selectedOptions[0]?.textContent || F[k] : 'ทั้งหมด'; };
+  const ses = getSession();
+  const runs = jobs.map((j) => {
+    const ss = stops.filter((s) => s.jobId === j.id);
+    const cost = payTotal(j.pay);
+    return { code:j.code, date:dateOf(j), car:[j.region, j.plate].filter(Boolean).join(' ') || '–', drivers:drvNames(j),
+             bills:ss.length, dests:new Set(ss.map((s) => s.dropoff?.name).filter(Boolean)).size,
+             weight:sum(ss.map((s) => num(s.cargo?.weightKg))), cost, photo:photoState(j) };
+  }).sort((a, b) => a.date.localeCompare(b.date) || a.code.localeCompare(b.code));
+  const cost = sum(runs.map((r) => r.cost)), bills = stops.length;
+  const back = stops.filter((s) => LATER.invBackAt(s)).length;
+  const pending = stops.filter((s) => !LATER.invBackAt(s)).map((s) => {
+    const j = byId.get(s.jobId) || {};
+    const since = (deliveredAt(s) || dateOf(j)).slice(0, 10);
+    const days = since ? dayDiff(toDate(since), today) : 0;
+    return { inv:s.invoice?.number || '–', ship:j.code || '–', drivers:drvNames(j), sent:since, days,
+             state: days > 7 ? '⚠ เกิน 7 วัน' : '⏱ ค้าง' };
+  }).sort((a, b) => b.days - a.days);
+  const billing = MASTER_BILLING.filter((b) => b.until >= F.from && b.until <= F.to && b.status !== 'ยกเลิก');
+  return {
+    range: F.from === F.to ? thD(F.from) : `${thD(F.from)} – ${thD(F.to)}`,
+    filters: `${opt('carrier')} / ${opt('region')}${F.driver ? ` · คนขับ ${opt('driver')}` : ''}`,
+    at: new Date(), by: ses?.staff?.name || ses?.staff?.email || '–',
+    sum: { runs:runs.length, bills, dests:sum(runs.map((r) => r.dests)), weight:sum(runs.map((r) => r.weight)),
+           amount:sum(stops.map((s) => num(s.invoice?.amount))), cost, back,
+           photoOk:runs.filter((r) => r.photo.ok).length, photoKnown:runs.filter((r) => r.photo.ok !== null).length,
+           hasCost:REPORT.cost.hasCost },
+    byType: COST_TYPES.map((t) => [t, REPORT.cost.byType[t]]),
+    runs, drivers: REPORT.drivers.list, hasInv: REPORT.drivers.hasInv,
+    inv: REPORT.inv, pending, billingSum: REPORT.billing, pay: REPORT.pay, billing,
+  };
+}
+
+function summaryHtml(D){
+  const S = D.sum, money = (v) => S.hasCost ? n(v) : '–';
+  const at = `${pad(D.at.getDate())}/${pad(D.at.getMonth() + 1)}/${D.at.getFullYear() + 543} ${pad(D.at.getHours())}:${pad(D.at.getMinutes())} น.`;
+  const tr = (cells, cls = '') => `<tr${cls ? ` class="${cls}"` : ''}>${cells.map((c) => `<td${/^[-–\d.,฿%/ ]+$/.test(String(c)) ? ' class="r"' : ''}>${esc(c)}</td>`).join('')}</tr>`;
+  const table = (head, rows, total) => `<table><thead><tr>${head.map((h, i) => `<th${i && /^(รอบ|Bill|จุด|น้ำหนัก|ค่า|ต่อ|ยอด|จำนวน|สัดส่วน|ค้าง|Inv\. ค้าง)/.test(h) ? ' class="r"' : ''}>${esc(h)}</th>`).join('')}</tr></thead>
+    <tbody>${rows.length ? rows.map((r) => tr(r)).join('') : `<tr><td colspan="${head.length}" class="none">ไม่มีข้อมูลในช่วงที่เลือก</td></tr>`}</tbody>${total ? `<tfoot>${tr(total, 'tot')}</tfoot>` : ''}</table>`;
+  const typeTotal = sum(D.byType.map(([, v]) => v));
+  const invCount = (k) => D.inv ? D.inv[k][1] : 0;
+  const B = D.billingSum, P = D.pay;
+  const side = (box) => { const t = sum(BILL_STATES.map((k) => box[k])); return `฿${n(t)} <span class="dim">ชำระแล้ว ฿${n(box['ชำระแล้ว'])} · รอชำระ ฿${n(box['รอชำระ'])} · ยังไม่วางบิล ฿${n(box['ยังไม่วางบิล'])}</span>`; };
+  const drvTot = D.drivers.reduce((a, d) => ({ runs:a.runs + d.runs, bills:a.bills + d.bills, cost:a.cost + d.cost, owe:a.owe + d.owe }), { runs:0, bills:0, cost:0, owe:0 });
+  return `<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>รายงานสรุปการขนส่ง ${esc(D.range)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{color-scheme:light}
+  *{box-sizing:border-box}
+  body{margin:0;background:#e9e7e4;color:#1b1b1b;font:12px/1.5 'Noto Sans Thai',system-ui,sans-serif}
+  .bar{position:sticky;top:0;z-index:2;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding:10px 12px;background:#fff;border-bottom:1px solid #ddd}
+  .bar button{font:inherit;font-size:14px;font-weight:600;padding:8px 14px;border-radius:999px;border:1px solid #d9d4cf;background:#fff;cursor:pointer}
+  .bar .go{background:#E8781A;border-color:#E8781A;color:#fff}
+  .doc{width:210mm;max-width:100%;margin:16px auto;padding:12mm;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.18)}
+  .scroll{overflow-x:auto}
+  header{display:flex;justify-content:space-between;gap:16px;align-items:flex-end;padding-bottom:10px;border-bottom:2.5px solid #1b1b1b;margin-bottom:14px}
+  .co{font-size:12px;font-weight:700} h1{font-size:22px;margin:2px 0 0}
+  .meta{display:grid;grid-template-columns:auto auto;gap:2px 14px;font-size:11px} .meta span:nth-child(odd){color:#777}
+  h2{font-size:14px;margin:18px 0 6px;padding-left:8px;border-left:4px solid #E8781A;break-after:avoid}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th{text-align:left;font-weight:700;border-bottom:1.5px solid #1b1b1b;padding:4px 5px;white-space:nowrap}
+  td{border-bottom:1px solid #e3e0dc;padding:3.5px 5px;vertical-align:top}
+  .r{text-align:right;white-space:nowrap} tr{break-inside:avoid}
+  tfoot td,.tot td{font-weight:700;border-top:1.5px solid #1b1b1b;border-bottom:0}
+  .none{text-align:center;color:#888;font-style:italic}
+  .kv{display:grid;grid-template-columns:1fr auto 1fr auto;gap:0 14px} .kv>div{padding:4px 0;border-bottom:1px solid #e3e0dc}
+  .kv .v{text-align:right;font-weight:600}
+  .dim{color:#666;font-weight:400} .lead{color:#555;margin:0 0 6px}
+  .sign{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:34px;text-align:center;break-inside:avoid}
+  .sign .ln{margin:38px auto 4px;width:70%;border-top:1px solid #1b1b1b}
+  footer{margin-top:20px;font-size:10px;color:#888;border-top:1px solid #e3e0dc;padding-top:6px}
+  @media (max-width:820px){ .doc{margin:0;padding:16px 12px;box-shadow:none} .kv{grid-template-columns:1fr auto} header{flex-wrap:wrap} }
+  @page{size:A4;margin:12mm}
+  @media print{ body{background:#fff} .bar{display:none} .doc{width:auto;margin:0;padding:0;box-shadow:none} .scroll{overflow:visible} }
+</style><\/head><body>
+<div class="bar"><button type="button" class="go" onclick="print()">🖨 พิมพ์ / บันทึก PDF</button>
+  <button type="button" data-xl>⬇ Excel</button></div>
+<div class="doc">
+<header>
+  <div><div class="co">${esc(COMPANY.name)}</div><h1>รายงานสรุปการขนส่ง</h1></div>
+  <div class="meta"><span>ช่วงข้อมูล</span><span>${esc(D.range)}</span><span>ผู้ขนส่ง / ภาค</span><span>${esc(D.filters)}</span>
+    <span>ออกรายงานเมื่อ</span><span>${esc(at)}</span><span>ผู้ออกรายงาน</span><span>${esc(D.by)}</span></div>
+</header>
+
+<h2>1. สรุปภาพรวม</h2>
+<div class="kv">
+  <div>รอบการวิ่ง (Shipment)</div><div class="v">${n(S.runs)} รอบ</div><div>ค่าใช้จ่ายรวม</div><div class="v">${S.hasCost ? '฿' + n(S.cost) : '–'}</div>
+  <div>บิล / Invoice</div><div class="v">${n(S.bills)} ใบ</div><div>ค่าใช้จ่ายเฉลี่ยต่อรอบ</div><div class="v">${S.hasCost && S.runs ? '฿' + n(Math.round(S.cost / S.runs)) : '–'}</div>
+  <div>จุดส่ง</div><div class="v">${n(S.dests)} จุด</div><div>ค่าใช้จ่ายเฉลี่ยต่อ Bill</div><div class="v">${S.hasCost && S.bills ? '฿' + n(Math.round(S.cost / S.bills)) : '–'}</div>
+  <div>น้ำหนักรวม</div><div class="v">${n(S.weight)} กก.</div><div>คืนเอกสาร Inv. แล้ว</div><div class="v">${D.hasInv ? `${n(S.back)} / ${n(S.bills)} (${pct(S.back, S.bills)})` : '–'}</div>
+  <div>มูลค่าสินค้าตามบิล</div><div class="v">฿${n(S.amount, 2)}</div><div>รูปถ่ายครบ (≥ ${PHOTO_MIN} รูป/ขั้น)</div><div class="v">${S.photoKnown ? `${n(S.photoOk)} / ${n(S.runs)} รอบ` : '–'}</div>
+</div>
+
+<h2>2. ค่าใช้จ่ายแยกตามประเภท</h2>
+${table(['ประเภท', 'จำนวนเงิน (฿)', 'สัดส่วน'], D.byType.map(([t, v]) => [t, money(v), S.hasCost && typeTotal ? pct(v, typeTotal) : '–']),
+  ['รวม', money(typeTotal), S.hasCost && typeTotal ? '100%' : '–'])}
+
+<h2>3. รายละเอียดรายรอบการวิ่ง</h2>
+<div class="scroll">${table(['Shipment No.', 'วันที่', 'ทะเบียนรถ', 'คนขับ', 'Bill', 'จุดส่ง', 'น้ำหนัก (กก.)', 'ค่าใช้จ่าย (฿)', 'ต่อ Bill', 'รูปถ่าย'],
+  D.runs.map((r) => [r.code, dmy(r.date), r.car, r.drivers, n(r.bills), n(r.dests), n(r.weight, 1), money(r.cost),
+    S.hasCost && r.bills ? n(Math.round(r.cost / r.bills)) : '–', r.photo.text]),
+  ['รวม', '', '', '', n(S.bills), n(S.dests), n(S.weight, 1), money(S.cost), S.hasCost && S.bills ? n(Math.round(S.cost / S.bills)) : '–',
+    S.photoKnown ? `${n(S.photoOk)}/${n(S.runs)}` : '–'])}</div>
+
+<h2>4. ค่าใช้จ่ายต่อคนขับ</h2>
+<div class="scroll">${table(['คนขับ', 'ผู้ขนส่ง', 'รอบ', 'Bill', 'ค่าใช้จ่ายรวม (฿)', 'ต่อรอบ (฿)', 'ต่อ Bill (฿)', 'Inv. ค้างคืน'],
+  D.drivers.map((d) => [d.name, d.carrier, n(d.runs), n(d.bills), money(d.cost),
+    S.hasCost && d.runs ? n(Math.round(d.cost / d.runs)) : '–', S.hasCost && d.bills ? n(Math.round(d.cost / d.bills)) : '–',
+    D.hasInv && d.owe ? n(d.owe) : '–']),
+  ['รวม', '', n(drvTot.runs), n(drvTot.bills), money(drvTot.cost), '', '', D.hasInv ? n(drvTot.owe) : '–'])}</div>
+
+<h2>5. ติดตามการคืนเอกสาร Inv.</h2>
+<p class="lead">${D.inv ? `คืนแล้ว ${n(invCount(0))} ใบ · ค้าง ≤ 7 วัน ${n(invCount(1))} ใบ · ค้างเกิน 7 วัน ${n(invCount(2))} ใบ — ตารางแสดงใบที่ยังไม่คืน เรียงจากค้างนานที่สุด` : NODATA}</p>
+<div class="scroll">${table(['Invoice', 'Shipment No.', 'คนขับ', 'วันที่ส่งของ', 'ค้าง (วัน)', 'สถานะ'],
+  D.pending.map((x) => [x.inv, x.ship, x.drivers, dmy(x.sent), n(x.days), x.state]))}</div>
+
+<h2>6. การวางบิลและการชำระเงิน</h2>
+<div class="kv" style="grid-template-columns:auto 1fr">
+  <div>ฝั่งเรา — ยอดวางบิลรวม</div><div>${B.has ? side(B.ours) : NODATA}</div>
+  <div>ฝั่งลูกค้า — ยอดวางบิลรวม</div><div>${B.has ? side(B.theirs) : NODATA}</div>
+  <div>ช่องทางชำระเงิน</div><div>${P.total ? PAY_METHODS.map((k) => `${k} ${pct(P.amt[k], P.total, 0)}`).join(' · ') : NODATA}</div>
+</div>
+<div class="scroll" style="margin-top:8px">${table(['เลขที่ใบวางบิล', 'ฝั่ง', 'ลูกค้า', 'รายการ', 'ยอด (฿)', 'วันที่วางบิล', 'ครบกำหนด', 'ช่องทาง', 'สถานะ'],
+  D.billing.map((b) => [b.docNo || '–', b.side || '–', b.customer || '–', b.item || '–', n(b.amount, 2), dmy(b.issued), dmy(b.due), b.method || '–',
+    b.status === 'ชำระแล้ว' ? '✔ ชำระแล้ว' : b.status === 'รอชำระ' ? '⏱ รอชำระ' : (b.status || '–')]))}</div>
+
+<div class="sign">
+  <div>ผู้จัดทำรายงาน<div class="ln"></div>วันที่ ____/____/______</div>
+  <div>ผู้ตรวจสอบ<div class="ln"></div>วันที่ ____/____/______</div>
+</div>
+<footer>FreightTrack · รายงานสรุปการขนส่ง · ข้อมูลจากชีต Master ณ ${esc(at)}</footer>
+</div><\/body><\/html>`;   /* <\/ = กัน Live Server ฉีดสคริปต์รีโหลดก่อนแท็กปิด body ตัวแรกในไฟล์ (ตรงนี้) จนสคริปต์ขาดกลาง */
+}
+
+/* ปุ่ม Excel ในแท็บรายงาน (2 พ.ย. — ลูกค้าขอ) — ได้ชีต Master ทั้งไฟล์ แท็บ/หัวตาราง/สูตรเหมือนชีตจริง
+   ตัดเฉพาะช่วงวันที่ที่เลือก (Apps Script ทำสำเนาแล้วส่งออก — AppsScript-master.gs masterExport_) ใช้เวลาราว 20–60 วินาที
+   ตัวกรองผู้ขนส่ง/ภาค/คนขับ ไม่ใช้กับไฟล์นี้ */
+async function masterXlsx(){
+  const r = await apiGet({ action:'masterExport', from:F.from, to:F.to }, { timeout: 300000 });
+  if (!r?.ok) throw new Error(r?.error || 'ส่งออก Excel ไม่สำเร็จ');
+  const bin = atob(r.xlsx), bytes = new Uint8Array(bin.length);
+  for (let k = 0; k < bin.length; k++) bytes[k] = bin.charCodeAt(k);
+  const url = URL.createObjectURL(new Blob([bytes], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  const a = Object.assign(document.createElement('a'), { href:url, download:`${r.name}.xlsx` });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+$$('[data-sumreport]').forEach((b) => b.addEventListener('click', () => {
+  if (!DB.jobs || !REPORT.drivers) return alertBar('รอข้อมูลจากชีต Master โหลดเสร็จก่อน');
+  const D = summaryData();
+  const w = window.open('', '_blank');
+  if (!w) return alertBar('เบราว์เซอร์บล็อกแท็บใหม่ — อนุญาตป๊อปอัปของหน้านี้แล้วกดอีกครั้ง');
+  w.document.open(); w.document.write(summaryHtml(D)); w.document.close();
+  /* ปุ่ม Excel ในแท็บรายงาน — ชีต Master ทั้งไฟล์ตามช่วงวันที่ (masterXlsx) */
+  w.document.querySelector('[data-xl]').onclick = async (e) => {
+    const b = e.target, label = b.textContent;
+    b.disabled = true; b.textContent = 'กำลังเตรียมไฟล์… (ราว 1 นาที)';
+    try{ await masterXlsx(); }
+    catch(err){ console.error('[dashboard] รายงานสรุป Excel', err); w.alert?.('บันทึก Excel ไม่สำเร็จ — ' + (err.message || err)); }
+    finally{ b.disabled = false; b.textContent = label; }
+  };
+}));
+
+setToday(true);
+</script>
+<script>
+/* ปุ่มสลับ light / dark — จำไว้ในเครื่อง */
+(() => {
+  const btn = document.getElementById('themeBtn'), root = document.documentElement;
+  const mq = matchMedia('(prefers-color-scheme: dark)');
+  const isDark = () => root.dataset.theme ? root.dataset.theme === 'dark' : mq.matches;
+  const paint = () => {
+    const d = isDark();
+    btn.textContent = d ? '☀' : '☾';
+    btn.title = btn.ariaLabel = d ? 'เปลี่ยนเป็นโหมดสว่าง' : 'เปลี่ยนเป็นโหมดมืด';
+  };
+  btn.addEventListener('click', () => {
+    root.dataset.theme = isDark() ? 'light' : 'dark';
+    try { localStorage.setItem('ft-theme', root.dataset.theme); } catch {}
+    paint();
+  });
+  mq.addEventListener('change', paint);
+  paint();
+})();
+</script>
+</body>
+</html>

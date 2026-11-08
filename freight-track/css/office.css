@@ -1,0 +1,373 @@
+/* ============================================================
+   office.css — หน้าฝั่ง Back office (ops · customer · drivers · billing · users ฯลฯ)
+   โทนเดียวกับหน้าแรก (index.html) · track.html · driver.html
+   พื้นเทาอ่อน · การ์ดขาวมุมโค้ง เงาบาง · หัวเรื่องใหญ่ ป้ายส้ม · สีเน้นส้ม #E8781A แทนฟ้าของ apple.css
+   ตัวหนังสือใหญ่ขึ้น ตัวเลขสรุปใหญ่ อ่านแวบเดียวรู้เรื่อง
+   สีบอกสถานะคงความหมายเดิม: เขียว = เสร็จ · เหลืองอำพัน = รอ · ฟ้า = กำลังวิ่ง · ม่วง = ในคลัง · แดง = ยกเลิก/ด่วน
+   โหลดหลัง apple.css · ใช้กับ <body class="ofc"> — เปลี่ยนแค่หน้าตา ไม่แตะโครงหน้าหรือการทำงาน
+   อยากกลับหน้าตาเดิม: ลบ <link href="css/office.css"> และ class "ofc" ที่ <body> (สำเนาเดิม: *.html.pre-office)
+   ============================================================ */
+
+:root{
+  --of-card:#ffffff;
+  --of-shadow:2px 4px 12px rgba(0,0,0,.08);
+  --of-shadow-hover:2px 4px 16px rgba(0,0,0,.16);
+  --of-sub:#6f6964;
+  --of-tile:#f4f3f1;
+  --of-accent:#E8781A;
+  --of-accent-hover:#D2680F;
+  --of-link:#B85A0C;
+  --of-ring:rgba(232,120,26,.22);
+  --of-wash:rgba(232,120,26,.07);
+}
+@media screen{
+  :root[data-theme="dark"]{
+    --of-card:#2b2725;
+    --of-shadow:0 0 0 1px rgba(255,255,255,.07);
+    --of-shadow-hover:0 0 0 1px rgba(255,255,255,.16), 0 8px 28px rgba(0,0,0,.6);
+    --of-sub:#aba49e;
+    --of-tile:#37332f;
+    --of-link:#FFA24D;
+    --of-ring:rgba(255,162,77,.35);
+    --of-wash:rgba(255,162,77,.1);
+  }
+}
+
+/* สีเน้นฟ้าของ apple.css → ส้มแบบหน้าแรก (ปุ่ม ลิงก์ วงโฟกัส แถบความคืบหน้า หน้าต่าง modal ในหน้านี้) */
+body.ofc{
+  --ap-blue:var(--of-accent);
+  --ap-blue-hover:var(--of-accent-hover);
+  --ap-link:var(--of-link);
+  --ap-ring:var(--of-ring);
+  --accent:var(--of-accent);
+  --btn-bg:var(--of-accent);
+}
+/* สีพื้นเฉพาะบนจอ — ตอนพิมพ์ (ใบวางบิล · ใบงาน) ต้องเป็นกระดาษขาวเหมือนเดิม */
+@media screen{ body.ofc{background:var(--bg);color:var(--text)} }
+body.ofc ::selection{background:var(--of-ring)}
+
+/* ---------- แถบหัว: หน้าตาเดียวกับ .lx-bar ของหน้าแรก ----------
+   แถบสร้างโดย js/ui.js — แต่งเฉพาะหน้าตา เมนู · ชื่อผู้ใช้ · ปุ่มกลับไปหน้าเลือกผู้ใช้ · ปุ่มธีม ทำงานเหมือนเดิม
+   ความกว้าง/การตัดแถวของเมนูใช้ของ app.css เดิม (ฝั่ง Back office มีเมนูหลายรายการ) */
+body.ofc .appbar{background:var(--ap-glass);border-bottom:1px solid var(--lx-rule);color:var(--lx-ink)}
+body.ofc .appbar .appbar-inner{min-height:56px}
+body.ofc .appbar .brand{gap:12px;color:var(--lx-ink);text-decoration:none}
+body.ofc .appbar .brand-mark{width:auto;height:34px;padding:0 10px;border-radius:9px;box-shadow:none;
+  background:var(--of-accent);color:#fff;font-family:var(--sans);font-size:15px;font-weight:700;letter-spacing:.06em;line-height:1}
+body.ofc .appbar .brand-name{font-size:15px;font-weight:500;letter-spacing:0;line-height:1.3;color:var(--lx-ink)}
+body.ofc .appbar .brand br,body.ofc .appbar .brand-sub{display:none}
+body.ofc .appbar .appnav a{font-size:14px}
+body.ofc .appbar .appnav a[aria-current="page"],
+:root[data-theme="dark"] body.ofc .appbar .appnav a[aria-current="page"]{background:var(--of-wash);color:var(--of-link);font-weight:600}
+body.ofc .appbar .appbar-out{border:0;border-radius:99px;padding:7px 14px;font-size:13px;font-weight:500;
+  background:var(--ap-seg);color:var(--lx-ink);transition:background-color .2s}
+body.ofc .appbar .appbar-out:hover{background:var(--line-strong);color:var(--lx-ink)}
+/* ปุ่มธีม → สวิตช์แบบหน้าแรก (.lx-switch) */
+body.ofc .appbar .theme-btn{position:relative;flex:none;width:52px;height:30px;padding:0;border:0;border-radius:99px;
+  background:#e7e4e1;transition:background .25s}
+body.ofc .appbar .theme-btn:hover{background:#e7e4e1}
+body.ofc .appbar .theme-btn::before{content:"";position:absolute;top:7px;left:7px;width:16px;height:16px;z-index:1;opacity:0;
+  transition:opacity .2s;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f3ead8'%3E%3Cpath d='M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1z'/%3E%3C/svg%3E") center/contain no-repeat}
+body.ofc .appbar .theme-btn::after{content:"";position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;
+  background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.18);transition:transform .25s cubic-bezier(.3,.7,.2,1)}
+:root[data-theme="dark"] body.ofc .appbar .theme-btn,
+:root[data-theme="dark"] body.ofc .appbar .theme-btn:hover{background:#433e3b}
+:root[data-theme="dark"] body.ofc .appbar .theme-btn::before{opacity:1}
+:root[data-theme="dark"] body.ofc .appbar .theme-btn::after{background:transparent;box-shadow:none}
+body.ofc .skel-bar{height:57px;border-bottom:1px solid var(--lx-rule)}
+body.ofc .readonly-bar{background:var(--of-wash);color:var(--of-link);font-size:14px;border-bottom-color:var(--line)}
+
+/* ---------- หัวเรื่องหน้า: ป้ายส้ม + ชื่อหน้าใหญ่ แบบหน้าแรก ---------- */
+/* เฉพาะบนจอ — ตอนพิมพ์ใช้ระยะเดิมของ app.css (ใบวางบิลพิมพ์ต้องเหมือนเดิม) */
+@media screen{ body.ofc .page{padding-top:clamp(28px,5vh,56px)} }
+body.ofc .page-head{gap:18px 32px;margin-bottom:28px}
+body.ofc .page-head .eyebrow{font-size:16px;font-weight:600;color:var(--of-accent)}
+body.ofc .page-title{font-size:clamp(32px,4.2vw,48px);font-weight:700;line-height:1.15;letter-spacing:-.025em}
+body.ofc .page-head .muted.small{font-size:17px;line-height:1.5;color:var(--of-sub);max-width:60ch}
+
+/* ---------- การ์ด ---------- */
+body.ofc .card{background:var(--of-card);border-radius:18px;box-shadow:var(--of-shadow)}
+body.ofc .panel{border-radius:16px}
+/* กล่องย่อยในการ์ด — พื้นเทาอ่อน ไม่งั้นขาวบนขาวมองไม่เห็นขอบ */
+body.ofc .card .panel{background:var(--of-tile);box-shadow:none}
+body.ofc .card h3{font-size:19px !important;font-weight:700;letter-spacing:-.015em}
+body.ofc .card .tiny.dim{font-size:13.5px}
+
+/* ---------- ตัวเลขสรุป (KPI) — ตัวเลขใหญ่ จุดสีบอกสถานะคงเดิม ---------- */
+body.ofc .kpi{background:var(--of-card);border-radius:18px;box-shadow:var(--of-shadow);padding:18px 20px 16px}
+body.ofc .kpi:hover{box-shadow:var(--of-shadow-hover)}
+body.ofc .kpi-label{font-size:15.5px;font-weight:600;color:var(--text)}
+body.ofc .kpi[data-accent] .kpi-label::before{width:10px;height:10px}
+body.ofc .kpi-value{font-size:clamp(34px,3.4vw,44px);font-weight:700;line-height:1.1;margin-top:6px}
+body.ofc .kpi-foot{font-size:13.5px;color:var(--of-sub);margin-top:2px}
+/* จุดสีฟ้า = กำลังวิ่ง เป็นสีสถานะ — ไม่เปลี่ยนเป็นส้มตามสีเน้นของหน้า */
+body.ofc .kpi[data-accent="blue"] .kpi-label::before{background:#E8781A}
+
+/* ---------- แท็บ ---------- */
+body.ofc .tab{font-size:15px;padding:8px 16px}
+body.ofc .tab .cnt{font-size:13px;font-weight:600}
+body.ofc .tab[aria-selected="true"] .cnt{color:var(--of-link)}
+
+/* ---------- ตาราง: ตัวใหญ่ขึ้น แถวโปร่ง ---------- */
+body.ofc .tbl{font-size:15px}
+body.ofc .tbl thead th{font-size:13.5px;padding-top:14px;padding-bottom:12px}
+body.ofc .tbl tbody td{padding-top:14px;padding-bottom:14px}
+body.ofc .tbl .tiny{font-size:13px}
+body.ofc .tbl tbody tr[data-clickable]:hover,
+body.ofc .tbl tbody tr.is-click:hover{background:var(--of-wash)}
+:root[data-theme="dark"] body.ofc .tbl tbody tr[data-clickable]:hover,
+:root[data-theme="dark"] body.ofc .tbl tbody tr.is-click:hover{background:var(--of-wash)}
+body.ofc .tbl tr.is-picked{background:var(--of-wash)}
+
+/* ---------- ปุ่ม · ฟอร์ม ---------- */
+body.ofc .btn{font-size:15px}
+body.ofc .btn-sm{font-size:14px;padding:8px 16px}
+body.ofc .btn-ghost:hover{background:var(--of-wash)}
+/* ปุ่มงานด่วน ⚡ — กรอบแดง ตัวแดง (ไม่ทึบ) แยกให้ชัดจากปุ่มหลักสีส้มทึบ */
+body.ofc .btn-rush{background:transparent;color:var(--red);border:1.5px solid var(--red);box-shadow:none;font-weight:600}
+body.ofc .btn-rush:hover{background:var(--red-wash);color:var(--red);box-shadow:none;filter:none}
+:root[data-theme="dark"] body.ofc .btn-rush{color:#ff6961;border-color:#ff6961}
+:root[data-theme="dark"] body.ofc .btn-rush:hover{background:rgba(255,105,97,.12)}
+body.ofc .input,body.ofc .select,body.ofc .textarea{border-radius:14px;font-size:15.5px}
+body.ofc .drop{border-radius:18px}
+body.ofc .drop:hover,body.ofc .drop.is-over{background:var(--of-wash)}
+body.ofc .drop.is-over{background:
+    linear-gradient(var(--of-wash),var(--of-wash)) padding-box,
+    repeating-linear-gradient(90deg,var(--of-accent) 0 10px,transparent 10px 18px) border-box;background-size:auto,36px 100%}
+body.ofc .crew-item.is-on{border-color:var(--of-accent);background:var(--of-wash)}
+body.ofc .modal{border-radius:22px}
+@media (max-width:620px){ body.ofc .modal{border-radius:22px 22px 0 0} }
+
+/* ---------- หัวขั้นตอน ①②③ (customer.html) — เลขในวงไล่สีส้มแบบไอคอนหน้าแรก ---------- */
+body.ofc .of-step{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+body.ofc .of-step-n{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:50%;color:#fff;
+  font-size:21px;font-weight:700;font-variant-numeric:tabular-nums;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--of-accent) 78%,#fff) 0%,var(--of-accent) 70%);
+  box-shadow:0 10px 24px -12px var(--of-accent)}
+body.ofc .of-step-t{display:block;font-size:20px;font-weight:700;line-height:1.3;letter-spacing:-.015em}
+body.ofc .of-step-d{display:block;font-size:14.5px;color:var(--of-sub);margin-top:1px}
+
+/* ---------- ตัวเลขสรุปก่อนนำเข้า (#summary) — ตัวใหญ่ อ่านง่าย ---------- */
+body.ofc .stat{gap:14px 28px}
+body.ofc .stat b{font-size:30px;font-weight:700;line-height:1.15}
+body.ofc .stat span{font-size:14px;color:var(--of-sub)}
+/* สีเดิมฝังมาจาก js/customer.js เป็นเขียว/แดงอ่อนสำหรับพื้นมืด — โหมดสว่างใช้สีเข้มให้อ่านออก */
+body.ofc .stat b[style*="6fd6a6"]{color:var(--green) !important}
+body.ofc .stat b[style*="ef9a9a"]{color:var(--red) !important}
+:root[data-theme="dark"] body.ofc .stat b[style*="6fd6a6"]{color:#6fd6a6 !important}
+:root[data-theme="dark"] body.ofc .stat b[style*="ef9a9a"]{color:#ef9a9a !important}
+
+/* ---------- ตารางตรวจทาน (.rv) — ตัวใหญ่ขึ้น ป้ายคนขับสีเข้มในโหมดสว่าง ---------- */
+body.ofc .rv-wrap{border-radius:16px}
+body.ofc .rv{font-size:14.5px}
+body.ofc .rv th{font-size:12.5px;padding:11px 12px}
+body.ofc .rv td{padding:10px 12px}
+body.ofc .rv .sub,body.ofc .rv .c-row,body.ofc .why{font-size:12.5px}
+body.ofc .dchip{font-size:13px;padding:3px 10px}
+body.ofc .dchip.ok{color:#0a7b50}
+body.ofc .dchip.warn{color:#8a6410}
+body.ofc .dchip.bad{color:#a9231a}
+body.ofc .why b{color:var(--red)}
+body.ofc .why i{color:#8a6410}
+:root[data-theme="dark"] body.ofc .dchip.ok{color:#6fd6a6}
+:root[data-theme="dark"] body.ofc .dchip.warn,:root[data-theme="dark"] body.ofc .why i{color:#e2b765}
+:root[data-theme="dark"] body.ofc .dchip.bad,:root[data-theme="dark"] body.ofc .why b{color:#ef9a9a}
+body.ofc .mapgrid label{font-size:13.5px}
+
+/* ---------- ข้อมูลคนขับ (drivers.html · body.ofc-drivers) — แต่งตารางจาก js/drivers.js ด้วย CSS ล้วน ----------
+   คอลัมน์ 1 = ชื่อ + เบอร์โทร · 2 = ทะเบียน + ประเภทรถ · 3 = งานค้าง */
+body.ofc-drivers #rows td:first-child .strong{font-size:16.5px}
+body.ofc-drivers #rows td:first-child .mono{font-size:15px;font-weight:600;color:var(--text);letter-spacing:.01em}
+body.ofc-drivers #rows td:nth-child(2) .code{display:inline-block;padding:4px 12px;border-radius:10px;
+  font-family:var(--sans);font-size:17px;font-weight:700;letter-spacing:.02em;font-variant-numeric:tabular-nums;
+  background:var(--of-tile);color:var(--text);box-shadow:inset 0 0 0 1.5px var(--line-strong)}
+body.ofc-drivers #rows td:nth-child(2) .tiny{display:inline-block;margin-top:5px}
+body.ofc-drivers #rows td:nth-child(3) .mono{font-size:17px}
+body.ofc-drivers #rows td:nth-child(3) .mono.strong{font-size:22px;font-weight:700;color:var(--of-accent)}
+
+/* ---------- รายได้ · วางบิล (billing.html · body.ofc-billing) — CSS ล้วน ไม่แตะ js/billing.js ---------- */
+/* ยอดเงินบนการ์ดสรุป — js ฝังขนาด 22px ไว้ (ตัวเลขเงินยาว) ขยายให้อ่านง่ายแต่ยังพอดีการ์ด */
+body.ofc-billing .kpi-value[style*="22px"]{font-size:clamp(24px,2.3vw,30px) !important}
+body.ofc-billing .billview-tabs .tab{font-size:16px;padding:9px 20px}
+/* ช่องกรอกค่าขนส่ง — ใหญ่ กดง่าย */
+body.ofc-billing .bill-rev{width:150px;font-size:16.5px;font-weight:600;padding:10px 12px}
+/* กำไร (คอลัมน์ 7 ของตารางเที่ยว) · ยอดเงิน (คอลัมน์ 4 ของตารางใบวางบิล) — ตัวหนา */
+body.ofc-billing #rows td:nth-child(7),body.ofc-billing #billRows td:nth-child(4){font-size:16px;font-weight:700}
+body.ofc-billing .bill-meta{font-size:13px}
+/* แถบเมื่อเลือกหลายเที่ยว — พื้นส้มอ่อน ตัวใหญ่ เห็นชัดว่าเลือกไว้เท่าไร */
+body.ofc .bill-bulk{border-radius:14px;background:var(--of-wash);border:1.5px solid color-mix(in srgb,var(--of-accent) 35%,transparent);
+  font-size:15.5px;padding:12px 16px}
+/* หน้า billing: แถบลอยติดล่างจอ เลื่อนลงไปไกลแค่ไหนก็กดสร้างใบวางบิล / ล้างที่เลือกได้ (26 ต.ค. 2026) */
+body.ofc-billing .bill-bulk{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:40;margin:0;
+  width:min(960px, calc(100vw - 32px));box-shadow:var(--shadow-3);
+  background:linear-gradient(var(--of-wash), var(--of-wash)), var(--surface)}
+body.ofc-billing:has(.bill-bulk:not([hidden])) main.page{padding-bottom:110px}
+body.ofc .bill-today{font-size:14.5px}
+
+/* ---------- ใบวางบิลฝั่งลูกค้า (bill.html · body.ofc-bill) — โทนเดียวกับ track.html ----------
+   แต่งเฉพาะส่วนบนจอ (ยอดชำระ · ขั้นรับบิล/นัดชำระ/แจ้งชำระ) — ตัวใบวางบิล (.billdoc) ที่พิมพ์/PDF ไม่แตะ */
+@media screen{
+  body.ofc-bill .billstate{border-left:0;box-shadow:inset 5px 0 0 var(--blue), var(--of-shadow);padding:22px 26px}
+  body.ofc-bill .billstate[data-tone="done"]{box-shadow:inset 5px 0 0 var(--green), var(--of-shadow)}
+  body.ofc-bill .billstate[data-tone="late"]{box-shadow:inset 5px 0 0 var(--red), var(--of-shadow)}
+  body.ofc-bill .billstate[data-tone="grey"]{box-shadow:inset 5px 0 0 var(--line-strong), var(--of-shadow)}
+  body.ofc-bill .billstate-total .small{font-size:16px;font-weight:600}
+  body.ofc-bill .billstate-amt{font-family:var(--sans);font-size:clamp(34px,4.2vw,46px);font-weight:700;font-variant-numeric:tabular-nums}
+  body.ofc-bill .billstate-amt small{font-size:17px}
+  body.ofc-bill .billstate-kv dt{font-size:14px}
+  body.ofc-bill .billstate-kv dd{font-size:16.5px;font-weight:600}
+  body.ofc-bill .billsteps{gap:16px}
+  body.ofc-bill .billstep{gap:12px}
+  body.ofc-bill .billstep-h{gap:12px;font-size:20px !important}
+  /* เลขขั้น ①②③ — วงไล่สีส้มแบบหน้าแรก · ทำเสร็จแล้ว = เขียว */
+  body.ofc-bill .billstep-n{width:38px;height:38px;font-size:18px;color:#fff;
+    background:linear-gradient(160deg,color-mix(in srgb,var(--of-accent) 78%,#fff) 0%,var(--of-accent) 70%);
+    box-shadow:0 10px 24px -12px var(--of-accent)}
+  body.ofc-bill .billstep.is-done{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--green) 45%,transparent), var(--of-shadow)}
+  body.ofc-bill .billstep.is-done .billstep-n{background:var(--green);box-shadow:none}
+  body.ofc-bill .billstep .small{font-size:15.5px;line-height:1.55}
+  body.ofc-bill .billform .btn{font-size:16.5px;padding:12px 26px;min-height:48px}
+  body.ofc-bill .billdone{border-left:0;box-shadow:inset 5px 0 0 var(--green), var(--of-shadow);font-size:18px}
+  body.ofc-bill .billdone[data-tone="grey"]{box-shadow:inset 5px 0 0 var(--line-strong), var(--of-shadow)}
+}
+
+/* ---------- ผู้ใช้และสิทธิ์ (users.html · body.ofc-users) ---------- */
+body.ofc-users .sec-title{padding:20px 20px 14px}
+body.ofc-users .sec-title h2{font-size:21px;font-weight:700;letter-spacing:-.015em}
+body.ofc-users .perm-chip{font-size:12.5px;padding:2px 10px}
+body.ofc .role-opt{border-radius:14px}
+body.ofc .role-opt:has(input:checked){border-color:var(--of-accent);background:var(--of-wash)}
+body.ofc .role-opt input{accent-color:var(--of-accent)}
+body.ofc .role-opt b{font-size:15px}
+body.ofc .role-opt span{font-size:13.5px}
+body.ofc .perm-table{font-size:14.5px}
+
+/* ---------- ย้ายรูปขึ้นคลาวด์ (migrate-photos.html · body.ofc-migrate) ---------- */
+body.ofc-migrate .bar{height:10px}
+body.ofc-migrate .bar > i{background:var(--of-accent)}
+body.ofc-migrate .log{font-size:13px;border-radius:14px}
+
+/* ---------- คำแนะนำท้ายหน้า ---------- */
+body.ofc .of-hint{margin-top:16px;font-size:15px;font-weight:500;color:var(--of-sub)}
+
+@media (prefers-reduced-motion:reduce){ body.ofc .appbar .theme-btn::after{transition:none} }
+@media print{ body.ofc .card,body.ofc .kpi{box-shadow:none} }
+
+/* ---------- งานด่วน: แถบแดงซ้าย + พื้นแดงอ่อน + ป้ายทึบ (ops) ---------- */
+body.ofc #rows tr.is-rt > td{background:var(--red-wash)}
+body.ofc #rows tr.is-rt > td:first-child{box-shadow:inset 4px 0 0 var(--red)}
+body.ofc .rt-badge{display:inline-block;margin-top:4px;padding:2px 9px;border-radius:999px;
+  background:var(--red);color:#fff;font-size:12px;font-weight:700;white-space:nowrap}
+body.ofc .rv .prov-rt{background:var(--red);color:#fff;font-weight:700}
+:root[data-theme="dark"] body.ofc #rows tr.is-rt > td{background:rgba(255,105,97,.12)}
+:root[data-theme="dark"] body.ofc .rt-badge,
+:root[data-theme="dark"] body.ofc .rv .prov-rt{background:#ff6961;color:#1a0d0b}
+
+/* ---------- billing: แถวบิลที่ตรงคำค้น (ค้นเลข Invoice) ---------- */
+body.ofc-billing #rows tr.bill-hit > td{background:var(--amber-wash, rgba(214,160,60,.1));padding-top:6px;padding-bottom:6px}
+body.ofc-billing #rows tr.bill-hit .pill{vertical-align:middle}
+
+/* ---------- billing: รูปสลิปในหน้าต่างใบวางบิล — กดขยายเต็มความกว้าง ---------- */
+body.ofc-billing .bill-slip{display:block;margin-top:8px}
+body.ofc-billing .bill-slip img{display:block;max-width:220px;max-height:300px;border-radius:10px;border:1px solid var(--line);cursor:zoom-in;background:var(--surface-2,#f4f4f4)}
+body.ofc-billing .bill-slip.is-big img{max-width:100%;max-height:none;cursor:zoom-out}
+
+/* หน้า billing: กลุ่มบิลตามผู้รับปลายทาง — หัวกลุ่มแตะกาง/พับ · บิลในกลุ่มมีเส้นส้มซ้ายแบบหน้าคนขับ (26 ต.ค. 2026) */
+body.ofc-billing .tbl tr.bill-grp td{border-top:1px solid var(--line)}
+body.ofc-billing .tbl tr.bill-grp.is-open td{background:color-mix(in srgb,var(--of-accent) 5%,transparent)}
+body.ofc-billing .tbl tr.bill-grp.is-open td:first-child{box-shadow:inset 3px 0 0 var(--of-accent)}
+body.ofc-billing .tbl tr.bill-grp .grp-n{color:var(--of-accent)}
+body.ofc-billing .tbl tr.bill-grp .grp-toggle{color:var(--of-accent);white-space:nowrap}
+/* บิลย่อยขยับเข้าขวา — เส้นส้มอยู่ในช่องว่างด้านหน้า (แบบหน้าคนขับ) · พื้นอ่อนกว่าหัวกลุ่มให้เห็นว่าอยู่ข้างใน */
+body.ofc-billing .tbl tr.bill-child td{background:color-mix(in srgb,var(--of-accent) 2.5%,transparent)}
+/* เยื้องด้วย transform — ไม่เปลี่ยนความกว้างคอลัมน์ ตารางทั้งแผ่นจึงไม่ขยับตอนกางกลุ่ม */
+body.ofc-billing .tbl tr.bill-child td:first-child{
+  background:linear-gradient(var(--of-accent), var(--of-accent)) 6px 0 / 2px 100% no-repeat,
+             color-mix(in srgb,var(--of-accent) 2.5%,transparent)}
+body.ofc-billing .tbl tr.bill-child td:first-child > input{transform:translateX(10px)}
+body.ofc-billing .tbl tr.bill-child td:nth-child(2) > *{display:inline-block;transform:translateX(18px)}
+body.ofc-billing .tbl tr.bill-child td:nth-child(2) > .bill-meta{display:block}
+body.ofc-billing .tbl tr.bill-child.is-picked td{background-color:var(--of-wash)}
+
+/* หน้า billing: แถบราคาน้ำมันวันนี้ (js/fuelPrice.js) */
+body.ofc .fuel-bar{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:12px 16px;display:flex;flex-direction:column;gap:8px}
+body.ofc .fuel-head{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}
+body.ofc .fuel-row{display:flex;gap:12px;align-items:baseline}
+body.ofc .fuel-st{flex:none;width:58px;font-weight:600;color:var(--of-accent)}
+body.ofc .fuel-list{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px}
+body.ofc .fuel-item{white-space:nowrap}
+body.ofc .fuel-item b{margin-left:4px}
+
+/* หน้า billing แท็บค่าใช้จ่าย: แถวคนขับ กาง/พับ + การ์ดเที่ยวแบบหน้าคนขับ */
+body.ofc .cost-list{border-top:1px solid var(--line)}
+body.ofc .cost-drv + .cost-drv{border-top:1px solid var(--line)}
+body.ofc .cost-fleet{padding:0}   /* เป็นแท็ก <section> — base.css เว้นขอบบน/ล่าง 52–96px ให้ section ทุกอัน */
+body.ofc .cost-fleet + .cost-fleet{border-top:20px solid var(--bg);box-shadow:inset 0 1px 0 var(--line)}
+body.ofc .cost-fleet-head{display:flex;align-items:baseline;gap:12px;padding:18px 16px 10px;border-bottom:1px solid var(--line)}
+body.ofc .cost-head{display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;background:none;border:0;cursor:pointer;font:inherit;color:inherit}
+body.ofc .cost-head:hover{background:var(--of-wash)}
+body.ofc .cost-drv.is-open > .cost-head{background:color-mix(in srgb,var(--of-accent) 5%,transparent);box-shadow:inset 3px 0 0 var(--of-accent)}
+body.ofc .cost-total{font-size:16px;white-space:nowrap}
+body.ofc .cost-toggle{color:var(--of-accent);white-space:nowrap;min-width:56px;text-align:right}
+body.ofc .cost-body{margin:0 16px 14px 30px;padding-left:12px;border-left:2px solid var(--of-accent);
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+body.ofc .cost-body > a{grid-column:1/-1}
+body.ofc .cost-card{cursor:default;margin:0}
+body.ofc .cost-card:hover{transform:none}
+body.ofc .cost-amt{color:var(--of-accent);font-size:16px}
+body.ofc .cost-items{list-style:none;margin:8px 0 0;padding:8px 0 0;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:4px;font-size:14px}
+body.ofc .cost-items li{display:flex;justify-content:space-between;gap:12px}
+/* จ่ายค่ารอบ — ติ๊กเลือก · จ่ายแล้ว · แถบรวมยอด · หน้าต่าง QR (js/billingCosts.js) */
+body.ofc .cost-check{width:18px;height:18px;accent-color:var(--of-accent);cursor:pointer}
+body.ofc .cost-card.is-picked{box-shadow:0 0 0 2px var(--of-accent)}
+body.ofc .cost-card.is-paid{background:color-mix(in srgb,#1f9d55 6%,var(--of-card,#fff))}
+body.ofc .cost-paid{margin-top:10px;padding-top:8px;border-top:1px dashed var(--line);display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:13.5px;color:#1f7a45}
+body.ofc .cost-paid-warn{flex-basis:100%;color:var(--amber-dim,#b26a00);font-weight:600}
+body.ofc .cost-sel{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding:6px 2px}
+body.ofc .cost-sel label{display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer}
+body.ofc .cost-sel input{width:18px;height:18px;accent-color:var(--of-accent)}
+body.ofc .cost-picked{color:var(--of-accent);white-space:nowrap}
+body.ofc .cost-paybar{position:sticky;top:64px;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 16px;
+  background:color-mix(in srgb,var(--of-accent) 10%,var(--of-card,#fff));border-bottom:1px solid var(--line)}
+/* หน้า billing แท็บค่าใช้จ่าย: แถบรวมยอด + ล้างที่เลือก + จ่ายเงิน ลอยติดล่างจอ เลื่อนไปไหนก็กดได้ (แบบ .bill-bulk · 27 ต.ค. 2026)
+   ของเดิม sticky ไม่ทำงาน เพราะการ์ดที่ครอบมี overflow:hidden */
+body.ofc-billing .cost-paybar{position:fixed;left:50%;bottom:20px;top:auto;transform:translateX(-50%);z-index:40;margin:0;
+  width:min(960px, calc(100vw - 32px));border:1.5px solid color-mix(in srgb,var(--of-accent) 35%,transparent);border-radius:14px;
+  box-shadow:var(--shadow-3);background:linear-gradient(var(--of-wash), var(--of-wash)), var(--surface);font-size:15.5px}
+body.ofc-billing:has(.cost-paybar) main.page{padding-bottom:110px}
+.pay-qr-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.pay-qr-card{border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}
+.pay-qr-card.is-done{opacity:.6}
+.pay-qr-amt{font-size:22px;font-weight:700;margin:6px 0}
+.pay-qr-err{color:var(--red,#c0392b);font-size:13.5px}
+.pay-bank{margin:4px 0 0;padding:10px;border-radius:10px;background:var(--of-wash,#f6f4f1);display:flex;flex-direction:column;align-items:center;gap:6px}
+.pay-bank-name{font-weight:600}
+.pay-bank-acct{font-size:20px;font-weight:700;letter-spacing:.5px}
+
+/* หน้าข้อมูลคนขับ: รถประจำ / รถนอก เป็นคนละกล่อง เว้นช่องระหว่างกัน (26 ต.ค. 2026) */
+body.ofc-drivers .fleet-group + .fleet-group{border-top:1px solid var(--line);margin-top:28px}
+body.ofc-drivers .fleet-head{padding-top:18px}
+
+/* billing: เก็บเงินหน้างาน (js/billing.js collectPill / collectDialog / paintCash) */
+body.ofc .bill-collect{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:6px}
+body.ofc .bill-collect .pill{cursor:pointer;border:0;font:inherit;font-size:12px}
+body.ofc .bill-gap{color:var(--red);font-size:12px;font-weight:600}
+body.ofc .collect-list{display:grid;gap:12px}
+body.ofc .collect-item{padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
+body.ofc .cash-card{padding:14px 16px;margin-bottom:16px}
+body.ofc .cash-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+body.ofc .cash-chip{display:flex;align-items:baseline;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font:inherit;cursor:pointer}
+body.ofc .cash-chip:hover{border-color:var(--of-accent)}
+
+/* ปุ่มแก้ไขงาน / ลบงาน ในหน้าต่างเที่ยว (js/ops.js openTrip · 31 ต.ค.) — อยู่กลาง กว้างเท่ากัน */
+.trip-billpick{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:24px}   /* เว้นจากแถวเวลาใต้แถบสถานะ (ผู้ใช้ขอ 31 ต.ค.) */
+.trip-billpick .select{flex:0 1 420px;min-width:0}
+.trip-editbar{display:flex;justify-content:center;gap:12px;margin-top:20px}   /* เว้นจาก dropdown บิล (ผู้ใช้ขอ 31 ต.ค.) */
+.trip-editbar .btn{flex:0 1 200px;justify-content:center}
+.trip-delpick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.trip-delword{color:var(--red);font-size:30px;font-weight:800;margin:0 6px}
+
+/* ถามยืนยันเลข Invoice ซ้ำของงานด่วน — ซ้อนบนหน้าต่างที่กรอกอยู่ (js/realtime.js askDupInv · 31 ต.ค.) */
+.rt-dupask{position:fixed;inset:0;z-index:2000;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.45)}
+.rt-dupask-card{width:min(100%,440px);padding:20px;border-radius:18px;background:var(--surface);box-shadow:var(--shadow-3);border:1px solid var(--red)}

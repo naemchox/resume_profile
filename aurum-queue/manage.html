@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AURUM · จัดการคิวของฉัน</title>
+<meta name="description" content="ตรวจสอบ เลื่อน หรือยกเลิกคิวที่จองไว้ ด้วยรหัสยืนยันหรือเบอร์โทรศัพท์">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+Thai:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/app.css">
+<script>
+try{var s=JSON.parse(localStorage.getItem('aurum.db.v1')||'{}').settings;
+if(s){var r=document.documentElement;r.style.setProperty('--h',s.hue);r.style.setProperty('--ca',s.chroma);r.dataset.field=s.field==='cream'?'cream':'dark';}}catch(e){}
+</script>
+</head>
+<body>
+<main id="main">
+<section id="mgHero" style="padding:clamp(110px,14vh,150px) 0 var(--s7);overflow:hidden">
+  <div class="watermark wm-l" aria-hidden="true" style="opacity:.03"></div>
+  <div class="wrap wrap-tight" style="position:relative;z-index:1">
+    <p class="eyebrow">จัดการคิวของฉัน</p>
+    <h1 style="margin-top:var(--s3)">คิวของคุณ <span class="italic-accent">คุณแก้เองได้</span></h1>
+    <p class="lede" style="margin-top:var(--s4)">ใส่รหัสยืนยันที่ได้ตอนจอง หรือเบอร์โทรที่ใช้จอง เพื่อดูคิวทั้งหมด เลื่อนเวลา หรือยกเลิก</p>
+
+    <form id="lookup" class="row" style="margin-top:var(--s6);align-items:flex-end;gap:var(--s3)">
+      <div class="field" style="flex:1;min-width:220px">
+        <label for="q">รหัสยืนยัน หรือ เบอร์โทรศัพท์</label>
+        <input class="input" id="q" placeholder="AU-7K2F หรือ 081-234-5678" autocomplete="off">
+      </div>
+      <button class="btn btn-gold" type="submit" data-magnetic>ค้นหาคิว</button>
+    </form>
+    <p class="hint" style="margin-top:var(--s3)">ไม่ต้องใส่รหัสผ่าน · เราไม่เก็บข้อมูลใดนอกจากที่คุณกรอกตอนจอง</p>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap wrap-tight"><div id="results"></div></div>
+</section>
+</main>
+
+<dialog class="modal" id="reModal">
+  <form method="dialog" class="modal-inner">
+    <h3 id="reTitle">เลื่อนคิว</h3>
+    <p class="hint" style="margin-top:6px">เลือกเวลาใหม่ที่ว่างจริงของช่างท่านเดิม</p>
+    <div id="reBody" style="margin-top:var(--s5)"></div>
+    <div class="row" style="margin-top:var(--s6)">
+      <button class="btn btn-ghost" value="cancel" type="submit">ปิด</button>
+      <button class="btn btn-gold row-end" id="reSave" type="button">ยืนยันเวลาใหม่</button>
+    </div>
+  </form>
+</dialog>
+
+<script type="module">
+import { shell, atmosphere, toast, enhance, $, $$, el, esc } from './js/ui.js';
+import { listAppointments, listServices, listStaff, getSettingsSync, fmtDateTH, fmtTHB, todayISO, addDays, fromISO, TH_DOW_S, TH_MON } from './js/store.js';
+import { slotsFor, dateRail, reschedule, cancel } from './js/availability.js';
+
+shell({ active: 'manage' });
+atmosphere($('#mgHero'), 14);
+const SET = getSettingsSync();
+let SERVICES = [], STAFF = [];
+const svc = id => SERVICES.find(s => s.id === id);
+const stf = id => STAFF.find(s => s.id === id);
+
+async function search(q) {
+  const box = $('#results');
+  box.innerHTML = '<div class="state"><div class="motif-loader"></div><p class="hint">กำลังค้นหา…</p></div>';
+  [SERVICES, STAFF] = await Promise.all([listServices({includeInactive:true}), listStaff({includeInactive:true})]);
+  const byCode = /^au-/i.test(q.trim());
+  const list = await listAppointments(byCode ? { code: q.trim(), includeCancelled: true } : { phone: q.trim(), includeCancelled: true });
+  render(list, q);
+}
+
+function statusTag(a) {
+  const past = a.date < todayISO();
+  if (a.status === 'cancelled') return '<span class="tag tag-err">ยกเลิกแล้ว</span>';
+  if (a.status === 'done') return '<span class="tag tag-ok">รับบริการแล้ว</span>';
+  if (a.status === 'noshow') return '<span class="tag tag-err">ไม่มาตามนัด</span>';
+  if (past) return '<span class="tag">ผ่านไปแล้ว</span>';
+  return '<span class="tag tag-gold">ยืนยันคิวแล้ว</span>';
+}
+
+function render(list, q) {
+  const box = $('#results'); box.innerHTML = '';
+  if (!list.length) {
+    box.append(el('div', { class: 'state' },
+      el('div', { class: 'motif-loader', style: 'animation:none;opacity:.3' }),
+      el('h3', {}, 'ไม่พบคิวที่ตรงกับ “' + esc(q) + '”'),
+      el('p', { class: 'hint', style:'max-width:44ch' }, 'ลองตรวจรหัสยืนยันอีกครั้ง หรือใส่เบอร์โทรที่ใช้ตอนจอง ถ้ายังหาไม่เจอกรุณาโทรหาร้านที่ ' + SET.phone),
+      el('a', { class: 'btn btn-ghost', href: 'book.html' }, 'จองคิวใหม่')));
+    return;
+  }
+  const upcoming = list.filter(a => a.date >= todayISO() && a.status !== 'cancelled');
+  const rest = list.filter(a => !upcoming.includes(a));
+  const section = (title, arr) => {
+    if (!arr.length) return;
+    box.append(el('div', { class: 'slotgroup-hd', style: 'margin-top:var(--s6)' },
+      el('span', { class: 'lbl' }, title), el('span', { class: 'ln' }), el('span', { class: 'lbl' }, arr.length + ' คิว')));
+    arr.forEach(a => box.append(card(a)));
+  };
+  section('คิวที่กำลังจะถึง', upcoming);
+  section('ประวัติการเข้ารับบริการ', rest);
+  enhance(box);
+}
+
+function card(a) {
+  const sv = svc(a.serviceId), st = stf(a.staffId);
+  const active = a.date >= todayISO() && !['cancelled','done','noshow'].includes(a.status);
+  const c = el('div', { class: 'card card-foil', style: 'margin-top:var(--s3)' });
+  c.innerHTML = `
+    <div class="row" style="align-items:flex-start">
+      <span class="portrait">${esc(st?.initial || '✦')}</span>
+      <div style="flex:1;min-width:0">
+        <div class="row" style="gap:var(--s2)">${statusTag(a)}<span class="tag">${esc(a.code)}</span></div>
+        <h3 style="margin-top:var(--s3)">${esc(sv?.nameTh || '—')}</h3>
+        <p class="hint" style="margin-top:4px">${esc(st?.name || '—')} · ${esc(st?.title || '')}</p>
+        <p style="margin-top:var(--s3);font-family:var(--f-display);font-size:1.3rem">
+          ${fmtDateTH(a.date)} · <span class="num">${a.start}–${a.end}</span> น.
+        </p>
+        ${a.customer.note ? `<p class="hint" style="margin-top:var(--s3);padding-left:12px;border-left:2px solid var(--c-border)">${esc(a.customer.note)}</p>` : ''}
+      </div>
+      <div style="text-align:right"><p class="lbl">ค่าบริการ</p>
+      <p class="num" style="font-size:1.3rem;color:var(--c-action);margin-top:4px">฿${fmtTHB(a.price)}</p></div>
+    </div>`;
+  if (active) {
+    const row = el('div', { class: 'row', style: 'margin-top:var(--s5);padding-top:var(--s4);border-top:1px solid var(--c-border)' });
+    row.append(
+      el('button', { class: 'btn btn-ghost btn-sm', onclick: () => openReschedule(a) }, 'เลื่อนเวลา'),
+      el('button', { class: 'btn btn-danger btn-sm', onclick: () => doCancel(a) }, 'ยกเลิกคิว'),
+      el('span', { class: 'hint row-end' }, `เปลี่ยนแปลงเองได้ถึง ${SET.cancelHours} ชม. ก่อนถึงคิว`));
+    c.append(row);
+  }
+  return c;
+}
+
+function doCancel(a) {
+  if (!confirm(`ยืนยันยกเลิกคิว ${a.code} วันที่ ${fmtDateTH(a.date)} เวลา ${a.start} น.?`)) return;
+  try { cancel(a.id, { byGuest: true }); toast('ยกเลิกคิวเรียบร้อย ช่องเวลานี้ถูกปล่อยคืนให้ลูกค้าท่านอื่นแล้ว', 'ok'); search($('#q').value); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+let reState = null;
+function openReschedule(a) {
+  reState = { a, date: a.date, time: null };
+  $('#reTitle').textContent = `เลื่อนคิว ${a.code}`;
+  drawRe();
+  $('#reModal').showModal();
+}
+function drawRe() {
+  const { a } = reState;
+  const body = $('#reBody'); body.innerHTML = '';
+  const rail = dateRail(a.serviceId, todayISO(), SET.horizonDays, { staffId: a.staffId });
+  const r = el('div', { class: 'daterail' });
+  rail.forEach(d => {
+    const dd = fromISO(d.date);
+    r.append(el('button', { class: 'daybtn', type: 'button', disabled: d.free === 0, 'aria-pressed': reState.date === d.date,
+      onclick: () => { reState.date = d.date; reState.time = null; drawRe(); } },
+      el('div', { class: 'dw' }, TH_DOW_S[dd.getDay()]), el('div', { class: 'dd' }, String(dd.getDate())),
+      el('div', { class: 'dm' }, TH_MON[dd.getMonth()]), el('div', { class: 'free' }, d.free ? d.free + ' ช่อง' : 'เต็ม')));
+  });
+  body.append(r);
+  const slots = slotsFor(a.serviceId, reState.date, { staffId: a.staffId }).filter(s => !(reState.date === a.date && s.time === a.start));
+  const g = el('div', { class: 'slots', style: 'margin-top:var(--s4)' });
+  if (!slots.length) g.append(el('p', { class: 'hint' }, 'ไม่มีเวลาว่างอื่นในวันนี้'));
+  slots.forEach(s => g.append(el('button', { class: 'slot', type: 'button', 'aria-pressed': reState.time === s.time,
+    onclick: () => { reState.time = s.time; drawRe(); } }, s.time)));
+  body.append(g);
+}
+$('#reSave').addEventListener('click', () => {
+  if (!reState?.time) return toast('กรุณาเลือกเวลาใหม่', 'warn');
+  try {
+    reschedule(reState.a.id, { date: reState.date, start: reState.time });
+    $('#reModal').close();
+    toast('เลื่อนคิวเรียบร้อย ระบบเลื่อนเวลาแจ้งเตือนให้แล้ว', 'ok');
+    search($('#q').value);
+  } catch (e) { toast(e.message, 'err'); }
+});
+
+$('#lookup').addEventListener('submit', e => {
+  e.preventDefault();
+  const q = $('#q').value.trim();
+  if (!q) return toast('กรุณาใส่รหัสยืนยันหรือเบอร์โทร', 'warn');
+  history.replaceState(null, '', 'manage.html?code=' + encodeURIComponent(q));
+  search(q);
+});
+
+const pre = new URLSearchParams(location.search).get('code');
+if (pre) { $('#q').value = pre; search(pre); }
+else {
+  $('#results').innerHTML = `<div class="state">
+    <div class="motif-loader" style="animation:none;opacity:.3"></div>
+    <h3>ยังไม่ได้ค้นหา</h3>
+    <p class="hint" style="max-width:46ch">ใส่รหัสยืนยันที่ได้ตอนจอง (เช่น AU-7K2F) หรือเบอร์โทรที่ใช้จอง แล้วกดค้นหา</p></div>`;
+}
+</script>
+</body>
+</html>

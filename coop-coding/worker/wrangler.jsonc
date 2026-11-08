@@ -1,0 +1,18 @@
+{
+  "name": "coop-coding-server",
+  "main": "src/index.js",
+  "compatibility_date": "2025-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "durable_objects": {
+    "bindings": [
+      { "name": "COOP", "class_name": "Coop" },
+      { "name": "LIMITER", "class_name": "Limiter" }
+    ]
+  },
+  // SQLite-backed Durable Objects are the only kind available on the free plan.
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Coop"] },
+    { "tag": "v2", "new_sqlite_classes": ["Limiter"] }
+  ]
+}

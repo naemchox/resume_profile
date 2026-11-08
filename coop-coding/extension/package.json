@@ -1,0 +1,292 @@
+{
+  "name": "coop-coding",
+  "displayName": "Co-op Coding",
+  "description": "แก้โค้ดโฟลเดอร์เดียวกันกับเพื่อนแบบ real-time ไม่ต้องมี host และไฟล์ยังเป็นไฟล์จริงบนเครื่องทุกคน",
+  "version": "0.3.0",
+  "private": true,
+  "publisher": "new-gen",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "coop.setupServer",
+        "title": "ตั้งเซิร์ฟเวอร์ของฉัน (Cloudflare)",
+        "category": "Co-op"
+      },
+      {
+        "command": "coop.create",
+        "title": "สร้าง co-op จากโฟลเดอร์นี้",
+        "category": "Co-op",
+        "icon": "$(add)"
+      },
+      {
+        "command": "coop.joinWithCode",
+        "title": "เข้าด้วย invite code",
+        "category": "Co-op",
+        "icon": "$(link)"
+      },
+      {
+        "command": "coop.join",
+        "title": "เข้า co-op เดิมของโฟลเดอร์นี้",
+        "category": "Co-op"
+      },
+      {
+        "command": "coop.copyInvite",
+        "title": "คัดลอก invite ให้เพื่อน",
+        "category": "Co-op",
+        "icon": "$(clippy)"
+      },
+      {
+        "command": "coop.rotateInvite",
+        "title": "ยกเลิก invite เดิมแล้วออกใหม่",
+        "category": "Co-op"
+      },
+      {
+        "command": "coop.verifyFiles",
+        "title": "เทียบไฟล์กับ co-op",
+        "category": "Co-op",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "coop.rename",
+        "title": "เปลี่ยนชื่อที่เพื่อนเห็น",
+        "category": "Co-op",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "coop.leave",
+        "title": "ออกจาก co-op",
+        "category": "Co-op",
+        "icon": "$(sign-out)"
+      },
+      {
+        "command": "coop.menu",
+        "title": "เมนู Co-op",
+        "category": "Co-op"
+      },
+      {
+        "command": "coop.reset",
+        "title": "ล้างข้อมูล co-op ในเครื่องนี้",
+        "category": "Co-op"
+      },
+      {
+        "command": "coop.refreshRooms",
+        "title": "รีเฟรชรายการห้อง",
+        "category": "Co-op",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "coop.switchRoom",
+        "title": "เปลี่ยนไปห้องนี้",
+        "category": "Co-op",
+        "icon": "$(arrow-right)"
+      },
+      {
+        "command": "coop.openRoomNewWindow",
+        "title": "เปิดห้องนี้ในหน้าต่างใหม่",
+        "category": "Co-op",
+        "icon": "$(empty-window)"
+      },
+      {
+        "command": "coop.forgetRoom",
+        "title": "เอาออกจากรายการ",
+        "category": "Co-op",
+        "icon": "$(close)"
+      },
+      {
+        "command": "coop.followPeer",
+        "title": "ไปดูที่เขาอยู่",
+        "category": "Co-op",
+        "icon": "$(eye)"
+      }
+    ],
+    "configuration": {
+      "title": "Co-op",
+      "properties": {
+        "coop.serverUrl": {
+          "type": "string",
+          "default": "",
+          "description": "ที่อยู่เซิร์ฟเวอร์ co-op ของคุณ ปล่อยว่างไว้แล้วใช้คำสั่ง \"ตั้งเซิร์ฟเวอร์ของฉัน\" เพื่อสร้างบนบัญชี Cloudflare ของคุณเองได้ฟรี (คนที่เข้าด้วย invite ไม่ต้องตั้งค่านี้)"
+        },
+        "coop.userName": {
+          "type": "string",
+          "default": "",
+          "description": "Name shown next to your cursor. Defaults to your OS username."
+        },
+        "coop.color": {
+          "type": "string",
+          "default": "",
+          "description": "Cursor colour, e.g. #f59e0b. Picked automatically when empty."
+        },
+        "coop.verifyOnJoin": {
+          "type": "boolean",
+          "default": true,
+          "description": "พอเข้า co-op เสร็จ ให้เทียบไฟล์บนเครื่องกับ co-op ให้อัตโนมัติ แล้วถามเมื่อไม่ตรง"
+        },
+        "coop.autoJoin": {
+          "type": "boolean",
+          "default": false,
+          "description": "เข้า co-op ที่ผูกกับโฟลเดอร์นี้อัตโนมัติตอนเปิดหน้าต่าง"
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "coop",
+          "title": "Co-op",
+          "icon": "media/coop.svg"
+        }
+      ]
+    },
+    "views": {
+      "coop": [
+        {
+          "id": "coop.current",
+          "name": "ห้องที่อยู่ตอนนี้"
+        },
+        {
+          "id": "coop.rooms",
+          "name": "ห้องทั้งหมดของฉัน"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "coop.current",
+        "contents": "ยังไม่ได้อยู่ในห้องไหน\n[$(add) สร้างห้องจากโฟลเดอร์นี้](command:coop.create)\n[$(link) เข้าด้วย invite code](command:coop.joinWithCode)\nหรือเลือกห้องที่เคยเข้าจากรายการด้านล่าง\n[$(edit) เปลี่ยนชื่อที่เพื่อนเห็น](command:coop.rename)",
+        "when": "!coop.inRoom"
+      },
+      {
+        "view": "coop.rooms",
+        "contents": "ยังไม่เคยเข้าห้องไหนบนเครื่องนี้\nห้องที่สร้างหรือเข้าร่วมจะมาอยู่ตรงนี้ กดเพื่อสลับห้องได้"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "coop.rename",
+          "when": "view == coop.current",
+          "group": "navigation@0"
+        },
+        {
+          "command": "coop.copyInvite",
+          "when": "view == coop.current && coop.inRoom",
+          "group": "navigation@1"
+        },
+        {
+          "command": "coop.verifyFiles",
+          "when": "view == coop.current && coop.inRoom",
+          "group": "navigation@2"
+        },
+        {
+          "command": "coop.leave",
+          "when": "view == coop.current && coop.inRoom",
+          "group": "navigation@3"
+        },
+        {
+          "command": "coop.create",
+          "when": "view == coop.rooms",
+          "group": "navigation@1"
+        },
+        {
+          "command": "coop.joinWithCode",
+          "when": "view == coop.rooms",
+          "group": "navigation@2"
+        },
+        {
+          "command": "coop.refreshRooms",
+          "when": "view == coop.rooms",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "coop.switchRoom",
+          "when": "view == coop.rooms && viewItem == room",
+          "group": "inline@1"
+        },
+        {
+          "command": "coop.openRoomNewWindow",
+          "when": "view == coop.rooms && viewItem == room",
+          "group": "inline@2"
+        },
+        {
+          "command": "coop.forgetRoom",
+          "when": "view == coop.rooms && viewItem =~ /^room/",
+          "group": "inline@3"
+        },
+        {
+          "command": "coop.leave",
+          "when": "view == coop.rooms && viewItem == room.current",
+          "group": "inline@1"
+        },
+        {
+          "command": "coop.copyInvite",
+          "when": "view == coop.current && viewItem == currentRoom.owner",
+          "group": "inline@1"
+        },
+        {
+          "command": "coop.followPeer",
+          "when": "view == coop.current && viewItem == peer",
+          "group": "inline@1"
+        },
+        {
+          "command": "coop.rename",
+          "when": "view == coop.current && viewItem == peer.me",
+          "group": "inline@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "coop.switchRoom",
+          "when": "false"
+        },
+        {
+          "command": "coop.openRoomNewWindow",
+          "when": "false"
+        },
+        {
+          "command": "coop.forgetRoom",
+          "when": "false"
+        },
+        {
+          "command": "coop.followPeer",
+          "when": "false"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "npm run build:worker && esbuild src/extension.ts --bundle --outfile=out/extension.js --platform=node --format=cjs --target=node18 --external:vscode --external:bufferutil --external:utf-8-validate --sourcemap",
+    "watch": "npm run build -- --watch",
+    "typecheck": "tsc --noEmit",
+    "vscode:prepublish": "npm run build",
+    "check:invite": "esbuild src/invite-check.ts --bundle --outfile=out/invite-check.js --platform=node --format=cjs --target=node18 && node out/invite-check.js",
+    "check:verify": "esbuild src/verify-check.ts --bundle --outfile=out/verify-check.js --platform=node --format=cjs --target=node18 --alias:vscode=./testkit/vscode-stub.js && node out/verify-check.js",
+    "check:folders": "esbuild src/folder-check.ts --bundle --outfile=out/folder-check.js --platform=node --format=cjs --target=node18 --alias:vscode=./testkit/vscode-stub.js && node out/folder-check.js",
+    "build:worker": "esbuild ../worker/src/index.js --bundle --outfile=out/worker/worker.js --format=esm --platform=browser --target=es2022 --conditions=workerd,worker,browser",
+    "check:sync": "esbuild src/sync-check.ts --bundle --outfile=out/sync-check.js --platform=node --format=cjs --target=node18 --alias:vscode=./testkit/vscode-sync-stub.js && node out/sync-check.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0",
+    "y-websocket": "^2.0.4",
+    "yjs": "^13.6.20"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.85.0",
+    "@types/ws": "^8.5.12",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0"
+  }
+}

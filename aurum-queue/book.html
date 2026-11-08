@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AURUM · จองคิว</title>
+<meta name="description" content="จองคิวร้านเสริมสวยและคลินิกออนไลน์ในหน้าเดียว — เลือกวันและเวลาจากปฏิทิน เลือกบริการ แล้วเลือกช่างที่ว่างจริง">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+Thai:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/book-minimal.css">
+<style>
+  @media(max-width:840px){
+    #flowHero{padding-top:clamp(84px,11vh,106px) !important; padding-bottom:var(--s5) !important}
+    #flowHero h1{font-size:clamp(1.5rem,6.4vw,1.95rem) !important}
+  }
+</style>
+<script>
+try{var s=JSON.parse(localStorage.getItem('aurum.db.v1')||'{}').settings;
+if(s){var r=document.documentElement;r.style.setProperty('--h',s.hue);r.style.setProperty('--ca',s.chroma);r.dataset.field=s.field==='cream'?'cream':'dark';}}catch(e){}
+</script>
+</head>
+<body class="minimal">
+<main id="main">
+
+<section id="flowHero">
+  <div class="wrap wrap-wide">
+    <p class="eyebrow">จองคิว</p>
+    <h1 style="margin-top:var(--s4)">จบในหน้าเดียว <span class="italic-accent">เลือกขั้นไหนก่อนก็ได้</span></h1>
+    <p class="hint" style="margin-top:var(--s3);max-width:56ch">ทุกขั้นกรองกันเอง เหลือเฉพาะคิวที่ว่างจริง</p>
+  </div>
+</section>
+
+<section style="padding-top:0;padding-bottom:var(--s10)">
+  <div class="wrap wrap-wide">
+    <div class="desk" id="desk">
+
+      <!-- 01 · วันและเวลา -->
+      <section class="pane sticky" id="paneWhen" aria-labelledby="hdWhen">
+        <div class="pane-hd">
+          <span class="no">01</span>
+          <h2 id="hdWhen">วันและเวลา</h2>
+          <span class="done" aria-hidden="true"></span>
+        </div>
+        <div class="pane-body" id="whenBody">
+          <div class="skel skel-line" style="height:200px;margin-bottom:12px"></div>
+          <div class="skel skel-slot"></div>
+        </div>
+      </section>
+
+      <!-- 02 · บริการ -->
+      <section class="pane" id="paneService" aria-labelledby="hdService">
+        <div class="pane-hd">
+          <span class="no">02</span>
+          <h2 id="hdService">บริการ</h2>
+          <span class="done" aria-hidden="true"></span>
+        </div>
+        <p class="pane-note">ราคาและระยะเวลาแสดงตั้งแต่ตอนนี้ ไม่มีค่าใช้จ่ายเพิ่มทีหลัง</p>
+        <div class="pane-body" id="serviceBody">
+          <div class="skel skel-slot" style="margin-bottom:8px"></div>
+          <div class="skel skel-slot" style="margin-bottom:8px"></div>
+          <div class="skel skel-slot"></div>
+        </div>
+      </section>
+
+      <!-- 03 · ช่าง + ยืนยัน -->
+      <section class="pane sticky pane-artisan" id="paneArtisan" aria-labelledby="hdArtisan">
+        <div class="pane-hd">
+          <span class="no">03</span>
+          <h2 id="hdArtisan">ช่างและยืนยัน</h2>
+          <span class="done" aria-hidden="true"></span>
+        </div>
+        <div class="pane-body" id="artisanBody">
+          <div class="skel skel-slot" style="margin-bottom:8px"></div>
+          <div class="skel skel-slot"></div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+
+<!-- mobile only: the summary and the action, always in thumb reach -->
+<div class="deskbar" id="deskbar" role="region" aria-label="สรุปการจอง">
+  <div class="sum">
+    <b id="barTitle">เลือกบริการที่ต้องการ</b>
+    <span id="barSub">แตะการ์ดบริการเพื่อเริ่ม</span>
+  </div>
+  <button class="btn btn-gold" id="barCta" type="button">เลือกบริการ</button>
+</div>
+
+</main>
+<script type="module" src="js/booking.js"></script>
+</body>
+</html>

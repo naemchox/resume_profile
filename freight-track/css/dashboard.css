@@ -1,0 +1,155 @@
+/* ============================================================
+   dashboard.css — หน้า Dashboard (dashboard.html) · โทนเดียวกับหน้าแรก (index.html) และหน้าอื่นทั้งระบบ
+   หน้านี้มี CSS และแถบหัวของตัวเอง (ไม่ใช้ base/app/office.css) จึงแยกไฟล์ — ใช้กับ <body class="dsh">
+   แถบหัวสว่างโปร่ง โลโก้ส้ม สวิตช์ธีม · หัวเรื่องใหญ่ · ตัวกรองใหญ่กดง่าย · ตัวเลขสำคัญใหญ่ (4 ช่องต่อแถว)
+   การ์ดขาวมุมโค้ง เงาบาง · ตัวหนังสือในการ์ด/ตารางใหญ่ขึ้น
+   สีกราฟ (ฟ้า/ส้ม/เขียว/เทา) ไม่เปลี่ยน — เป็นสีข้อมูล ความหมายในกราฟเหมือนเดิม
+   ทุกกฎอยู่ใน @media screen — Report ที่พิมพ์ / PDF (ปุ่ม "ออก Report") ใช้ขนาดตามแบบเดิมทุกอย่าง
+   อยากกลับหน้าตาเดิม: ลบ <link href="css/dashboard.css"> และ class "dsh" ที่ <body> (สำเนาเดิม: dashboard.html.pre-office)
+   ============================================================ */
+
+:root{
+  --ds-accent:#E8781A;
+  --ds-link:#B85A0C;
+  --ds-wash:rgba(232,120,26,.07);
+  --ds-ring:rgba(232,120,26,.22);
+  --ds-glass:rgba(250,250,252,.8);
+  --ds-rule:rgba(0,0,0,.08);
+  --ds-seg:#e7e4e1;
+  --ds-switch:#e7e4e1;
+  --ds-ink:#2b2725;
+  --ds-sub:#6f6964;
+  --ds-field:#d3cfcb;
+  --ds-shadow:2px 4px 12px rgba(0,0,0,.08);
+  --ds-shadow-hover:2px 4px 16px rgba(0,0,0,.16);
+  --ds-knob:#fff;
+  --ds-moon:0;
+}
+/* หน้านี้เปิดโหมดมืดได้สองทาง: กดปุ่มเอง (data-theme="dark") หรือตามระบบตอนยังไม่เคยเลือก */
+:root[data-theme="dark"]{
+  --ds-link:#FFA24D; --ds-wash:rgba(255,162,77,.1); --ds-ring:rgba(255,162,77,.35);
+  --ds-glass:rgba(22,22,23,.8); --ds-rule:rgba(255,255,255,.1); --ds-seg:#37332f; --ds-switch:#433e3b;
+  --ds-ink:#f4f3f1; --ds-sub:#aba49e; --ds-field:#4f4a46;
+  --ds-shadow:0 0 0 1px rgba(255,255,255,.07); --ds-shadow-hover:0 0 0 1px rgba(255,255,255,.16), 0 8px 28px rgba(0,0,0,.6);
+  --ds-knob:transparent; --ds-moon:1;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ds-link:#FFA24D; --ds-wash:rgba(255,162,77,.1); --ds-ring:rgba(255,162,77,.35);
+    --ds-glass:rgba(22,22,23,.8); --ds-rule:rgba(255,255,255,.1); --ds-seg:#37332f; --ds-switch:#433e3b;
+    --ds-ink:#f4f3f1; --ds-sub:#aba49e; --ds-field:#4f4a46;
+    --ds-shadow:0 0 0 1px rgba(255,255,255,.07); --ds-shadow-hover:0 0 0 1px rgba(255,255,255,.16), 0 8px 28px rgba(0,0,0,.6);
+    --ds-knob:transparent; --ds-moon:1;
+  }
+}
+
+@media screen{
+  body.dsh ::selection{background:var(--ds-ring)}
+  body.dsh .wrap{padding:0 clamp(16px,4vw,40px)}
+
+  /* ---------- แถบหัว: หน้าตาเดียวกับ .lx-bar ของหน้าแรก ----------
+     :not(#_) ดันน้ำหนักให้ชนะกฎโหมดมืดตามระบบ (:root:not([data-theme="light"]) …) ใน dashboard.html และ apple.css */
+  body.dsh:not(#_) .appbar,
+  :root[data-theme="dark"] body.dsh:not(#_) .appbar{background:var(--ds-glass);border-bottom:1px solid var(--ds-rule);
+    backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px)}
+  body.dsh:not(#_) .appbar-inner{height:auto;min-height:56px;gap:18px}
+  body.dsh:not(#_) .brand{gap:12px;color:var(--ds-ink)}
+  body.dsh:not(#_) .brand-mark,
+  :root[data-theme="dark"] body.dsh:not(#_) .brand-mark{width:auto;height:34px;padding:0 10px;border-radius:9px;box-shadow:none;
+    background:var(--ds-accent);color:#fff;font-family:var(--sans);font-size:15px;font-weight:700;letter-spacing:.06em;line-height:1}
+  body.dsh:not(#_) .brand-name{font-size:15px;font-weight:500;letter-spacing:0;line-height:1.3;color:var(--ds-ink)}
+  body.dsh:not(#_) .brand br,body.dsh:not(#_) .brand-sub{display:none}
+  body.dsh:not(#_) .appnav a,
+  :root[data-theme="dark"] body.dsh:not(#_) .appnav a{font-size:14px;color:var(--ds-ink);opacity:.8}
+  body.dsh:not(#_) .appnav a:hover,
+  :root[data-theme="dark"] body.dsh:not(#_) .appnav a:hover{background:transparent;color:var(--ds-ink);opacity:1}
+  body.dsh:not(#_) .appnav a[aria-current="page"],
+  :root[data-theme="dark"] body.dsh:not(#_) .appnav a[aria-current="page"]{background:var(--ds-wash);color:var(--ds-link);opacity:1;font-weight:600}
+  body.dsh:not(#_) .appbar-user{border-left:0;padding-left:0}
+  body.dsh:not(#_) .appbar-user-name,
+  :root[data-theme="dark"] body.dsh:not(#_) .appbar-user-name{color:var(--ds-ink)}
+  body.dsh:not(#_) .appbar-user-name small,
+  :root[data-theme="dark"] body.dsh:not(#_) .appbar-user-name small{color:var(--ds-sub)}
+  body.dsh:not(#_) .appbar-out,
+  :root[data-theme="dark"] body.dsh:not(#_) .appbar-out{border:0;border-radius:99px;padding:7px 14px;font-size:13px;font-weight:500;
+    background:var(--ds-seg);color:var(--ds-ink);transition:background-color .2s}
+  body.dsh:not(#_) .appbar-out:hover{background:var(--ds-field);color:var(--ds-ink)}
+  /* ปุ่มธีม → สวิตช์แบบหน้าแรก · ตัวอักษร ☾/☀ ที่สคริปต์ใส่ไว้ซ่อนด้วยขนาด 0 (ชื่อปุ่มสำหรับโปรแกรมอ่านจอยังอยู่) */
+  body.dsh:not(#_) .theme-btn,
+  :root[data-theme="dark"] body.dsh:not(#_) .theme-btn{position:relative;flex:none;width:52px;height:30px;padding:0;border:0;border-radius:99px;
+    background:var(--ds-switch);color:transparent;font-size:0;transition:background .25s}
+  body.dsh:not(#_) .theme-btn:hover{background:var(--ds-switch)}
+  body.dsh:not(#_) .theme-btn::before{content:"";position:absolute;top:7px;left:7px;width:16px;height:16px;z-index:1;opacity:var(--ds-moon);
+    transition:opacity .2s;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f3ead8'%3E%3Cpath d='M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1z'/%3E%3C/svg%3E") center/contain no-repeat}
+  body.dsh:not(#_) .theme-btn::after{content:"";position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;
+    background:var(--ds-knob);box-shadow:0 2px 4px rgba(0,0,0,calc(.18 * (1 - var(--ds-moon))));transition:transform .25s cubic-bezier(.3,.7,.2,1)}
+  body.dsh:not(#_) .theme-btn:focus-visible{outline:3px solid var(--ds-ring);outline-offset:2px}
+
+  /* ---------- หัวเรื่อง: ป้ายส้ม + ชื่อใหญ่ แบบหน้าแรก ---------- */
+  body.dsh .dash{padding-top:clamp(28px,5vh,52px)}
+  body.dsh .dash + .dash{margin-top:56px;padding-top:56px}
+  body.dsh .dash-head{gap:16px 28px;margin-bottom:22px}
+  body.dsh .eyebrow{font-size:16px;font-weight:600;color:var(--ds-accent)}
+  body.dsh .title{font-size:clamp(30px,3.6vw,42px);font-weight:700;line-height:1.2;letter-spacing:-.025em;margin-top:6px}
+  body.dsh .live{font-size:14px;margin-top:6px}
+
+  /* ---------- ตัวกรอง: ใหญ่ กดง่าย ---------- */
+  body.dsh .filters{gap:8px}
+  body.dsh .pill{height:40px;padding:0 16px;gap:6px;border:1px solid var(--ds-field);font-size:14px;background:var(--card)}
+  body.dsh .pill select{max-width:180px}
+  body.dsh .pill input[type=date]{font-family:var(--sans);font-size:14px;width:132px}
+  body.dsh .pill:focus-within{box-shadow:0 0 0 4px var(--ds-ring)}
+  body.dsh .pill-date,
+  body.dsh .pill-check:has(input:checked){background:var(--ds-wash);border-color:color-mix(in srgb,var(--ds-accent) 45%,transparent);color:var(--ds-link)}
+  body.dsh .pill-check input{width:16px;height:16px;accent-color:var(--ds-accent)}
+  /* ปุ่มหลักของหน้า "ออก Report" — ส้มทึบ */
+  body.dsh .pill-go{background:var(--ds-accent);border-color:var(--ds-accent);color:#fff;font-weight:600;padding:0 20px}
+  body.dsh .pill-go:hover{background:#D2680F;border-color:#D2680F}
+
+  /* ---------- ตัวเลขสำคัญ: 4 ช่องต่อแถว ตัวเลขใหญ่ ---------- */
+  body.dsh .kpis{gap:14px;margin-bottom:14px}
+  body.dsh .kpis-8{grid-template-columns:repeat(4,minmax(0,1fr))}
+  body.dsh .kpi{border:0;border-radius:18px;padding:16px 20px 15px;box-shadow:var(--ds-shadow)}
+  body.dsh .kpi-label{font-size:14.5px;font-weight:600;color:var(--text)}
+  body.dsh .kpi-value{font-family:var(--sans);font-size:clamp(26px,2.4vw,32px);font-weight:700;line-height:1.2;margin-top:6px;
+    letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  body.dsh .kpi-value .unit{font-size:.55em;color:var(--text-2)}
+  body.dsh .kpi-sub{font-size:13px;margin-top:4px}
+
+  /* ---------- การ์ด · กราฟ ---------- */
+  body.dsh .grid{gap:14px;margin-bottom:14px}
+  body.dsh .card{border:0;border-radius:18px;padding:18px 20px 18px;box-shadow:var(--ds-shadow)}
+  body.dsh .card-title{font-size:17px;font-weight:700;letter-spacing:-.01em}
+  body.dsh .card-sub{font-size:14px;margin-top:4px}
+  body.dsh .legend{gap:18px;font-size:13.5px;margin-top:10px}
+  body.dsh .legend i{width:12px;height:12px;border-radius:3px}
+
+  /* ---------- ตาราง ---------- */
+  body.dsh table.t{font-size:13.5px}
+  body.dsh table.t th{font-size:13px;padding:9px 8px 8px}
+  body.dsh table.t td{height:38px;padding:0 8px}
+  body.dsh table.t.sm{font-size:13.5px}
+  body.dsh table.t.sm td{height:34px}
+  body.dsh .sec{margin-top:18px}
+
+  /* ---------- แถบสัดส่วน · คำอธิบาย ---------- */
+  body.dsh .stack{height:26px;gap:3px;margin-top:14px}
+  body.dsh .keys{margin-top:12px}
+  body.dsh .keys li{font-size:14px;height:28px}
+  body.dsh .keys i{width:12px;height:12px;border-radius:3px}
+  body.dsh .note{border-radius:14px;padding:14px 16px;margin-top:14px;font-size:13.5px}
+  body.dsh .note h4{font-size:14px}
+  body.dsh .nodata{font-size:13.5px;border-radius:12px}
+}
+
+@media screen and (max-width:1100px){
+  body.dsh .kpis-5{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media screen and (max-width:640px){
+  body.dsh .kpis-8,body.dsh .kpis-5{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  body.dsh .kpi{padding:14px 14px 13px}
+  body.dsh .kpi-value{font-size:24px}
+  body.dsh .pill{height:38px}
+}
+@media (prefers-reduced-motion:reduce){ body.dsh .theme-btn::after{transition:none} }

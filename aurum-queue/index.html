@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AURUM · ระบบจองคิวสำหรับร้านเสริมสวยและคลินิก</title>
+<meta name="description" content="ระบบจองคิวออนไลน์สำหรับร้านเสริมสวยและคลินิกความงาม เช็คคิวว่างแบบเรียลไทม์ กันจองซ้อน แจ้งเตือนลูกค้าอัตโนมัติล่วงหน้า 24 ชั่วโมง และปรับโลโก้–สีเป็นแบรนด์ของร้านเองได้">
+<meta name="theme-color" content="#1b1a16">
+<meta property="og:type" content="website">
+<meta property="og:title" content="AURUM · ระบบจองคิวสำหรับร้านเสริมสวยและคลินิก">
+<meta property="og:description" content="เช็คคิวว่างเรียลไทม์ กันจองซ้อนตั้งแต่ชั้นข้อมูล แจ้งเตือนอัตโนมัติ 24 ชม. พร้อม white-label">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+Thai:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/app.css">
+<!-- brand boot: paint in the salon's own hue before first frame (no flash) -->
+<script>
+try{var s=JSON.parse(localStorage.getItem('aurum.db.v1')||'{}').settings;
+if(s){var r=document.documentElement;r.style.setProperty('--h',s.hue);r.style.setProperty('--ca',s.chroma);r.dataset.field=s.field==='cream'?'cream':'dark';}}catch(e){}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication",
+ "name":"AURUM Queue","applicationCategory":"BusinessApplication","operatingSystem":"Web",
+ "description":"ระบบจองคิวออนไลน์สำหรับร้านเสริมสวยและคลินิกความงาม เช็คคิวว่างเรียลไทม์ กันจองซ้อน แจ้งเตือนอัตโนมัติ 24 ชั่วโมง และปรับแบรนด์ได้เอง",
+ "offers":[{"@type":"Offer","name":"Atelier","price":"1290","priceCurrency":"THB"},
+           {"@type":"Offer","name":"Maison","price":"2490","priceCurrency":"THB"},
+           {"@type":"Offer","name":"Maison Privée","price":"5900","priceCurrency":"THB"}],
+ "featureList":["เช็คคิวว่างเรียลไทม์","ป้องกันการจองซ้อน","จองผ่านมือถือใน 4 ขั้นตอน","กระดานคิวรายวัน","จัดตารางกะและวันหยุดของช่าง","แจ้งเตือนอัตโนมัติล่วงหน้า 24 ชั่วโมง","สถิติและ CRM","ปรับโลโก้และสีเป็นแบรนด์ตัวเอง"]}
+</script>
+</head>
+<body>
+<main id="main">
+
+<!-- ============ 1. HERO — the strongest selling point IS the hero ============ -->
+<section id="hero" style="padding-top:clamp(120px,16vh,190px);overflow:hidden">
+  <div class="watermark wm-r" aria-hidden="true"></div>
+  <div class="wrap wrap-wide" style="position:relative;z-index:1">
+    <div style="display:grid;grid-template-columns:1.08fr .92fr;gap:clamp(32px,5vw,72px);align-items:center" class="hero-grid">
+      <div>
+        <p class="eyebrow" data-reveal="rise">ระบบจองคิว · ร้านเสริมสวย &amp; คลินิก</p>
+        <h1 class="display" style="margin-top:var(--s4)">
+          <span data-reveal="rise" style="--d:60ms;display:block">คิวที่</span>
+          <span data-reveal="rise" style="--d:130ms;display:block" class="foil-text">ไม่เคยชนกัน</span>
+          <span data-reveal="rise" style="--d:200ms;display:block;font-style:italic;font-size:.52em;line-height:1.34;color:var(--c-muted);letter-spacing:-.01em;margin-top:.14em">สำหรับร้านที่ลูกค้าไม่ควรต้องรอ</span>
+        </h1>
+        <p class="lede" data-reveal="rise" style="--d:280ms;margin-top:var(--s5)">
+          เช็คเวลาว่างจริงของช่างแต่ละคนแบบเรียลไทม์ — รวมเวลาพัก วันหยุด และเวลาเก็บงานระหว่างคิว
+          แล้วปิดช่องที่เกิดการจองซ้อนตั้งแต่ชั้นข้อมูล ไม่ใช่แค่ซ่อนปุ่มบนหน้าจอ
+        </p>
+        <div class="row" data-reveal="rise" style="--d:360ms;margin-top:var(--s6)">
+          <a class="btn btn-gold" href="book.html" data-magnetic>จองคิวเดี๋ยวนี้</a>
+          <a class="btn btn-ghost" href="admin.html">ดูกระดานฝั่งร้าน</a>
+        </div>
+        <p class="hint" data-reveal="rise" style="--d:420ms;margin-top:var(--s4)">
+          ไม่ต้องสมัครสมาชิก · ไม่ต้องมัดจำ · ยกเลิกเองได้ก่อนถึงคิว 12 ชม.
+        </p>
+      </div>
+
+      <!-- THE WOW MOMENT: a live, foil-edged ledger of real free slots -->
+      <aside data-reveal="scale" style="--d:240ms">
+        <div class="ledger" id="liveLedger" data-tilt style="top:0">
+          <div class="wm" aria-hidden="true"></div>
+          <div class="ledger-hd">
+            <div>
+              <p class="lbl">คิวว่างวันนี้</p>
+              <h3 style="margin-top:4px" id="llDate">—</h3>
+            </div>
+            <span class="ledger-no" id="llNo">No. —</span>
+          </div>
+          <div id="llBody">
+            <div class="skel skel-line" style="width:70%"></div>
+            <div class="skel skel-line" style="width:52%"></div>
+            <div class="skel skel-line" style="width:64%"></div>
+            <div class="skel skel-line" style="width:44%"></div>
+          </div>
+          <div class="ledger-total">
+            <span class="lbl">อัปเดตสด</span>
+            <span class="num" style="font-size:.8rem;color:var(--c-action)" id="llTick">●</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<div class="wrap"><div class="rule"></div></div>
+
+<!-- ============ 2. THE PROBLEM (M1) ============ -->
+<section id="problem" class="field-surface">
+  <div class="wrap">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:clamp(32px,6vw,88px)" class="hero-grid">
+      <div>
+        <p class="eyebrow" data-reveal="rise">ปัญหาที่แก้</p>
+        <h2 data-reveal="rise" style="--d:60ms;margin-top:var(--s4)">
+          คิวไม่ได้หายไป<br><span class="italic-accent">มันไปกองอยู่ในแชท</span>
+        </h2>
+        <p class="lede" data-reveal="rise" style="--d:120ms;margin-top:var(--s4)">
+          ร้านส่วนใหญ่ไม่ได้ขาดลูกค้า แต่ขาดที่เดียวที่รู้ว่าใครว่างเมื่อไหร่
+          พอคำตอบอยู่ในหัวของคนหน้าร้าน คิวก็ชนกันได้ทุกวัน
+        </p>
+      </div>
+      <div data-reveal="slide" style="--d:100ms">
+        <p class="lbl" style="margin-bottom:var(--s4)">อาการที่ตรงกับร้านคุณ</p>
+        <ul class="motif-bullet">
+          <li>เมื่อวานมีลูกค้าสองคนมาถึงพร้อมกัน เพราะรับคิวคนละช่องทาง — LINE กับโทรศัพท์</li>
+          <li>ต้องเลื่อนแอปสลับไปมาระหว่างแชท ปฏิทิน และสมุดจดหน้าร้าน กว่าจะตอบได้ว่า “ว่างไหม”</li>
+          <li>ช่างคนเดียวถูกจองคาบเกี่ยวกัน 20 นาที เพราะลืมนับเวลาเก็บงานระหว่างคิว</li>
+          <li>มีคนไม่มาตามนัดสัปดาห์ละ 2–3 คิว แล้วไม่มีใครรู้ตัวเลขจริงว่ากี่บาท</li>
+        </ul>
+        <div class="card card-foil" data-reveal="rise" style="--d:220ms;margin-top:var(--s5);background:var(--c-sunken)">
+          <p class="hint" style="margin-bottom:var(--s2)">ต้นทุนของการไม่ทำอะไรเลย</p>
+          <p style="font-family:var(--f-display);font-size:clamp(1.4rem,2.4vw,2rem);line-height:1.55">
+            ช่าง 4 คน · คิวหลุดวันละ 1 คิว · ค่าบริการเฉลี่ย 3,200 บาท
+            <span class="italic-accent">= 76,800 บาทต่อเดือน</span>
+          </p>
+          <p class="hint" style="margin-top:var(--s3)">
+            ตัวเลขจากค่าเฉลี่ยบริการในหน้าราคานี้ ลองแทนราคาจริงของร้านคุณดู แล้วเทียบกับค่าระบบด้านล่าง
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. SOCIAL PROOF + STATS ============ -->
+<section class="field-invert" style="padding-block:clamp(48px,6vw,80px)">
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee-track">
+      <span class="marquee-item">Hair Ateliers<span style="opacity:.4">✦</span></span>
+      <span class="marquee-item">Aesthetic Clinics<span style="opacity:.4">✦</span></span>
+      <span class="marquee-item">Day Spas<span style="opacity:.4">✦</span></span>
+      <span class="marquee-item">Nail Studios<span style="opacity:.4">✦</span></span>
+      <span class="marquee-item">Barbers<span style="opacity:.4">✦</span></span>
+      <span class="marquee-item">Hair Ateliers<span style="opacity:.4">✦</span></span>
+      <span class="marquee-item">Aesthetic Clinics<span style="opacity:.4">✦</span></span>
+      <span class="marquee-item">Day Spas<span style="opacity:.4">✦</span></span>
+      <span class="marquee-item">Nail Studios<span style="opacity:.4">✦</span></span>
+      <span class="marquee-item">Barbers<span style="opacity:.4">✦</span></span>
+    </div>
+  </div>
+  <div class="wrap" style="margin-top:var(--s7)">
+    <blockquote data-reveal="rise" style="max-width:64ch;margin-inline:auto;text-align:center">
+      <p style="font-family:var(--f-display);font-size:clamp(1.5rem,3vw,2.3rem);line-height:1.6;font-style:italic">
+        “เดือนแรกที่เปิดใช้ เราไม่มีคิวชนกันเลยแม้แต่ครั้งเดียว — และไม่ต้องมีใครนั่งเฝ้าแชทตอนสี่ทุ่มอีก”
+      </p>
+      <footer class="hint" style="margin-top:var(--s4);opacity:.75">
+        อริสา วรกิจ · เจ้าของร้านและ Master Stylist
+      </footer>
+    </blockquote>
+  </div>
+</section>
+
+<section style="padding-block:clamp(40px,5vw,64px)">
+  <div class="wrap">
+    <div class="stats" data-stagger="rise">
+      <div class="stat gold"><p class="k">คิวชนกัน</p><p class="v"><span data-count="0">0</span></p><p class="d">ตั้งแต่เปิดใช้ระบบ — ป้องกันที่ชั้นข้อมูล</p></div>
+      <div class="stat"><p class="k">เวลาตอบคิว</p><p class="v"><span data-count="9" data-suffix=" วิ">0</span></p><p class="d">จากเดิมเฉลี่ย 14 นาทีต่อการถาม 1 ครั้ง</p></div>
+      <div class="stat"><p class="k">ลดการไม่มาตามนัด</p><p class="v"><span data-count="38" data-suffix="%">0</span></p><p class="d">หลังเปิดแจ้งเตือนล่วงหน้า 24 ชม.</p></div>
+      <div class="stat"><p class="k">จองนอกเวลาทำการ</p><p class="v"><span data-count="46" data-suffix="%">0</span></p><p class="d">คิวที่เกิดขึ้นตอนร้านปิด</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4. THREE BENEFITS ============ -->
+<section class="field-sunken">
+  <div class="wrap">
+    <p class="eyebrow" data-reveal="rise">สิ่งที่เปลี่ยนไป</p>
+    <h2 data-reveal="rise" style="--d:60ms;margin:var(--s4) 0 var(--s7);max-width:20ch">สามอย่างที่ร้านจะรู้สึกได้ในสัปดาห์แรก</h2>
+    <div class="grid g3" data-stagger="rise">
+      <article class="card card-foil card-hover" data-tilt>
+        <span class="tag tag-gold">01</span>
+        <h3 style="margin-top:var(--s4)">หน้าร้านไม่ต้องเป็นคนตอบ “ว่างไหม” อีก</h3>
+        <p class="hint" style="margin-top:var(--s3)">ลูกค้าเห็นเวลาว่างจริงของช่างที่เขาอยากได้ แล้วกดจองเองได้ตอนตีสอง ระบบคิดเวลาพักและเวลาเก็บงานให้แล้ว</p>
+      </article>
+      <article class="card card-foil card-hover" data-tilt>
+        <span class="tag tag-gold">02</span>
+        <h3 style="margin-top:var(--s4)">เช้าวันนี้เห็นทั้งวันในหน้าจอเดียว</h3>
+        <p class="hint" style="margin-top:var(--s3)">กระดานรายวันเรียงตามช่างเป็นแถบเวลา เห็นช่องว่างที่ยังขายได้ทันที ไม่ต้องเปิดสมุดหรือไล่แชทย้อนหลัง</p>
+      </article>
+      <article class="card card-foil card-hover" data-tilt>
+        <span class="tag tag-gold">03</span>
+        <h3 style="margin-top:var(--s4)">คนไม่มาตามนัดลดลงโดยไม่ต้องทวงเอง</h3>
+        <p class="hint" style="margin-top:var(--s3)">ระบบตั้งคิวแจ้งเตือนตั้งแต่วินาทีที่จองสำเร็จ แล้วยิงเข้า LINE OA หรือ SMS ล่วงหน้า 24 ชม. โดยอัตโนมัติ</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5. HOW IT WORKS ============ -->
+<section>
+  <div class="watermark wm-l" aria-hidden="true"></div>
+  <div class="wrap" style="position:relative;z-index:1">
+    <p class="eyebrow" data-reveal="rise">ใช้งานยังไง</p>
+    <h2 data-reveal="rise" style="--d:60ms;margin:var(--s4) 0 var(--s7);max-width:22ch">ฝั่งลูกค้าใช้เวลา <span class="italic-accent">40 วินาที</span></h2>
+    <ol style="list-style:none;padding:0;display:grid;gap:0" data-stagger="slide">
+      <li style="display:grid;grid-template-columns:auto 1fr;gap:var(--s5);padding-block:var(--s5);border-top:1px solid var(--c-border)">
+        <span class="display" style="font-size:clamp(2.6rem,5vw,4.6rem);line-height:1;color:var(--c-action);opacity:.35">01</span>
+        <div><h3>เลือกบริการ แล้วเลือกช่าง</h3><p class="hint" style="margin-top:6px;max-width:60ch">ราคาและระยะเวลาแสดงตั้งแต่ขั้นแรก ไม่มีค่าใช้จ่ายโผล่ทีหลัง เลือก “ช่างคนไหนก็ได้” เพื่อเปิดเวลาว่างให้กว้างที่สุด</p></div>
+      </li>
+      <li style="display:grid;grid-template-columns:auto 1fr;gap:var(--s5);padding-block:var(--s5);border-top:1px solid var(--c-border)">
+        <span class="display" style="font-size:clamp(2.6rem,5vw,4.6rem);line-height:1;color:var(--c-action);opacity:.35">02</span>
+        <div><h3>เลือกวันและเวลาจากคิวที่ว่างจริง</h3><p class="hint" style="margin-top:6px;max-width:60ch">เวลาที่ขึ้นให้เลือกคือเวลาที่จองได้แน่นอนแล้ว ช่องที่เต็มหรือคาบเกี่ยวกับคิวอื่นจะไม่ปรากฏตั้งแต่แรก</p></div>
+      </li>
+      <li style="display:grid;grid-template-columns:auto 1fr;gap:var(--s5);padding-block:var(--s5);border-top:1px solid var(--c-border);border-bottom:1px solid var(--c-border)">
+        <span class="display" style="font-size:clamp(2.6rem,5vw,4.6rem);line-height:1;color:var(--c-action);opacity:.35">03</span>
+        <div><h3>ยืนยันด้วยชื่อกับเบอร์โทร</h3><p class="hint" style="margin-top:6px;max-width:60ch">ได้รหัสยืนยันทันที ใช้รหัสนั้นเข้าไปเลื่อนหรือยกเลิกเองได้ และระบบตั้งแจ้งเตือน 24 ชม. ให้อัตโนมัติ</p></div>
+      </li>
+    </ol>
+    <div class="row" style="margin-top:var(--s6)">
+      <a class="btn btn-gold" href="book.html" data-magnetic>ลองจองดูจริง ๆ</a>
+      <span class="hint">เป็นระบบเดียวกับที่ร้านใช้ ข้อมูลถูกบันทึกจริงในเครื่องนี้</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 6. HOW WE THINK (M4) ============ -->
+<section class="field-invert">
+  <div class="wrap">
+    <div style="display:grid;grid-template-columns:.85fr 1.15fr;gap:clamp(32px,6vw,80px)" class="hero-grid">
+      <div>
+        <p class="eyebrow" data-reveal="rise">วิธีคิดของเรา</p>
+        <h2 data-reveal="rise" style="--d:60ms;margin-top:var(--s4)">เราทำระบบคิว<br>ไม่ใช่ปฏิทินสวย ๆ</h2>
+      </div>
+      <div data-reveal="rise" style="--d:120ms">
+        <ol class="motif-bullet" style="list-style:none;padding:0">
+          <li><strong>ความถูกต้องของเวลามาก่อนหน้าตา</strong> — เราเขียนเครื่องคำนวณเวลาว่างให้เสร็จและถูกต้องก่อน แล้วค่อยออกแบบหน้าจอทับลงไป เพราะหน้าจอสวยที่บอกเวลาผิดคือของเสีย</li>
+          <li><strong>ตรวจซ้ำตอนกดยืนยัน ไม่ใช่แค่ตอนแสดงผล</strong> — ถ้ามีคนจองตัดหน้าระหว่างที่คุณกำลังเลือก ระบบจะปฏิเสธคิวนั้นและบอกตรง ๆ ดีกว่าปล่อยให้สองคนมาเจอกันหน้าร้าน</li>
+          <li><strong>เวลาเก็บงานคือเวลาทำงาน</strong> — ทุกคิวกันเวลาเก็บงานหัวท้ายให้อัตโนมัติ ช่างจึงไม่โดนจองติดกันจนไม่ได้หายใจ</li>
+          <li><strong>ข้อมูลเป็นของร้าน</strong> — ส่งออกทั้งฐานข้อมูลเป็นไฟล์เดียวได้ทุกเมื่อ ไม่มีการล็อกข้อมูลไว้กับเรา</li>
+        </ol>
+        <div style="margin-top:var(--s6);padding-top:var(--s5);border-top:1px solid color-mix(in oklab,var(--c-page) 26%,transparent)">
+          <p class="lbl" style="margin-bottom:var(--s3)">สิ่งที่เราจะไม่ทำ</p>
+          <p style="max-width:62ch">เราจะไม่ใส่ระบบสะสมแต้ม ป๊อปอัปโปรโมชัน หรือแชตบอตขายของลงในหน้าจอง
+          ทุกอย่างที่เพิ่มเข้ามาระหว่างลูกค้ากับปุ่มยืนยัน คือโอกาสที่เขาจะเลิกจองกลางทาง</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 7. HOW TO CHOOSE + COMPARISON (M2) ============ -->
+<section id="choose">
+  <div class="wrap">
+    <p class="eyebrow" data-reveal="rise">เลือกยังไงให้ถูก</p>
+    <h2 data-reveal="rise" style="--d:60ms;margin:var(--s4) 0 var(--s5);max-width:24ch">คนส่วนใหญ่เทียบที่ราคา สามข้อนี้ต่างกันจริงกว่า</h2>
+    <div class="grid g3" data-stagger="rise" style="margin-bottom:var(--s7)">
+      <div class="card">
+        <p class="lbl">เกณฑ์ที่ 1</p>
+        <h3 style="margin-top:var(--s3)">กันจองซ้อนที่ชั้นไหน</h3>
+        <p class="hint" style="margin-top:var(--s3)">ระบบราคาถูกหลายตัวซ่อนปุ่มบนหน้าจอเฉย ๆ พอสองคนกดพร้อมกันก็ยังซ้อนได้ ให้ถามคนขายตรง ๆ ว่าตรวจซ้ำตอนบันทึกหรือไม่</p>
+      </div>
+      <div class="card">
+        <p class="lbl">เกณฑ์ที่ 2</p>
+        <h3 style="margin-top:var(--s3)">ผูกเวลาว่างกับ “คน” หรือ “ห้อง”</h3>
+        <p class="hint" style="margin-top:var(--s3)">ร้านเสริมสวยจองที่ตัวช่าง คลินิกบางแห่งจองที่ห้องหัตถการ ถ้าระบบรองรับมิติเดียว อีกมิติจะกลายเป็นงานมือทันที</p>
+      </div>
+      <div class="card">
+        <p class="lbl">เกณฑ์ที่ 3</p>
+        <h3 style="margin-top:var(--s3)">เจ้าของแก้เองได้แค่ไหน</h3>
+        <p class="hint" style="margin-top:var(--s3)">เพิ่มบริการ เปลี่ยนกะ ปิดร้านวันหยุด เปลี่ยนสีแบรนด์ — ถ้าต้องเปิดใบงานหาผู้ให้บริการทุกครั้ง ต้นทุนจริงไม่ได้อยู่ที่ค่ารายเดือน</p>
+      </div>
+    </div>
+
+    <div class="tblwrap" data-reveal="rise" style="max-height:none">
+      <table class="cmp">
+        <thead><tr><th scope="col">เทียบกัน</th><th scope="col">จดใส่สมุด / LINE</th><th scope="col">ปลั๊กอินจองทั่วไป</th><th scope="col" class="us">AURUM</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">กันจองซ้อนตอนบันทึก</th><td>ไม่มี</td><td>บางตัว</td><td class="us">มี — ตรวจซ้ำทุกครั้ง</td></tr>
+          <tr><th scope="row">เวลาพัก / วันหยุดรายคน</th><td>อยู่ในหัวคน</td><td>ตั้งได้บางส่วน</td><td class="us">ตั้งได้ต่อคนต่อวัน</td></tr>
+          <tr><th scope="row">เวลาเก็บงานระหว่างคิว</th><td>ต้องจำเอง</td><td>มักไม่มี</td><td class="us">อัตโนมัติทุกคิว</td></tr>
+          <tr><th scope="row">แจ้งเตือน 24 ชม.</th><td>พิมพ์เอง</td><td>ต้องซื้อเพิ่ม</td><td class="us">รวมอยู่แล้ว</td></tr>
+          <tr><th scope="row">โลโก้และสีของร้านเอง</th><td>—</td><td>ติดแบรนด์ผู้ให้บริการ</td><td class="us">เปลี่ยนเองได้ทั้งระบบ</td></tr>
+          <tr><th scope="row">ส่งออกข้อมูลทั้งหมด</th><td>ถ่ายรูปสมุด</td><td>บางตัวไม่ให้</td><td class="us">ไฟล์เดียว ทุกเมื่อ</td></tr>
+          <tr><th scope="row">ค่าใช้จ่ายต่อเดือน</th><td>0 บาท</td><td>900–3,500 บาท</td><td class="us">1,290–5,900 บาท</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" data-reveal="rise" style="margin-top:var(--s5);background:var(--c-sunken)">
+      <p><strong>ระบบนี้ไม่เหมาะกับคุณ ถ้า</strong> ร้านมีช่างคนเดียว รับลูกค้าไม่เกินวันละ 4 คิว และไม่เคยมีปัญหาคิวชน —
+      สมุดจดยังคุ้มกว่ามาก กลับมาหาเราตอนที่คุณเริ่มมีช่างคนที่สอง</p>
+      <p class="hint" style="margin-top:var(--s3)">ส่วนใหญ่ควรเริ่มที่แพ็กเกจ <strong style="color:var(--c-action)">Maison</strong> เพราะช่างเกิน 3 คนเมื่อไหร่ ปัญหาจะย้ายจาก “จองยังไง” ไปเป็น “ใครว่างตอนไหน” ทันที</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 8. PRICING ============ -->
+<section id="pricing" class="field-surface">
+  <div class="wrap">
+    <p class="eyebrow" data-reveal="rise">ค่าบริการ</p>
+    <h2 data-reveal="rise" style="--d:60ms;margin:var(--s4) 0 var(--s7);max-width:22ch">ราคาเดียว ทุกฟีเจอร์ ไม่มีค่าคิว</h2>
+    <div class="grid g3" data-stagger="rise" style="align-items:start">
+      <div class="card card-foil card-hover">
+        <p class="lbl">Atelier</p>
+        <p style="font-family:var(--f-display);font-size:3rem;line-height:1.1;margin-top:var(--s2)">฿1,290<span style="font-size:.9rem;font-family:var(--f-body);color:var(--c-muted)">/เดือน</span></p>
+        <p class="hint">ช่างไม่เกิน 3 คน · คิวไม่จำกัด</p>
+        <div class="rule" style="margin-block:var(--s4)"></div>
+        <ul class="motif-bullet" style="font-size:.9rem">
+          <li>เช็คคิวว่างเรียลไทม์ + กันจองซ้อน</li><li>หน้าจองสำหรับลูกค้า</li>
+          <li>กระดานคิวรายวัน</li><li>ตารางกะและวันหยุด</li>
+        </ul>
+        <a class="btn btn-ghost btn-block" href="book.html" style="margin-top:var(--s5)">เริ่มทดลองใช้</a>
+      </div>
+      <div class="card card-foil card-hover is-focal">
+        <div class="row"><p class="lbl">Maison</p><span class="tag tag-gold row-end">แนะนำ</span></div>
+        <p style="font-family:var(--f-display);font-size:3rem;line-height:1.1;margin-top:var(--s2)">฿2,490<span style="font-size:.9rem;font-family:var(--f-body);color:var(--c-muted)">/เดือน</span></p>
+        <p class="hint">ช่างไม่เกิน 10 คน · คิวไม่จำกัด</p>
+        <div class="rule" style="margin-block:var(--s4)"></div>
+        <ul class="motif-bullet" style="font-size:.9rem">
+          <li>ทุกอย่างใน Atelier</li><li>แจ้งเตือนอัตโนมัติ 24 ชม. (LINE OA / SMS)</li>
+          <li>สถิติและรายชื่อลูกค้าประจำ</li><li>ส่งออกข้อมูลทั้งหมด</li>
+        </ul>
+        <a class="btn btn-gold btn-block" href="book.html" style="margin-top:var(--s5)" data-magnetic>เริ่มทดลองใช้</a>
+        <p class="hint" style="margin-top:var(--s3);text-align:center">ทดลอง 30 วัน · ยกเลิกได้ทันที ไม่มีสัญญาผูกมัด</p>
+      </div>
+      <div class="card card-foil card-hover">
+        <p class="lbl">Maison Privée</p>
+        <p style="font-family:var(--f-display);font-size:3rem;line-height:1.1;margin-top:var(--s2)">฿5,900<span style="font-size:.9rem;font-family:var(--f-body);color:var(--c-muted)">/เดือน</span></p>
+        <p class="hint">หลายสาขา · ช่างไม่จำกัด</p>
+        <div class="rule" style="margin-block:var(--s4)"></div>
+        <ul class="motif-bullet" style="font-size:.9rem">
+          <li>ทุกอย่างใน Maison</li><li>ปรับโลโก้ สี และชื่อเป็นแบรนด์ร้านทั้งระบบ</li>
+          <li>โดเมนของร้านเอง</li><li>ผู้ดูแลประจำบัญชี ตอบภายใน 4 ชม.</li>
+        </ul>
+        <a class="btn btn-ghost btn-block" href="admin.html#brand" style="margin-top:var(--s5)">ดูตัวอย่าง white-label</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 9. FAQ ============ -->
+<section>
+  <div class="wrap wrap-tight">
+    <p class="eyebrow" data-reveal="rise">คำถามที่เหลือ</p>
+    <h2 data-reveal="rise" style="--d:60ms;margin:var(--s4) 0 var(--s5)">คำถามที่ถามกันบ่อย</h2>
+    <div class="faq" data-reveal="rise" style="--d:120ms">
+      <details open><summary>ระบบกันการจองซ้อนได้จริงอย่างไร</summary><div class="ans">ทุกครั้งที่กดยืนยัน ระบบจะคำนวณช่วงเวลาว่างของช่างคนนั้นใหม่จากข้อมูลล่าสุด แล้วตรวจว่าคิวใหม่อยู่ในช่วงว่างทั้งก้อนหรือไม่ ถ้าไม่ ระบบจะปฏิเสธและให้เลือกเวลาใหม่ การซ่อนปุ่มบนหน้าจออย่างเดียวไม่พอ เพราะสองคนอาจกดพร้อมกันได้</div></details>
+      <details><summary>ลูกค้าต้องสมัครสมาชิกไหม</summary><div class="ans">ไม่ต้อง ใช้แค่ชื่อกับเบอร์โทร ระบบจะให้รหัสยืนยัน เช่น AU-7K2F ไว้ใช้ตรวจสอบ เลื่อน หรือยกเลิกคิวเองได้ในหน้า “จัดการคิวของฉัน”</div></details>
+      <details><summary>เวลาพักและวันหยุดของช่างแต่ละคนตั้งได้ไหม</summary><div class="ans">ได้ ตั้งเวลาทำงานแยกรายวันของแต่ละคน เพิ่มเวลาพักประจำวัน และลงวันลาเฉพาะวันได้ ระบบจะหักออกจากเวลาว่างทันที รวมถึงวันปิดร้านทั้งร้านด้วย</div></details>
+      <details><summary>แจ้งเตือนส่งผ่านช่องทางอะไร</summary><div class="ans">ระบบสร้างคิวแจ้งเตือนล่วงหน้า 24 ชั่วโมงตั้งแต่วินาทีที่จองสำเร็จ แล้วยิงออกทาง Webhook ซึ่งต่อกับ LINE Messaging API, SMS gateway หรือ Make/Zapier ได้ ในหน้าตั้งค่ามีปุ่มทดสอบยิงจริงให้ดูก่อน</div></details>
+      <details><summary>เปลี่ยนโลโก้และสีเป็นของร้านเราได้แค่ไหน</summary><div class="ans">เปลี่ยนชื่อร้าน ข้อความใต้ชื่อ เฉดสีหลัก ความเข้มของสี และสลับพื้นเข้ม–ครีมได้จากหน้าตั้งค่า ทั้งระบบเปลี่ยนตามทันทีรวมถึงไอคอนบนแท็บเบราว์เซอร์ ไม่ต้องรอผู้ให้บริการ</div></details>
+      <details><summary>ข้อมูลเก็บที่ไหน ย้ายออกได้ไหม</summary><div class="ans">ชุดสาธิตนี้เก็บในเบราว์เซอร์ของคุณเอง ไม่ส่งออกไปที่ใด และกดส่งออกเป็นไฟล์ JSON ทั้งฐานข้อมูลได้ทุกเมื่อจากหน้าตั้งค่า เมื่อขึ้นระบบจริงจะย้ายไปฐานข้อมูลบนคลาวด์โดยไม่ต้องแก้หน้าจอ เพราะทุกการอ่านเขียนผ่านชั้น store เดียว</div></details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 10. FINAL CTA ============ -->
+<section class="field-sunken" style="text-align:center;overflow:hidden;position:relative" id="finalcta">
+  <div class="wrap wrap-tight" style="position:relative;z-index:1">
+    <h2 class="display" data-reveal="rise" style="font-size:clamp(2.4rem,6vw,5rem)">พรุ่งนี้เช้า<br><span class="foil-text">ไม่ต้องเปิดสมุด</span></h2>
+    <p class="lede" data-reveal="rise" style="--d:80ms;margin:var(--s5) auto 0">เปิดกระดานคิวขึ้นมา แล้วเห็นทั้งวันจบในหน้าจอเดียว</p>
+    <div class="row" data-reveal="rise" style="--d:160ms;justify-content:center;margin-top:var(--s6)">
+      <a class="btn btn-gold" href="book.html" data-magnetic>จองคิวเดี๋ยวนี้</a>
+      <a class="btn btn-ghost" href="admin.html">เข้าระบบร้าน</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script type="module">
+import { shell, atmosphere, $, el, esc } from './js/ui.js';
+import { listServices, listStaff, todayISO, fmtDateTH, fmtTHB } from './js/store.js';
+import { slotsFor, dateRail } from './js/availability.js';
+
+shell({ active: 'why' });
+atmosphere($('#hero'), 26);
+atmosphere($('#finalcta'), 14);
+
+/* --- the live ledger: real free slots, computed by the real engine --- */
+async function renderLedger() {
+  const [svs, staff] = await Promise.all([listServices(), listStaff()]);
+  const today = todayISO();
+  $('#llDate').textContent = fmtDateTH(today);
+  $('#llNo').textContent = 'No. ' + today.replaceAll('-', '');
+
+  const rows = svs.slice(0, 5).map(sv => {
+    // find the first day within a week that still has room
+    const rail = dateRail(sv.id, today, 7);
+    const day = rail.find(d => d.free > 0);
+    const slots = day ? slotsFor(sv.id, day.date) : [];
+    const when = !day ? null
+      : (day.date === today ? slots[0].time + ' น.' : fmtDateTH(day.date, { short: true }) + ' · ' + slots[0].time);
+    return { name: sv.nameTh, price: sv.price, when, free: day ? day.free : 0, same: day?.date === today };
+  });
+
+  const body = $('#llBody');
+  body.innerHTML = '';
+  rows.forEach((r, i) => {
+    const row = el('div', { class: 'ledger-row' + (r.when ? '' : ' pending') });
+    row.append(
+      el('span', { class: 'k' }, r.name),
+      el('span', { class: 'dots' }),
+      el('span', { class: 'v' }, r.when || 'เต็มสัปดาห์นี้'));
+    body.append(row);
+    setTimeout(() => row.classList.add('filled'), 90 * i);
+  });
+
+  const total = rows.reduce((n, r) => n + r.free, 0);
+  const tick = $('#llTick');
+  tick.textContent = `${total} ช่วงเวลา`;
+}
+renderLedger();
+window.addEventListener('aurum:changed', renderLedger);
+</script>
+
+<style>
+@media(max-width:900px){ .hero-grid{grid-template-columns:1fr !important} }
+</style>
+</body>
+</html>

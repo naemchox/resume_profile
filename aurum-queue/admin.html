@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AURUM · ระบบหลังร้าน</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Serif+Thai:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/app.css">
+<script>
+try{var s=JSON.parse(localStorage.getItem('aurum.db.v1')||'{}').settings;
+if(s){var r=document.documentElement;r.style.setProperty('--h',s.hue);r.style.setProperty('--ca',s.chroma);r.dataset.field=s.field==='cream'?'cream':'dark';}}catch(e){}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">ข้ามไปเนื้อหาหลัก</a>
+<div class="adminwrap">
+  <aside class="sidebar">
+    <a class="brandmark" href="index.html">
+      <span class="mk" aria-hidden="true"></span>
+      <span><span class="wordmark" data-brand="wordmark">AURUM</span>
+      <span class="sub">Control</span></span>
+    </a>
+    <nav class="sidenav" id="sidenav" aria-label="เมนูระบบหลังร้าน"></nav>
+    <div style="margin-top:auto;padding-top:var(--s5)">
+      <div class="rule" style="margin-bottom:var(--s4)"></div>
+      <a class="btn btn-ghost btn-sm btn-block" href="book.html">ดูหน้าจองของลูกค้า</a>
+      <a class="btn btn-ghost btn-sm btn-block" href="index.html" style="margin-top:8px">กลับหน้าเว็บ</a>
+      <p class="hint" style="margin-top:var(--s4);font-size:.68rem;line-height:1.6">
+        ข้อมูลเก็บในเบราว์เซอร์เครื่องนี้ · ส่งออกได้ที่หน้า “แบรนด์และข้อมูล”
+      </p>
+    </div>
+  </aside>
+  <main class="adminmain" id="main"></main>
+</div>
+
+<dialog class="modal" id="modal">
+  <div class="modal-inner">
+    <div class="row" style="margin-bottom:var(--s4)">
+      <h3 id="mTitle" style="flex:1">—</h3>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('modal').close()" aria-label="ปิด">✕</button>
+    </div>
+    <div id="mBody"></div>
+  </div>
+</dialog>
+
+<script type="module" src="js/admin.js"></script>
+</body>
+</html>

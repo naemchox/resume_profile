@@ -1,0 +1,336 @@
+/* ============================================================
+   apple.css — ชั้นหน้าตาแบบ Apple Store (โหลดหลัง base/app/track.css และ <style> ในหน้า)
+   เปลี่ยนแค่รูปลักษณ์: สี ฟอนต์ มุมโค้ง เงา ระยะ — ไม่แตะโครงหน้าหรือการทำงาน
+   สีตามโลโก้ FT (19 ต.ค. 2026): ส้ม #E8781A เป็นสีเน้น · เทาอุ่น #3b3735 เป็นสีเข้มหลัก · พื้นเทาอุ่นอ่อน #f4f3f1
+   การ์ดขาวมุมโค้งมาก เงาบาง · ปุ่มแคปซูลส้ม · แถบหัวแก้วขาวโปร่ง · ของเดิม (ฟ้า Apple / ส้มแดง #EA2E00) สำรองที่ *.pre-orange
+   สีบอกสถานะ (ส้ม = รอ · เขียว = เสร็จ · แดง = ยกเลิก ฯลฯ) คงความหมายเดิม
+   อยากกลับหน้าตาเดิม: ลบ <link href="css/apple.css"> ออกจากหน้า HTML
+   ============================================================ */
+
+:root{
+  --ap-blue:#E8781A;
+  --ap-blue-hover:#D2680F;
+  --ap-link:#B85A0C;
+  --ap-ring:rgba(232,120,26,.28);
+  --ap-glass:rgba(250,250,252,.8);
+  --ap-glass-line:rgba(0,0,0,.08);
+  --ap-seg:#e7e4e1;
+
+  --navy-900:#3b3735;      /* เทาเข้มของโลโก้ (เดิมกรมท่า) — ใช้เป็นสีเข้มหลัก/ตัวหนังสือบนปุ่มส้ม */
+  --navy-800:#37332f;
+  --steel-50:#f4f3f1;
+  --steel-100:#efeeec;
+  --steel-200:#e7e4e1;
+  --steel-300:#d3cfcb;
+  --steel-400:#8a847f;
+  --steel-600:#4a4542;
+
+  --bg:#f4f3f1;
+  --surface:#ffffff;
+  --surface-2:#faf9f8;
+  --line:#e7e4e1;
+  --line-strong:#d3cfcb;
+  --text:#2b2725;
+  --text-2:#6f6964;
+  --text-3:#8a847f;
+  --accent:var(--ap-blue);
+  --btn-bg:var(--ap-blue);
+  --btn-fg:#fff;
+
+  --radius:12px;
+  --radius-sm:10px;
+  --radius-lg:18px;
+
+  --shadow-1:0 2px 12px rgba(0,0,0,.05);
+  --shadow-2:0 4px 22px rgba(0,0,0,.09);
+  --shadow-3:0 12px 40px rgba(0,0,0,.12);
+
+  /* ฟอนต์แบบ apple.com — เครื่อง Apple ใช้ SF Pro ตัวจริง · Windows/Android ใช้ Inter (ใกล้ SF Pro ที่สุด) สำหรับอังกฤษ/ตัวเลข
+     ภาษาไทยไม่มีใน Inter → เบราว์เซอร์ไปหยิบ Noto Sans Thai ให้เองทีละตัวอักษร (โหลดจาก Google Fonts ในทุกหน้า) */
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Inter","Noto Sans Thai","Helvetica Neue","Segoe UI",Roboto,sans-serif;
+  /* ตัวเลข/รหัส (เลข Invoice · ทะเบียน · เวลา · เงิน) ใช้ฟอนต์เดียวกับตัวหนังสือแบบ apple.com แทนฟอนต์พิมพ์ดีด
+     ตัวเลขกว้างเท่ากัน (tabular-nums ด้านล่าง) ตารางจึงยังตรงแนวเหมือนตอนเป็นฟอนต์พิมพ์ดีด */
+  --mono:var(--sans);
+  --ease:cubic-bezier(.25,.1,.25,1);
+
+  /* dashboard.html ใช้ชื่อตัวแปรของตัวเอง */
+  --navy:#3b3735;
+  --card:#ffffff;
+  --pill:#d3cfcb;
+  --grid:#e7e4e1;
+  --shade:#f4f3f1;
+}
+
+@media screen{
+  :root[data-theme="dark"]{
+    --ap-blue:#E8781A;
+    --ap-blue-hover:#D2680F;
+    --ap-link:#FFA24D;
+    --ap-ring:rgba(255,162,77,.35);
+    --ap-glass:rgba(22,22,23,.8);
+    --ap-glass-line:rgba(255,255,255,.1);
+    --ap-seg:#37332f;
+
+    --steel-50:#1f1c1b;
+    --paper:#2b2725;
+    --steel-100:#37332f;
+    --steel-200:#433e3b;
+    --steel-300:#4f4a46;
+    --steel-400:#938c86;
+    --steel-600:#aba49e;
+
+    --bg:#1f1c1b;
+    --surface:#2b2725;
+    --surface-2:#312d2b;
+    --line:#3d3935;
+    --line-strong:#4a4542;
+    --text:#f4f3f1;
+    --text-2:#aba49e;
+    --text-3:#8a847f;
+    --btn-bg:var(--ap-blue);
+    --btn-fg:#fff;
+
+    --shadow-1:none;
+    --shadow-2:0 4px 22px rgba(0,0,0,.5);
+    --shadow-3:0 16px 44px rgba(0,0,0,.6);
+
+    --card:#2b2725;
+    --pill:#4a4542;
+    --grid:#37332f;
+    --shade:#312d2b;
+  }
+}
+@media screen and (prefers-color-scheme:dark){
+  /* dashboard.html เปิดโหมดมืดตามระบบเองด้วย :not([data-theme="light"]) */
+  :root:not([data-theme="light"]){ --card:#2b2725; --bg:#1f1c1b; --line:#3d3935; --text:#f4f3f1; --text-2:#aba49e; --text-3:#8a847f; --grid:#37332f; --shade:#312d2b; }
+}
+
+/* ---------- ตัวหนังสือ --------------------------------------- */
+body{font-family:var(--sans);letter-spacing:-.01em;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+input,select,textarea,button{font-variant-numeric:tabular-nums}
+h1,h2,h3,h4{font-weight:600;letter-spacing:-.022em}
+h1{font-weight:700;letter-spacing:-.03em}
+.page-title{font-size:clamp(28px,3.4vw,40px);font-weight:700;letter-spacing:-.03em;line-height:1.15}
+.eyebrow{font-family:var(--sans);font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--text-3)}
+.eyebrow-accent{color:#B85A0C}
+.lede{color:var(--text-2)}
+a:not([class]){color:var(--ap-link)}
+::selection{background:rgba(232,120,26,.22);color:inherit}
+/* ตัวเลขใหญ่ใช้ SF แบบตัวเลขเท่ากัน แทนฟอนต์พิมพ์ดีด */
+.big-num,.kpi-value,.billstate-amt,.dhero-code,.tl-meta,.flow-time{font-family:var(--sans);font-variant-numeric:tabular-nums}
+.kpi-value,.big-num{font-weight:600;letter-spacing:-.03em}
+
+/* ---------- แถบหัว: แก้วขาวโปร่งแบบ apple.com ------------------ */
+.appbar{
+  background:var(--ap-glass);color:var(--text);
+  backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:1px solid var(--ap-glass-line);
+}
+.skel-bar{background:var(--ap-glass);border-bottom:1px solid var(--ap-glass-line)}
+.brand-mark{background:var(--text);color:var(--bg);box-shadow:none;border-radius:9px;font-family:var(--sans);font-weight:700;letter-spacing:-.02em}
+.brand-name{color:var(--text);font-weight:600}
+.brand-sub{color:var(--text-3);font-family:var(--sans);letter-spacing:.02em;text-transform:none;font-size:11px}
+.appnav a{color:var(--text);opacity:.8;font-weight:400;font-size:13.5px;border-radius:99px;transition:opacity .2s,background .2s}
+.appnav a:hover{background:transparent;color:var(--text);opacity:1}
+.appnav a[aria-current="page"]{background:rgba(0,0,0,.06);color:var(--text);opacity:1;font-weight:600}
+.appbar-role{color:var(--text-2);border-color:var(--line-strong);font-family:var(--sans);letter-spacing:.02em;text-transform:none}
+.appbar-user{border-left-color:var(--ap-glass-line)}
+.appbar-user-name{color:var(--text)}
+.appbar-user-name small{color:var(--text-3)}
+.appbar-out,.theme-btn{color:var(--text);background:transparent;border:1px solid var(--line-strong);border-radius:99px}
+.appbar-out:hover,.theme-btn:hover{background:rgba(0,0,0,.05);color:var(--text)}
+@media screen{
+  [data-theme="dark"] .appbar,[data-theme="dark"] .skel-bar{background:var(--ap-glass);border-bottom-color:var(--ap-glass-line)}
+  [data-theme="dark"] .brand-mark{background:#f4f3f1;color:#000}
+  [data-theme="dark"] .appnav a,[data-theme="dark"] .appnav a:hover{color:#f4f3f1}
+  [data-theme="dark"] .appnav a[aria-current="page"]{background:rgba(255,255,255,.12);color:#f4f3f1}
+  [data-theme="dark"] .brand-sub,[data-theme="dark"] .appbar-role{color:#8a847f;border-color:#4a4542}
+  [data-theme="dark"] .appbar-user-name{color:#f4f3f1}
+  [data-theme="dark"] .appbar-out,[data-theme="dark"] .theme-btn{color:#f4f3f1;border-color:#4a4542}
+  [data-theme="dark"] .appbar-out:hover,[data-theme="dark"] .theme-btn:hover{background:rgba(255,255,255,.1)}
+}
+@media screen and (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .appbar{background:rgba(22,22,23,.8);border-bottom-color:rgba(255,255,255,.1)}
+  :root:not([data-theme="light"]) .brand-mark{background:#f4f3f1;color:#000}
+  :root:not([data-theme="light"]) .appnav a{color:#f4f3f1}
+  :root:not([data-theme="light"]) .appnav a[aria-current="page"]{background:rgba(255,255,255,.12);color:#f4f3f1}
+  :root:not([data-theme="light"]) .appbar-out,:root:not([data-theme="light"]) .theme-btn{color:#f4f3f1;border-color:#4a4542}
+}
+.readonly-bar{background:var(--surface-2);color:var(--text-2);border-bottom-color:var(--line)}
+
+/* ---------- ปุ่ม: แคปซูล ไม่เด้ง ไม่มีแสงวาบ -------------------- */
+.btn{border-radius:99px;font-weight:500;letter-spacing:-.01em;padding:10px 20px;
+  transition:background .2s,color .2s,border-color .2s,opacity .2s}
+.btn:hover{transform:none;box-shadow:none;filter:brightness(1.08)}
+.btn:active{transform:scale(.98)}
+.btn-sm{border-radius:99px;padding:7px 14px}
+.btn-lg,.btn-xl{border-radius:99px}
+.btn-accent{background:var(--ap-blue);color:#fff}
+.btn-accent:hover{background:var(--ap-blue-hover)}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover{background:var(--green);filter:brightness(1.06)}
+.btn-ghost{background:transparent;color:var(--ap-link);border-color:var(--ap-link)}
+.btn-ghost:hover{background:rgba(232,120,26,.07);color:var(--ap-link);border-color:var(--ap-link);filter:none}
+.btn-quiet{background:var(--ap-seg);color:var(--text)}
+.btn-quiet:hover{background:var(--steel-300)}
+.btn-danger{background:transparent;color:var(--red);border-color:currentColor}
+.btn-danger:hover{background:var(--red-wash)}
+.btn-rush{background:#ff3b30;box-shadow:none}
+.btn-rush:hover{background:#ff453a;box-shadow:none}
+.btn-accent::after,.btn-green::after{display:none}
+:where(a,button,input,select,textarea,[tabindex]):focus-visible{outline:3px solid var(--ap-ring);outline-offset:2px}
+.linkish{color:var(--ap-link);text-decoration:none}
+.linkish:hover{text-decoration:underline}
+
+/* ---------- พื้นผิว: การ์ดขาว มุมโค้งมาก ไม่มีเส้นขอบ ------------- */
+.card,.panel,.kpi,.skel-card{border-color:transparent;box-shadow:var(--shadow-1)}
+.card{border-radius:var(--radius-lg)}
+.panel,.kpi{border-radius:16px}
+.kpi{padding:18px 20px}
+.kpi:hover{transform:none;box-shadow:var(--shadow-2)}
+.kpi[data-accent]{border-left:0}
+.kpi-label{color:var(--text-2);font-weight:500;display:flex;align-items:center;gap:7px}
+.kpi[data-accent] .kpi-label::before{content:"";width:8px;height:8px;border-radius:99px;flex:none;background:var(--line-strong)}
+.kpi[data-accent="amber"] .kpi-label::before{background:var(--amber)}
+.kpi[data-accent="blue"] .kpi-label::before{background:var(--ap-blue)}
+.kpi[data-accent="green"] .kpi-label::before{background:var(--green)}
+.kpi[data-accent="violet"] .kpi-label::before{background:var(--violet)}
+.kpi-value{font-size:30px}
+.fieldset{border-color:var(--line);border-radius:16px}
+.fieldset legend{letter-spacing:0;text-transform:none;font-size:13px;color:var(--text-2)}
+@media screen{ [data-theme="dark"] .card,[data-theme="dark"] .panel,[data-theme="dark"] .kpi{border-color:transparent} }
+
+/* แถบมืด (hero บางหน้า) — ดำเรียบแบบหน้าสินค้า Pro ไม่ไล่สีกรมท่า */
+.band-dark{background:#1f1c1b;color:#f4f3f1}
+.band-dark .muted,.band-dark .lede{color:#aba49e}
+.band-dark .dim,.band-dark .eyebrow{color:#8a847f}
+.gridlines{display:none}
+
+/* ---------- ป้ายสถานะ: ไม่มีเส้นขอบ ------------------------------ */
+.pill{border-color:transparent !important;font-weight:600}
+.code{font-family:var(--mono);background:var(--ap-seg);border-color:transparent;border-radius:8px;padding:2px 8px}
+
+/* ---------- ตาราง ------------------------------------------- */
+.tbl thead th{text-transform:none;letter-spacing:0;font-size:12.5px;font-weight:600;color:var(--text-2);background:transparent}
+.tbl tbody tr:hover,.rv tbody tr[data-clickable]:hover{background:rgba(0,0,0,.025)}
+@media screen{ [data-theme="dark"] .tbl tbody tr:hover,[data-theme="dark"] .rv tbody tr[data-clickable]:hover{background:rgba(255,255,255,.04)} }
+.tbl tr.is-picked{background:rgba(232,120,26,.07)}
+
+/* ---------- แท็บ: segmented control ---------------------------- */
+.tabs{border-bottom:0;background:var(--ap-seg);padding:3px;border-radius:12px;gap:2px;width:fit-content;max-width:100%}
+.tab{border:0;border-radius:9px;margin:0;padding:7px 16px;color:var(--text);opacity:.75;font-weight:500}
+.tab:hover{opacity:1}
+.tab[aria-selected="true"]{background:var(--surface);opacity:1;font-weight:600;box-shadow:0 1px 4px rgba(0,0,0,.12);border-bottom-color:transparent}
+@media screen{ [data-theme="dark"] .tab[aria-selected="true"]{background:#636366} }
+
+/* ---------- ฟอร์ม ------------------------------------------- */
+.label{color:var(--text);font-weight:500}
+.input,.select,.textarea{border-radius:12px;border-color:var(--line-strong);padding:11px 14px;font-size:15px}
+.input:hover,.select:hover,.textarea:hover{border-color:var(--steel-400)}
+.input:focus,.select:focus,.textarea:focus{border-color:var(--ap-blue);box-shadow:0 0 0 4px var(--ap-ring)}
+.drop{border-radius:16px;border-color:var(--line-strong);background:var(--surface-2)}
+.drop:hover,.drop.is-over{border-color:var(--ap-blue);background:rgba(232,120,26,.05)}
+.drop.is-over{background:
+    linear-gradient(rgba(232,120,26,.05),rgba(232,120,26,.05)) padding-box,
+    repeating-linear-gradient(90deg,var(--ap-blue) 0 10px,transparent 10px 18px) border-box;background-size:auto,36px 100%}
+.file-chip,.shotbox,.upbox,.crew-item,.stop-row,.pay-view,.bill-link,.bill-sum{border-radius:14px}
+.crew-item.is-on{border-color:var(--ap-blue);background:rgba(232,120,26,.07)}
+.bill-today{border-radius:99px}
+.bill-today input{accent-color:var(--ap-blue)}
+.bill-today:has(input:checked){background:rgba(232,120,26,.08);border-color:var(--ap-blue);color:var(--ap-link)}
+.upbox-spin{border-top-color:var(--ap-blue)}
+.upbox-bar i,.tripbar i{background:var(--ap-blue)}
+.upbox-truck,.upbox-steps .on{color:var(--ap-blue)}
+
+/* ---------- หน้าต่าง · แจ้งเตือน -------------------------------- */
+.scrim{background:rgba(0,0,0,.4);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.modal{border-radius:22px}
+.modal-head,.modal-foot{border-color:var(--line)}
+.icon-btn{border-radius:99px;border-color:transparent;background:var(--ap-seg)}
+.icon-btn:hover{background:var(--steel-300);border-color:transparent}
+@media (max-width:620px){ .modal{border-radius:22px 22px 0 0} }
+.toast{background:rgba(29,29,31,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:14px}
+.celebrate-card{border-radius:22px}
+.demo-bar{background:var(--surface);border:0;border-radius:14px;box-shadow:var(--shadow-1);color:var(--text-2)}
+
+/* ---------- หน้าคนขับ ---------------------------------------- */
+.driver-body{background:var(--bg)}
+.driver-card{background:var(--surface);border-radius:24px;box-shadow:var(--shadow-2)}
+.driver-hero{background:#2b2725}
+.driver-hero .tiny[style*="9fb2c8"],.driver-hero .small[style*="9fb2c8"],.driver-hero [style*="color:#9fb2c8"]{color:#aba49e !important}
+.dhero-stat span,.dhero-meta{color:#d3cfcb}
+.dhero-code,.dhero-stat{background:rgba(255,255,255,.1);border-color:transparent}
+/* ปุ่มกลับอยู่บนพื้นสว่างแล้ว — ปุ่มขาว ตัวฟ้า */
+.driver-shell [data-back]{background:var(--surface) !important;color:var(--ap-link) !important;border-color:transparent !important;box-shadow:var(--shadow-1)}
+.driver-shell [data-back]:hover{background:var(--surface) !important;box-shadow:var(--shadow-2)}
+.job-card{border-color:transparent;border-radius:20px;box-shadow:var(--shadow-1)}
+.job-card:hover{transform:none;box-shadow:var(--shadow-2)}
+.job-card[data-active="1"]{border-color:transparent;box-shadow:0 0 0 2px var(--ap-blue),var(--shadow-1)}
+.stop-row{border-color:transparent;background:var(--surface-2)}
+.action-bar{background:var(--ap-glass);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-top-color:var(--ap-glass-line);box-shadow:none}
+.confirm-btn{border-radius:18px;background:#2b2725;box-shadow:none}
+.confirm-btn:hover{transform:none;box-shadow:none;filter:brightness(1.1)}
+.confirm-btn[data-tone="amber"]{background:var(--amber);color:#2b2725;box-shadow:none}
+.confirm-btn[data-tone="blue"]{background:var(--ap-blue)}
+.confirm-btn[data-tone="green"]{background:var(--green)}
+.confirm-btn .n{border-radius:99px}
+@media screen{
+  [data-theme="dark"] .driver-body{background:#1f1c1b}
+  [data-theme="dark"] .driver-hero{background:#37332f}
+  [data-theme="dark"] .confirm-btn{background:#433e3b}
+  [data-theme="dark"] .confirm-btn[data-tone="blue"]{background:var(--ap-blue);color:#fff}
+  [data-theme="dark"] .stop-row{background:#312d2b}
+}
+
+/* ---------- หน้าเลือกฝั่ง (index.html) -------------------------- */
+:root{
+  --lx-bg:#f4f3f1; --lx-ink:#2b2725; --lx-ink-2:#6f6964; --lx-gold:#E8781A; --lx-gold-soft:rgba(232,120,26,.25);
+  --lx-card:#fff; --lx-card-line:transparent; --lx-shadow:0 4px 24px rgba(0,0,0,.07);
+  --lx-tag-bg:#f4f3f1; --lx-tag-ink:#6f6964; --lx-btn-bg:#E8781A; --lx-btn-ink:#fff; --lx-btn-hover:#D2680F;
+  --lx-rule:rgba(0,0,0,.08); --lx-logo-line:#2b2725;
+}
+@media screen{
+  :root[data-theme="dark"]{
+    --lx-bg:#1f1c1b; --lx-ink:#f4f3f1; --lx-ink-2:#aba49e; --lx-gold:#FFA24D; --lx-gold-soft:rgba(255,162,77,.3);
+    --lx-card:#2b2725; --lx-card-line:transparent; --lx-shadow:none;
+    --lx-tag-bg:#37332f; --lx-tag-ink:#aba49e; --lx-btn-bg:#E8781A; --lx-btn-ink:#fff; --lx-btn-hover:#D2680F;
+    --lx-rule:rgba(255,255,255,.1); --lx-logo-line:#f4f3f1;
+  }
+}
+.lx-art{display:none}
+/* โลโก้ FT คงแบบเดิม (เส้นในสีทอง) — เป็นตราบริษัท ไม่เปลี่ยนตามธีม */
+.lx-logo path:nth-of-type(2){stroke:#b0915c}
+:root[data-theme="dark"] .lx-logo path:nth-of-type(2){stroke:#c9ab7c}
+.lx-bar{background:var(--ap-glass);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px)}
+.lx-eyebrow{color:#B85A0C;font-weight:600;letter-spacing:0}
+:root[data-theme="dark"] .lx-eyebrow{color:#FFA24D}
+.lx-title{font-weight:700;letter-spacing:-.035em}
+:root[data-theme="dark"] .lx-title{background:none;color:var(--lx-ink);-webkit-background-clip:border-box;background-clip:border-box}
+.lx-card{border-radius:24px;border-color:transparent}
+.lx-card:hover{transform:scale(1.01);border-color:transparent;box-shadow:0 8px 32px rgba(0,0,0,.12)}
+.lx-card h2{font-weight:600;letter-spacing:-.025em}
+:root[data-theme="dark"] .lx-card h2{color:var(--lx-ink)}
+.lx-tag{font-size:12px;font-weight:600;letter-spacing:.02em}
+.lx-btn{border-radius:99px;font-weight:500;box-shadow:none}
+.lx-note{border-radius:16px}
+.lx-switch{background:#e7e4e1}
+.lx-switch::after{box-shadow:0 2px 4px rgba(0,0,0,.18)}
+:root[data-theme="dark"] .lx-switch{background:#433e3b}
+
+/* ---------- หน้าติดตามพัสดุ (track.css) -------------------------- */
+:root{--gold:#E8781A;--gold-ink:#B85A0C;--gold-line:#d3cfcb}
+@media screen{ :root[data-theme="dark"]{--gold:#E8781A;--gold-ink:#FFA24D;--gold-line:#4a4542} }
+.trk-title{font-weight:700;letter-spacing:-.035em}
+.trk-call{border-radius:99px;border-color:var(--ap-link);color:var(--ap-link)}
+.trk-call:hover{background:var(--ap-link);color:#fff}
+.trk-card{border:0;border-radius:24px;box-shadow:var(--shadow-3)}
+.trk-input{border-radius:14px;border-width:1px}
+.trk-input:focus{border-color:var(--ap-blue);box-shadow:0 0 0 4px var(--ap-ring)}
+.trk-go{border-radius:99px;background:var(--ap-blue);color:#fff;font-weight:500}
+.trk-go:hover{filter:none;background:var(--ap-blue-hover)}
+
+/* ---------- โครงรอโหลด ---------------------------------------- */
+.sk{background:var(--ap-seg)}
+.skel-card{border-radius:18px}

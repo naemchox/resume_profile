@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ตั้งค่าระบบ — ระบบจัดซื้อจัดจ้าง</title>
+<link rel="stylesheet" href="css/app.css">
+<script src="js/theme.js"></script>
+</head>
+<body>
+<main id="app"><div class="spinner">…</div></main>
+
+<script type="module">
+import { sb } from './js/supabase.js';
+import { t, pick, lang, fmtDateTime } from './js/i18n.js';
+import { requirePage, me } from './js/auth.js';
+import { masters, flow, insert, update, invites, inviteUrl } from './js/api.js';
+import { fmt, toSatang, toBaht } from './js/money.js';
+import { el, $, shell, pageTitle, table, modal, confirmBox, ok, fail, spinner } from './js/ui.js';
+
+const u = await requirePage('admin.html');
+if (u) {
+  shell('admin.html');
+
+  // ตารางที่ไม่ได้ใช้คอลัมน์ id เป็นกุญแจ ต้องบอกไว้ ไม่งั้น update/delete ยิงผิดแถว
+  const un  = ({ data, error }) => { if (error) throw error; return data; };
+  const put = (tbl, pk, key, patch) => sb.from(tbl).update(patch).eq(pk, key).select().then(un);
+  const del = (tbl, pk, key) => sb.from(tbl).delete().eq(pk, key).then(un);
+
+  const MONTHS = Array.from({ length: 12 }, (_, i) => ({
+    value: i + 1,
+    label: new Date(2000, i, 1).toLocaleDateString(lang === 'en' ? 'en-GB' : 'th-TH', { month: 'long' }),
+  }));
+
+  // -------------------------------------------------------------------------
+  // ฟอร์มในกล่องโต้ตอบ — ใช้ร่วมกันทุกส่วน
+  // ถ้ากรอกไม่ครบจะเปิดกล่องเดิมซ้ำพร้อมค่าที่พิมพ์ไว้ ไม่ให้พิมพ์ใหม่ทั้งหมด
+  // -------------------------------------------------------------------------
+  async function form(title, fields, values = {}) {
+    const nodes = {};
+    const box = el('div', { class: 'form-grid' });
+
+    for (const f of fields) {
+      let input;
+      if (f.type === 'select') {
+        input = el('select', {},
+          el('option', { value: '' }, t('common.selectPlaceholder')),
+          ...f.options.map((o) =>
+            el('option', { value: String(o.value) }, o.label)));
+        input.value = values[f.k] == null ? '' : String(values[f.k]);
+      } else if (f.type === 'bool') {
+        input = el('input', { type: 'checkbox' });
+        input.checked = values[f.k] ?? f.default ?? false;
+      } else if (f.type === 'textarea') {
+        input = el('textarea', { rows: 3 });
+        input.value = values[f.k] ?? '';
+      } else {
+        const type = f.type === 'date' ? 'date' : (f.type === 'money' || f.type === 'num') ? 'number' : 'text';
+        input = el('input', { type, required: !!f.required, step: f.step ?? (type === 'number' ? 'any' : null) });
+        // f.default = ค่าตั้งต้นตอนกด "เพิ่ม" (ตอนแก้ไขจะมี values[f.k] มาทับอยู่แล้ว)
+        input.value = f.type === 'money'
+          ? (values[f.k] == null ? '' : toBaht(values[f.k]))
+          : (values[f.k] ?? f.default ?? '');
+      }
+      nodes[f.k] = input;
+      box.append(el('div', { class: 'field' + (f.wide ? ' wide' : '') },
+        el('label', {}, t(f.label)),
+        input,
+        f.hint ? el('small', { class: 'faint' }, t(f.hint)) : null));
+    }
+
+    const err = el('p', { class: 'err-line hidden' }, t('common.required'));
+    box.append(el('div', { class: 'wide' }, err));
+
+    const collect = () => {
+      const out = {};
+      for (const f of fields) {
+        const n = nodes[f.k];
+        if (f.type === 'bool') { out[f.k] = n.checked; continue; }
+        const raw = n.value.trim();
+        if (f.required && !raw) { err.classList.remove('hidden'); n.focus(); return undefined; }
+        if (!raw) { out[f.k] = null; continue; }
+        out[f.k] = f.type === 'money' ? toSatang(raw)
+                 : f.type === 'num'   ? Number(raw)
+                 : raw;
+      }
+      return out;
+    };
+
+    const res = await modal({
+      title, body: box, wide: true,
+      actions: [{ label: t('common.save'), class: 'btn primary', value: collect }],
+    });
+    if (typeof res !== 'function') return null;
+    const v = res();
+    return v === undefined ? form(title, fields, collectPartial(fields, nodes)) : v;
+  }
+
+  // เก็บสิ่งที่พิมพ์ค้างไว้ตอนกรอกไม่ครบ เพื่อเปิดกล่องใหม่แล้วค่ายังอยู่
+  function collectPartial(fields, nodes) {
+    const out = {};
+    for (const f of fields) {
+      const n = nodes[f.k];
+      out[f.k] = f.type === 'bool' ? n.checked
+               : f.type === 'money' ? (n.value ? toSatang(n.value) : null)
+               : n.value;
+    }
+    return out;
+  }
+
+  // -------------------------------------------------------------------------
+  // ส่วนที่เป็นตารางแก้ไขได้ — ทุกส่วนยกเว้น "ข้อมูลบริษัท" กับ "ผู้ใช้"
+  // -------------------------------------------------------------------------
+  // afterSave = งานที่ต้องทำต่อในตารางอื่นหลังบันทึกแถวหลักแล้ว (เช่น วงเงินงบของศูนย์ต้นทุน
+  // ซึ่งอยู่คนละตาราง) รับแถวที่เพิ่งบันทึกกับค่าที่กรอกมาทั้งชุด
+  function crud({ tbl, pk = 'id', fields, headers, row, load, canDelete = true, hint,
+                  beforeSave = (v) => v, afterSave = null }) {
+    const wrap = el('div', {});
+
+    const draw = async () => {
+      wrap.textContent = '';
+      wrap.append(spinner());
+      try {
+        const rows = await load();
+        wrap.textContent = '';
+        if (hint) wrap.append(el('p', { class: 'faint' }, t(hint)));
+        wrap.append(el('div', { class: 'row', style: 'margin-bottom:.7rem' },
+          el('div', { class: 'spacer' }),
+          el('button', { class: 'btn primary', onclick: onAdd }, t('common.add'))));
+        wrap.append(table(
+          [...headers, ''],
+          rows.map((r) => el('tr', {},
+            ...row(r, rows),
+            el('td', { class: 'ta-right', style: 'white-space:nowrap' },
+              el('button', { class: 'btn small', onclick: () => onEdit(r) }, t('common.edit')),
+              canDelete
+                ? el('button', { class: 'btn small danger', style: 'margin-left:.3rem',
+                                 onclick: () => onDelete(r) }, t('common.delete'))
+                : null)))));
+      } catch (e) { wrap.textContent = ''; fail(e); }
+    };
+
+    const onAdd = async () => {
+      const v = await form(t('admin.newRecord'), await resolve(fields));
+      if (!v) return;
+      try {
+        const saved = await insert(tbl, beforeSave(v));
+        if (afterSave) await afterSave(saved?.[0] ?? null, v);
+        ok(t('common.saved')); draw();
+      } catch (e) { fail(e); draw(); }
+    };
+
+    const onEdit = async (r) => {
+      const v = await form(t('admin.editRecord'), await resolve(fields), r);
+      if (!v) return;
+      try {
+        const saved = await put(tbl, pk, r[pk], beforeSave(v));
+        if (afterSave) await afterSave(saved?.[0] ?? r, v);
+        ok(t('common.saved')); draw();
+      } catch (e) { fail(e); draw(); }
+    };
+
+    const onDelete = async (r) => {
+      if (!await confirmBox(t('msg.confirmDelete'))) return;
+      try { await del(tbl, pk, r[pk]); ok(t('common.saved')); draw(); } catch (e) { fail(e); }
+    };
+
+    // fields อาจเป็นฟังก์ชัน เพราะบางส่วนต้องโหลดตัวเลือกจากตารางอื่นก่อน
+    const resolve = (f) => (typeof f === 'function' ? f() : f);
+
+    draw();
+    return wrap;
+  }
+
+  // =========================================================================
+  // 1) ข้อมูลบริษัท
+  // =========================================================================
+  async function secCompany() {
+    const c = (await masters.company()) ?? {};
+    const fields = [
+      { k: 'name_th', label: 'admin.nameTh', required: true, wide: true },
+      { k: 'name_en', label: 'admin.nameEn', wide: true },
+      { k: 'tax_id', label: 'admin.taxId', required: true },
+      { k: 'branch', label: 'admin.branch' },
+      { k: 'phone', label: 'admin.phone' },
+      { k: 'email', label: 'admin.email' },
+      { k: 'address_th', label: 'admin.addressTh', type: 'textarea', wide: true },
+      { k: 'address_en', label: 'admin.addressEn', type: 'textarea', wide: true },
+      { k: 'logo_path', label: 'admin.logo', wide: true },
+      { k: 'fiscal_year_start_month', label: 'admin.fiscalStart', type: 'select',
+        required: true, options: MONTHS },
+      { k: 'vat_percent', label: 'admin.vatRate', type: 'num', required: true, step: '0.01' },
+    ];
+
+    const btn = el('button', { class: 'btn primary' }, t('common.edit'));
+    btn.onclick = async () => {
+      const v = await form(t('admin.company'), fields, { ...c, vat_percent: (c.default_vat_bp ?? 700) / 100 });
+      if (!v) return;
+      const { vat_percent, ...patch } = v;
+      patch.default_vat_bp = Math.round(Number(vat_percent) * 100);
+      patch.fiscal_year_start_month = Number(patch.fiscal_year_start_month);
+      try { await put('company_profile', 'id', 1, patch); ok(t('admin.companySaved')); render(); }
+      catch (e) { fail(e); }
+    };
+
+    const line = (label, val) => el('tr', {},
+      el('th', { style: 'text-align:left;width:16rem;font-weight:500' }, t(label)),
+      el('td', {}, val || '—'));
+
+    return el('div', {},
+      el('div', { class: 'row', style: 'margin-bottom:.7rem' }, el('div', { class: 'spacer' }), btn),
+      el('div', { class: 'table-wrap' }, el('table', {}, el('tbody', {},
+        line('admin.nameTh', c.name_th), line('admin.nameEn', c.name_en),
+        line('admin.taxId', c.tax_id), line('admin.branch', c.branch),
+        line('admin.phone', c.phone), line('admin.email', c.email),
+        line('admin.addressTh', c.address_th), line('admin.addressEn', c.address_en),
+        line('admin.logo', c.logo_path),
+        line('admin.fiscalStart', MONTHS.find((m) => m.value === c.fiscal_year_start_month)?.label),
+        line('admin.vatRate', ((c.default_vat_bp ?? 0) / 100).toFixed(2) + ' %')))));
+  }
+
+  // =========================================================================
+  // 2) ผู้ใช้และตำแหน่ง
+  //    ตำแหน่งเขียนตรงลงตารางไม่ได้ ต้องผ่าน fn_grant_role / fn_revoke_role
+  //    และไม่มีใครตั้งตำแหน่งให้ตัวเองได้ แม้แต่ผู้ดูแลระบบ
+  // =========================================================================
+  const ROLES = ['requester', 'purchasing', 'inspector', 'pm', 'pd', 'ceo', 'accounting', 'admin'];
+
+  async function secUsers() {
+    const [profiles, roles, invRes] = await Promise.all([
+      sb.from('user_profiles').select('*').order('full_name_th').then(un),
+      sb.from('user_roles').select('user_id, role').then(un),
+      // ยังไม่ได้รัน db/07_invites.sql = ปิดแค่ส่วนคำเชิญ ตารางผู้ใช้ต้องยังใช้ได้
+      invites.list().then((rows) => ({ rows }), (e) => ({ err: e })),
+    ]);
+    const invs = invRes.rows ?? [];
+    const invErr = invRes.err ?? null;
+    const byUser = new Map();
+    for (const r of roles) byUser.set(r.user_id, [...(byUser.get(r.user_id) ?? []), r.role]);
+
+    const wrap = el('div', {});
+
+    const revoke = async (uid, role) => {
+      try { await flow.revokeRole(uid, role); ok(t('common.saved')); render(); } catch (e) { fail(e); }
+    };
+    const grant = async (uid, sel) => {
+      if (!sel.value) return;
+      try { await flow.grantRole(uid, sel.value); ok(t('common.saved')); render(); } catch (e) { fail(e); }
+    };
+    const toggleActive = async (p) => {
+      try { await update('user_profiles', p.id, { active: !p.active }); ok(t('common.saved')); render(); }
+      catch (e) { fail(e); }
+    };
+
+    const rows = profiles.map((p) => {
+      const mine = p.id === me.id;
+      const rs = byUser.get(p.id) ?? [];
+      const sel = el('select', { class: 'small' },
+        el('option', { value: '' }, t('admin.addRole')),
+        ...ROLES.filter((r) => !rs.includes(r)).map((r) => el('option', { value: r }, t('role.' + r))));
+      sel.onchange = () => grant(p.id, sel);
+
+      return el('tr', {},
+        el('td', {}, pick(p, 'full_name') || p.email,
+          mine ? el('small', { class: 'faint' }, ' (' + t('admin.you') + ')') : null),
+        el('td', {}, p.email),
+        el('td', {}, el('div', { class: 'chips' },
+          ...(rs.length ? rs.map((r) => el('span', { class: 'chip' }, t('role.' + r),
+                mine ? null : el('button', { title: t('common.delete'),
+                                             onclick: () => revoke(p.id, r) }, '×')))
+                        : [el('span', { class: 'faint' }, t('admin.noRoles'))]),
+          mine ? null : sel)),
+        el('td', { class: 'ta-center' },
+          el('input', { type: 'checkbox', checked: p.active, disabled: mine,
+                        onchange: () => toggleActive(p) })),
+        el('td', { class: 'ta-right', style: 'white-space:nowrap' },
+          el('button', { class: 'btn small', onclick: () => editUser(p) }, t('common.edit')),
+          mine
+            ? el('small', { class: 'faint', style: 'margin-left:.5rem' }, t('admin.noSelfRole'))
+            : el('button', { class: 'btn small danger', style: 'margin-left:.3rem',
+                             onclick: () => removeUser(p) }, t('common.delete'))));
+    });
+
+    wrap.append(...[
+      el('p', { class: 'faint' }, t('admin.usersHint')),
+      invErr ? el('div', { class: 'notice warn' },
+        el('strong', {}, t('invite.unavailable')), t('invite.needMigration')) : null,
+      el('div', { class: 'row', style: 'margin-bottom:.7rem' },
+        el('div', { class: 'spacer' }),
+        el('button', { class: 'btn primary', disabled: !!invErr, onclick: inviteDialog },
+          el('span', { class: 'plus' }, '+'), t('invite.add'))),
+      table([t('admin.nameTh'), t('admin.email'), t('admin.roleCol'),
+             { label: t('admin.userActive'), align: 'center' }, ''], rows),
+      invitesBox(invs),
+    ].filter(Boolean));
+
+    return wrap;
+  }
+
+  // -------------------------------------------------------------------------
+  // คำเชิญ — คนใหม่ยังไม่มีตัวตนในฐานข้อมูลจนกว่าจะล็อกอิน Google ครั้งแรก
+  // จึงตั้งตำแหน่งให้ล่วงหน้าตรงๆ ไม่ได้ ต้องพักไว้ในคำเชิญก่อน
+  // -------------------------------------------------------------------------
+  const inviteState = (i) =>
+    i.revoked_at            ? 'stRevoked'
+    : i.used_count >= i.max_uses ? 'stUsed'
+    // expires_at ว่าง = ไม่มีวันหมดอายุ ต้องไม่เอาไปเทียบวันที่
+    : (i.expires_at && new Date(i.expires_at) <= new Date()) ? 'stExpired'
+    : 'stActive';
+
+  // ใบที่ใช้ครบหรือถูกยกเลิกแล้ว วันหมดอายุไม่มีความหมายอีก อย่าโชว์ให้สับสน
+  const expiryText = (i) =>
+    inviteState(i) !== 'stActive' ? '—'
+    : i.expires_at ? fmtDateTime(i.expires_at)
+    : t('invite.never');
+
+  const INVITE_TONE = { stActive: 'blue', stUsed: 'green', stExpired: 'grey', stRevoked: 'grey' };
+
+  async function copyLink(url) {
+    try { await navigator.clipboard.writeText(url); ok(t('invite.copied')); }
+    catch { prompt(t('invite.copy'), url); }   // เบราว์เซอร์บางตัวไม่ให้เขียนคลิปบอร์ด
+  }
+
+  const mailtoLink = (i, url) =>
+    'mailto:' + (i.email ?? '')
+    + '?subject=' + encodeURIComponent(t('invite.mailSubject'))
+    + '&body=' + encodeURIComponent(
+        t('invite.mailBody', { link: url, expires: expiryText(i) }));
+
+  // กล่องแสดงลิงก์หลังสร้างเสร็จ — ระบบไม่ได้ส่งอีเมลเอง แอดมินเป็นคนส่ง
+  async function showInviteLink(inv) {
+    const url = inviteUrl(inv.token);
+    await modal({
+      title: t('invite.linkReady'),
+      wide: true,
+      body: el('div', {},
+        el('p', { class: 'faint' }, t('invite.linkReadyHint')),
+        el('div', { class: 'invite-link' }, url),
+        el('div', { class: 'row', style: 'margin-top:.8rem' },
+          el('button', { class: 'btn primary', onclick: () => copyLink(url) }, t('invite.copy')),
+          el('a', { class: 'btn', href: mailtoLink(inv, url) }, t('invite.sendMail')))),
+      actions: [],
+      cancelLabel: t('common.close'),
+    });
+  }
+
+  // ตัวเลือกตำแหน่ง — ทำเป็นปุ่มกดใหญ่ ไม่ใช่ช่องติ๊กจิ๋วที่มองข้ามได้ง่าย
+  function rolePicker(selected = []) {
+    const boxes = ROLES.map((r) => {
+      const cb = el('input', { type: 'checkbox', checked: selected.includes(r) });
+      const pill = el('label', { class: 'role-pick' + (cb.checked ? ' on' : '') },
+        cb, t('role.' + r));
+      cb.onchange = () => pill.classList.toggle('on', cb.checked);
+      return { role: r, cb, pill };
+    });
+    return {
+      node: el('div', { class: 'field wide pick-box' },
+        el('label', {}, t('invite.roles')),
+        el('div', { class: 'role-picks' }, ...boxes.map((b) => b.pill)),
+        el('small', { class: 'faint' }, t('invite.rolesHint'))),
+      value: () => boxes.filter((b) => b.cb.checked).map((b) => b.role),
+    };
+  }
+
+  // ช่องวันหมดอายุ + ติ๊กไม่มีวันหมดอายุ (ใช้ในกล่องแก้ไขคำเชิญ)
+  function expiryPicker(current, labelKey = 'invite.expires') {
+    const dateIn = el('input', { type: 'date',
+      value: current ? new Date(current).toISOString().slice(0, 10) : '' });
+    const never = el('input', { type: 'checkbox', checked: !current });
+    dateIn.disabled = never.checked;
+    never.onchange = () => { dateIn.disabled = never.checked; };
+    return {
+      node: el('div', { class: 'field' },
+        el('label', {}, t(labelKey)), dateIn,
+        el('label', { class: 'check', style: 'margin-top:.4rem' }, never, t('invite.never'))),
+      // เก็บถึงสิ้นวันที่เลือก ไม่ใช่เที่ยงคืนต้นวัน ไม่งั้นวันนั้นใช้ไม่ได้
+      value: () => (never.checked || !dateIn.value ? null
+                    : new Date(dateIn.value + 'T23:59:59').toISOString()),
+    };
+  }
+
+  async function editInvite(i) {
+    const picker = rolePicker(i.roles ?? []);
+    const exp = expiryPicker(i.expires_at);
+    const nameIn = el('input', { type: 'text', value: i.full_name_th ?? '' });
+    const usesIn = el('input', { type: 'number', min: String(Math.max(1, i.used_count)),
+                                 max: '200', step: '1', value: String(i.max_uses) });
+    const noteIn = el('input', { type: 'text', value: i.note ?? '' });
+    const fNote = el('div', { class: 'field wide' }, el('label', {}, t('invite.note')), noteIn);
+
+    const res = await modal({
+      title: t('invite.edit'), wide: true,
+      body: el('div', {},
+        el('p', { class: 'faint' },
+          i.email ? i.email : t('invite.openLink'), ' — ', t('invite.editHint')),
+        el('div', { class: 'form-grid' },
+          i.email ? el('div', { class: 'field' }, el('label', {}, t('invite.name')), nameIn) : null,
+          exp.node,
+          i.email ? null : el('div', { class: 'field' },
+            el('label', {}, t('invite.maxUses')), usesIn),
+          fNote, picker.node)),
+      actions: [{ label: t('common.save'), class: 'btn primary', value: true }],
+    });
+    if (!res) return;
+    try {
+      await invites.update(i.id, {
+        roles: picker.value(),
+        name: i.email ? (nameIn.value.trim() || null) : null,
+        expiresAt: exp.value(),
+        maxUses: i.email ? 1 : Number(usesIn.value || 1),
+        note: noteIn.value.trim() || null,
+      });
+      ok(t('common.saved'));
+      render();
+    } catch (e) { fail(e); }
+  }
+
+  // แก้รายละเอียดผู้ใช้ — อีเมลแก้ไม่ได้ (มาจากบัญชี Google) ตำแหน่งแก้ที่ช่องตำแหน่ง
+  // วันหมดอายุบัญชีตั้งให้ตัวเองไม่ได้ ฐานข้อมูลกันไว้อีกชั้นด้วย
+  async function editUser(p) {
+    const ins = {};
+    const fld = (k, label) => {
+      ins[k] = el('input', { type: 'text', value: p[k] ?? '' });
+      return el('div', { class: 'field' }, el('label', {}, t(label)), ins[k]);
+    };
+    const grid = el('div', { class: 'form-grid' },
+      fld('full_name_th', 'admin.nameTh'), fld('full_name_en', 'admin.nameEn'),
+      fld('employee_code', 'admin.employeeCode'), fld('department', 'admin.department'),
+      fld('position_th', 'admin.positionTh'), fld('position_en', 'admin.positionEn'));
+
+    const err = el('p', { class: 'err-line hidden' }, t('common.required'));
+    const res = await modal({
+      title: t('admin.editUser'), wide: true,
+      body: el('div', {}, el('p', { class: 'faint' }, p.email), grid, err),
+      actions: [{ label: t('common.save'), class: 'btn primary', value: true }],
+    });
+    if (!res) return;
+    if (!ins.full_name_th.value.trim()) { err.classList.remove('hidden'); return editUser(p); }
+
+    const patch = {};
+    for (const [k, n] of Object.entries(ins)) patch[k] = n.value.trim() || null;
+    try { await update('user_profiles', p.id, patch); ok(t('common.saved')); render(); }
+    catch (e) { fail(e); }
+  }
+
+  async function inviteDialog() {
+    let mode = 'email';
+
+    const fEmail = field('invite.email', el('input', { type: 'email', placeholder: 'name@company.com' }));
+    const fName  = field('invite.name',  el('input', { type: 'text' }), 'invite.nameHint');
+    const fUses  = field('invite.maxUses', el('input', { type: 'number', min: '1', max: '200', step: '1', value: '1' }));
+    const daysIn = el('input', { type: 'number', min: '1', max: '365', step: '1', value: '14' });
+    const neverCb = el('input', { type: 'checkbox' });
+    neverCb.onchange = () => { daysIn.disabled = neverCb.checked; };
+    const fDays  = el('div', { class: 'field' },
+      el('label', {}, t('invite.days')), daysIn,
+      el('label', { class: 'check', style: 'margin-top:.4rem' }, neverCb, t('invite.never')));
+    const fNote  = field('invite.note',  el('input', { type: 'text' }));
+    fNote.classList.add('wide');
+
+    const picker = rolePicker();
+
+    const hint = el('p', { class: 'faint' }, t('invite.emailHint'));
+    const err  = el('p', { class: 'err-line hidden' }, t('common.required'));
+
+    const tabBtn = (key, value) => el('button', {
+      type: 'button', class: 'btn' + (value === mode ? ' primary' : ''),
+      onclick: () => setMode(value),
+    }, t(key));
+    const tabs = el('div', { class: 'row', style: 'margin-bottom:.9rem' });
+
+    function setMode(next) {
+      mode = next;
+      tabs.textContent = '';
+      tabs.append(tabBtn('invite.modeEmail', 'email'), tabBtn('invite.modeLink', 'link'));
+      hint.textContent = t(mode === 'email' ? 'invite.emailHint' : 'invite.linkHint');
+      fEmail.classList.toggle('hidden', mode !== 'email');
+      fName.classList.toggle('hidden', mode !== 'email');
+      fUses.classList.toggle('hidden', mode !== 'link');
+      err.classList.add('hidden');
+    }
+    setMode('email');
+
+    const body = el('div', {},
+      tabs, hint,
+      el('div', { class: 'form-grid' }, fEmail, fName, fUses, fDays, fNote,
+        picker.node,
+        el('div', { class: 'wide' }, err)));
+
+    const collect = () => {
+      const email = fEmail.querySelector('input').value.trim().toLowerCase();
+      if (mode === 'email' && !email) {
+        err.textContent = t('common.required');
+        err.classList.remove('hidden');
+        fEmail.querySelector('input').focus();
+        return undefined;
+      }
+      return {
+        email: mode === 'email' ? email : null,
+        name: mode === 'email' ? (fName.querySelector('input').value.trim() || null) : null,
+        roles: picker.value(),
+        maxUses: mode === 'link' ? Number(fUses.querySelector('input').value || 1) : 1,
+        days: neverCb.checked ? null : Number(daysIn.value || 14),
+        note: fNote.querySelector('input').value.trim() || null,
+      };
+    };
+
+    const res = await modal({
+      title: t('invite.title'), body, wide: true,
+      actions: [{ label: t('invite.create'), class: 'btn primary', value: collect }],
+    });
+    if (typeof res !== 'function') return;
+    const v = res();
+    if (v === undefined) return inviteDialog();
+
+    try {
+      const inv = await invites.create(v);
+      ok(t('invite.created'));
+      await showInviteLink(inv);
+      render();
+    } catch (e) { fail(e); }
+  }
+
+  function invitesBox(rows) {
+    if (!rows.length) return null;
+    const trs = rows.map((i) => {
+      const st = inviteState(i);
+      const url = inviteUrl(i.token);
+      const live = st === 'stActive';
+      return el('tr', {},
+        el('td', {}, i.email
+          ? el('span', {}, i.email, i.full_name_th
+              ? el('small', { class: 'faint' }, ' (' + i.full_name_th + ')') : null)
+          : el('span', { class: 'faint' }, t('invite.openLink'))),
+        el('td', {}, el('div', { class: 'chips' },
+          ...(i.roles?.length
+            ? i.roles.map((r) => el('span', { class: 'chip' }, t('role.' + r)))
+            : [el('span', { class: 'faint' }, t('admin.noRoles'))]))),
+        el('td', { class: 'ta-center' }, `${i.used_count}/${i.max_uses}`),
+        el('td', {}, expiryText(i)),
+        el('td', { class: 'ta-center' },
+          el('span', { class: 'badge ' + INVITE_TONE[st] }, t('invite.' + st))),
+        el('td', { class: 'ta-right', style: 'white-space:nowrap' },
+          live ? el('button', { class: 'btn small', onclick: () => editInvite(i) }, t('common.edit')) : null,
+          live ? el('button', { class: 'btn small', style: 'margin-left:.3rem',
+                                onclick: () => copyLink(url) }, t('invite.copy')) : null,
+          live ? el('a', { class: 'btn small', style: 'margin-left:.3rem',
+                           href: mailtoLink(i, url) }, t('invite.sendMail')) : null,
+          live ? el('button', { class: 'btn small danger', style: 'margin-left:.3rem',
+                                onclick: () => revokeInvite(i) }, t('invite.revoke')) : null));
+    });
+
+    return el('div', { style: 'margin-top:1.6rem' },
+      el('h3', {}, t('invite.pending')),
+      table([t('invite.target'), t('admin.roleCol'),
+             { label: t('invite.uses'), align: 'center' }, t('invite.expires'),
+             { label: t('invite.status'), align: 'center' }, ''], trs));
+  }
+
+  // ลบผู้ใช้ — คนที่เคยทำเอกสารลบถาวรไม่ได้ (FK กันประวัติจัดซื้อไว้) ระบบจะปิดบัญชีให้แทน
+  async function removeUser(p) {
+    const who = pick(p, 'full_name') || p.email;
+    if (!await confirmBox(t('admin.confirmRemoveUser', { name: who }), t('common.delete'))) return;
+    try {
+      const res = await flow.removeUser(p.id);
+      ok(t(res === 'deleted' ? 'admin.userDeleted' : 'admin.userDisabled', { name: who }));
+      render();
+    } catch (e) { fail(e); }
+  }
+
+  async function revokeInvite(i) {
+    if (!await confirmBox(t('invite.confirmRevoke'), t('invite.revoke'))) return;
+    try { await invites.revoke(i.id); ok(t('common.saved')); render(); } catch (e) { fail(e); }
+  }
+
+  // ช่องกรอกหนึ่งช่องพร้อมป้ายกำกับ — ใช้เฉพาะกล่องคำเชิญที่ต้องซ่อน/แสดงทีละช่อง
+  function field(label, input, hintKey) {
+    return el('div', { class: 'field' },
+      el('label', {}, t(label)), input,
+      hintKey ? el('small', { class: 'faint' }, t(hintKey)) : null);
+  }
+
+  // =========================================================================
+  // 3) วงเงินอนุมัติ — ยอดตกช่วงไหน คนที่ดูแลช่วงนั้นอนุมัติคนเดียวจบ
+  //    กรอกแค่ "ปลายช่วง" ช่องเดียว ต้นช่วงคำนวณจากปลายช่วงของขั้นก่อนหน้า
+  //    เว้นว่าง = ไม่จำกัด (ขั้นสุดท้าย เช่น CEO)
+  // =========================================================================
+
+  // ต้นช่วงของแถวนี้ = ปลายช่วงของขั้นก่อนหน้าที่ยังใช้งานอยู่ + 1 สตางค์
+  const rangeStart = (r, rows) => {
+    const below = rows.filter((x) => x.active && x.max_amount != null
+                                  && x.step_order < r.step_order)
+                      .map((x) => Number(x.max_amount));
+    return (below.length ? Math.max(...below) : 0) + 1;
+  };
+
+  const rangeText = (r, rows) => {
+    if (!r.active) return '—';
+    const from = fmt(rangeStart(r, rows));
+    return r.max_amount == null
+      ? t('admin.rangeFrom').replace('{from}', from)
+      : `${from} – ${fmt(r.max_amount)}`;
+  };
+
+  const secLimits = () => crud({
+    tbl: 'approval_limits', pk: 'role', canDelete: false, hint: 'admin.limitsHint',
+    headers: [t('admin.roleCol'), t('admin.stepOrder'),
+              { label: t('admin.rangeCol'), align: 'right' },
+              { label: t('admin.maxAmount'), align: 'right' },
+              { label: t('admin.active'), align: 'center' }],
+    fields: [
+      { k: 'role', label: 'role.admin', type: 'select', required: true,
+        options: ROLES.map((r) => ({ value: r, label: t('role.' + r) })) },
+      { k: 'step_order', label: 'admin.stepOrder', type: 'num', required: true, step: '1' },
+      { k: 'max_amount', label: 'admin.maxAmount', type: 'money', hint: 'admin.unlimitedHint' },
+      { k: 'active', label: 'admin.active', type: 'bool', default: true },
+    ],
+    load: () => masters.limits(),
+    row: (r, rows) => [
+      el('td', {}, t('role.' + r.role)),
+      el('td', {}, String(r.step_order)),
+      el('td', { class: 'num' }, rangeText(r, rows)),
+      el('td', { class: 'num' }, r.max_amount == null ? t('admin.unlimited') : fmt(r.max_amount)),
+      el('td', { class: 'ta-center' }, r.active ? '✓' : '—'),
+    ],
+  });
+
+  // =========================================================================
+  // 4) ศูนย์ต้นทุน — กรอกวงเงินงบของปีงบปัจจุบันได้ในกล่องเดียวกัน
+  //
+  // ตัวเลขวงเงินไม่ได้เก็บเป็นคอลัมน์ของ cost_centers แต่ลงที่ตาราง budgets แถว
+  // (ศูนย์ต้นทุน x ปีงบ, ไม่ผูกโครงการ) ซึ่งเป็นที่เดียวที่ระบบตัดงบจริง — ถ้าเก็บซ้ำ
+  // อีกที่จะได้ตัวเลขสองชุดที่ไม่มีวันตรงกัน และยอดคงเหลือ/รายงานจะอ่านคนละอัน
+  // ช่องนี้จึงเป็นทางลัดของหัวข้อ "งบประมาณ" ไม่ใช่ข้อมูลชุดใหม่
+  // =========================================================================
+  const secCostCenters = () => {
+    // ปีงบต้องมาจากฐานข้อมูล ห้ามให้เบราว์เซอร์เดาเอง (คนกรอกมักคิดเป็น พ.ศ.)
+    let fy = null;
+
+    // เว้นว่าง = ไม่ตั้งงบ ถ้าเคยตั้งไว้แล้วปล่อยว่างจะไม่ไปลบของเดิม เพราะใบสั่งซื้อที่
+    // กันยอดไว้ผูกกับแถวงบอยู่ — จะเลิกใช้ต้องไปจัดการที่หัวข้อ "งบประมาณ"
+    const saveBudget = async (cc, amount) => {
+      if (!cc?.id || amount == null) return;
+      if (fy == null) throw new Error(t('admin.ccBudgetNoFy'));
+      const rows = await sb.from('budgets').select('id, amount')
+        .eq('cost_center_id', cc.id).eq('fiscal_year', fy).is('project_id', null)
+        .limit(1).then(un);
+      if (!rows.length) {
+        await sb.from('budgets')
+          .insert({ cost_center_id: cc.id, fiscal_year: fy, amount }).select().then(un);
+      } else if (rows[0].amount !== amount) {
+        await sb.from('budgets').update({ amount }).eq('id', rows[0].id).select().then(un);
+      }
+    };
+
+    return crud({
+      tbl: 'cost_centers',
+      headers: [t('admin.code'), t('admin.nameTh'), t('admin.nameEn'),
+                { label: t('admin.ccBudget'), align: 'right' },
+                { label: t('admin.active'), align: 'center' }],
+      fields: () => [
+        { k: 'code', label: 'admin.code', required: true },
+        { k: 'name_th', label: 'admin.nameTh', required: true },
+        { k: 'name_en', label: 'admin.nameEn' },
+        { k: '_budget', label: 'admin.ccBudget', type: 'money',
+          hint: fy == null ? 'admin.ccBudgetHint' : t('admin.ccBudgetHintFy', { fy }) },
+        { k: 'active', label: 'admin.active', type: 'bool', default: true },
+      ],
+      load: async () => {
+        const [ccs, y] = await Promise.all([
+          sb.from('cost_centers').select('*').order('code').then(un),
+          sb.rpc('fn_fiscal_year').then(un).catch(() => null),
+        ]);
+        fy = y;
+        const bs = fy == null ? [] : await sb.from('budgets').select('cost_center_id, amount')
+          .is('project_id', null).eq('fiscal_year', fy).then(un);
+        const m = new Map(bs.map((b) => [b.cost_center_id, b.amount]));
+        return ccs.map((c) => ({ ...c, _budget: m.get(c.id) ?? null }));
+      },
+      row: (r) => [el('td', {}, r.code), el('td', {}, r.name_th), el('td', {}, r.name_en || '—'),
+                   el('td', { class: 'num' }, r._budget == null ? '—' : fmt(r._budget)),
+                   el('td', { class: 'ta-center' }, r.active ? '✓' : '—')],
+      // _budget ไม่ใช่คอลัมน์ของ cost_centers ต้องถอดออกก่อนบันทึกแถวหลัก
+      beforeSave: ({ _budget, ...rest }) => rest,
+      afterSave: (saved, v) => saveBudget(saved, v._budget),
+    });
+  };
+
+  // =========================================================================
+  // 5) โครงการ
+  // =========================================================================
+  const secProjects = () => crud({
+    tbl: 'projects',
+    headers: [t('admin.code'), t('admin.nameTh'), t('pr.costCenter'), t('admin.startDate'),
+              t('admin.endDate'), { label: t('admin.active'), align: 'center' }],
+    fields: async () => {
+      const ccs = await sb.from('cost_centers').select('*').order('code').then(un);
+      return [
+        { k: 'code', label: 'admin.code', required: true },
+        { k: 'name_th', label: 'admin.nameTh', required: true },
+        { k: 'name_en', label: 'admin.nameEn' },
+        { k: 'cost_center_id', label: 'pr.costCenter', type: 'select', required: true,
+          options: ccs.map((c) => ({ value: c.id, label: c.code + ' — ' + c.name_th })) },
+        { k: 'start_date', label: 'admin.startDate', type: 'date' },
+        { k: 'end_date', label: 'admin.endDate', type: 'date' },
+        { k: 'active', label: 'admin.active', type: 'bool', default: true },
+      ];
+    },
+    load: async () => {
+      const [ps, ccs] = await Promise.all([
+        sb.from('projects').select('*').order('code').then(un),
+        sb.from('cost_centers').select('id, code').then(un),
+      ]);
+      const m = new Map(ccs.map((c) => [c.id, c.code]));
+      return ps.map((p) => ({ ...p, _cc: m.get(p.cost_center_id) ?? '—' }));
+    },
+    row: (r) => [el('td', {}, r.code), el('td', {}, r.name_th), el('td', {}, r._cc),
+                 el('td', {}, r.start_date ?? '—'), el('td', {}, r.end_date ?? '—'),
+                 el('td', { class: 'ta-center' }, r.active ? '✓' : '—')],
+  });
+
+  // =========================================================================
+  // 6) งบประมาณ
+  // =========================================================================
+  const secBudgets = () => crud({
+    tbl: 'budgets',
+    headers: [t('pr.costCenter'), t('pr.project'), t('admin.fiscalYear'),
+              { label: t('budget.amount'), align: 'right' }, t('common.note')],
+    fields: async () => {
+      const [ccs, prjs, fy] = await Promise.all([
+        sb.from('cost_centers').select('*').eq('active', true).order('code').then(un),
+        sb.from('projects').select('*').eq('active', true).order('code').then(un),
+        // ปีงบต้องมาจากฐานข้อมูล ห้ามให้เบราว์เซอร์เดาเอง
+        // (ระบบนับเป็น ค.ศ. แต่คนกรอกมักพิมพ์ พ.ศ. แล้วงบไปคนละปีกับใบขอซื้อ)
+        sb.rpc('fn_fiscal_year').then(un).catch(() => null),
+      ]);
+      return [
+        { k: 'cost_center_id', label: 'pr.costCenter', type: 'select', required: true,
+          options: ccs.map((c) => ({ value: c.id, label: c.code + ' — ' + c.name_th })) },
+        { k: 'project_id', label: 'pr.project', type: 'select',
+          options: prjs.map((p) => ({ value: p.id, label: p.code + ' — ' + p.name_th })) },
+        { k: 'fiscal_year', label: 'admin.fiscalYear', type: 'num', required: true, step: '1',
+          default: fy == null ? null : String(fy),
+          hint: fy == null ? null : t('admin.fiscalYearHint', { fy }) },
+        { k: 'amount', label: 'budget.amount', type: 'money', required: true },
+        { k: 'note', label: 'common.note', type: 'textarea', wide: true },
+      ];
+    },
+    load: async () => {
+      const [bs, ccs, prjs] = await Promise.all([
+        sb.from('budgets').select('*').order('fiscal_year', { ascending: false }).then(un),
+        sb.from('cost_centers').select('id, code').then(un),
+        sb.from('projects').select('id, code').then(un),
+      ]);
+      const mc = new Map(ccs.map((c) => [c.id, c.code]));
+      const mp = new Map(prjs.map((p) => [p.id, p.code]));
+      return bs.map((b) => ({ ...b, _cc: mc.get(b.cost_center_id) ?? '—',
+                                    _pj: b.project_id ? (mp.get(b.project_id) ?? '—') : '—' }));
+    },
+    row: (r) => [el('td', {}, r._cc), el('td', {}, r._pj), el('td', {}, String(r.fiscal_year)),
+                 el('td', { class: 'num' }, fmt(r.amount)), el('td', {}, r.note || '—')],
+  });
+
+  // =========================================================================
+  // 7) ทะเบียนผู้ขาย
+  // =========================================================================
+  const secVendors = () => crud({
+    tbl: 'vendors',
+    headers: [t('admin.code'), t('admin.nameTh'), t('admin.taxId'), t('admin.contact'),
+              t('admin.defaultWht'), { label: t('admin.blacklisted'), align: 'center' }],
+    fields: async () => {
+      const whts = await masters.whtRates();
+      return [
+        { k: 'code', label: 'admin.code', required: true },
+        { k: 'name_th', label: 'admin.nameTh', required: true },
+        { k: 'name_en', label: 'admin.nameEn' },
+        { k: 'tax_id', label: 'admin.taxId' },
+        { k: 'branch', label: 'admin.branch' },
+        { k: 'address_th', label: 'admin.addressTh', type: 'textarea', wide: true },
+        { k: 'contact_name', label: 'admin.contact' },
+        { k: 'phone', label: 'admin.phone' },
+        { k: 'email', label: 'admin.email' },
+        { k: 'bank_name', label: 'admin.bankName' },
+        { k: 'bank_account_no', label: 'admin.accountNo' },
+        { k: 'bank_account_name', label: 'admin.accountName' },
+        { k: 'default_wht_code', label: 'admin.defaultWht', type: 'select',
+          options: whts.map((w) => ({ value: w.code,
+            label: w.code + ' — ' + pick(w, 'description') + ' ' + (w.rate_bp / 100) + '%' })) },
+        { k: 'blacklisted', label: 'admin.blacklisted', type: 'bool' },
+        { k: 'blacklist_reason', label: 'admin.blacklistReason', type: 'textarea', wide: true },
+        { k: 'note', label: 'common.note', type: 'textarea', wide: true },
+      ];
+    },
+    load: () => sb.from('vendors').select('*').order('code').then(un),
+    row: (r) => [el('td', {}, r.code), el('td', {}, pick(r, 'name')), el('td', {}, r.tax_id || '—'),
+                 el('td', {}, r.contact_name || '—'), el('td', {}, r.default_wht_code || '—'),
+                 el('td', { class: 'ta-center' },
+                   r.blacklisted ? el('span', { class: 'badge red' }, t('common.yes')) : '—')],
+  });
+
+  // =========================================================================
+  // 8) Scope of Work
+  // =========================================================================
+  const secSow = () => crud({
+    tbl: 'sow_clauses',
+    headers: [t('common.seq'), t('admin.code'), t('admin.titleTh'), t('admin.titleEn'),
+              { label: t('admin.active'), align: 'center' }],
+    fields: [
+      { k: 'seq', label: 'common.seq', type: 'num', required: true, step: '1' },
+      { k: 'code', label: 'admin.code', required: true },
+      { k: 'title_th', label: 'admin.titleTh', required: true, wide: true },
+      { k: 'title_en', label: 'admin.titleEn', required: true, wide: true },
+      { k: 'hint_th', label: 'admin.hintTh', type: 'textarea', wide: true },
+      { k: 'hint_en', label: 'admin.hintEn', type: 'textarea', wide: true },
+      { k: 'active', label: 'admin.active', type: 'bool', default: true },
+    ],
+    load: () => sb.from('sow_clauses').select('*').order('seq').then(un),
+    row: (r) => [el('td', {}, String(r.seq)), el('td', {}, r.code), el('td', {}, r.title_th),
+                 el('td', {}, r.title_en), el('td', { class: 'ta-center' }, r.active ? '✓' : '—')],
+  });
+
+  // =========================================================================
+  // 9) อัตราภาษีหัก ณ ที่จ่าย
+  // =========================================================================
+  const secWht = () => crud({
+    tbl: 'wht_rates', pk: 'code',
+    beforeSave: ({ rate_percent, ...v }) => ({ ...v, rate_bp: Math.round(Number(rate_percent) * 100) }),
+    headers: [t('admin.code'), t('admin.form'), t('admin.descTh'),
+              { label: t('admin.rate'), align: 'right' }, { label: t('admin.active'), align: 'center' }],
+    fields: [
+      { k: 'code', label: 'admin.code', required: true },
+      { k: 'form', label: 'admin.form', type: 'select', required: true,
+        options: [{ value: 'PND3', label: 'PND3' }, { value: 'PND53', label: 'PND53' }] },
+      { k: 'description_th', label: 'admin.descTh', required: true, wide: true },
+      { k: 'description_en', label: 'admin.descEn', required: true, wide: true },
+      { k: 'rate_percent', label: 'admin.rate', type: 'num', required: true, step: '0.01' },
+      { k: 'active', label: 'admin.active', type: 'bool', default: true },
+    ],
+    load: async () => (await sb.from('wht_rates').select('*').order('code').then(un))
+      .map((w) => ({ ...w, rate_percent: w.rate_bp / 100 })),
+    row: (r) => [el('td', {}, r.code), el('td', {}, r.form), el('td', {}, r.description_th),
+                 el('td', { class: 'num' }, (r.rate_bp / 100).toFixed(2) + ' %'),
+                 el('td', { class: 'ta-center' }, r.active ? '✓' : '—')],
+  });
+
+  // =========================================================================
+  // แถบหัวข้อ
+  // =========================================================================
+  const TABS = [
+    ['company',     'admin.company',     secCompany],
+    ['users',       'admin.users',       secUsers],
+    ['limits',      'admin.limits',      secLimits],
+    ['costcenters', 'admin.costCenters', secCostCenters],
+    ['projects',    'admin.projects',    secProjects],
+    ['budgets',     'admin.budgets',     secBudgets],
+    ['vendors',     'admin.vendors',     secVendors],
+    ['sow',         'admin.sow',         secSow],
+    ['wht',         'admin.wht',         secWht],
+  ];
+
+  async function render() {
+    const key = location.hash.slice(1) || TABS[0][0];
+    const tab = TABS.find(([k]) => k === key) ?? TABS[0];
+    const app = $('#app');
+    app.textContent = '';
+    app.append(pageTitle('admin.title'));
+    app.append(el('div', { class: 'tabs' },
+      ...TABS.map(([k, label]) =>
+        el('a', { href: '#' + k, class: k === tab[0] ? 'active' : '' }, t(label)))));
+
+    const card = el('div', { class: 'card' }, spinner());
+    app.append(card);
+    try {
+      const body = await tab[2]();
+      card.textContent = '';
+      card.append(el('h2', {}, t(tab[1])), body);
+    } catch (e) { card.textContent = ''; fail(e); }
+  }
+
+  addEventListener('hashchange', render);
+  render();
+}
+</script>
+</body>
+</html>

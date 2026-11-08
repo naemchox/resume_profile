@@ -1,0 +1,1260 @@
+/* ============================================================
+   FT — component layer
+   header · status · timeline · table · forms · driver · toast
+   ============================================================ */
+
+/* ---------- app header ------------------------------------ */
+.appbar{
+  position:sticky;top:0;z-index:60;
+  background:rgba(10,20,36,.94);
+  backdrop-filter:saturate(1.4) blur(12px);
+  -webkit-backdrop-filter:saturate(1.4) blur(12px);
+  border-bottom:1px solid rgba(255,255,255,.09);
+  color:#eef3f9;
+}
+.appbar-inner{display:flex;align-items:center;gap:20px;height:var(--header-h)}
+.brand{display:flex;align-items:center;gap:11px;flex:none}
+.brand-mark{
+  width:32px;height:32px;border-radius:8px;flex:none;
+  background:linear-gradient(145deg,var(--amber),#e08a10);
+  display:grid;place-items:center;
+  font-family:var(--mono);font-weight:600;font-size:12.5px;letter-spacing:-.03em;
+  color:var(--navy-900);box-shadow:0 2px 10px rgba(245,165,36,.34);
+}
+.brand-name{font-weight:600;font-size:15px;letter-spacing:-.01em;line-height:1.15;color:#fff}
+.brand-sub{font-family:var(--mono);font-size:9.5px;letter-spacing:.19em;text-transform:uppercase;color:#7f95af}
+.appnav{display:flex;align-items:center;gap:2px;margin-left:auto}
+.appnav a{
+  padding:7px 13px;border-radius:8px;font-size:13.5px;font-weight:500;color:#a9bcd2;
+  transition:background .18s,color .18s;
+}
+.appnav a:hover{background:rgba(255,255,255,.08);color:#fff}
+.appnav a[aria-current="page"]{background:rgba(245,165,36,.16);color:var(--amber)}
+.appbar-role{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;
+  color:#8ba0b8;border:1px solid rgba(255,255,255,.14);border-radius:99px;padding:3px 10px;
+}
+/* ผู้ใช้ที่ล็อกอินฝั่ง Back office + ปุ่มออก */
+.appbar-user{display:flex;align-items:center;gap:8px;flex:none;padding-left:10px;border-left:1px solid rgba(255,255,255,.12)}
+.appbar-user-name{display:flex;flex-direction:column;align-items:flex-end;line-height:1.2;font-size:12.5px;font-weight:600;color:#dfe7f0;
+  max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.appbar-user-name small{font-size:10.5px;font-weight:500;color:#8ba0b8}
+.appbar-out{font:inherit;font-size:12px;font-weight:600;color:#a9bcd2;background:transparent;cursor:pointer;
+  border:1px solid rgba(255,255,255,.14);border-radius:7px;padding:5px 10px}
+.appbar-out:hover{background:rgba(255,255,255,.08);color:#fff}
+.appbar-out .show-sm{display:none}
+@media (max-width:820px){.appbar-user-name{display:none} .appbar-out .hide-sm{display:none} .appbar-out .show-sm{display:inline}}
+.appbar-user:not(:has(.appbar-user-name)){border-left:0;padding-left:0}
+/* แถบหัวแน่น (เมนูครบ + ผู้ใช้ + ปุ่มเลือกฝั่ง) — เมนูหดและเลื่อนซ้ายขวาได้ ผู้ใช้กับปุ่มต้องมองเห็นเสมอ */
+.appnav{min-width:0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.appnav::-webkit-scrollbar{display:none}
+@media (max-width:1320px){ .appnav a{padding:7px 9px;font-size:13px} .appbar-inner{gap:14px} }
+@media (max-width:1200px){ .appbar-user-name{display:none} .appbar-user{border-left:0;padding-left:0} }
+/* มือถือ: สองแถว — บนเป็นโลโก้กับปุ่ม ล่างเป็นเมนูเต็มความกว้าง */
+@media (max-width:820px){
+  .appbar-inner{flex-wrap:wrap;height:auto;padding:8px 0;row-gap:4px}
+  .appbar-inner > .appnav{order:3;flex:1 0 100%;margin-left:-6px !important;justify-content:flex-start}
+  .appbar-inner > .appnav ~ .appbar-user,.appbar-inner > .appnav ~ .theme-btn,.appbar-inner > .appnav ~ .fs-btn{order:2}
+  .appbar-inner > .appnav ~ .appbar-user{margin-left:auto !important}
+  .appbar-inner > .appbar-user ~ .theme-btn{margin-left:0 !important}
+}
+/* แถบบอกว่าหน้านี้ดูได้อย่างเดียว */
+.readonly-bar{background:var(--amber-wash);border-bottom:1px solid var(--line);color:var(--amber-ink);
+  font-size:13px;text-align:center;padding:7px 14px}
+/* หน้าใบวางบิล (ลิงก์ที่ส่งลูกค้า) ไม่ต้องบอกสิทธิ์พนักงาน · และไม่ติดไปกับกระดาษ/PDF ทุกหน้า */
+body.billpage .readonly-bar{display:none}
+@media print{ .readonly-bar{display:none !important} }
+
+@media (max-width:820px){
+  .appnav{gap:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .appnav::-webkit-scrollbar{display:none}
+  .appnav a{padding:7px 10px;font-size:12.5px}
+  .brand-sub{display:none}
+}
+
+/* ---------- page shell ------------------------------------ */
+.page{padding:clamp(20px,3vw,34px) 0 96px}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:22px}
+.page-title{font-size:clamp(21px,2.4vw,27px);font-weight:650;letter-spacing:-.02em}
+
+/* ---------- status pill ----------------------------------- */
+.pill{
+  display:inline-flex;align-items:center;gap:6px;flex:none;
+  padding:3.5px 11px 3.5px 8px;border-radius:99px;
+  font-size:12.5px;font-weight:600;line-height:1.5;white-space:nowrap;
+  border:1px solid transparent;
+}
+.pill::before{content:"";width:7px;height:7px;border-radius:99px;background:currentColor;flex:none}
+.pill-plain{padding:3.5px 11px}
+/* ป้ายสถานะหน้าคนขับ — ไอคอน + คำสั้น ตัวใหญ่ */
+.pill-drv{font-size:18px;font-weight:700;padding:7px 16px 7px 12px;gap:8px;line-height:1.3}
+.pill-drv::before{display:none}
+.pill-drv svg{flex:none}
+/* แถบขั้นตอนหน้าคนขับ — วงใหญ่ + ไอคอน + คำสั้น */
+.dflow{display:flex;align-items:flex-start;width:100%;margin:4px 0 6px}
+.dflow-step{flex:1;min-width:0;position:relative;display:flex;flex-direction:column;align-items:center;gap:8px}
+.dflow-step::before{ /* เส้นเชื่อมไปขั้นก่อนหน้า */
+  content:"";position:absolute;top:22px;right:50%;width:100%;height:5px;margin-top:-2.5px;
+  background:var(--line);border-radius:99px;z-index:0
+}
+.dflow-step:first-child::before{display:none}
+.dflow-step[data-state="done"]::before,.dflow-step[data-state="now"]::before{background:var(--green)}
+.dflow-dot{
+  position:relative;z-index:1;width:44px;height:44px;border-radius:99px;
+  display:grid;place-items:center;
+  background:var(--surface,#fff);color:var(--text-3);border:3px solid var(--line)
+}
+.dflow-step[data-state="done"] .dflow-dot{background:var(--green);border-color:var(--green);color:#fff}
+.dflow-step[data-state="now"] .dflow-dot{
+  width:52px;height:52px;margin-top:-4px;background:var(--amber);border-color:var(--amber);color:#fff;
+  box-shadow:0 0 0 6px rgba(245,165,36,.25)
+}
+.dflow-step[data-state="idle"] .dflow-dot svg{opacity:.55}
+.dflow-label{font-size:15px;font-weight:700;line-height:1.25;text-align:center;white-space:nowrap;color:var(--text-3)}
+.dflow-step[data-state="done"] .dflow-label{color:var(--text-2)}
+.dflow-step[data-state="now"] .dflow-label{color:var(--text);font-size:16px}
+@media (max-width:400px){
+  .dflow-label{font-size:13px}
+  .dflow-step[data-state="now"] .dflow-label{font-size:14px}
+  .dflow-dot{width:38px;height:38px}
+  .dflow-step::before{top:19px}
+  .dflow-step[data-state="now"] .dflow-dot{width:46px;height:46px;margin-top:-4px}
+}
+.pill-plain::before{display:none}
+.pill[data-tone="wait"]  {color:#8a6410;background:var(--amber-wash);border-color:#f6dfae}
+.pill[data-tone="ware"]  {color:#4a3aa8;background:var(--violet-wash);border-color:#d6cbf7}
+.pill[data-tone="move"]  {color:#1b4bb0;background:var(--blue-wash);border-color:#c6d8f8}
+.pill[data-tone="done"]  {color:#0a7b50;background:var(--green-wash);border-color:#b9e6d2}
+.pill[data-tone="stop"]  {color:#a9231a;background:var(--red-wash);border-color:#f7cac6}
+.pill[data-tone="grey"]  {color:var(--text-2);background:var(--steel-100);border-color:var(--line)}
+
+/* ---------- code chip ------------------------------------- */
+.code{
+  font-family:var(--mono);font-size:12.5px;font-weight:500;letter-spacing:-.01em;
+  background:var(--steel-100);border:1px solid var(--line);border-radius:6px;padding:1.5px 7px;
+  color:var(--text);white-space:nowrap;
+}
+.code-lg{font-size:16px;padding:4px 11px;letter-spacing:.02em}
+
+/* ---------- KPI ------------------------------------------- */
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:15px 17px}
+.kpi-label{font-size:12.5px;color:var(--text-3);font-weight:500}
+.kpi-value{font-family:var(--mono);font-size:27px;font-weight:600;letter-spacing:-.025em;line-height:1.25;margin-top:2px}
+.kpi-foot{font-size:12px;color:var(--text-3)}
+.kpi[data-accent="amber"]{border-left:3px solid var(--amber)}
+.kpi[data-accent="blue"]{border-left:3px solid var(--blue)}
+.kpi[data-accent="green"]{border-left:3px solid var(--green)}
+.kpi[data-accent="violet"]{border-left:3px solid var(--violet)}
+
+/* ---------- table ----------------------------------------- */
+.tbl{font-size:13.8px}
+.tbl thead th{
+  text-align:left;font-weight:600;font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--text-3);padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap;
+  background:var(--surface-2);
+}
+.tbl tbody td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl tbody tr{transition:background .14s}
+.tbl tbody tr:hover{background:var(--surface-2)}
+.tbl tbody tr[data-clickable]{cursor:pointer}
+/* แถวกดได้มีในตาราง .rv ด้วย (รายการจุดส่งในหน้าต่างเที่ยว) — ของเดิมผูกกับ .tbl
+   อย่างเดียว เมาส์เลยไม่เปลี่ยนเป็นรูปมือ ทำให้ดูไม่ออกว่ากดได้ */
+tbody tr[data-clickable]{cursor:pointer}
+.rv tbody tr[data-clickable]{transition:background .14s}
+.rv tbody tr[data-clickable]:hover{background:var(--surface-2)}
+
+/* ปุ่มที่หน้าตาเป็นลิงก์ — ใช้กับทางกลับไปเที่ยวในหน้าต่างจุดส่ง */
+.linkish{
+  background:none;border:none;padding:0;cursor:pointer;
+  font:inherit;color:var(--amber-dim);text-decoration:underline dotted;
+}
+.linkish:hover{text-decoration-style:solid}
+.tbl tbody tr:last-child td{border-bottom:0}
+.tbl .right{text-align:right}
+
+/* ---------- flow stepper (horizontal) --------------------- */
+.flow{display:flex;align-items:flex-start;gap:0;width:100%}
+.flow-step{flex:1;min-width:0;position:relative;text-align:center;padding-top:26px}
+.flow-step::before{ /* connector */
+  content:"";position:absolute;top:10px;left:-50%;width:100%;height:2px;background:var(--line-strong);
+}
+.flow-step:first-child::before{display:none}
+.flow-step::after{ /* node */
+  content:"";position:absolute;top:4px;left:50%;transform:translateX(-50%);
+  width:14px;height:14px;border-radius:99px;background:var(--paper);
+  border:2px solid var(--line-strong);z-index:1;
+}
+.flow-step[data-state="done"]::after{background:var(--green);border-color:var(--green)}
+.flow-step[data-state="done"]::before{background:var(--green)}
+.flow-step[data-state="now"]::after{
+  background:var(--amber);border-color:var(--amber);
+  box-shadow:0 0 0 5px rgba(245,165,36,.24);
+  animation:pulse 2.1s var(--ease) infinite;
+}
+.flow-step[data-state="now"]::before{background:var(--green)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(245,165,36,.22)}50%{box-shadow:0 0 0 9px rgba(245,165,36,.06)}}
+.flow-label{font-size:12.2px;font-weight:600;line-height:1.35;padding:0 4px;color:var(--text-3)}
+.flow-step[data-state="done"] .flow-label{color:var(--text-2)}
+.flow-step[data-state="now"] .flow-label{color:var(--text)}
+.flow-time{font-family:var(--mono);font-size:10.5px;color:var(--text-3);margin-top:2px}
+@media (max-width:700px){.flow-label{font-size:10.8px}}
+
+/* ---------- timeline (vertical) --------------------------- */
+.tl{position:relative;padding-left:30px}
+.tl::before{content:"";position:absolute;left:8px;top:6px;bottom:8px;width:2px;background:var(--line)}
+.tl-item{position:relative;padding-bottom:20px}
+.tl-item:last-child{padding-bottom:0}
+.tl-item::before{
+  content:"";position:absolute;left:-27px;top:5px;width:12px;height:12px;border-radius:99px;
+  background:var(--paper);border:2px solid var(--line-strong);
+}
+.tl-item[data-tone="done"]::before{background:var(--green);border-color:var(--green)}
+.tl-item[data-tone="move"]::before{background:var(--blue);border-color:var(--blue)}
+.tl-item[data-tone="ware"]::before{background:var(--violet);border-color:var(--violet)}
+.tl-item[data-tone="wait"]::before{background:var(--amber);border-color:var(--amber)}
+.tl-item[data-tone="stop"]::before{background:var(--red);border-color:var(--red)}
+.tl-item[data-tone="grey"]::before{background:var(--steel-200);border-color:var(--steel-400)}
+.tl-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.tl-title{font-weight:600;font-size:14.5px}
+.tl-meta{font-family:var(--mono);font-size:11.5px;color:var(--text-3)}
+.tl-body{font-size:13.4px;color:var(--text-2);margin-top:2px}
+
+/* ---------- forms ----------------------------------------- */
+.field{display:flex;flex-direction:column;gap:6px}
+.label{font-size:13px;font-weight:600;color:var(--text-2)}
+.label .req{color:var(--red);margin-left:2px}
+.input,.select,.textarea{
+  width:100%;padding:10px 13px;border:1px solid var(--line-strong);border-radius:var(--radius-sm);
+  background:var(--surface);font-size:14.5px;transition:border-color .16s,box-shadow .16s;
+}
+.input:hover,.select:hover,.textarea:hover{border-color:var(--steel-400)}
+.input:focus,.select:focus,.textarea:focus{
+  outline:none;border-color:var(--amber);box-shadow:0 0 0 3.5px rgba(245,165,36,.18)
+}
+.textarea{resize:vertical;min-height:82px;line-height:1.6}
+.select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' stroke='%2364788f' stroke-width='1.7' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 13px center;padding-right:34px}
+.input[aria-invalid="true"],.textarea[aria-invalid="true"],.select[aria-invalid="true"]{
+  border-color:var(--red);box-shadow:0 0 0 3.5px rgba(217,45,32,.13)}
+.hint{font-size:12.2px;color:var(--text-3)}
+.err{font-size:12.2px;color:var(--red);font-weight:500;min-height:0}
+.fieldset{border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin:0}
+.fieldset legend{font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3);padding:0 8px}
+
+/* drop zone */
+.drop{
+  border:1.5px dashed var(--line-strong);border-radius:var(--radius);
+  padding:22px 18px;text-align:center;background:var(--surface-2);cursor:pointer;
+  transition:border-color .18s,background .18s;
+}
+.drop:hover,.drop.is-over{border-color:var(--amber);background:var(--amber-wash)}
+.file-chip{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--line);
+  border-radius:var(--radius-sm);background:var(--surface);font-size:13.5px;
+}
+.file-thumb{width:38px;height:38px;border-radius:6px;object-fit:cover;border:1px solid var(--line);flex:none;background:var(--steel-100)}
+
+/* ---------- photos ---------------------------------------- */
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(94px,1fr));gap:9px}
+.photo-grid img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:var(--steel-100)}
+.photo-x{position:relative}
+.photo-x button{
+  position:absolute;top:5px;right:5px;width:23px;height:23px;border-radius:99px;border:0;
+  background:rgba(10,20,36,.78);color:#fff;font-size:14px;line-height:1;cursor:pointer;
+  display:grid;place-items:center;
+}
+
+/* ---------- signature ------------------------------------- */
+.sigwrap{border:1px solid var(--line-strong);border-radius:var(--radius-sm);background:#fff;position:relative;overflow:hidden}
+.sigwrap canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair}
+.sigwrap .sighint{position:absolute;inset:0;display:grid;place-items:center;font-size:13px;color:var(--text-3);pointer-events:none}
+.sigwrap.has-ink .sighint{display:none}
+
+/* ---------- driver (mobile-first) ------------------------- */
+.driver-body{background:#0a1424}
+.driver-shell{max-width:520px;margin-inline:auto;padding:0 14px 120px}
+.driver-card{background:#fff;border-radius:18px;box-shadow:var(--shadow-3);overflow:hidden}
+.driver-hero{padding:18px 18px 16px;background:linear-gradient(160deg,#12233c,#0a1424);color:#fff}
+/* หัวการ์ดเที่ยวหน้าคนขับ — ไอคอน + ตัวเลขใหญ่ ธีมเดียวกับป้ายสถานะและแถบขั้นตอน */
+.dhero-code{
+  display:inline-flex;align-items:center;gap:8px;padding:7px 14px 7px 11px;border-radius:99px;
+  font-family:var(--mono);font-size:17px;font-weight:600;letter-spacing:.02em;
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff
+}
+.dhero-code svg,.dhero-stat svg,.dhero-meta svg{flex:none}
+.dhero-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
+.dhero-stat{
+  display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)
+}
+.dhero-stat svg{width:28px;height:28px;color:var(--amber)}
+.dhero-stat b{font-size:30px;font-weight:700;line-height:1}
+.dhero-stat span{font-size:17px;font-weight:600;color:#c9d6e5}
+.dhero-meta{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:17px;font-weight:600;color:#c9d6e5}
+.dhero-stat{min-width:0}
+@media (max-width:400px){
+  .dhero-stats{gap:8px}
+  .dhero-stat{gap:7px;padding:10px}
+  .dhero-stat svg{width:24px;height:24px}
+  .dhero-stat b{font-size:25px}
+  .dhero-stat span{font-size:15px}
+}
+.job-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px 16px;
+  box-shadow:var(--shadow-1);transition:transform .16s var(--ease),box-shadow .2s;cursor:pointer;
+}
+.job-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-2)}
+.job-card[data-active="1"]{border-color:var(--amber);box-shadow:0 0 0 3px rgba(245,165,36,.16)}
+.action-bar{
+  position:fixed;left:0;right:0;bottom:0;z-index:50;
+  padding:12px 14px calc(12px + env(safe-area-inset-bottom));
+  background:rgba(255,255,255,.96);backdrop-filter:blur(12px);
+  border-top:1px solid var(--line);box-shadow:0 -6px 24px rgba(10,20,36,.09);
+}
+.action-bar .inner{max-width:520px;margin-inline:auto}
+
+/* big confirm button */
+.confirm-btn{
+  width:100%;display:flex;align-items:center;gap:14px;text-align:left;
+  padding:16px 18px;border-radius:14px;border:0;cursor:pointer;
+  background:var(--navy-900);color:#fff;font-weight:700;font-size:17px;
+  box-shadow:0 6px 20px rgba(10,20,36,.22);
+  transition:transform .14s var(--ease),box-shadow .2s,filter .2s;
+}
+.confirm-btn:hover{transform:translateY(-1px);box-shadow:0 10px 28px rgba(10,20,36,.28)}
+.confirm-btn:active{transform:scale(.99)}
+.confirm-btn[data-tone="amber"]{background:linear-gradient(150deg,#f7b53f,#e08a10);color:var(--navy-900);box-shadow:0 6px 20px rgba(224,138,16,.34)}
+.confirm-btn[data-tone="blue"]{background:linear-gradient(150deg,#3b78ea,#1d4fbe)}
+.confirm-btn[data-tone="green"]{background:linear-gradient(150deg,#1cb87c,#0b8b5c)}
+.confirm-btn .n{
+  width:36px;height:36px;border-radius:11px;flex:none;display:grid;place-items:center;
+  background:rgba(255,255,255,.18);font-family:var(--mono);font-size:15px;
+}
+.confirm-btn[data-tone="amber"] .n{background:rgba(10,20,36,.16)}
+.confirm-btn small{display:block;font-weight:500;font-size:12.5px;opacity:.82;line-height:1.4}
+
+/* ---------- modal / sheet --------------------------------- */
+.scrim{
+  position:fixed;inset:0;z-index:90;background:rgba(8,16,28,.55);
+  backdrop-filter:blur(3px);display:grid;place-items:center;padding:18px;
+  animation:fadeIn .18s var(--ease);
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{
+  background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-3);
+  width:min(100%,600px);max-height:88vh;overflow:auto;
+  animation:rise .24s var(--ease);
+}
+.modal-lg{width:min(100%,900px)}
+@keyframes rise{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+.modal-head{
+  display:flex;align-items:center;gap:14px;padding:16px 20px;border-bottom:1px solid var(--line);
+  position:sticky;top:0;background:var(--surface);z-index:2;
+}
+.modal-body{padding:20px}
+.modal-foot{
+  display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;padding:14px 20px;border-top:1px solid var(--line);
+  position:sticky;bottom:0;background:var(--surface);
+}
+/* ปุ่มยาวในจอแคบ — ขึ้นบรรทัดใหม่แทนการล้นทับปุ่มข้าง ๆ */
+.modal-foot .btn{ white-space:normal; max-width:100%; }
+.icon-btn{
+  width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--surface);
+  cursor:pointer;display:grid;place-items:center;color:var(--text-2);font-size:17px;line-height:1;
+  transition:background .16s,border-color .16s;
+}
+.icon-btn:hover{background:var(--steel-100);border-color:var(--line-strong)}
+@media (max-width:620px){
+  .scrim{padding:0;align-items:flex-end}
+  .modal{width:100%;max-height:93vh;border-radius:18px 18px 0 0}
+}
+
+/* ---------- แจ้งเตือนงานใหม่ / งานด่วน (หน้าคนขับ) -------------- */
+.newjob{z-index:150;padding:16px;align-items:center}
+.newjob-card{width:min(100%,440px);max-height:90vh;overflow:auto;background:var(--surface);border-radius:24px;
+  padding:26px 22px 20px;text-align:center;box-shadow:var(--shadow-3);border-top:6px solid var(--ap-blue,var(--blue));
+  animation:rise .28s var(--ease)}
+.newjob-card[data-urgent="1"]{border-top-color:var(--red)}
+.newjob-icon{font-size:46px;line-height:1;animation:njShake .6s ease-in-out 2}
+.newjob-title{font-size:28px;font-weight:700;margin-top:10px}
+.newjob-card[data-urgent="1"] .newjob-title{color:var(--red)}
+.newjob-sub{font-size:18px;margin-top:6px;color:var(--text-2)}
+.newjob-sub b{color:var(--text)}
+.newjob-list{margin-top:16px;display:flex;flex-direction:column;gap:10px;text-align:left}
+.newjob-item{background:var(--surface-2);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.newjob-code{font-size:17px;font-weight:700}
+.newjob-n{font-size:16px;font-weight:700;color:var(--ap-blue,var(--blue));white-space:nowrap}
+.newjob-card[data-urgent="1"] .newjob-n{color:var(--red)}
+.newjob-stop{font-size:16px;margin-top:6px;color:var(--text-2)}
+.newjob-ok{width:100%;min-height:60px;margin-top:18px;border:0;border-radius:99px;cursor:pointer;
+  background:var(--ap-blue,var(--blue));color:#fff;font:inherit;font-size:20px;font-weight:700}
+.newjob-card[data-urgent="1"] .newjob-ok{background:var(--red)}
+/* รายการเที่ยวเป็นปุ่ม (แตะเปิดเที่ยวนั้น) · ปุ่มรับทราบ (ปิดหน้าต่าง) · คำบอกให้แตะ */
+.newjob-item{display:block;width:100%;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.newjob-item > span:not(.row){display:block}
+.newjob-go{margin-top:8px;font-size:15px;font-weight:600;color:var(--ap-blue,var(--blue));text-align:right}
+.newjob-hint{font-size:15px;margin-top:12px;color:var(--text-2)}
+.newjob-later{width:100%;min-height:56px;margin-top:10px;border:0;border-radius:99px;cursor:pointer;
+  background:var(--ap-seg,var(--steel-100));color:var(--text);font:inherit;font-size:19px;font-weight:600}
+@keyframes njShake{0%,100%{transform:rotate(0)}20%{transform:rotate(-14deg)}40%{transform:rotate(12deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(5deg)}}
+@media (prefers-reduced-motion:reduce){.newjob-icon{animation:none}}
+
+/* ---------- toast ----------------------------------------- */
+#toasts{position:fixed;right:16px;bottom:16px;z-index:120;display:flex;flex-direction:column;gap:9px;pointer-events:none}
+.toast{
+  pointer-events:auto;display:flex;align-items:flex-start;gap:10px;
+  background:var(--navy-900);color:#fff;padding:11px 15px;border-radius:11px;
+  box-shadow:var(--shadow-3);font-size:14px;max-width:340px;
+  animation:toastIn .26s var(--ease);
+}
+.toast[data-kind="ok"]{background:#0b7350}
+.toast[data-kind="warn"]{background:#8a5a08}
+.toast[data-kind="err"]{background:#a9231a}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+.toast.out{opacity:0;transform:translateY(8px);transition:opacity .22s,transform .22s}
+@media (max-width:620px){#toasts{left:12px;right:12px;bottom:12px}.toast{max-width:none}}
+
+/* ---------- misc ------------------------------------------ */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{
+  padding:9px 15px;border:0;background:transparent;cursor:pointer;font-size:14px;font-weight:500;
+  color:var(--text-3);border-bottom:2.5px solid transparent;margin-bottom:-1px;white-space:nowrap;
+  transition:color .16s,border-color .16s;
+}
+.tab:hover{color:var(--text)}
+.tab[aria-selected="true"]{color:var(--text);border-bottom-color:var(--amber);font-weight:600}
+.tab .cnt{font-family:var(--mono);font-size:11.5px;color:var(--text-3);margin-left:5px}
+/* หน้าข้อมูลคนขับ — สองตาราง รถประจำ / รถนอก */
+.fleet-group + .fleet-group{ border-top:1px solid var(--line); margin-top:8px; }
+.fleet-head{ margin:0; padding:16px 16px 8px; font-size:15px; font-weight:700; }
+.fleet-head .cnt{ font-family:var(--mono); font-size:12px; font-weight:500; color:var(--text-3); margin-left:4px; }
+/* ความกว้างคอลัมน์เท่ากันทั้งสองตาราง ไม่งั้นคอลัมน์เหลื่อมกันตามเนื้อหา */
+.fleet-group .tbl{ table-layout:fixed; min-width:960px; }
+.fleet-group .tbl th:nth-child(1){ width:22%; }
+.fleet-group .tbl th:nth-child(2){ width:16%; }
+.fleet-group .tbl th:nth-child(3), .fleet-group .tbl th:nth-child(4){ width:9%; }
+.fleet-group .tbl th:nth-child(5){ width:14%; }
+.fleet-group .tbl th:nth-child(6){ width:11%; }
+.fleet-group .tbl th:nth-child(7){ width:19%; }
+
+.empty{text-align:center;padding:48px 20px;color:var(--text-3)}
+.empty-mark{font-size:34px;opacity:.34;margin-bottom:8px}
+
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:14px;align-items:baseline}
+.kv dt{color:var(--text-3);font-size:13px;white-space:nowrap}
+.kv dd{margin:0;font-weight:500}
+
+.route{display:flex;align-items:stretch;gap:12px}
+.route-rail{width:12px;flex:none;display:flex;flex-direction:column;align-items:center;padding-top:6px}
+.route-dot{width:10px;height:10px;border-radius:99px;border:2px solid var(--steel-400);background:#fff;flex:none}
+.route-dot.fill{background:var(--navy-900);border-color:var(--navy-900)}
+.route-line{flex:1;width:2px;background:var(--line-strong);margin:3px 0}
+.route-leg{padding-bottom:14px}
+.route-leg:last-child{padding-bottom:0}
+
+.demo-bar{
+  background:#fff8e8;border:1px solid #f3ddab;border-radius:var(--radius);
+  padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13.2px;color:var(--amber-ink);
+}
+
+.sync-dot{width:7px;height:7px;border-radius:99px;background:var(--green);flex:none;animation:blink 2.6s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.28}}
+
+@media print{
+  .appbar,.action-bar,.demo-bar,#toasts,.no-print{display:none!important}
+  body{background:#fff}
+  .card{box-shadow:none;border-color:#ccc}
+}
+
+/* ---------- ตัวนับรูปหน้าคนขับ (บังคับ 4 รูปต่อจุด) ---------- */
+.shot-head{ display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.shot-count{
+  flex:none; display:grid; place-items:center;
+  min-width:74px; padding:8px 10px; border-radius:12px;
+  font-family:var(--mono,monospace); font-size:21px; font-weight:700; line-height:1;
+  background:var(--red-wash,rgba(214,90,90,.12)); color:var(--red);
+  border:2px solid currentColor;
+}
+.shot-count.is-ok{ background:rgba(60,170,120,.14); color:var(--green); }
+
+.shot-guide{
+  margin:0 0 12px; padding:10px 12px 10px 30px;
+  background:var(--surface-2); border-radius:10px;
+  font-size:14px; line-height:1.85; color:var(--text-2);
+}
+.shot-guide li{ margin:0; }
+
+/* ปุ่มยืนยันตอนถ่ายไม่ครบ — บอกด้วยสายตาว่ากดไม่ได้ */
+.modal .btn[disabled]{ opacity:.4; cursor:not-allowed; filter:grayscale(.6); }
+
+/* ---------- แอดมินแก้รูปหลักฐานในหน้าแก้ไขใบงาน ---------- */
+.shotbox{
+  display:flex; flex-direction:column;
+  border:1px solid var(--line); border-radius:10px;
+  padding:11px 12px; background:var(--surface-2);
+}
+.shotbox + .shotbox{ margin-top:10px; }
+.shotbox label.btn{ cursor:pointer; }
+
+/* ---------- ตารางตรวจทาน: แถวหัวเที่ยว ---------- */
+.rv tr.jrow td{ background:var(--surface-2); border-top:2px solid var(--line-strong); }
+.rv tr.jrow .jcode{ font-weight:700; font-size:14px; letter-spacing:.02em; }
+.rv tr.jrow .jmeta{ display:block; font-size:11.5px; color:var(--text-3); margin-top:2px; }
+.rv tr.srow td:first-child{ padding-left:22px; }
+.rv .prov{
+  display:inline-block; margin-left:6px; padding:1px 6px; border-radius:8px;
+  font-size:10px; font-weight:600; background:rgba(214,160,60,.16); color:#e2b765;
+}
+
+/* ---------- หน้าคนขับ: แถบความคืบหน้าและรายการจุดส่ง ---------- */
+.tripbar{ height:7px; border-radius:99px; background:var(--line); overflow:hidden; }
+.tripbar i{ display:block; height:100%; background:var(--amber); border-radius:99px; transition:width .3s; }
+
+.stop-row{
+  display:flex; align-items:center; gap:12px;
+  padding:13px 12px; margin-bottom:8px;
+  border:1px solid var(--line); border-radius:12px; background:var(--surface);
+  min-height:64px;
+}
+.stop-row[data-stop],.stop-row[data-pay]{ cursor:pointer; transition:border-color .15s, box-shadow .15s, transform .1s; }
+.stop-row[data-stop]:active,.stop-row[data-pay]:active{ transform:scale(.99); }
+@media (hover:hover){
+  .stop-row[data-stop]:hover,.stop-row[data-pay]:hover{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+}
+.stop-row[data-stop]:focus-visible,.stop-row[data-pay]:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.stop-row.is-done{ opacity:.6; background:var(--surface-2); }
+.stop-n{
+  flex:none; display:grid; place-items:center; width:34px; height:34px;
+  border-radius:50%; background:var(--steel-100); color:var(--text-2);
+  font-weight:700; font-size:15px;
+}
+.stop-row.is-done .stop-n{ background:rgba(60,170,120,.18); color:var(--green); }
+/* หมายเหตุของเที่ยว (js/store.js setJobNote) — หัวหน้าต่างเที่ยวใน ops + การ์ดเที่ยวหน้าคนขับ */
+.job-note{ display:inline-block; max-width:min(100%,420px); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  padding:4px 12px; border-radius:99px; font-size:14px; font-weight:600; vertical-align:middle;
+  color:var(--amber-dim); background:color-mix(in srgb,var(--accent) 12%,transparent); border:1px solid color-mix(in srgb,var(--accent) 45%,transparent); }
+.drv-note{ margin-top:10px; padding:10px 12px; border-radius:12px; font-size:16px; font-weight:600; line-height:1.45;
+  color:var(--text); background:color-mix(in srgb,var(--accent) 12%,var(--surface)); border:1.5px solid var(--accent);
+  word-break:break-word; cursor:pointer; }
+.drv-note-tx{ display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.drv-note-more{ display:block; margin-top:4px; font-size:13.5px; font-weight:700; color:var(--amber-dim); }
+.drv-note:active{ transform:scale(.99); }
+/* หน้าต่างหมายเหตุเต็ม (js/driver.js noteDialog) — ตัวใหญ่ กดค้างเลือกข้อความได้ */
+.drv-note-full{ margin-top:8px; padding:14px 16px; border-radius:14px; border:1.5px solid var(--accent);
+  background:color-mix(in srgb,var(--accent) 10%,var(--surface)); font-size:21px; line-height:1.55; font-weight:600;
+  white-space:pre-wrap; word-break:break-word; user-select:text; -webkit-user-select:text; }
+.drv-phone{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  margin-top:10px; padding:12px 14px; border-radius:14px; border:1px solid var(--line); background:var(--surface-2); }
+.drv-phone-no{ font-size:26px; font-weight:800; letter-spacing:.03em; font-variant-numeric:tabular-nums;
+  user-select:text; -webkit-user-select:text; }
+.drv-phone .btn{ min-height:48px; font-size:17px; padding:10px 18px; }
+/* เลขบิลตัวใหญ่ตอนถ่ายใบ Invoice (js/driver.js confirmStep bigBill) — คนขับสูงอายุอ่านได้จากระยะแขน */
+.bill-big{ margin-top:12px; padding:14px 16px; border-radius:14px; text-align:center;
+  border:2px solid var(--accent); background:color-mix(in srgb,var(--accent) 10%,var(--surface)); }
+.bill-big-k{ display:block; font-size:18px; font-weight:700; color:var(--amber-dim); }
+.bill-big-no{ display:block; margin-top:4px; font-size:40px; line-height:1.15; font-weight:800;
+  letter-spacing:.04em; font-variant-numeric:tabular-nums; word-break:break-all; color:var(--text); }
+/* ร้านเดียวกันหลายบิล (js/driver.js groupRow) — แถวหัวกลุ่ม กางแล้วเห็นบิลเยื้องเข้าไป */
+.stop-grp .grp-n{ color:var(--amber-dim); }
+.stop-grp.is-open > .stop-row{ border-color:var(--accent); margin-bottom:6px; }
+.stop-grp-body{ margin:0 0 12px 14px; padding-left:10px; border-left:2px solid var(--accent); }
+.stop-grp-body .btn{ white-space:normal; line-height:1.35; }
+
+/* ---------- เลือกคนขับหลายคนต่อเที่ยว ---------- */
+.crew{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:8px; }
+.crew-item{
+  display:flex; align-items:center; gap:10px; cursor:pointer;
+  padding:9px 11px; border:1px solid var(--line); border-radius:10px; background:var(--surface);
+}
+.crew-item:hover{ border-color:var(--steel-400); }
+.crew-item.is-on{ border-color:var(--amber); background:var(--amber-wash); }
+.crew-item input{ flex:none; }
+
+/* ---------- ค่ารอบ ---------- */
+/* ค่ารอบแยกรายคนขับ — [ชื่อคนขับ][จำนวนเงิน][โน้ต][ปุ่ม]
+   บรรทัดแรกของแต่ละคนมีชื่อและปุ่ม ＋ บรรทัดถัดไปเว้นช่องชื่อไว้ว่าง
+   เพื่อให้สายตาเห็นว่าเป็นรายการย่อยของคนเดียวกัน */
+.pay-grid{ display:flex; flex-direction:column; gap:8px; }
+.pay-drv-row{
+  display:grid; grid-template-columns:200px 140px 1fr 36px;
+  gap:8px; align-items:center;
+}
+.pay-drv-row.is-first{ margin-top:6px; }
+.pay-drv-row.is-first:first-child{ margin-top:0; }
+.pay-drv-name{ min-width:0; line-height:1.35; }
+.pay-drv-sum{
+  display:flex; justify-content:flex-end; align-items:baseline; gap:8px;
+  padding:2px 44px 8px 0; border-bottom:1px solid var(--line);
+}
+.pay-drv-sum b{ font-variant-numeric:tabular-nums; color:var(--amber-ink); }
+.pay-drv-sum{ flex-wrap:wrap; align-items:center; }
+.pay-grid > .pay-drv-sum:last-child{ border-bottom:none; }
+
+.pay-total{
+  display:inline-block; text-align:right; padding:6px 14px; border-radius:10px;
+  background:var(--amber-wash); border:1px solid #f3ddab; min-width:130px;
+}
+.pay-total b{ display:block; font-size:18px; font-weight:700; color:var(--amber-ink); font-variant-numeric:tabular-nums; }
+
+@media (max-width:720px){
+  /* จอแคบ: ชื่อขึ้นบรรทัดของตัวเอง แล้วเงิน/โน้ต/ปุ่ม อยู่บรรทัดถัดมา */
+  .pay-drv-row{ grid-template-columns:110px 1fr 34px; }
+  .pay-drv-name{ grid-column:1 / -1; }
+  .pay-drv-row:not(.is-first) .pay-drv-name{ display:none; }
+  .pay-drv-sum{ padding-right:40px; }
+}
+
+/* ฝั่งคนขับ — อ่านอย่างเดียว ตัวใหญ่อ่านง่าย */
+.pay-view{ border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+.pay-view .r{ display:flex; justify-content:space-between; gap:12px; padding:11px 14px; font-size:15px; }
+.pay-view .r + .r{ border-top:1px solid var(--line); }
+.pay-view .sum{ background:var(--amber-wash); font-weight:700; font-size:18px; color:var(--amber-ink); }
+.pay-view .tnum{ font-variant-numeric:tabular-nums; white-space:nowrap; }
+
+/* ---------- แถบความคืบหน้าตอนวางไฟล์ ---------------------- */
+.upbox{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--surface,#fff)}
+.upbox-head{display:flex;align-items:center;gap:10px}
+.upbox-spin{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--amber);
+  animation:upspin .8s linear infinite;flex:none}
+.upbox.is-done .upbox-spin{animation:none;border-color:var(--green);background:var(--green)}
+.upbox.is-fail .upbox-spin{animation:none;border-color:var(--red);background:var(--red)}
+.upbox-bar{height:6px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:10px;position:relative}
+.upbox-bar i{position:absolute;inset:0 auto 0 0;width:0;border-radius:99px;background:var(--amber);transition:width .35s ease}
+.upbox-bar i::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:upshine 1.2s linear infinite}
+.upbox.is-done .upbox-bar i{background:var(--green)}
+.upbox.is-done .upbox-bar i::after,.upbox.is-fail .upbox-bar i::after{display:none}
+.upbox.is-fail .upbox-bar i{background:var(--red)}
+.upbox-steps{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px;font-size:12px;color:var(--text-3,#8a94a3)}
+.upbox-steps .on{color:var(--amber-dim,#a86b00);font-weight:600}
+.upbox-steps .ok{color:var(--green)}
+@keyframes upspin{to{transform:rotate(360deg)}}
+@keyframes upshine{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){.upbox-spin,.upbox-bar i::after{animation:none}.upbox-bar i{transition:none}}
+
+/* ============================================================
+   แอนิเมชัน (คู่กับ js/motion.js) — สุขุม เคลื่อนเพื่อบอกอะไรบางอย่างเสมอ
+   ============================================================ */
+
+/* ปุ่มหลัก: แสงวาบผ่านตอนชี้ · กดแล้วยุบลงนิดเดียวให้รู้สึกว่ากดโดน */
+.btn:active{transform:translateY(0) scale(.975)}
+.btn-accent,.btn-green{position:relative;overflow:hidden}
+.btn-accent::after,.btn-green::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.45) 50%,transparent 65%);
+  transform:translateX(-120%)}
+.btn-accent:hover::after,.btn-green:hover::after{transform:translateX(120%);transition:transform .7s cubic-bezier(.2,.7,.2,1)}
+
+/* การ์ด KPI ลอยขึ้นนิดเดียวตอนชี้ */
+.kpi{transition:transform .2s cubic-bezier(.2,.7,.2,1),box-shadow .2s}
+.kpi:hover{transform:translateY(-2px);box-shadow:var(--shadow-2)}
+
+/* แถบความคืบหน้าในตารางโตจากซ้าย (motion.js สั่ง scaleX) */
+.tripbar i{transform-origin:left center}
+
+/* กล่องวางไฟล์: ลากไฟล์มาเหนือกล่อง → ขอบเส้นประวิ่ง + ยกขึ้นนิด ๆ */
+.drop{transition:border-color .18s,background .18s,transform .25s cubic-bezier(.2,.7,.2,1)}
+.drop.is-over{transform:scale(1.01);border-color:transparent;
+  background:
+    linear-gradient(var(--amber-wash),var(--amber-wash)) padding-box,
+    repeating-linear-gradient(90deg,var(--amber) 0 10px,transparent 10px 18px) border-box;
+  background-size:auto,36px 100%;animation:dropMarch .6s linear infinite}
+.drop.is-over > *:first-child{animation:dropLift .9s cubic-bezier(.2,.7,.2,1) infinite alternate}
+@keyframes dropMarch{to{background-position:0 0,36px 0}}
+@keyframes dropLift{to{transform:translateY(-3px)}}
+
+/* รถบรรทุกวิ่งตามแถบความคืบหน้าตอนอัปโหลด */
+.upbox-road{position:relative;height:18px;margin-top:8px}
+.upbox-truck{position:absolute;bottom:0;left:0;transform:translateX(-50%);transition:left .35s ease;
+  color:var(--amber-dim);line-height:0}
+.upbox-truck svg{display:block;animation:truckBob .5s ease-in-out infinite alternate}
+.upbox .upbox-bar{margin-top:2px}
+.upbox.is-done .upbox-truck{color:var(--green)}
+.upbox.is-done .upbox-truck svg,.upbox.is-fail .upbox-truck svg{animation:none}
+.upbox.is-fail .upbox-truck{color:var(--red)}
+@keyframes truckBob{from{transform:translateY(0)}to{transform:translateY(-1.5px)}}
+
+/* ฉลองงานสำเร็จ */
+.celebrate{position:fixed;inset:0;z-index:300;display:grid;place-items:center;pointer-events:auto;
+  background:rgba(13,28,48,.18);backdrop-filter:blur(1.5px);animation:fadeIn .2s ease-out}
+.celebrate-card{background:var(--surface);border-radius:18px;padding:26px 34px 22px;text-align:center;min-width:240px;
+  box-shadow:0 24px 60px rgba(13,28,48,.22);animation:celebIn .45s cubic-bezier(.2,.7,.2,1)}
+.celebrate-mark{position:relative;width:58px;height:58px;margin:0 auto}
+.celebrate-mark svg{position:relative;z-index:1}
+.c-circle{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .5s .1s cubic-bezier(.65,0,.35,1) forwards}
+.c-check{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .35s .5s cubic-bezier(.65,0,.35,1) forwards}
+.celebrate-ring{position:absolute;inset:0;border-radius:50%;border:2px solid var(--green);opacity:0;
+  animation:ring .9s .55s ease-out}
+.celebrate-dots i{position:absolute;left:50%;top:50%;width:7px;height:7px;margin:-3.5px;border-radius:50%;opacity:0;
+  animation:dotOut .8s .55s cubic-bezier(.2,.7,.2,1)}
+.celebrate-title{font-weight:600;font-size:17px;margin-top:14px;animation:celebText .4s .45s both cubic-bezier(.2,.7,.2,1)}
+.celebrate-sub{font-size:13px;color:var(--text-3);margin-top:4px;animation:celebText .4s .55s both cubic-bezier(.2,.7,.2,1)}
+@keyframes celebIn{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes ring{0%{opacity:.55;transform:scale(1)}100%{opacity:0;transform:scale(1.9)}}
+@keyframes dotOut{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--x),var(--y)) scale(.4)}}
+@keyframes celebText{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+@media (prefers-reduced-motion:reduce){
+  .drop.is-over,.drop.is-over > *:first-child,.upbox-truck svg{animation:none}
+  .btn-accent:hover::after,.btn-green:hover::after{transition:none}
+}
+
+/* ============================================================
+   โครงหน้ารอโหลด (skeleton)
+   HTML ทุกหน้ามี <div class="skel"> ขึ้นทันที ส่วนหน้าจริงซ่อนไว้จนกว่า JS วาดเสร็จ
+   แล้ว ui.js ใส่ class is-ready ที่ <html> → โครงจางออก หน้าจริงไหลขึ้นมาแทน
+   กันหน้ากะพริบตอนเปลี่ยนหน้า (เดิมเนื้อหาโผล่แวบหนึ่ง แล้วค่อยหายไปเล่นแอนิเมชัน)
+   ============================================================ */
+body:has(> .skel) > :not(.skel):not(script){opacity:0}
+html.is-ready body > :not(.skel):not(script){opacity:1;transition:opacity .22s ease-out}
+/* กันพัง: JS ล้มหรือโหลดช้าผิดปกติ ก็ยังเห็นหน้าจริงเองใน 4 วินาที */
+body:has(> .skel) > :not(.skel):not(script){animation:skelFailsafe 0s 4s forwards}
+@keyframes skelFailsafe{to{opacity:1}}
+
+.skel{position:fixed;inset:0;z-index:200;background:var(--bg);pointer-events:none;overflow:hidden}
+html.is-ready .skel{opacity:0;transition:opacity .25s ease-out}
+.skel-bar{height:var(--header-h,58px);background:rgba(10,20,36,.94)}
+.skel-page{width:min(100% - 40px,1400px);margin:28px auto 0;display:flex;flex-direction:column;gap:10px}
+.driver-body .skel-page{width:min(100% - 28px,560px)}
+
+/* ---------- หน้าคนขับ: responsive ----------------------------
+   มือถือ (หลัก)  คอลัมน์เดียวแบบเดิม — ปุ่มใหญ่ กดด้วยนิ้วโป้ง
+   แท็บเล็ต ≥760   รายการเที่ยว 2 คอลัมน์
+   คอม ≥1100      รายการเที่ยว 3 คอลัมน์ · หน้าเที่ยวแบ่ง จุดส่ง | ประวัติ
+   การ์ดล็อกอินกว้างคงที่ทุกจอ (ฟอร์มกว้างเกินอ่านยาก) */
+.drv-narrow{max-width:460px;margin-inline:auto}
+.drv-jobs{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.drv-jobs .job-card{margin-bottom:0 !important;display:flex;flex-direction:column}
+.drv-jobs .job-card > :last-child{margin-top:auto !important}   /* แถว "ขั้นถัดไป" ชิดล่างเท่ากันทุกการ์ด */
+.drv-trip{display:grid;grid-template-columns:minmax(0,1fr)}
+
+/* เมนูฝั่งคนขับมีปุ่มเดียว ("คนขับ") — บนจอแคบไม่ต้องเสียหนึ่งแถว */
+@media (max-width:820px){ .appbar.nav-single .appnav{display:none} }
+
+/* มือถือเล็ก: ป้ายขั้นตอน 5 ขั้นไม่ตัดคำ */
+@media (max-width:400px){
+  .driver-shell{padding-inline:10px}
+  .driver-shell .flow-label{font-size:10.5px;padding:0 1px}
+  .driver-shell .flow-time{font-size:10px}
+  .driver-hero{padding:16px 14px 14px}
+  .drv-trip-body{padding:14px 12px !important}
+}
+
+@media (min-width:760px){
+  .driver-shell{max-width:760px}
+  .drv-jobs{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .action-bar .inner{max-width:760px}
+}
+
+@media (min-width:1100px){
+  .driver-shell{max-width:1120px;padding-inline:24px}
+  .drv-jobs{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .drv-list-body{padding:18px !important}
+  .drv-trip-body{padding:22px 24px !important}
+  .drv-trip{grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:0 32px;align-items:start}
+  .drv-side{border-left:1px solid var(--line);padding-left:28px;margin-top:18px}
+  .drv-side > hr:first-child{display:none}
+  .action-bar .inner{max-width:1072px}
+  .action-bar .confirm-btn{max-width:560px;margin-left:auto}   /* ปุ่มยืนยันอยู่ฝั่งขวาใต้ประวัติ ไม่ยืดเต็มจอ */
+}
+.sk{display:block;border-radius:8px;background:var(--steel-100,#e5ebf2);position:relative;overflow:hidden}
+.sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.65),transparent);
+  animation:skShimmer 1.3s ease-in-out infinite}
+.sk-eyebrow{width:130px;height:11px}
+.sk-title{width:min(340px,70%);height:28px;margin-top:2px}
+.sk-line{width:min(460px,85%);height:12px}
+.skel-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+.skel-kpis .sk{height:84px;border-radius:var(--radius,10px)}
+.skel-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg,16px);
+  padding:18px;margin-top:8px;display:flex;flex-direction:column;gap:12px}
+.sk-h{width:200px;height:16px}
+.sk-row{height:38px;border-radius:6px}
+.sk-row:nth-child(odd){opacity:.75}
+.driver-body .skel-kpis{grid-template-columns:repeat(2,1fr)}
+@media (max-width:640px){.skel-page{width:calc(100% - 28px)}.skel-kpis{grid-template-columns:repeat(2,1fr)}}
+@keyframes skShimmer{to{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){.sk::after{animation:none}}
+
+/* ---------- รายได้ · วางบิล (billing.html) ----------------- */
+.bill-range{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-3)}
+.bill-range .input{width:150px;padding-block:7px}
+.bill-range:has(input:disabled){opacity:.45}
+.bill-range .input:disabled{cursor:not-allowed}
+.bill-today{display:inline-flex;align-items:center;gap:7px;height:38px;padding:0 13px;border-radius:99px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);font-size:13px;color:var(--text-2);white-space:nowrap}
+.bill-today input{width:15px;height:15px;margin:0;accent-color:var(--amber)}
+.bill-today:has(input:checked){background:var(--amber-wash);border-color:var(--amber);color:var(--amber-ink);font-weight:600}
+.bill-bulk{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 16px 0;padding:10px 14px;
+  border-radius:var(--radius-sm);background:var(--amber-wash);border:1px solid #f6dfae;font-size:13.5px}
+.bill-bulk[hidden]{display:none}
+.bill-rev{width:130px;text-align:right}
+.bill-rev.is-saved{border-color:var(--green)}
+.bill-meta{display:block;font-size:12px;color:var(--text-3);margin-top:3px}
+.tbl tr.is-picked{background:var(--amber-wash)}
+
+
+/* ============================================================
+   Dark mode · ชุด "กราไฟต์" — ชุดเดียวกับหน้า Dashboard (index.html)
+   เทาดำกลาง ๆ ไม่อมสี · สีสถานะ/กราฟหม่นแบบหมึกพิมพ์ · ส้มแบรนด์ลดความสด · ไม่มีแสงเรืองหรือไล่สี
+   เปิดเมื่อ <html data-theme="dark"> (ตั้งโดย js/theme-init.js ตามระบบหรือที่ผู้ใช้เลือก)
+   อยู่ใน @media screen ทั้งก้อน — สั่งพิมพ์จึงได้โทนสว่างเสมอ
+   ============================================================ */
+.theme-btn{
+  flex:none;width:34px;height:34px;border-radius:8px;display:grid;place-items:center;
+  background:transparent;border:1px solid rgba(255,255,255,.14);color:#a9bcd2;font-size:15px;line-height:1;cursor:pointer;
+  transition:background .18s,color .18s;
+}
+.theme-btn:hover{background:rgba(255,255,255,.08);color:#fff}
+/* ชิดขวา: ตัวแรกในกลุ่ม [เมนู · ผู้ใช้ · ปุ่มธีม] ที่มีอยู่จริงรับ margin-left:auto ตัวเดียว */
+.appbar-inner > .theme-btn,.appbar-inner > .appbar-user,.appbar-inner > .fs-btn{margin-left:auto}
+.appnav ~ .appbar-user,.appnav ~ .theme-btn,.appbar-user ~ .theme-btn,
+.appnav ~ .fs-btn,.appbar-user ~ .fs-btn,.fs-btn ~ .theme-btn{margin-left:0 !important}
+.appnav a{white-space:nowrap}
+.theme-btn::before{content:"☾"}
+:root[data-theme="dark"] .theme-btn::before{content:"☀"}
+
+@media screen{
+  :root[data-theme="dark"]{
+    /* แยกชั้นด้วยความสว่าง: พื้น #141414 < การ์ด #1c1c1c < ปุ่มรอง #242424 */
+    --steel-50:#141414;
+    --paper:#1c1c1c;
+    --surface-2:#202020;
+    --steel-100:#242424;
+    --steel-200:#2e2e2e;
+    --steel-300:#4a4a4a;
+    --steel-400:#6b6b6b;
+    --steel-600:#a3a09b;
+    --line:#2a2a2a;
+    --line-strong:#3a3a3a;
+    --text:#e7e5e2;
+    --text-2:#a3a09b;
+    --text-3:#716e69;
+    --amber:#d9a03f;
+    --amber-dim:#e3b563;
+    --amber-wash:#2a2419;
+    --amber-ink:#e3b563;
+    --green:#86ad8d;  --green-wash:rgba(134,173,141,.14);
+    --blue:#7d9cc4;   --blue-wash:rgba(125,156,196,.15);
+    --red:#cf7a6f;    --red-wash:rgba(207,122,111,.14);
+    --violet:#a595c9; --violet-wash:rgba(165,149,201,.15);
+    /* ปุ่มหลักสีกรมท่าจะจมหายในพื้นมืด — กลับเป็นปุ่มสีกระดาษ */
+    --btn-bg:#e7e5e2;
+    --btn-fg:#141414;
+    --shadow-1:0 1px 2px rgba(0,0,0,.35);
+    --shadow-2:0 2px 8px rgba(0,0,0,.4);
+    --shadow-3:0 16px 40px rgba(0,0,0,.5);
+    color-scheme:dark;
+  }
+  [data-theme="dark"] body{transition:background-color .2s,color .2s}
+  [data-theme="dark"] .input,[data-theme="dark"] .select,[data-theme="dark"] .textarea{color:var(--text)}
+
+  /* แถบหัว: ดำกลาง ๆ แทนกรมท่า · โลโก้ส้มเรียบ ไม่เรืองแสง */
+  [data-theme="dark"] .appbar,[data-theme="dark"] .skel-bar{background:rgba(14,14,14,.94)}
+  [data-theme="dark"] .appbar{border-bottom-color:rgba(255,255,255,.07)}
+  [data-theme="dark"] .brand-mark{background:var(--amber);box-shadow:none}
+  [data-theme="dark"] .appnav a{color:#a3a09b}
+  [data-theme="dark"] .brand-sub{color:#716e69}
+  [data-theme="dark"] .appbar-role{color:#8a8782;border-color:rgba(255,255,255,.12)}
+  [data-theme="dark"] .theme-btn{color:#a3a09b;border-color:rgba(255,255,255,.12)}
+  [data-theme="dark"] .appnav a:hover{color:#e7e5e2}
+  [data-theme="dark"] .appbar-user{border-left-color:rgba(255,255,255,.08)}
+  [data-theme="dark"] .appbar-user-name{color:#e7e5e2}
+  [data-theme="dark"] .appbar-user-name small{color:#8a8782}
+  [data-theme="dark"] .appbar-out{color:#a3a09b;border-color:rgba(255,255,255,.12)}
+  [data-theme="dark"] .appnav a[aria-current="page"]{background:var(--amber-wash);color:var(--amber-ink)}
+
+  /* ป้ายสถานะ: ตัวหนังสือสว่างหม่นบนพื้นโปร่ง */
+  [data-theme="dark"] .pill[data-tone="wait"]{color:#e3b563;border-color:rgba(217,160,63,.32)}
+  [data-theme="dark"] .pill[data-tone="ware"]{color:#b7a8d9;border-color:rgba(165,149,201,.32)}
+  [data-theme="dark"] .pill[data-tone="move"]{color:#a3bcdb;border-color:rgba(125,156,196,.32)}
+  [data-theme="dark"] .pill[data-tone="done"]{color:#a3c7a9;border-color:rgba(134,173,141,.32)}
+  [data-theme="dark"] .pill[data-tone="stop"]{color:#dc9186;border-color:rgba(207,122,111,.34)}
+  [data-theme="dark"] .btn-danger{border-color:rgba(207,122,111,.4)}
+
+  /* กล่องแจ้งเตือนโทนเหลือง */
+  [data-theme="dark"] .demo-bar,[data-theme="dark"] .pay-total,[data-theme="dark"] .bill-today{border-color:rgba(217,160,63,.3)}
+  [data-theme="dark"] .demo-bar{background:var(--amber-wash)}
+
+  /* หน้าคนขับ: ปุ่มสีเรียบแทนไล่สี */
+  [data-theme="dark"] .driver-body{background:#101010}
+  [data-theme="dark"] .driver-hero{background:#1c1c1c}
+  [data-theme="dark"] .driver-card{background:var(--surface)}
+  [data-theme="dark"] .confirm-btn{background:#2e2e2e;color:var(--text);box-shadow:none}
+  [data-theme="dark"] .confirm-btn[data-tone="amber"]{background:var(--amber);color:#141414}
+  [data-theme="dark"] .confirm-btn[data-tone="blue"]{background:#5f7fa8;color:#fff}
+  [data-theme="dark"] .confirm-btn[data-tone="green"]{background:#5f8f6a;color:#fff}
+  [data-theme="dark"] .route-dot{background:var(--surface)}
+  [data-theme="dark"] .route-dot.fill{background:var(--text-2);border-color:var(--text-2)}
+
+  /* แถบลอยล่างจอ · ข้อความแจ้งเตือน · ประกายโหลด · ปุ่มส้มไม่มีแสงวาบ */
+  [data-theme="dark"] .action-bar{background:rgba(28,28,28,.96);box-shadow:0 -6px 24px rgba(0,0,0,.4)}
+  [data-theme="dark"] .toast{background:#2a2a2a;border:1px solid var(--line-strong)}
+  [data-theme="dark"] .sk::after{opacity:.1}
+  [data-theme="dark"] .btn-accent::after,[data-theme="dark"] .btn-green::after{display:none}
+}
+
+/* ============================================================
+   ใบวางบิล — หน้า รายได้·วางบิล (billing.html) และหน้าลูกค้า (bill.html)
+   ============================================================ */
+.tbl tbody tr.is-click{cursor:pointer}
+.tbl-tight tbody td,.tbl-tight thead th{padding:8px 10px}
+.bill-late{color:var(--red);font-weight:600}
+.bill-warn{margin:0 0 14px;padding:10px 14px;border-radius:var(--radius);background:var(--amber-wash);
+  border:1px solid rgba(217,160,63,.35);color:var(--amber-ink);font-size:13.2px}
+.bill-warn ul{margin:6px 0 0;padding-left:18px}
+.bill-form{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px}
+.bill-form .span2{grid-column:span 2}
+.bill-form textarea.input{resize:vertical;min-height:58px;font:inherit}
+@media (max-width:620px){ .bill-form{grid-template-columns:1fr} .bill-form .span2{grid-column:auto} }
+.bill-due{display:flex;align-items:center;height:40px;padding:0 12px;border-radius:var(--radius-sm);
+  background:var(--surface-2);font-weight:600}
+.bill-sum{display:flex;gap:10px;align-items:center;margin-top:16px;padding:12px 14px;border-radius:var(--radius);
+  background:var(--surface-2);border:1px solid var(--line)}
+.bill-kv{margin-bottom:14px}
+.bill-link{margin:4px 0 16px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface-2)}
+.bill-link .input[readonly]{font-size:12.5px;min-width:0}
+.bill-h{margin:16px 0 8px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3)}
+.bill-steps{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.bill-steps li{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--text-3)}
+.bill-steps li > span{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;
+  border:1.5px solid var(--line-strong)}
+.bill-steps li.is-done{color:var(--text)}
+.bill-steps li.is-done > span{background:var(--green);border-color:var(--green);color:#fff}
+
+/* ---------- หน้าลูกค้า ---------- */
+.billstate{display:flex;flex-wrap:wrap;gap:16px 32px;align-items:center;margin-bottom:16px;border-left:4px solid var(--blue)}
+.billstate[data-tone="done"]{border-left-color:var(--green)}
+.billstate[data-tone="late"]{border-left-color:var(--red)}
+.billstate[data-tone="grey"]{border-left-color:var(--line-strong)}
+.billstate-total{display:flex;flex-direction:column}
+.billstate-amt{font-family:var(--mono);font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
+.billstate-amt small{font-size:14px;color:var(--text-3);font-family:var(--sans)}
+.billstate-kv{display:flex;flex-wrap:wrap;gap:10px 28px;margin:0}
+.billstate-kv dt{font-size:12px;color:var(--text-3)}
+.billstate-kv dd{margin:2px 0 0;font-weight:500}
+.billsteps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
+@media (max-width:1100px){ .billsteps{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:700px){ .billsteps{grid-template-columns:1fr} }
+/* แยกจ่ายทีละบิล — ขั้น 4 กว้างเต็มแถว รายการบิลจะไม่อัดกัน */
+.billstep.is-wide{grid-column:1/-1}
+.billmode{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:12px;cursor:pointer}
+.billmode input{margin-top:4px;accent-color:var(--accent,#E8781A)}
+.billmode:has(input:checked){border-color:var(--accent,#E8781A);background:color-mix(in srgb,var(--accent,#E8781A) 6%,transparent)}
+.billeach{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.billeach-row{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.billeach-row.is-sent{border-color:color-mix(in srgb,var(--amber,#d98a1c) 50%,transparent)}
+.billeach-row.is-paid{border-color:color-mix(in srgb,var(--green) 55%,transparent)}
+.billeach-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.billeach-row summary{cursor:pointer;color:var(--accent,#E8781A)}
+.billeach-row details .billform{margin-top:10px}
+.billstep{display:flex;flex-direction:column;gap:10px}
+.billstep.is-locked{opacity:.6}
+.billstep.is-done{border-color:rgba(18,160,106,.35)}
+.billstep-h{display:flex;align-items:center;gap:10px;font-size:16px;margin:0}
+.billstep-n{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;
+  background:var(--amber-wash);color:var(--amber-ink)}
+.billstep.is-done .billstep-n{background:var(--green);color:#fff}
+.billform{display:flex;flex-direction:column;gap:10px}
+.billform .btn{align-self:flex-start}
+.billform-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media (max-width:1100px) and (min-width:901px){ .billform-row{grid-template-columns:1fr} }
+@media (max-width:480px){ .billform-row{grid-template-columns:1fr} }
+.billdone{margin-bottom:18px;font-weight:600;color:var(--green);border-left:4px solid var(--green)}
+.billdone[data-tone="grey"]{color:var(--text-2);border-left-color:var(--line-strong)}
+
+/* ---------- เอกสารใบวางบิล (จอ + พิมพ์ A4) ---------- */
+.billdoc-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.billdoc{min-width:640px;background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:var(--radius);
+  padding:32px 36px;font-size:13.5px;line-height:1.55}
+.billdoc-head{display:flex;justify-content:space-between;gap:24px;padding-bottom:16px;border-bottom:2px solid var(--text)}
+.billdoc-co{color:var(--text-2);font-size:12.5px}
+.billdoc-co-name{font-size:17px;font-weight:700;color:var(--text)}
+.billdoc-co-en{font-size:11.5px;letter-spacing:.04em;margin-bottom:4px}
+.billdoc-title{text-align:right;flex:none}
+.billdoc-title-th{font-size:24px;font-weight:700;line-height:1.1}
+.billdoc-title-en{font-size:11.5px;letter-spacing:.18em;color:var(--text-3)}
+.billdoc-meta{display:flex;justify-content:space-between;gap:24px;margin:16px 0}
+.billdoc-to{flex:1;padding:10px 14px;border:1px solid var(--line);border-radius:6px}
+.billdoc-label{font-size:11.5px;color:var(--text-3)}
+.billdoc-to-name{font-weight:700;font-size:15px}
+.billdoc-kv{flex:none;display:grid;gap:3px;align-content:start;min-width:220px}
+.billdoc-kv div{display:flex;justify-content:space-between;gap:16px}
+.billdoc-kv span{color:var(--text-3)}
+.billdoc-tbl{width:100%;border-collapse:collapse;font-size:12.8px}
+.billdoc-tbl th{background:var(--surface-2);font-weight:600;text-align:left;padding:7px 8px;border:1px solid var(--line-strong)}
+.billdoc-tbl td{padding:7px 8px;border:1px solid var(--line);vertical-align:top}
+.billdoc-tbl small{color:var(--text-3)}
+.billdoc-tbl .c{text-align:center;width:44px}
+.billdoc-tbl .r{text-align:right}
+.billdoc-tbl .nw{white-space:nowrap}
+.billdoc-inv{font-family:var(--mono);font-size:11px;word-break:break-word;max-width:200px}
+.billdoc-tbl tfoot td{border-color:var(--line-strong);font-size:13.5px}
+.billdoc-words{text-align:center;font-weight:600;background:var(--surface-2)}
+.billdoc-note{margin:12px 0 0;font-size:12.8px}
+.billdoc-sign{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:48px;text-align:center;font-size:13px}
+.billdoc-sign-line{display:block;border-bottom:1px dotted var(--text-3);height:36px;margin-bottom:6px}
+
+@media print{
+  .billpage .page{padding:0}
+  .billpage .wrap{max-width:none;padding:0}
+  .billdoc-wrap{overflow:visible}
+  .billdoc{min-width:0;border:0;border-radius:0;padding:0;font-size:12px;background:#fff;color:#000}
+  .billdoc-tbl thead{display:table-header-group}
+  .billdoc-tbl tfoot{display:table-row-group}          /* ยอดรวมขึ้นครั้งเดียวท้ายตาราง ไม่ซ้ำทุกหน้า */
+  .billdoc-tbl tfoot tr{break-inside:avoid}
+  .billdoc-tbl tr,.billdoc-sign{break-inside:avoid}
+}
+
+/* ---------- ผู้ช่วยคนขับ: บันทึกการชำระเงิน (js/driver.js payDialog) ---------- */
+.pay-opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:6px}
+.pay-opt{position:relative;cursor:pointer}
+.pay-opt input{position:absolute;opacity:0;pointer-events:none}
+.pay-opt span{display:flex;align-items:center;justify-content:center;min-height:52px;padding:8px;border-radius:10px;
+  border:1.5px solid var(--line);background:var(--surface);font-weight:600;font-size:16px;text-align:center}
+.pay-opt input:checked + span{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent)}
+.pay-opt input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+/* หลายบิล (helper.js payDialog): เลขบิล · ปุ่มวิธีจ่ายเล็ก · ช่องเงิน แถวเดียว — จอแคบปุ่มกับช่องเงินลงบรรทัดใต้เลขบิล */
+.pay-bill{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-top:10px}
+.pay-bill-no{flex:1 1 120px;min-width:0}
+.pay-opts-sm{display:inline-grid;grid-template-columns:repeat(3,auto);gap:6px;margin-top:0}
+.pay-opts-sm .pay-opt span{min-height:38px;padding:6px 10px;font-size:13px;border-radius:8px;white-space:nowrap}
+.pay-bill-amt{flex:0 1 130px;width:130px;min-width:96px}
+.pay-chip{display:flex;flex-direction:column;align-items:flex-end;gap:3px;white-space:nowrap}
+.pay-log{margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
+.pay-log-row{padding:10px 0;border-top:1px dashed var(--line)}
+.pay-log-row:first-of-type{border-top:0;padding-top:0}
+.pay-log-row:not(.is-now){opacity:.62}
+.pay-log .photo-grid{grid-template-columns:repeat(auto-fill,minmax(64px,1fr))}
+.pay-log .photo-grid img{display:block}
+
+/* ---------- รูปที่อัปโหลดไม่ผ่าน (js/driver.js retryDialog) ---------- */
+.photo-pend{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  margin-top:12px;padding:10px 14px;border-radius:12px;font-size:14px;
+  background:color-mix(in srgb,var(--amber) 16%,var(--surface));border:1px solid color-mix(in srgb,var(--amber) 45%,transparent);color:var(--text)}
+.photo-pend[data-online="0"]{background:var(--surface-2);border-color:var(--line)}
+.pend-shell{padding-bottom:0 !important}
+.pend-shell[hidden]{display:none}
+.photo-pend .btn{flex:none}
+.pend-list{margin-top:12px;display:grid;gap:12px}
+.pend-group{padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
+.pend-group .photo-grid{grid-template-columns:repeat(auto-fill,minmax(64px,1fr))}
+
+/* ---------- ผู้ช่วยคนขับ: ปุ่มสามอย่างต่อจุด + เครื่องมือทั้งเที่ยว (js/helper.js) ---------- */
+.stop-row.helper-row{flex-direction:column;align-items:stretch;gap:10px}
+.helper-row-top{display:flex;align-items:center;gap:12px}
+.helper-acts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.helper-act{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:52px;padding:8px 10px;
+  border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;text-align:left;
+  cursor:pointer;transition:border-color .15s, box-shadow .15s, transform .1s}
+.helper-act-k{font-size:13.5px;font-weight:600}
+.helper-act-v{font-size:12px;color:var(--text-2);line-height:1.35;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.helper-act[data-state="ok"]{border-color:color-mix(in srgb,var(--green) 55%,transparent);background:color-mix(in srgb,var(--green) 8%,var(--surface))}
+.helper-act[data-state="ok"] .helper-act-v{color:var(--green)}
+.helper-act[data-state="todo"] .helper-act-v{color:var(--amber-dim)}
+.helper-act[data-state="off"]{opacity:.55}
+.helper-act:disabled{cursor:not-allowed}
+.helper-act:not(:disabled):active{transform:scale(.98)}
+@media (hover:hover){ .helper-act:not(:disabled):hover{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)} }
+.helper-act:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:420px){
+  .helper-acts{gap:6px}
+  .helper-act{padding:7px 8px}
+  .helper-act-k{font-size:12.5px}
+  .helper-act-v{font-size:11px}
+}
+.helper-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  margin:0 0 12px;padding:10px 12px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line)}
+.helper-tools-sum{display:flex;flex-direction:column;gap:2px;font-size:14px}
+.helper-tools-btns{display:flex;gap:8px;flex-wrap:wrap}
+.invret-now{margin-top:12px;padding:10px 12px;border-radius:10px;font-size:14px;border:1px solid var(--line);background:var(--surface-2)}
+.invret-now[data-state="ok"]{border-color:color-mix(in srgb,var(--green) 55%,transparent);color:var(--green)}
+.invret-list{margin:10px 0 0;padding-left:18px;max-height:180px;overflow:auto;font-size:13.5px;line-height:1.7}
+
+/* ---------- ใบ POD (js/pod.js) — ซ่อนบนจอ ขึ้นเฉพาะตอนปริ้น ---------- */
+#pod-print{display:none}
+@media print{
+  @page{size:A4;margin:12mm}
+  body.pod-printing > :not(#pod-print){display:none!important}
+  body.pod-printing{background:#fff!important}
+  body.pod-printing #pod-print{display:block}
+}
+.pod-page{color:#000;background:#fff;font-size:12px;line-height:1.45;break-after:page;page-break-after:always}
+.pod-page:last-child{break-after:auto;page-break-after:auto}
+.pod-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding-bottom:10px;border-bottom:2px solid #000}
+.pod-origin{display:flex;align-items:center;gap:14px}   /* จ่าหัวต้นทาง sample origin (podOriginHead) — โลโก้ซ้าย ชื่อ + ที่อยู่ขวา */
+.pod-origin .pod-logo{width:130px;flex:none}
+.pod-co{font-size:16px;font-weight:700}
+.pod-co-en{font-size:11px;letter-spacing:.04em}
+.pod-title{text-align:right}
+.pod-title-th{font-size:20px;font-weight:700}
+.pod-title-en{font-size:11px;letter-spacing:.06em}
+.pod-no{margin-top:4px;font-size:13px;font-weight:600}
+.pod-small{font-size:10.5px;color:#444}
+.pod-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.pod-tbl{width:100%;border-collapse:collapse}
+.pod-tbl caption{text-align:left;font-weight:700;font-size:12.5px;padding:0 0 4px}
+.pod-tbl th,.pod-tbl td{border:1px solid #999;padding:4px 6px;vertical-align:top;text-align:left}
+.pod-tbl th{width:30%;background:#f2f2f2;font-weight:600}
+.pod-items{margin-top:12px}
+.pod-items thead th{width:auto}
+.pod-tbl .num{text-align:right;white-space:nowrap;width:14%}
+.pod-tbl .idx{width:7%;text-align:center}
+.pod-items .grp{vertical-align:middle;font-weight:600}   /* น้ำหนัก/มูลค่ารวมต่อ Invoice — ช่องเดียวข้างทุกรายการ */
+.pod-items tr{break-inside:avoid}
+.pod-proof{align-items:start}
+.pod-sign{text-align:center}
+.pod-sign-box{height:120px;border:1px solid #999;display:grid;place-items:center;margin-top:20px;padding:4px}
+.pod-sign-box img{max-width:100%;max-height:110px}
+.pod-sign-cap{margin-top:4px;font-weight:600}
+.pod-photos-wrap{margin-top:12px;break-inside:avoid}
+.pod-cap{font-weight:700;font-size:12.5px;margin-bottom:4px}
+.pod-photos{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.pod-photos img{width:100%;aspect-ratio:4/3;object-fit:cover;border:1px solid #999}
+.pod-inv-head{display:flex;justify-content:space-between;gap:12px;padding-bottom:6px;border-bottom:2px solid #000;font-size:12px}
+.pod-inv-img{display:block;width:100%;height:225mm;object-fit:contain;margin-top:3mm}   /* รูปใบ Invoice เต็มหน้า A4 (สูงพิมพ์ได้ ~273mm) */
+.pod-inv-page .pod-foot{margin-top:3mm}
+.pod-hand{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:28px;text-align:center;break-inside:avoid}
+.pod-line{display:block;border-bottom:1px dotted #000;height:34px;margin-bottom:4px}
+.pod-foot{margin-top:16px;padding-top:6px;border-top:1px solid #ccc;font-size:9.5px;color:#666;text-align:right}
+/* ใบส่งสินค้าแบบต้นทาง sample origin (28 ต.ค. · js/pod.js podPage) — โลโก้ · หัวเรื่อง · ที่อยู่ + บาร์โค้ด · คู่คีย์สองคอลัมน์ · ตาราง Item · Receive/Delivery Detail */
+.pod-origin{font-size:11px;line-height:1.4}
+.pod-origin-head{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:start;padding-bottom:6px;border-bottom:1px solid #000}
+.pod-logo{display:block;width:150px;height:auto}
+.pod-status{margin-top:6px;font-size:20px;color:#777;font-weight:400}
+.pod-status.is-fail{color:#c62828;font-size:16px}
+.pod-origin-title{font-size:17px;font-weight:700;padding-top:4px}
+.pod-origin-co{font-size:9.5px;line-height:1.45;color:#333}
+.pod-bc{display:block;width:100%;max-width:230px;height:34px;margin-top:6px;fill:#000}
+.pod-bc-txt{font-family:monospace;font-size:10px;letter-spacing:.12em;margin-top:1px}
+.pod-kv2{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;margin-top:6px}
+.pod-kv{display:grid;grid-template-columns:86px 1fr;gap:3px 8px;align-content:start}
+.pod-k{color:#222}
+.pod-v{color:#000;word-break:break-word}
+.pod-origin a{color:#1a4fb5 !important;text-decoration:underline}
+.pod-item-h{margin-top:8px;font-weight:600}
+.pod-items2{width:100%;border-collapse:collapse;margin-top:3px;font-size:9.5px}
+.pod-items2 th,.pod-items2 td{border:1px solid #999;padding:3px 4px;vertical-align:top;text-align:left}
+.pod-items2 th{background:#f2f2f2;font-weight:600;text-align:center;line-height:1.2}
+.pod-items2 .c{text-align:center}
+.pod-items2 .num{text-align:right;white-space:nowrap}
+.pod-items2 td[rowspan]{vertical-align:middle;font-weight:600}
+.pod-items2 tr{break-inside:avoid}
+.pod-dets{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:10px}
+.pod-det{display:grid;grid-template-columns:72px 1fr;gap:3px 8px;align-content:start;font-size:11.5px}
+.pod-det-h{grid-column:1/-1;font-weight:600;font-size:12px;padding-bottom:2px;border-bottom:1px solid #000;margin-bottom:2px}
+.pod-hand2{margin-top:20px;gap:24px}
+
+/* เขียนลงเครื่องไม่สำเร็จ (พื้นที่เต็ม — js/store.js saveFailed) */
+.photo-pend[data-online="err"]{background:var(--red-wash);border-color:var(--red);color:#a9231a}
+.invret-pick{margin-top:6px;border:1px solid var(--line);border-radius:10px;overflow:hidden;max-height:240px;overflow-y:auto}
+.invret-pick-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;padding:10px 12px;font-size:14px}
+.invret-pick-main{display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer}
+.invret-to{width:auto;min-width:110px;flex:none;padding-top:6px;padding-bottom:6px}
+.invret-who{flex-basis:100%;padding-top:6px;padding-bottom:6px}
+.invret-pick-row + .invret-pick-row{border-top:1px solid var(--line)}
+.invret-pick-row[data-off]{opacity:.55}
+.invret-pick-row[data-off] .invret-pick-main{cursor:default}
+.invret-pick-row input[type="checkbox"]{width:18px;height:18px;flex:none;accent-color:var(--accent,#E8781A)}
+.invret-who[hidden],.invret-pick-row input[hidden]{display:none}
+
+/* หน้าต่างเบอร์โทร (ui.js phoneDialog) — เบอร์ตัวใหญ่ เลือกคัดลอกเองได้ */
+.tel-big{ margin:6px 0 2px; font-size:34px; font-weight:800; letter-spacing:.03em; text-align:center;
+  font-variant-numeric:tabular-nums; user-select:all; -webkit-user-select:all; word-break:break-all; }
+
+/* ---------- บิลมีปัญหา (คนขับส่งไม่สำเร็จ ยังไม่เคลียร์) — ops.js / billing.js · 27 ต.ค. ---------- */
+.prob-tag{display:inline-block;padding:2px 9px;margin:2px 0;border-radius:999px;background:var(--red);color:#fff;font-size:12px;font-weight:700;white-space:nowrap}
+.prob-tag.is-cleared{background:var(--steel-200);color:var(--text)}
+.prob-note{display:block;margin-top:3px;font-size:12px;color:var(--red)}
+tr.is-problem > td{background:var(--red-wash) !important}
+tr.is-problem > td:first-child{box-shadow:inset 4px 0 0 var(--red)}
+tr.prob-head > td{padding:8px 12px;background:var(--red);color:#fff;font-weight:700;font-size:13px}
+.prob-box{padding:12px 14px;border:1px solid var(--red);border-radius:12px;background:var(--red-wash);color:var(--red)}
+.prob-box.is-cleared{border-color:var(--line);background:transparent;color:inherit}
+.prob-btn{margin-top:6px}
+:root[data-theme="dark"] tr.is-problem > td{background:rgba(217,45,32,.16) !important}
+:root[data-theme="dark"] .prob-box:not(.is-cleared){background:rgba(217,45,32,.14)}
+
+/* "ส่งโดย ชื่อ · เวลา" ใต้บิลที่ส่งแล้ว (helper.js sentBy) — หน้าคนขับ + ops */
+.sent-by{display:block;margin-top:3px;font-size:12.5px;color:var(--text-3, #6b7280)}
+.sent-by b{font-weight:700;color:var(--green)}
+
+/* ---------- กล่อง "ยืนยัน" ก่อนปิดหน้าต่าง (ui.js askClose) — ซ้อนบนหน้าต่างเดิม ไม่ปิดของเดิม ---------- */
+.confirm-scrim{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:18px;background:rgba(8,16,28,.45);animation:fadeIn .15s var(--ease)}
+.confirm-box{width:min(100%,360px);padding:22px 20px 18px;border-radius:18px;background:var(--surface);box-shadow:var(--shadow-3);text-align:center}
+.confirm-box h3{font-size:19px;margin:0 0 8px}
+.confirm-box p{margin:0;font-size:15px;line-height:1.5}
+.confirm-box p .dim{font-size:13px}
+.confirm-acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.confirm-acts .btn{min-height:48px;font-size:16px;justify-content:center}
+
+/* ---------- ติ๊กเลือกคนขับหลายคน (customer.js pickDriver multi) ---------- */
+.drv-tick{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:14px}
+.drv-tick:hover{border-color:var(--steel-400)}
+.drv-tick input{width:20px;height:20px;flex:none;accent-color:var(--amber, #E8781A)}
+.drv-tick:has(input:checked){border-color:var(--amber, #E8781A);background:rgba(232,120,26,.07)}
+.drv-tick.is-off{opacity:.62}
+.drv-tick.is-had{cursor:default;opacity:.7}
+
+/* ---------- คนขับแต่ละคนถึงขั้นไหน (helper.js crewChip / crewBox — ops) ---------- */
+.crew-chip{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap;background:var(--steel-200);color:var(--text)}
+.crew-chip[data-st="new"]{background:var(--amber-wash, #fff4e5);color:var(--amber-ink, #9a5b00)}
+.crew-chip[data-st="received"]{background:#ede7fb;color:#5b3fb0}
+.crew-chip[data-st="loaded"]{background:#e6effb;color:#2456a6}
+.crew-chip[data-st="departed"]{background:#e3f4ea;color:#1f7a45}
+.crew-line{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:13.5px}
+.crew-line:first-of-type{border-top:0}
+.crew-line.is-behind .strong::after{content:" · ตามหลัง";font-weight:600;color:var(--amber-dim, #b56a00);font-size:12px}
+:root[data-theme="dark"] .crew-chip{filter:saturate(.9) brightness(.92)}
+
+/* ---------- ใบสรุปค่ารอบคนขับ (js/payReport.js) — ซ่อนบนจอ ขึ้นเฉพาะตอนปริ้น แบบใบ POD ---------- */
+#pay-print{display:none}
+@media print{
+  body.pay-printing > :not(#pay-print){display:none!important}
+  body.pay-printing{background:#fff!important}
+  body.pay-printing #pay-print{display:block}
+}
+.pr-page{color:#000;background:#fff;font-size:12px;line-height:1.45}
+.pr-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding-bottom:10px;border-bottom:2px solid #000}
+.pr-co{font-size:16px;font-weight:700}
+.pr-title{text-align:right}
+.pr-title-th{font-size:20px;font-weight:700}
+.pr-small{font-size:10.5px;color:#444}
+.pr-info,.pr-tbl{width:100%;border-collapse:collapse;margin-top:12px}
+.pr-info th,.pr-info td,.pr-tbl th,.pr-tbl td{border:1px solid #999;padding:4px 6px;vertical-align:top;text-align:left}
+.pr-info th{width:14%;background:#f2f2f2;font-weight:600}
+.pr-tbl thead th{background:#f2f2f2;font-weight:600}
+.pr-tbl .num{text-align:right;white-space:nowrap}
+.pr-tbl .idx{width:5%;text-align:center}
+.pr-tbl .nowrap{white-space:nowrap}
+.pr-tbl tr{break-inside:avoid}
+.pr-tbl tfoot td{font-weight:700;background:#fafafa}
+.pr-tbl tfoot .pr-due td{background:#fff1e2;font-size:13px}
+.pr-signs{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:46px;text-align:center;break-inside:avoid}
+.pr-sign-line{padding-top:30px;margin-bottom:6px}
+.pr-sign-cap{font-weight:600;margin-top:2px}
+/* หน้าต่างเลือกช่วง (บนจอ) */
+.pr-sum{display:flex;justify-content:space-between;align-items:baseline;padding:10px 12px;border-radius:10px;background:var(--surface-2);font-size:15px}
+.pr-sum b{font-size:20px}
+.pr-list{list-style:none;margin:8px 0 0;padding:0;max-height:220px;overflow:auto;font-size:13.5px}
+.pr-list li{display:flex;justify-content:space-between;gap:10px;padding:5px 2px;border-bottom:1px solid var(--line)}
+.drv-payreport{margin-bottom:12px;min-height:48px;font-size:15px}
+
+/* ---------- คืนของเข้าคลัง (บิลส่งไม่สำเร็จ · helper.js whReturnTag / whReturnDialog) ---------- */
+.wh-tag{display:inline-block;margin-top:3px;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:700;background:var(--amber-wash, #fff4e5);color:var(--amber-ink, #9a5b00)}
+.wh-tag.is-done{background:#e3f4ea;color:#1f7a45}
+
+/* ---------- เลขบิลซ้ำ / คนขับแจ้งเลขบิล (28 ต.ค.) ----------
+   .dup-tag = ป้ายบนแถวบิล (หน้าคนขับ / ผู้ช่วย) · .bill-watch = แถบแจ้งเตือนค้างบนหน้า ops (js/opsAuto.js) */
+.dup-tag{display:block;margin-top:4px;padding:4px 8px;border-radius:8px;background:rgba(169,35,26,.1);
+  color:var(--red);font-size:13px;font-weight:600;line-height:1.4}
+.dup-tag.is-rep{background:rgba(232,120,26,.12);color:var(--amber-dim)}
+.bill-watch{position:sticky;top:8px;z-index:30;display:flex;align-items:center;gap:12px;margin:0 0 16px;padding:12px 14px;
+  border-radius:14px;background:#a9231a;color:#fff;box-shadow:0 6px 18px rgba(169,35,26,.28);font-size:15px;line-height:1.45}
+.bill-watch[hidden]{display:none}
+.bill-watch-ic{font-size:22px;flex:none}
+.bill-watch-sub{display:block;font-size:12.5px;opacity:.9}
+.bill-watch-btn{flex:none;background:#fff;color:#a9231a;border-color:#fff;font-weight:700}
+.bill-watch-btn:hover{background:#fbe9e7;color:#a9231a}
+[data-hay][hidden]{display:none !important}

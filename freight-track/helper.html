@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<script src="js/theme-init.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ผู้ช่วยคนขับ · FreightTrack</title>
+<meta name="description" content="หน้าผู้ช่วยคนขับ ใช้บัญชีเดียวกับคนขับ ดูงานของเที่ยว และบันทึกการชำระเงินรายจุดส่ง (เงินโอน · เงินสด · เครดิต) พร้อมรูปหลักฐาน">
+<meta name="theme-color" content="#f4f3f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1f1c1b" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/apple.css">
+<!-- driver.css โหลดหลัง apple.css — หน้านี้ใช้โทนเดียวกับหน้าแรก (index.html) และ track.html แทนโทนฟ้าของ apple.css -->
+<link rel="stylesheet" href="css/driver.css">
+</head>
+<body class="driver-body drv">
+<!-- โครงหน้ารอโหลด — ขึ้นทันทีจาก HTML/CSS ก่อน JavaScript ทำงาน แล้วสลับเป็นหน้าจริงตอนวาดเสร็จ (ui.js → shell) -->
+<div class="skel" aria-hidden="true">
+  <div class="skel-bar"></div>
+  <div class="skel-page">
+    <i class="sk sk-eyebrow"></i>
+    <i class="sk sk-title"></i>
+    <i class="sk sk-line"></i>
+    <div class="skel-kpis"><i class="sk"></i><i class="sk"></i><i class="sk"></i><i class="sk"></i></div>
+    <div class="skel-card">
+      <i class="sk sk-h"></i>
+      <i class="sk sk-row"></i><i class="sk sk-row"></i><i class="sk sk-row"></i><i class="sk sk-row"></i><i class="sk sk-row"></i>
+    </div>
+  </div>
+</div>
+<main style="padding-top:16px">
+  <div class="driver-shell" id="app"></div>
+</main>
+<script type="module" src="js/firebase.js"></script>
+<!-- แกนของหน้าใช้ร่วมกับหน้าคนขับ (js/driver.js รู้เองว่าเป็นหน้าผู้ช่วย) · ส่วนบันทึกการชำระเงินอยู่ที่ js/helper.js -->
+<script type="module" src="js/driver.js"></script>
+</body>
+</html>

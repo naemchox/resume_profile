@@ -1,0 +1,297 @@
+/* ============================================================
+   AURUM — book-minimal.css
+   The booking desk, stripped back to type, rule and space.
+
+   Loaded ONLY by book.html (which carries <body class="minimal">),
+   so nothing on the marketing, admin or manage pages moves.
+
+   The whole flattening hangs off one variable: --foil becomes a
+   flat accent, which takes the gilding out of every component
+   that used it — buttons, the selected day, the motif, the
+   wordmark — in a single line.
+   ============================================================ */
+
+body.minimal{
+  --foil: var(--c-action);
+  --r-sm:2px; --r-md:2px; --r-lg:0;
+}
+
+/* ---------- no texture, no atmosphere, no watermark ---------- */
+body.minimal::after{content:none}
+body.minimal .atmo,
+body.minimal .watermark{display:none}
+body.minimal .foil-text{animation:none}
+
+/* ---------- motion: fades only ---------- */
+body.minimal *,
+body.minimal *::before,
+body.minimal *::after{transition-duration:180ms !important}
+body.minimal .btn:hover,
+body.minimal .btn:active{transform:none; box-shadow:none}
+body.minimal .btn-gold::after{display:none}
+body.minimal .btn{letter-spacing:.14em; font-weight:400}
+body.minimal .btn-gold{font-weight:500}
+body.minimal .btn-ghost:hover{background:none}
+
+/* ---------- nav & footer: hairlines, no glass ---------- */
+body.minimal .nav.stuck{background:var(--c-page); backdrop-filter:none}
+body.minimal .brandmark .mk{opacity:.9}
+body.minimal footer .rule::after{display:none}
+
+/* ---------- hero: one line, then the work ---------- */
+body.minimal #flowHero{padding-block:clamp(94px,12vh,128px) var(--s6)}
+body.minimal #flowHero h1{
+  font-size:clamp(1.7rem,3vw,2.5rem); font-weight:400; letter-spacing:-.01em;
+}
+
+/* ---------- panes: columns divided by rules, not cards ---------- */
+body.minimal .desk{gap:0; grid-template-columns:318px minmax(0,1fr) 372px}
+body.minimal .pane{
+  background:none; border:none; border-radius:0;
+  padding:0 clamp(22px,2.6vw,40px);
+}
+body.minimal .pane + .pane{border-left:1px solid var(--c-border)}
+body.minimal .pane:first-child{padding-left:0}
+body.minimal .pane:last-child{padding-right:0}
+@media(min-width:1181px){
+  body.minimal .pane.sticky{top:100px; max-height:calc(100vh - 124px)}
+}
+
+body.minimal .pane-hd{
+  background:none; backdrop-filter:none; border-radius:0;
+  border-bottom:1px solid var(--c-border);
+  padding:0 0 var(--s3); margin:0 0 var(--s5);
+  align-items:baseline; gap:var(--s3);
+}
+body.minimal .pane-hd .no{
+  border:none; background:none; padding:0;
+  font-size:.64rem; letter-spacing:.22em; color:var(--c-action);
+}
+/* the step title is a quiet label — the content carries the size */
+body.minimal .pane-hd h2{
+  font-family:var(--f-mono); font-size:.66rem; font-weight:500;
+  letter-spacing:.24em; text-transform:uppercase; color:var(--c-muted);
+}
+body.minimal .pane-hd .done{width:13px; height:13px}
+body.minimal .pane-note{font-size:.76rem; margin-bottom:var(--s5)}
+/* the middle column is the one that scrolls, so pin its label to the page ground */
+@media(min-width:1181px){
+  body.minimal #paneService .pane-hd{
+    position:sticky; top:86px; z-index:4;
+    background:var(--c-page); padding-top:var(--s4);
+  }
+}
+body.minimal .pane-sub{margin-top:var(--s6)}
+body.minimal .pane-sub::after{opacity:.6}
+
+/* ---------- calendar ---------- */
+body.minimal .cal-hd{margin-bottom:var(--s5)}
+body.minimal .cal-hd .mon{font-size:.7rem; letter-spacing:.28em; color:var(--c-ink)}
+body.minimal .cal-nav{border:none; background:none; color:var(--c-muted); width:24px; height:24px}
+body.minimal .cal-nav:hover:not(:disabled){color:var(--c-action); border:none; transform:none}
+body.minimal .cal-grid{gap:3px}
+body.minimal .cal-day{font-size:.98rem; font-weight:400}
+body.minimal .cal-day:hover:not(:disabled){background:none; color:var(--c-action)}
+body.minimal .cal-day[aria-pressed="true"]{
+  background:var(--c-action); color:var(--c-on-action); font-weight:500;
+  transform:none; box-shadow:none;
+}
+body.minimal .cal-legend{border-top:none; padding-top:var(--s2); opacity:.8}
+
+/* ---------- times: text in a grid, not chips ---------- */
+body.minimal .slots{grid-template-columns:repeat(auto-fill,minmax(62px,1fr)); gap:1px}
+body.minimal .slot{
+  background:none; border:none; border-radius:0; padding:10px 2px;
+  color:var(--c-muted); border-bottom:1px solid transparent;
+}
+body.minimal .slot:hover:not(:disabled){
+  background:none; transform:none; color:var(--c-action); border-bottom-color:var(--c-border);
+}
+body.minimal .slot[aria-pressed="true"]{
+  background:none; color:var(--c-action); font-weight:600;
+  border-bottom-color:var(--c-action); border-color:transparent;
+}
+body.minimal .slot:disabled{text-decoration:none}
+body.minimal .slot.scarce::after{display:none}   /* a floating speck reads as noise here */
+body.minimal .slotgroup-hd{margin-bottom:var(--s2)}
+
+/* ---------- choices: rows on hairlines, marked by the motif ---------- */
+body.minimal .svc,
+body.minimal .who{
+  background:none; border:none; border-radius:0;
+  border-bottom:1px solid var(--c-border);
+  padding:var(--s4) 0 var(--s4) 20px;
+}
+body.minimal .svc + .svc,
+body.minimal .who + .who{margin-top:0}
+body.minimal .svc:hover:not(:disabled),
+body.minimal .who:hover{transform:none; box-shadow:none; background:none; border-color:var(--c-border)}
+body.minimal .svc:hover:not(:disabled) .n,
+body.minimal .who:hover .nm{color:var(--c-action)}
+body.minimal .svc[aria-pressed="true"],
+body.minimal .who[aria-pressed="true"]{background:none; border-color:var(--c-border)}
+body.minimal .svc[aria-pressed="true"]::before,
+body.minimal .who[aria-pressed="true"]::before{
+  content:""; position:absolute; left:0; top:calc(var(--s4) + .38em); width:11px; height:11px;
+  background:var(--c-action); border-radius:0;
+  -webkit-mask:var(--motif-mask) center/contain no-repeat; mask:var(--motif-mask) center/contain no-repeat;
+}
+body.minimal .svc[aria-pressed="true"] .n,
+body.minimal .svc[aria-pressed="true"] .p,
+body.minimal .who[aria-pressed="true"] .nm{color:var(--c-action)}
+body.minimal .svc .n{font-size:1.22rem}
+body.minimal .svc .d{margin-top:6px}
+
+/* the artisan's initial: a hairline disc, not a gilded petal */
+body.minimal .who .portrait{
+  border:1px solid var(--c-border); border-radius:50%;
+  color:var(--c-ink); padding-top:0; text-shadow:none; font-size:.9rem;
+}
+body.minimal .who .portrait::before{display:none}
+
+/* ---------- the confirm block ---------- */
+body.minimal .confirm{border-top:1px solid var(--c-border)}
+body.minimal .ledger-row{border-bottom:1px solid var(--c-border)}
+body.minimal .ledger-row .dots{display:none}
+body.minimal .ledger-row .v{font-size:1.05rem}
+body.minimal .ledger-total{border-top:1px solid var(--c-line)}
+body.minimal .ledger-total .amt{font-size:1.75rem}
+
+/* fields become ruled lines */
+body.minimal .field > label,
+body.minimal .lbl{letter-spacing:.2em}
+body.minimal .input,
+body.minimal .textarea,
+body.minimal .select{
+  background:none; border:none; border-bottom:1px solid var(--c-border);
+  border-radius:0; padding:9px 0;
+}
+body.minimal .input:hover,
+body.minimal .textarea:hover{border-color:transparent; border-bottom-color:var(--c-line)}
+body.minimal .input:focus,
+body.minimal .textarea:focus,
+body.minimal .select:focus{
+  background:none; box-shadow:none; border-color:transparent; border-bottom-color:var(--c-action);
+}
+body.minimal .input:focus-visible,
+body.minimal .textarea:focus-visible{outline:1px solid var(--c-action); outline-offset:6px}
+body.minimal .input[aria-invalid="true"]{border-bottom-color:var(--c-err-bd)}
+
+/* ---------- states, toasts, the success card ---------- */
+body.minimal .state .motif-loader{opacity:.22}
+body.minimal .toast{border-radius:0; box-shadow:none; background:var(--c-surface)}
+body.minimal .skel{animation:none; background:var(--c-sunken)}
+
+body.minimal .ledger{background:none; border:none; border-radius:0}
+body.minimal .ledger::before{display:none}
+body.minimal .ledger .wm{display:none}
+body.minimal .portrait-lg{border:none}
+
+/* ---------- narrow screens ---------- */
+@media(max-width:1180px), (max-height:620px){
+  body.minimal .pane.sticky{position:static; top:auto; max-height:none}
+  body.minimal .pane.sticky .pane-body{overflow:visible; padding-right:0; margin-right:0}
+}
+@media(max-width:1180px){
+  body.minimal .desk{grid-template-columns:300px minmax(0,1fr)}
+  body.minimal .deskbar{
+    background:var(--c-page); backdrop-filter:none; box-shadow:none;
+    border-top:1px solid var(--c-border);
+  }
+  body.minimal .deskbar::before{display:none}
+  body.minimal .desk .pane-artisan{padding-left:0; border-left:none; border-top:1px solid var(--c-border); padding-top:var(--s6); margin-top:var(--s6)}
+}
+@media(max-width:840px){
+  body.minimal .desk{grid-template-columns:1fr}
+  body.minimal .pane{padding:0}
+  body.minimal .pane + .pane{
+    border-left:none; border-top:1px solid var(--c-border);
+    padding-top:var(--s6); margin-top:var(--s6);
+  }
+  body.minimal .desk .pane-artisan{margin-top:var(--s6); padding-top:var(--s6)}
+  body.minimal .pane-hd,
+  body.minimal #paneService .pane-hd{
+    position:sticky; top:53px; z-index:6; background:var(--c-page);
+    padding:12px 0; margin:0 0 var(--s4);
+  }
+  body.minimal .slots{grid-template-columns:repeat(4,1fr)}
+}
+@media(max-width:420px){
+  body.minimal .slots{grid-template-columns:repeat(3,1fr)}
+  body.minimal .svc,body.minimal .who{padding-left:17px}
+}
+
+/* ============================================================
+   WAYS OUT — a dead end always carries the button out of itself.
+   "No queue free" is a sentence; the guest needs a destination.
+   ============================================================ */
+body.minimal .state.dead{
+  padding:var(--s6) 0; gap:var(--s3);
+  border-top:1px solid var(--c-border);
+  margin-top:var(--s4);
+}
+body.minimal .state.dead h3{font-weight:400; letter-spacing:-.005em; line-height:1.35}
+body.minimal .wayout{
+  display:grid; gap:8px; width:100%; max-width:320px; margin-top:var(--s3);
+}
+/* long Thai labels must wrap — the default button never breaks a line */
+body.minimal .wayout .btn{
+  white-space:normal; text-align:center; text-transform:none;
+  letter-spacing:.02em; line-height:1.45; padding:11px 14px;
+  font-family:var(--f-body); font-size:.85rem;
+}
+body.minimal .wayout .btn-gold{font-weight:600}
+body.minimal .wayout .btn-ghost{--bd:var(--c-line); --fg:var(--c-ink)}
+body.minimal .wayout .btn-ghost:hover{--bd:var(--c-action); --fg:var(--c-action)}
+
+/* ============================================================
+   THE CONVERSION POINT — the last two seconds before a decision.
+   Everything else on this page may whisper; these fields may not.
+   ============================================================ */
+body.minimal .confirm .guest{
+  display:grid; gap:var(--s4);
+  margin-top:var(--s5); padding:var(--s5) var(--s4) var(--s5);
+  background:var(--c-surface);
+  border:1px solid var(--c-border); border-top:2px solid var(--c-action);
+  border-radius:2px;
+}
+body.minimal .confirm .guest-hd{
+  display:flex; align-items:baseline; justify-content:space-between; gap:var(--s3);
+}
+body.minimal .confirm .guest-hd .lbl{color:var(--c-ink)}
+body.minimal .confirm .guest-hd .req-note{
+  font-family:var(--f-mono); font-size:.64rem; letter-spacing:.14em; color:var(--c-action);
+}
+body.minimal .confirm .field > label{color:var(--c-ink); letter-spacing:.16em}
+body.minimal .confirm .field.req > label::after{
+  content:"*"; color:var(--c-action); margin-inline-start:5px; font-size:1.05em;
+}
+/* a real well, not a hairline that vanishes into the ground */
+body.minimal .confirm .input,
+body.minimal .confirm .textarea{
+  background:var(--c-page);
+  border:1px solid var(--c-line);
+  border-radius:2px;
+  padding:11px 12px;
+  color:var(--c-ink); font-size:1rem;
+}
+body.minimal .confirm .input::placeholder,
+body.minimal .confirm .textarea::placeholder{color:color-mix(in oklab,var(--c-muted) 85%,transparent)}
+body.minimal .confirm .input:hover,
+body.minimal .confirm .textarea:hover{border-color:var(--c-muted)}
+body.minimal .confirm .input:focus,
+body.minimal .confirm .textarea:focus{
+  background:var(--c-page);
+  border-color:var(--c-action);
+  box-shadow:0 0 0 3px color-mix(in oklab,var(--c-action) 20%,transparent);
+}
+body.minimal .confirm .input:focus-visible,
+body.minimal .confirm .textarea:focus-visible{outline:none}
+body.minimal .confirm .input[aria-invalid="true"]{border-color:var(--c-err-bd)}
+body.minimal .confirm .err-text{margin-top:var(--s3)}
+body.minimal .confirm #cta{margin-top:var(--s3)}
+
+@media(max-width:420px){
+  body.minimal .confirm .guest .mini-grid{grid-template-columns:1fr}
+  body.minimal .wayout{max-width:none}
+}

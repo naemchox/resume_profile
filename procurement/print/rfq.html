@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ใบขอเสนอราคา</title>
+<link rel="stylesheet" href="../css/print.css">
+<script src="../js/theme.js"></script>
+</head>
+<body class="print-body">
+<div class="print-bar no-print" id="bar"></div>
+<div id="out"><div class="sheet">…</div></div>
+
+<script type="module">
+import { sb } from '../js/supabase.js';
+import { t, pick } from '../js/i18n.js';
+import { requireAuth } from '../js/auth.js';
+import { loadRfqData, rfqSheet } from '../js/rfq.js';
+import { el, errText } from '../js/ui.js';
+
+const un = ({ data, error }) => { if (error) throw error; return data; };
+const $ = (s) => document.querySelector(s);
+
+// หน้านี้อยู่ในโฟลเดอร์ print/ — requireAuth เด้งกลับ index.html แบบ relative จะได้ print/index.html
+// ซึ่งไม่มีอยู่จริง เลยเช็ค session เองก่อนแล้วส่งกลับให้ถูกที่
+const { data: { session } } = await sb.auth.getSession();
+if (!session) {
+  location.href = '../index.html';
+} else {
+  await requireAuth();
+  await render();
+}
+
+async function render() {
+  const out = $('#out');
+  // รับได้หลายใบคั่นด้วยจุลภาค — ออกใบให้ผู้ขายหลายเจ้าทีเดียวแล้วพิมพ์รวดเดียวจบ
+  const printIds = (new URLSearchParams(location.search).get('print') ?? '')
+    .split(',').map((s) => s.trim()).filter(Boolean);
+
+  try {
+    if (!printIds.length) throw new Error('ไม่ได้ระบุใบขอราคาที่ต้องการพิมพ์');
+
+    // ยึดตามที่ระบบบันทึกไว้เสมอ ไม่ให้ประกอบใบใหม่จากพารามิเตอร์ที่ใครก็ใส่ได้
+    const rows = await sb.from('rfq_prints').select('*').in('id', printIds).then(un);
+    if (!rows.length) throw new Error('ไม่พบใบขอราคานี้ หรือคุณไม่มีสิทธิ์ดู');
+
+    // เรียงตามลำดับที่ส่งมาใน URL ไม่ใช่ลำดับที่ฐานข้อมูลคืนมา
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    const prints = printIds.map((id) => byId.get(id)).filter(Boolean);
+
+    // ชื่อคนออกใบ + วันที่ออกจริง ต้องมาจากแถวที่บันทึกไว้ ไม่ใช่ "วันนี้"
+    // ไม่งั้นพิมพ์ซ้ำใบเก่าแล้ววันที่บนกระดาษจะเพี้ยนจากที่ส่งผู้ขายไปแล้ว
+    const issuerIds = [...new Set(prints.map((p) => p.printed_by).filter(Boolean))];
+    const issuers = issuerIds.length
+      ? await sb.from('user_profiles').select('id, full_name_th, full_name_en')
+          .in('id', issuerIds).then(un)
+      : [];
+    const issuerById = new Map(issuers.map((r) => [r.id, pick(r, 'full_name')]));
+
+    // โหลดพร้อมกันทุกใบ — เลือกทีเดียวหลายเจ้าแล้วต้องรอทีละใบจะช้าเกินไป
+    const sheets = await Promise.all(prints.map(async (p) => {
+      const data = await loadRfqData(p.pr_id, p.vendor_id);
+      return { p, data, node: rfqSheet(data, {
+        hash: p.content_hash,
+        printedAt: p.printed_at,
+        issuerName: issuerById.get(p.printed_by) ?? null,
+      }) };
+    }));
+
+    out.textContent = '';
+    out.append(...sheets.map((s) => s.node));
+
+    const prNo = sheets[0].data.pr?.pr_no ?? '';
+    const names = sheets.map((s) => s.data.vendor?.name_th).filter(Boolean);
+    document.title = sheets.length === 1
+      ? `ใบขอเสนอราคา ${prNo} ${names[0] ?? ''}`.trim()
+      : `ใบขอเสนอราคา ${prNo} (${sheets.length} ใบ)`.trim();
+
+    $('#bar').append(
+      el('span', { class: 'who' },
+        [prNo, sheets.length === 1 ? names[0] : `${names.length} เจ้า: ${names.join(', ')}`]
+          .filter(Boolean).join('  ·  ')),
+      el('button', { class: 'btn primary', onclick: () => window.print() },
+        sheets.length === 1 ? t('common.print') : t('common.printAll')),
+      el('a', { class: 'btn', href: `../pr.html?id=${sheets[0].p.pr_id}` }, t('pr.backToList')));
+  } catch (e) {
+    out.textContent = '';
+    out.append(el('div', { class: 'sheet' }, el('p', {}, errText(e))));
+  }
+}
+</script>
+</body>
+</html>

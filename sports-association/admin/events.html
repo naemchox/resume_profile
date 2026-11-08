@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>ปฏิทินการแข่ง · Sample Sports Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="is-checking">
+  <div class="layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="backdrop" id="backdrop"></div>
+    <div class="main">
+      <main class="content">
+        <div class="page-head">
+          <div>
+            <h1>ปฏิทินการแข่ง</h1>
+            <p>รายการหลัก (ปีละ 2 ครั้ง) และรายการอื่น</p>
+          </div>
+          <button class="btn btn-primary" id="add-btn" data-write>+ เพิ่มรายการแข่ง</button>
+        </div>
+
+        <div class="toolbar">
+          <input type="search" class="search" id="search" placeholder="ค้นหาชื่อรายการ / สถานที่…">
+          <select id="filter-when" style="width:auto">
+            <option value="">ทั้งหมด</option>
+            <option value="upcoming">กำลังจะมาถึง</option>
+            <option value="past">จบแล้ว</option>
+          </select>
+          <select id="filter-type" style="width:auto">
+            <option value="">ทุกประเภท</option>
+          </select>
+          <select id="filter-status" style="width:auto">
+            <option value="">ทุกสถานะ</option>
+            <option value="published">เผยแพร่</option>
+            <option value="draft">ฉบับร่าง</option>
+          </select>
+        </div>
+
+        <div class="table-wrap">
+          <table class="list">
+            <thead>
+              <tr><th style="width:90px">รูป</th><th>รายการ</th><th>วันที่</th><th>ประเภท / สถานะ</th><th></th></tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+          <div class="empty-state" id="empty">ยังไม่มีข้อมูล</div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <dialog id="edit-dialog">
+    <form class="dlg" id="edit-form" novalidate>
+      <div class="dlg-head">
+        <h2 id="dlg-title">เพิ่มรายการแข่ง</h2>
+        <button type="button" class="dlg-close" data-close aria-label="ปิด">×</button>
+      </div>
+      <div class="dlg-body">
+        <div class="field">
+          <label for="f-title">ชื่อรายการ <span class="req">*</span></label>
+          <input type="text" id="f-title" maxlength="200" required>
+        </div>
+        <div class="field">
+          <span class="label">ประเภท</span>
+          <div style="display:flex;gap:20px;flex-wrap:wrap">
+            <label class="check"><input type="radio" name="type" value="major" checked> รายการหลัก</label>
+            <label class="check"><input type="radio" name="type" value="other"> รายการอื่น</label>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="f-start">วันเริ่ม <span class="req">*</span></label>
+            <input type="date" id="f-start" required>
+          </div>
+          <div class="field">
+            <label for="f-end">วันจบ <span class="req">*</span></label>
+            <input type="date" id="f-end" required>
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-location">สถานที่</label>
+          <input type="text" id="f-location" maxlength="200">
+        </div>
+        <div class="field">
+          <label for="f-register">ลิงก์สมัคร (ไม่บังคับ)</label>
+          <input type="url" id="f-register" placeholder="https://forms.gle/…">
+        </div>
+        <div class="field">
+          <label for="f-description">รายละเอียด</label>
+          <textarea id="f-description" rows="6"></textarea>
+          <div class="hint">เว้นบรรทัดว่าง 1 บรรทัดเพื่อขึ้นย่อหน้าใหม่</div>
+        </div>
+        <div class="field">
+          <span class="label">รูปปก (ไม่บังคับ)</span>
+          <div class="image-field" id="cover-field">
+            <img alt="" hidden>
+            <div class="empty">ยังไม่มีรูป</div>
+            <input type="file" accept="image/*">
+            <button type="button" class="btn btn-secondary btn-sm" data-pick>เลือกรูป</button>
+            <button type="button" class="btn btn-ghost btn-sm danger" id="cover-remove" hidden>เอารูปออก</button>
+          </div>
+        </div>
+      </div>
+      <div class="dlg-foot">
+        <button type="button" class="btn btn-secondary" data-close>ยกเลิก</button>
+        <button type="button" class="btn btn-secondary" id="preview-btn">ดูตัวอย่าง</button>
+        <span class="spacer"></span>
+        <button type="submit" class="btn btn-secondary" value="draft" data-write>บันทึกร่าง</button>
+        <button type="submit" class="btn btn-primary" value="published" data-write>เผยแพร่</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="js/pages/events.js"></script>
+</body>
+</html>

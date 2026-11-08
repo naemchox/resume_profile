@@ -1,0 +1,369 @@
+/* ============================================================
+   track.css — หน้าติดตามพัสดุ (สาธารณะ) · โทนเดียวกับหน้าแรก (index.html)
+   หัวเรื่องใหญ่ชิดซ้าย + คำโปรยชิดขวา · การ์ดขาวมุมโค้ง เงาบาง · ไอคอนไล่สีส้ม · สีเน้นส้ม #E8781A
+   โหลดหลัง apple.css — ทับสีฟ้าของ apple.css เฉพาะหน้านี้ (body.trk)
+   ผู้ใช้ส่วนใหญ่อายุ 40+ — ตัวหนังสือใหญ่ ช่องกรอกสูง ปุ่มกดง่าย
+   หน้าตาเดิม (hero ภาพท่าเรือ): css/track.css.pre-store + track.html.pre-store
+   ============================================================ */
+
+:root{
+  --tk-card:#ffffff;
+  --tk-shadow:2px 4px 12px rgba(0,0,0,.08);
+  --tk-shadow-hover:2px 4px 16px rgba(0,0,0,.16);
+  --tk-sub:#6f6964;
+  --tk-field:#d3cfcb;
+  --tk-accent:#E8781A;
+  --tk-accent-hover:#D2680F;
+  --tk-link:#B85A0C;
+  --tk-ring:rgba(232,120,26,.22);
+  --tk-wash:rgba(232,120,26,.07);
+  --tk-tile:#f4f3f1;
+  --tk-wrap:1200px;
+  --tk-gut:clamp(16px,4vw,40px);
+}
+@media screen{
+  :root[data-theme="dark"]{
+    --tk-card:#2b2725;
+    --tk-shadow:0 0 0 1px rgba(255,255,255,.07);
+    --tk-shadow-hover:0 0 0 1px rgba(255,255,255,.16), 0 8px 28px rgba(0,0,0,.6);
+    --tk-sub:#aba49e;
+    --tk-field:#4f4a46;
+    --tk-link:#FFA24D;
+    --tk-ring:rgba(255,162,77,.35);
+    --tk-wash:rgba(255,162,77,.1);
+    --tk-tile:#37332f;
+  }
+}
+
+/* สีเน้นของ apple.css (ฟ้า) → ส้มแบบหน้าแรก · ใช้กับปุ่ม ลิงก์ วงโฟกัส ในผลการค้นหาด้วย */
+body.trk{
+  --ap-blue:var(--tk-accent);
+  --ap-blue-hover:var(--tk-accent-hover);
+  --ap-link:var(--tk-link);
+  --ap-ring:var(--tk-ring);
+  --accent:var(--tk-accent);
+  --btn-bg:var(--tk-accent);
+  background:var(--bg);color:var(--text);overflow-x:hidden;
+}
+body.trk ::selection{background:var(--tk-ring)}
+/* ---------- แถบหัว: หน้าตาเดียวกับ .lx-bar ของหน้าแรก -----------
+   แถบสร้างโดย js/ui.js (ใช้ร่วมกับหน้าอื่น) — ที่นี่แต่งเฉพาะหน้านี้ ปุ่มทุกตัวทำงานเหมือนเดิม
+   แก้วโปร่งบาง · กว้างเท่าเนื้อหา (1200px) · โลโก้ส้ม + ชื่อบริษัทบรรทัดเดียว · ปุ่มธีมเป็นสวิตช์ */
+body.trk .appbar{background:var(--ap-glass);border-bottom:1px solid var(--lx-rule);color:var(--lx-ink)}
+body.trk .appbar .appbar-inner{width:auto;max-width:var(--tk-wrap);margin:0 auto;padding:8px var(--tk-gut);
+  height:auto;min-height:50px;gap:18px}
+/* มีเมนูพนักงาน (แอดมินเปิดดู) — กว้างเท่าหน้าอื่น (.wrap-wide) ไม่งั้นเมนูขวาสุดกับชื่อบริษัทโดนตัด */
+body.trk .appbar .appbar-inner:has(.appnav){width:min(100% - 40px,1400px);max-width:none;padding-inline:0}
+@media (max-width:640px){ body.trk .appbar .appbar-inner:has(.appnav){width:calc(100% - 28px)} }
+body.trk .appbar .brand{gap:12px;min-width:0;flex:0 1 auto;color:var(--lx-ink);text-decoration:none}
+body.trk .appbar .brand > span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.trk .appbar .brand-mark{width:auto;height:34px;padding:0 10px;border-radius:9px;box-shadow:none;
+  background:var(--tk-accent);color:#fff;font-family:var(--sans);font-size:15px;font-weight:700;letter-spacing:.06em;line-height:1}
+body.trk .appbar .brand-name{font-size:15px;font-weight:500;letter-spacing:0;line-height:1.3;color:var(--lx-ink)}
+/* หน้าแรกไม่มีชื่อภาษาอังกฤษ / ป้ายมุมมอง — ซ่อนให้เหลือแค่โลโก้กับชื่อ */
+body.trk .appbar .brand br,body.trk .appbar .brand-sub,body.trk .appbar .appbar-role{display:none}
+/* ปุ่มกลับไปหน้าเลือกผู้ใช้ — แคปซูลเรียบ */
+body.trk .appbar .appbar-out{border:0;border-radius:99px;padding:7px 14px;font-size:13px;font-weight:500;
+  background:var(--ap-seg);color:var(--lx-ink);transition:background-color .2s}
+body.trk .appbar .appbar-out:hover{background:var(--line-strong);color:var(--lx-ink)}
+/* ปุ่มธีม → สวิตช์แบบหน้าแรก (.lx-switch) */
+body.trk .appbar .theme-btn{position:relative;width:52px;height:30px;padding:0;border:0;border-radius:99px;
+  background:#e7e4e1;transition:background .25s}
+body.trk .appbar .theme-btn:hover{background:#e7e4e1}
+body.trk .appbar .theme-btn::before{content:"";position:absolute;top:7px;left:7px;width:16px;height:16px;z-index:1;opacity:0;
+  transition:opacity .2s;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f3ead8'%3E%3Cpath d='M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1z'/%3E%3C/svg%3E") center/contain no-repeat}
+body.trk .appbar .theme-btn::after{content:"";position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;
+  background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.18);transition:transform .25s cubic-bezier(.3,.7,.2,1)}
+:root[data-theme="dark"] body.trk .appbar .theme-btn,
+:root[data-theme="dark"] body.trk .appbar .theme-btn:hover{background:#433e3b}
+:root[data-theme="dark"] body.trk .appbar .theme-btn::before{opacity:1}
+:root[data-theme="dark"] body.trk .appbar .theme-btn::after{background:transparent;box-shadow:none}
+body.trk .skel-bar{height:51px;border-bottom:1px solid var(--lx-rule)}
+/* จอเล็ก: ไม่มีเมนูนำทาง (ลูกค้า) = แถวเดียวเสมอ ชื่อบริษัทหดได้ · มีเมนู (พนักงาน) = ใช้การตัดแถวเดิมของ app.css */
+body.trk .appbar .appbar-inner:not(:has(.appnav)){flex-wrap:nowrap}
+@media (max-width:640px){ body.trk .appbar .appbar-inner{gap:10px} body.trk .appbar .appbar-out{padding:7px 12px} }
+@media (max-width:380px){ body.trk .appbar .brand-name{display:none} }
+@media (prefers-reduced-motion:reduce){ body.trk .appbar .theme-btn::after{transition:none} }
+
+.trk-page{max-width:var(--tk-wrap);margin:0 auto;padding:clamp(40px,8vh,88px) var(--tk-gut) 96px}
+.trk-page section{padding:0}   /* กัน section{padding} จาก base.css */
+
+/* ---------- หัวเรื่อง ------------------------------------- */
+.trk-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px 48px;flex-wrap:wrap}
+.trk-eyebrow{margin:0 0 6px;font-size:17px;font-weight:600;color:var(--tk-accent)}
+.trk-title{margin:0;font-size:clamp(38px,5.6vw,68px);font-weight:700;line-height:1.15;letter-spacing:-.025em;color:var(--text)}
+.trk-title span{display:block}
+.trk-aside{display:flex;flex-direction:column;align-items:flex-end;gap:18px;max-width:24em}
+.trk-lead{margin:0;font-size:clamp(18px,1.7vw,21px);font-weight:500;line-height:1.5;color:var(--tk-sub);text-align:right}
+.trk-lead .nowrap{white-space:nowrap}
+
+.trk-call{
+  display:inline-flex;align-items:center;gap:12px;
+  min-height:56px;padding:8px 24px 8px 8px;
+  border:0;border-radius:99px;
+  background:var(--tk-card);box-shadow:var(--tk-shadow);
+  color:var(--text);font-size:18px;font-weight:600;text-decoration:none;
+  transition:transform .3s cubic-bezier(0,0,.5,1), box-shadow .3s cubic-bezier(0,0,.5,1);
+}
+.trk-call:hover{transform:scale(1.015);box-shadow:var(--tk-shadow-hover);background:var(--tk-card);color:var(--text)}
+.trk-call:active{transform:scale(.99)}
+.trk-call-ic{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;flex:none;
+  background:var(--tk-accent);color:#fff}
+.trk-call-ic svg{width:18px;height:18px}
+.trk-admin{margin:-8px 0 0;font-size:15px;color:var(--tk-sub);text-align:right}
+.trk-admin a{color:var(--text);font-weight:600;text-decoration:none;white-space:nowrap}
+.trk-admin a:hover{text-decoration:underline}
+.trk-admin:empty{display:none}
+
+/* ---------- หัวข้อกลุ่ม ----------------------------------- */
+.trk-sec{margin-top:clamp(36px,6vh,60px)}
+.trk-sec-t{margin:0 0 22px;font-size:clamp(24px,2.6vw,32px);font-weight:700;line-height:1.25;letter-spacing:-.015em;color:var(--text)}
+
+/* ไอคอนไล่สี (เหมือนการ์ดหน้าแรก) */
+.trk-ic{display:grid;place-items:center;flex:none;width:64px;aspect-ratio:1;border-radius:24%;color:#fff;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--c) 78%,#fff) 0%,var(--c) 70%);
+  box-shadow:0 10px 24px -12px var(--c)}
+.trk-ic svg{width:52%;height:52%}
+.trk-ic svg[viewBox="0 0 48 48"]{stroke-width:3.4}
+
+/* ---------- การ์ดค้นหา ------------------------------------ */
+.trk-card{
+  background:var(--tk-card);border:0;border-radius:18px;box-shadow:var(--tk-shadow);
+  padding:clamp(22px,3vw,36px) clamp(20px,3.4vw,40px);
+}
+.trk-card-head{display:flex;align-items:center;gap:18px}
+.trk-card h2{margin:0;font-size:clamp(24px,2.4vw,30px);font-weight:700;line-height:1.25;letter-spacing:-.015em}
+.trk-card label{display:block;margin:24px 0 10px;font-size:17px;font-weight:500;color:var(--text)}
+.trk-row{display:flex;gap:12px}
+.trk-input{
+  flex:1;min-width:0;height:60px;padding:0 20px;
+  border:1px solid var(--tk-field);border-radius:14px;
+  background:var(--tk-card);color:var(--text);
+  font-family:var(--mono);font-size:20px;letter-spacing:.02em;
+  transition:border-color .2s,box-shadow .2s;
+}
+.trk-input::placeholder{color:var(--text-3);font-family:var(--sans);letter-spacing:0}
+.trk-input:hover{border-color:var(--steel-400)}
+.trk-input:focus{outline:none;border-color:var(--tk-accent);box-shadow:0 0 0 4px var(--tk-ring)}
+.trk-go{
+  flex:none;height:60px;padding:0 34px;
+  border:0;border-radius:99px;cursor:pointer;
+  background:var(--tk-accent);color:#fff;
+  font-size:19px;font-weight:600;letter-spacing:0;
+  transition:background-color .2s,transform .2s;
+}
+.trk-go:hover{filter:none;background:var(--tk-accent-hover)}
+.trk-go:active{transform:scale(.98)}
+.trk-go:focus-visible,.trk-call:focus-visible{outline:3px solid var(--tk-accent);outline-offset:3px}
+.trk-hint{margin:12px 0 0;font-size:15px;color:var(--tk-sub)}
+
+/* ---------- ข้อมูลประกอบ 3 ข้อ -----------------------------
+   เป็นแค่ข้อมูลเสริม — การ์ดเตี้ย ไม่มีเงา ไอคอนเล็กพื้นส้มจาง ไม่แย่งสายตาจากการ์ดค้นหา */
+.trk-sec-sm{font-size:clamp(19px,1.8vw,22px);font-weight:600;color:var(--tk-sub);margin-bottom:14px}
+.trk-feats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0;padding:0;list-style:none}
+.trk-feat{display:flex;align-items:center;gap:14px;
+  padding:14px 18px;border-radius:14px;background:var(--tk-card);box-shadow:0 0 0 1px var(--line)}
+.trk-feat .trk-ic{width:40px;border-radius:12px;background:var(--tk-wash);color:var(--tk-link);box-shadow:none}
+.trk-feat .trk-ic svg{width:55%;height:55%}
+.trk-feat p{margin:0;font-size:16px;font-weight:500;line-height:1.4;color:var(--text)}
+.trk-feat p span{display:inline-block}   /* ตัดบรรทัดได้เฉพาะระหว่างวลี ไม่ตัดกลางคำ */
+
+/* ---------- ผลการค้นหา ------------------------------------ */
+.trk-results{margin-top:28px}
+.trk-results-head{display:none;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+/* ปุ่มพิมพ์ขึ้นเฉพาะตอนมีผลแล้ว */
+.trk-results:has(#result > *) .trk-results-head{display:flex}
+.trk .trk-results .card{border-radius:18px;box-shadow:var(--tk-shadow)}
+.trk .btn-ghost:hover{background:var(--tk-wash)}
+
+/* ---------- แถบขั้นตอนในผลการค้นหา — หน้าตาเดียวกับแถบขั้นตอนหน้าคนขับ (.dflow ใน css/app.css) ----------
+   flowBar() ใน js/ui.js ใช้ร่วมกับหน้าต่างใบงานใน ops.js — จึงแต่งเฉพาะหน้านี้ด้วย CSS ล้วน (body.trk) ไม่แตะ JS
+   วงใหญ่ + ไอคอน · เสร็จแล้ว = เขียวมีเครื่องหมายถูก · ตอนนี้ = ส้มเหลืองวงใหญ่มีวงแหวน · ยังไม่ถึง = เทาจาง
+   ไอคอนแต่ละขั้นผูกตามลำดับ FLOW ใน js/store.js (รอของ · ของพร้อม · ขึ้นรถ · กำลังส่ง · ส่งแล้ว) — ชุดเดียวกับ DRV_PILL ใน js/driver.js
+   เวลาที่ทำแต่ละขั้น (flow-time) ยังแสดงเหมือนเดิม — ลูกค้าต้องการรู้ว่าถึงขั้นไหนเมื่อไร */
+body.trk .flow-step:nth-child(1){--fi-w:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23ffffff'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Ccircle%20cx=%2212%22%20cy=%2212%22%20r=%229%22/%3E%3Cpath%20d=%22M12%207v5l3%202%22/%3E%3C/svg%3E");--fi-g:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%239a9aa0'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Ccircle%20cx=%2212%22%20cy=%2212%22%20r=%229%22/%3E%3Cpath%20d=%22M12%207v5l3%202%22/%3E%3C/svg%3E")}  /* รอของ */
+body.trk .flow-step:nth-child(2){--fi-w:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23ffffff'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d=%22M21%208l-9-5-9%205v8l9%205%209-5z%22/%3E%3Cpath%20d=%22M3%208l9%205%209-5M12%2013v8%22/%3E%3C/svg%3E");--fi-g:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%239a9aa0'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d=%22M21%208l-9-5-9%205v8l9%205%209-5z%22/%3E%3Cpath%20d=%22M3%208l9%205%209-5M12%2013v8%22/%3E%3C/svg%3E")}  /* ของพร้อม */
+body.trk .flow-step:nth-child(3){--fi-w:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23ffffff'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d=%22M1%204h14v12H1zM15%209h4l4%204v3h-8z%22/%3E%3Ccircle%20cx=%226%22%20cy=%2218%22%20r=%222%22/%3E%3Ccircle%20cx=%2218%22%20cy=%2218%22%20r=%222%22/%3E%3C/svg%3E");--fi-g:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%239a9aa0'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d=%22M1%204h14v12H1zM15%209h4l4%204v3h-8z%22/%3E%3Ccircle%20cx=%226%22%20cy=%2218%22%20r=%222%22/%3E%3Ccircle%20cx=%2218%22%20cy=%2218%22%20r=%222%22/%3E%3C/svg%3E")}  /* ขึ้นรถ */
+body.trk .flow-step:nth-child(4){--fi-w:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23ffffff'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d=%22M1%204h14v12H1zM15%209h4l4%204v3h-8z%22/%3E%3Ccircle%20cx=%226%22%20cy=%2218%22%20r=%222%22/%3E%3Ccircle%20cx=%2218%22%20cy=%2218%22%20r=%222%22/%3E%3C/svg%3E");--fi-g:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%239a9aa0'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d=%22M1%204h14v12H1zM15%209h4l4%204v3h-8z%22/%3E%3Ccircle%20cx=%226%22%20cy=%2218%22%20r=%222%22/%3E%3Ccircle%20cx=%2218%22%20cy=%2218%22%20r=%222%22/%3E%3C/svg%3E")}  /* กำลังส่ง */
+body.trk .flow-step:nth-child(5){--fi-w:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23ffffff'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Ccircle%20cx=%2212%22%20cy=%2212%22%20r=%229%22/%3E%3Cpath%20d=%22M8%2012.5l3%203%205-6%22/%3E%3C/svg%3E");--fi-g:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%239a9aa0'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Ccircle%20cx=%2212%22%20cy=%2212%22%20r=%229%22/%3E%3Cpath%20d=%22M8%2012.5l3%203%205-6%22/%3E%3C/svg%3E")}  /* ส่งแล้ว */
+body.trk .flow{margin:4px 0 6px}
+body.trk .flow-step{display:flex;flex-direction:column;align-items:center;gap:0;padding-top:56px}
+body.trk .flow-step::before{ /* เส้นเชื่อมไปขั้นก่อนหน้า */
+  top:22px;left:auto;right:50%;width:100%;height:5px;margin-top:-2.5px;border-radius:99px;background:var(--line);z-index:0}
+body.trk .flow-step[data-state="done"]::before,body.trk .flow-step[data-state="now"]::before{background:var(--green)}
+body.trk .flow-step::after{ /* วงขั้นตอน + ไอคอน */
+  top:0;width:44px;height:44px;border:3px solid var(--line);
+  background:var(--surface) var(--fi-g) center/22px no-repeat;box-shadow:none;animation:none}
+body.trk .flow-step[data-state="done"]::after{background:var(--green) url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23ffffff'%20stroke-width='2.4'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d=%22M5%2012.5l4.5%204.5L19%207.5%22/%3E%3C/svg%3E") center/22px no-repeat;border-color:var(--green)}
+body.trk .flow-step[data-state="now"]::after{top:-4px;width:52px;height:52px;
+  background:var(--amber) var(--fi-w) center/24px no-repeat;border-color:var(--amber);box-shadow:0 0 0 6px rgba(245,165,36,.25)}
+/* ส่งไม่สมบูรณ์ (6 พ.ย.) — ขั้นสุดท้ายวงแดง + ✕ แทนติ๊กเขียว (ui.js flowBar failLabel) */
+body.trk .flow-step[data-state="fail"]::before{background:var(--green)}
+body.trk .flow-step[data-state="fail"]::after{background:var(--red) url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23ffffff'%20stroke-width='2.6'%20stroke-linecap='round'%3E%3Cpath%20d=%22M7%207l10%2010M17%207L7%2017%22/%3E%3C/svg%3E") center/20px no-repeat;border-color:var(--red)}
+body.trk .flow-step[data-state="fail"] .flow-label{color:var(--red)}
+body.trk .flow-label{font-size:15px;font-weight:700;line-height:1.25;padding:0 2px;white-space:nowrap;color:var(--text-3)}
+body.trk .flow-step[data-state="done"] .flow-label{color:var(--text-2)}
+body.trk .flow-step[data-state="now"] .flow-label{font-size:16px;color:var(--text)}
+body.trk .flow-time{font-size:13px;margin-top:3px}
+@media (max-width:400px){
+  body.trk .flow-step{padding-top:50px}
+  body.trk .flow-step::before{top:19px}
+  body.trk .flow-step::after{width:38px;height:38px;background-size:19px}
+  body.trk .flow-step[data-state="now"]::after{width:46px;height:46px;background-size:21px}
+  body.trk .flow-label{font-size:13px}
+  body.trk .flow-step[data-state="now"] .flow-label{font-size:14px}
+  body.trk .flow-time{font-size:11.5px}
+}
+
+/* ---------- รายละเอียดในผลการค้นหา — ตัวใหญ่ อ่านง่าย โทนเดียวกับหน้าคนขับ ----------
+   markup มาจาก track.js (paint) และ detail.js (ใช้ร่วมกับหน้าหลังบ้าน) — แต่งเฉพาะในหน้านี้ (body.trk .trk-results)
+   ตัวใหญ่เฉพาะบนจอ — ตอนพิมพ์ใช้ขนาดเดิม (ผลการค้นหาพิมพ์จบในหน้าเดียวเหมือนเดิม) */
+@media screen{
+  body.trk .trk-results .card{padding:clamp(20px,3vw,32px)}
+  body.trk .trk-results .code-lg{font-size:18px;padding:5px 12px;border-radius:10px}
+  body.trk .trk-results h2[style*="font-size:20px"]{font-size:clamp(22px,2.6vw,28px) !important;font-weight:700;letter-spacing:-.015em}
+  body.trk .trk-results .card > .row .tiny.dim{font-size:15px}
+  body.trk .trk-results .pill{font-size:15px;padding:6px 14px 6px 11px}
+  /* กล่องสถานะล่าสุด — แถบซ้ายสีส้มเหลือง (ขั้นที่กำลังทำ) */
+  body.trk .trk-results .panel[style*="surface-2"]{background:var(--tk-tile) !important;box-shadow:inset 5px 0 0 var(--amber);padding:18px 20px}
+  body.trk .trk-results .panel[style*="surface-2"] .strong{font-size:19px}
+  body.trk .trk-results .panel[style*="surface-2"] .small{font-size:16px}
+  body.trk .trk-results .panel[style*="surface-2"] .tiny{font-size:14px;font-family:var(--sans)}
+  /* กล่องย่อย (ใบแจ้งหนี้ · คนขับ · สรุปเวลา) — พื้นเทาอ่อน ไม่มีเงา */
+  body.trk .trk-results .panel{background:var(--tk-tile);box-shadow:none;border-radius:16px;padding:16px 18px}
+  body.trk .trk-results .panel .tiny.dim{font-size:13.5px}
+  body.trk .trk-results .panel .strong{font-size:17px}
+  body.trk .trk-results .panel .code{font-family:var(--sans);font-size:16px;font-weight:700;padding:4px 12px;border-radius:10px;
+    background:var(--tk-card);box-shadow:inset 0 0 0 1.5px var(--line-strong)}
+  body.trk .trk-results .panel .btn{min-height:46px;font-size:16px}
+  /* เส้นทาง ต้นทาง → ปลายทาง */
+  body.trk .trk-results .route-dot{width:14px;height:14px;border-width:3px}
+  body.trk .trk-results .route-dot.fill{background:var(--tk-accent);border-color:var(--tk-accent)}
+  body.trk .trk-results .route-line{width:3px;border-radius:99px}
+  body.trk .trk-results .route-rail{width:14px;padding-top:7px}
+  body.trk .trk-results .route .tiny{font-size:13.5px}
+  body.trk .trk-results .route .strong{font-size:17px}
+  body.trk .trk-results .route .small{font-size:15px}
+  body.trk .trk-results .kv{font-size:15.5px}
+  /* ประวัติสถานะ — จุดใหญ่มีวงแหวน เส้นหนา ตัวใหญ่ */
+  body.trk .trk-results h4{font-size:20px;font-weight:700;letter-spacing:-.01em}
+  body.trk .trk-results .tl{padding-left:36px}
+  body.trk .trk-results .tl::before{left:9px;width:3px;border-radius:99px}
+  body.trk .trk-results .tl-item{padding-bottom:24px}
+  body.trk .trk-results .tl-item::before{left:-36px;top:3px;width:21px;height:21px;border-width:3px;
+    box-shadow:0 0 0 4px var(--tk-card)}
+  body.trk .trk-results .tl-item:first-child::before{box-shadow:0 0 0 4px var(--tk-card), 0 0 0 9px rgba(128,128,128,.18)}  /* ล่าสุด — วงแหวนเทากลาง ไม่ใช้สีสถานะ */
+  body.trk .trk-results .tl-title{font-size:17px;font-weight:700}
+  body.trk .trk-results .tl-meta{font-size:13.5px}
+  body.trk .trk-results .tl-body{font-size:15px;line-height:1.6;margin-top:4px}
+}
+
+/* ---------- โครงรอโหลด ------------------------------------ */
+.skel-hero{width:min(100% - 2*var(--tk-gut),var(--tk-wrap));height:clamp(320px,46vh,440px);
+  margin:clamp(40px,8vh,88px) auto 0;border-radius:18px;background:var(--steel-100)}
+
+/* ---------- จอแคบ ----------------------------------------- */
+/* หน้าต่างย่อ / แท็บเล็ต / มือถือ: ทุกส่วนเรียงกึ่งกลางแบบสมมาตร */
+@media (max-width:900px){
+  .trk-page{max-width:720px}
+  .trk-head{display:flex;flex-direction:column;align-items:center;text-align:center;gap:0}
+  .trk-title{text-wrap:balance}
+  .trk-aside{align-items:center;max-width:32em;margin-top:18px}
+  .trk-lead{text-align:center}
+
+  .trk-card{text-align:center}
+  .trk-card-head{flex-direction:column;gap:14px}
+  .trk-input{text-align:center}
+  .trk-sec-t{text-align:center}
+
+  .trk-results-head{justify-content:center}
+
+  /* ข้อมูลประกอบ: คงสามคอลัมน์ ไอคอนอยู่บน ข้อความกึ่งกลาง */
+  .trk-feats{gap:10px}
+  .trk-feat{flex-direction:column;text-align:center;gap:8px;padding:14px 10px}
+}
+@media (max-width:640px){
+  .trk-page{padding-top:32px}
+  .trk-lead{font-size:18px}
+  .trk-ic{width:52px}
+  .trk-sec-t{margin-bottom:14px}
+  .trk-sec-sm{margin-bottom:12px}
+  .trk-feats{gap:8px}
+  .trk-feat{padding:12px 6px}
+  .trk-feat .trk-ic{width:36px}
+  .trk-feat p{font-size:14px;line-height:1.4}
+}
+@media (max-width:520px){
+  .trk-row{flex-direction:column}
+  .trk-input{flex:none;width:100%}
+  .trk-go{width:100%}
+}
+@media (max-width:340px){
+  .trk-feat p{font-size:13px}
+}
+@media (prefers-reduced-motion:reduce){ .trk-call,.trk-go{transition:none} }
+
+/* แถวหลักฐาน "ส่งมอบสำเร็จ" — รูปสินค้าทางซ้าย กล่องลายเซ็นแยกทางขวา (js/detail.js timeline signInline) */
+.tl-proof{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;margin-top:9px}
+.tl-proof .photo-grid{flex:1 1 220px}
+.tl-sign{flex:0 1 360px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
+.tl-sign img{display:block;width:100%;margin-top:6px;border-radius:6px;background:#fff;cursor:zoom-in}
+
+/* รูปใบ Invoice หน้าละรูป — ซ่อนบนจอ ขึ้นเฉพาะตอนพิมพ์ (js/track.js printExtras) */
+.trk-print-only{display:none}
+
+/* เลขเดียวหลายใบ (31 ต.ค.) — ติ๊กเลือกได้หลายใบ แต่ละใบเรียงต่อกัน · ตอนพิมพ์ขึ้นหน้าใหม่ทุกใบ */
+.trk-pick{align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:12px;cursor:pointer}
+.trk-pick.is-on{border-color:var(--amber);background:var(--amber-wash)}
+.trk-pick input{width:18px;height:18px;flex:none}
+.trk-bill + .trk-bill{margin-top:18px}
+
+@media print{
+  .trk-print-only{display:block}
+  .tl-proof{flex-wrap:nowrap;break-inside:avoid;page-break-inside:avoid}
+  .tl-sign{flex:0 0 48%;background:#fff;border-color:#999}
+  .tl-sign .tiny{color:#444}
+  .trk-inv-page{color:#000;background:#fff;break-before:page;page-break-before:always}
+  /* วงขั้นตอน/จุดประวัติเป็นสีพื้น + ไอคอน — สั่งให้พิมพ์สีด้วย ไม่งั้นเครื่องหมายถูกหาย */
+  body.trk .flow-step::after,body.trk .flow-step::before,body.trk .tl-item::before,body.trk .route-dot{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .trk-head,.trk-sec,.skel{display:none!important}
+  .trk-page{padding:0}
+  .trk-results{margin-top:0}
+  .trk-p1{break-inside:avoid;page-break-inside:avoid}
+  .trk-bill + .trk-bill{margin-top:0;break-before:page;page-break-before:always}
+  /* จ่าหัวต้นทาง sample origin บนสุดของ PDF (ผู้ใช้สั่ง 30 ต.ค.) — หน้าจอไม่เห็น */
+  .trk-print-head{color:#000;background:#fff;padding:0 0 10px;margin-bottom:12px;border-bottom:2px solid #000}
+}
+
+/* ดู POD บนจอ (js/track.js podView · 31 ต.ค.) — หน้า A4 สีขาวเรียงลงมา ย่อพอดีจอ ไม่ต้องดาวน์โหลด */
+.pod-view{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;background:#5d5955}
+.pod-view-bar{display:flex;align-items:center;gap:8px;padding:10px 12px;padding-top:max(10px,env(safe-area-inset-top));
+  background:var(--surface,#fff);border-bottom:1px solid var(--line,#ddd)}
+.pod-view-t{flex:1;min-width:0;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pod-view-scroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;position:relative}
+.pod-view-stage{position:relative;margin:0 auto;overflow:hidden}
+.pod-view-stage iframe{position:absolute;left:0;top:0;border:0;transform-origin:0 0;background:transparent}
+.pod-view-wait{color:#fff;text-align:center;padding:40px 16px;margin:0}
+.pod-view.is-ready .pod-view-wait{display:none}
+body.pod-view-open{overflow:hidden}
+@media print{ .pod-view{display:none!important} }
+
+/* ---------- รีพอร์ต JOBLIST (6 พ.ย. · js/jobReport.js) — ช่องเลือกช่วงวันที่หน้าตาเดียวกับ Dashboard/หลังบ้าน (ops.html .dpill) ---------- */
+.trk-report{display:flex;align-items:center;flex-wrap:wrap;gap:14px 20px;background:var(--tk-card);border-radius:18px;
+  box-shadow:var(--tk-shadow);padding:clamp(18px,2.4vw,26px) clamp(20px,3.4vw,40px)}
+.trk-report-t{margin:0;font-size:clamp(19px,1.9vw,22px);font-weight:700;letter-spacing:-.01em}
+.trk-report-go{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.trk .dpill{display:inline-flex;align-items:center;gap:4px;height:36px;padding:0 14px;border-radius:999px;
+  font-size:13px;white-space:nowrap;cursor:pointer}
+.trk .dpill input{border:0;background:transparent;font:inherit;color:inherit;outline:none;padding:0;cursor:pointer}
+.trk .dpill input[type=date]{font-family:var(--mono);font-size:12.5px;width:122px}
+.trk .dpill:focus-within{box-shadow:0 0 0 3px rgba(245,165,36,.25)}
+.trk .dpill-date{background:var(--amber-wash);border:1.6px solid var(--amber);color:var(--amber-ink);font-weight:600}
+#rptBtn:disabled{opacity:.6;cursor:progress}
+@media (max-width:640px){
+  .trk-report-go{width:100%}
+  .trk-report-go .dpill{flex:1;justify-content:center;min-width:0}
+  .trk-report-go .dpill input[type=date]{width:auto;min-width:0;flex:1}
+  #rptBtn{width:100%}
+}

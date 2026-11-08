@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ใบสั่งซื้อ — ระบบจัดซื้อจัดจ้าง</title>
+<link rel="stylesheet" href="css/app.css">
+<script src="js/theme.js"></script>
+</head>
+<body>
+<main id="app"><div class="spinner">…</div></main>
+
+<script type="module">
+import { sb } from './js/supabase.js';
+import { t, pick, fmtDate, fmtDateTime } from './js/i18n.js';
+import { requirePage, me, has, hasAny } from './js/auth.js';
+import { masters, flow } from './js/api.js';
+import { fmt, fmtQty, pct } from './js/money.js';
+import { el, $, shell, pageTitle, table, confirmBox, badge, ok, fail, spinner } from './js/ui.js';
+
+const un = ({ data, error }) => { if (error) throw error; return data; };
+
+const u = await requirePage('po.html');
+if (u) {
+  shell('po.html');
+  const q = new URLSearchParams(location.search);
+  const poId = q.get('id');
+  const prId = q.get('pr');
+  poId ? await detail(poId) : prId ? await issueView(prId) : await listView();
+}
+
+// ===========================================================================
+// รายการใบสั่งซื้อ + ใบขอซื้อที่รอออก PO
+// ===========================================================================
+async function listView() {
+  const app = $('#app');
+  app.textContent = '';
+  app.append(pageTitle('po.title'));
+
+  const waitBox = el('div', {}, spinner());
+  const poBox = el('div', {}, spinner());
+  app.append(el('div', { class: 'card' }, el('h2', {}, t('po.forPr')), waitBox));
+  app.append(el('div', { class: 'card' }, el('h2', {}, t('po.list')), poBox));
+
+  try {
+    const [waiting, pos, vendors] = await Promise.all([
+      sb.from('v_pr_summary').select('*').eq('status', 'approved')
+        .order('created_at', { ascending: false }).then(un),
+      sb.from('pos').select('*').order('issued_at', { ascending: false }).then(un),
+      masters.vendors(),
+    ]);
+    const vById = new Map(vendors.map((v) => [v.id, v]));
+
+    // v_pr_summary.po_count กันเคสที่ออก PO แล้วแต่สถานะยังไม่ขยับ
+    const pending = waiting.filter((p) => !p.po_count);
+    waitBox.textContent = '';
+    waitBox.append(pending.length
+      ? table([t('pr.no'), t('pr.purpose'), t('pr.requester'),
+               { label: t('approve.amount'), align: 'right' }, ''],
+          pending.map((p) => el('tr', {},
+            el('td', {}, p.pr_no ?? '—'),
+            el('td', {}, pick(p, 'purpose')),
+            el('td', {}, pick(p, 'requester_name')),
+            el('td', { class: 'num' }, fmt(p.awarded_total)),
+            el('td', { class: 'ta-right' },
+              hasAny('purchasing', 'admin')
+                ? el('a', { class: 'btn small primary', href: `po.html?pr=${p.id}` }, t('po.issue'))
+                : null))))
+      : el('p', { class: 'faint' }, t('common.empty')));
+
+    poBox.textContent = '';
+    poBox.append(pos.length
+      ? table([t('po.no'), t('quote.vendor'), t('po.promisedDate'),
+               { label: t('common.grandTotal'), align: 'right' }, t('common.status')],
+          pos.map((p) => el('tr', {},
+            el('td', {}, el('a', { href: `po.html?id=${p.id}` }, p.po_no)),
+            el('td', {}, (() => { const v = vById.get(p.vendor_id);
+              return v ? `${v.code} — ${pick(v, 'name')}` : '—'; })()),
+            el('td', {}, fmtDate(p.promised_date)),
+            el('td', { class: 'num' }, fmt(p.grand_total)),
+            el('td', {}, badge(p.status, 'poStatus')))))
+      : el('p', { class: 'faint' }, t('po.none')));
+  } catch (e) { waitBox.textContent = ''; poBox.textContent = ''; fail(e); }
+}
+
+// ===========================================================================
+// ออกใบสั่งซื้อจากใบขอซื้อที่อนุมัติแล้ว
+// ===========================================================================
+async function issueView(prId) {
+  const app = $('#app');
+  app.textContent = '';
+  app.append(spinner());
+
+  let pr, existing, clauses, sowRows;
+  try {
+    [pr, existing, clauses, sowRows] = await Promise.all([
+      sb.from('prs').select('*').eq('id', prId).maybeSingle().then(un),
+      sb.from('pos').select('id, po_no').eq('pr_id', prId).then(un),
+      masters.sowClauses(),
+      sb.from('pr_sow').select('*').eq('pr_id', prId).then(un),
+    ]);
+  } catch (e) { app.textContent = ''; fail(e); return; }
+
+  app.textContent = '';
+  app.append(pageTitle('po.issue',
+    el('a', { class: 'btn small', href: 'po.html' }, t('po.list'))));
+
+  if (!pr) {
+    app.append(el('div', { class: 'notice err' }, t('pr.notFound')));
+    return;
+  }
+  if (existing.length) {
+    app.append(el('div', { class: 'card' },
+      el('div', { class: 'notice info' }, t('po.alreadyIssued')),
+      ...existing.map((p) =>
+        el('p', {}, el('a', { class: 'btn', href: `po.html?id=${p.id}` }, p.po_no)))));
+    return;
+  }
+  if (pr.status !== 'approved') {
+    app.append(el('div', { class: 'card' },
+      el('div', { class: 'notice warn' }, t('po.notApproved')),
+      el('p', {}, badge(pr.status, 'prStatus')),
+      el('a', { class: 'btn', href: `approve.html?pr=${prId}` }, t('approve.chain'))));
+    return;
+  }
+
+  // -------------------------------------------------------------------------
+  // เงื่อนไขสัญญาอ่านจากตัวเลขที่ผู้ขอซื้อกรอกไว้ในขอบเขตงาน (คอลัมน์ใน prs)
+  // หน้านี้ไม่มีช่องให้ตั้งค่าใหม่ เพราะถ้าตั้งใหม่ได้ สัญญากับภาคผนวก SOW จะไม่ตรงกัน
+  // ค่าที่ว่าง = ใบขอซื้อใบเก่าที่ทำก่อนมีช่องกรอก ตกไปใช้ค่าตั้งต้นของระบบ
+  // -------------------------------------------------------------------------
+  const byId = new Map(clauses.map((c) => [c.id, c]));
+  const sow  = new Map();           // code -> { clause, requirement }
+  for (const r of sowRows) {
+    const c = byId.get(r.sow_clause_id);
+    if (c) sow.set(c.code, { clause: c, requirement: pick(r, 'requirement') });
+  }
+
+  const DEFAULTS = { penalty_rate_bp: 10, penalty_cap_bp: 1000, retention_bp: 0 };
+  const bp    = (col) => pr[col] ?? DEFAULTS[col];
+  const fromPr = (col) => pr[col] != null;
+
+  const terms = {
+    promised_date:    pr.delivery_date ?? null,
+    penalty_rate_pct: pct(bp('penalty_rate_bp')),
+    penalty_cap_pct:  pct(bp('penalty_cap_bp')),
+    retention_pct:    pct(bp('retention_bp')),
+  };
+
+  const srcLine = (label, value, source) => el('div', {},
+    el('small', { class: 'faint' }, t(label)),
+    el('div', {}, el('b', {}, value)),
+    el('small', { class: 'faint' }, source));
+
+  // อ้างที่มาตามข้อจริงในขอบเขตงานของใบนี้ ไม่ใช่เลขข้อคงที่ — ลูกค้าแก้ชุดข้อได้ใน admin
+  const clauseRef = (code, filled) => {
+    if (!filled) return t('po.fromDefault');
+    const c = sow.get(code)?.clause;
+    return c ? t('po.fromSow', { n: c.seq, title: pick(c, 'title') }) : t('po.fromSowShort');
+  };
+
+  const penFilled = fromPr('penalty_rate_bp') || fromPr('penalty_cap_bp');
+
+  app.append(el('div', { class: 'card' },
+    el('h2', {}, pr.pr_no ?? '—'),
+    el('p', { class: 'muted' }, pick(pr, 'purpose')),
+
+    el('h3', { style: 'margin:.9rem 0 .2rem' }, t('po.termsFromSow')),
+    el('p', { class: 'faint', style: 'margin:0 0 .6rem' }, t('po.termsFromSowHint')),
+    el('div', { class: 'grid g3' },
+      srcLine('po.promisedDate',
+        terms.promised_date ? fmtDate(terms.promised_date) : t('po.fromQuoteDays'),
+        terms.promised_date ? clauseRef('DELIV', true) : t('po.fromQuote')),
+      srcLine('po.penaltyTerms',
+        `${terms.penalty_rate_pct}% ${t('po.perDay')} · ${t('po.capShort')} ${terms.penalty_cap_pct}%`,
+        clauseRef('PEN', penFilled)),
+      srcLine('po.retention', `${terms.retention_pct}%`,
+        clauseRef('WARR', fromPr('retention_bp'))),
+      srcLine('po.whtCode', t('po.whtByVendor'), t('po.fromVendor'))),
+
+    !terms.promised_date || !penFilled || !fromPr('retention_bp')
+      ? el('div', { class: 'notice info', style: 'margin-top:.7rem' },
+           t('po.termsIncomplete'),
+           ' ',
+           el('a', { href: `pr.html?id=${prId}` }, t('po.openPr')))
+      : null,
+
+    el('div', { class: 'notice warn', style: 'margin-top:.7rem' }, t('po.issueHint')),
+    el('button', { class: 'btn primary', onclick: onIssue }, t('po.issue'))));
+
+  async function onIssue() {
+    if (!await confirmBox(t('po.issue'))) return;
+
+    // ไม่ส่งเงื่อนไขจากหน้าจอเลยแม้แต่ค่าเดียว — fn_issue_po อ่านจากใบขอซื้อเอง
+    // ถ้าส่งไปด้วยก็เท่ากับเปิดช่องให้หน้าจอทับสัญญาที่อนุมัติมาแล้ว
+    try {
+      const res = await flow.issuePo(prId);
+      ok(t('po.issued') + ' — ' + res.map((r) => r.po_no).join(', '));
+      location.href = res.length === 1 ? `po.html?id=${res[0].po_id}` : 'po.html';
+    } catch (e) { fail(e); }
+  }
+}
+
+// ===========================================================================
+// รายละเอียดใบสั่งซื้อ
+// ===========================================================================
+async function detail(poId) {
+  const app = $('#app');
+  app.textContent = '';
+  app.append(spinner());
+
+  let po, lines, sow, vendor, pr, issuer;
+  try {
+    po = await sb.from('pos').select('*').eq('id', poId).maybeSingle().then(un);
+    if (!po) throw new Error(t('pr.notFound'));
+    [lines, sow, vendor, pr, issuer] = await Promise.all([
+      sb.from('po_lines').select('*').eq('po_id', poId).order('seq').then(un),
+      sb.from('po_sow_snapshot').select('*').eq('po_id', poId).order('seq').then(un),
+      sb.from('vendors').select('*').eq('id', po.vendor_id).maybeSingle().then(un),
+      sb.from('prs').select('id, pr_no, purpose_th, purpose_en').eq('id', po.pr_id).maybeSingle().then(un),
+      po.issued_by
+        ? sb.from('user_profiles').select('full_name_th, full_name_en')
+            .eq('id', po.issued_by).maybeSingle().then(un)
+        : null,
+    ]);
+  } catch (e) { app.textContent = ''; fail(e); return; }
+
+  app.textContent = '';
+  app.append(pageTitle('po.title',
+    el('a', { class: 'btn small primary', href: `print/po.html?id=${poId}`, target: '_blank' },
+       t('po.print')),
+    el('a', { class: 'btn small', href: 'po.html', style: 'margin-left:.3rem' }, t('po.list'))));
+
+  const info = (label, val) => el('div', {},
+    el('small', { class: 'faint' }, t(label)), el('div', {}, val ?? '—'));
+
+  app.append(el('div', { class: 'card' },
+    el('h2', { style: 'margin:0' }, po.po_no, ' ', badge(po.status, 'poStatus')),
+    el('p', { class: 'muted', style: 'margin:.3rem 0 .8rem' },
+      pr ? `${pr.pr_no ?? ''} — ${pick(pr, 'purpose')}` : ''),
+    el('div', { class: 'grid g3' },
+      info('quote.vendor', vendor ? `${vendor.code} — ${pick(vendor, 'name')}` : '—'),
+      info('po.promisedDate', fmtDate(po.promised_date)),
+      info('po.warranty', String(po.warranty_days ?? 0)),
+      info('po.penaltyTerms',
+        `${pct(po.penalty_rate_bp)}% ${t('po.perDay')} · ${t('po.capShort')} ${pct(po.penalty_cap_bp)}%`),
+      info('po.retention', `${pct(po.retention_bp)}%`),
+      info('po.whtCode', po.wht_code ?? '—'),
+      info('po.issuedBy', issuer ? pick(issuer, 'full_name') : '—'),
+      info('common.at', fmtDateTime(po.issued_at)))));
+
+  // ---- รายการสั่งซื้อ ----
+  app.append(el('div', { class: 'card' },
+    el('h2', {}, t('po.lines')),
+    table([t('common.seq'), t('common.description'), { label: t('common.qty'), align: 'right' },
+           t('common.unit'), { label: t('common.unitPrice'), align: 'right' },
+           { label: t('common.amount'), align: 'right' }],
+      lines.map((l) => el('tr', {},
+        el('td', {}, String(l.seq)),
+        el('td', {}, el('b', {}, l.description), l.spec ? el('div', { class: 'faint' }, l.spec) : null),
+        el('td', { class: 'num' }, fmtQty(l.qty)),
+        el('td', {}, l.unit),
+        el('td', { class: 'num' }, fmt(l.unit_price)),
+        el('td', { class: 'num' }, fmt(l.amount))))),
+    el('div', { class: 'table-wrap', style: 'margin-top:.7rem;max-width:26rem;margin-left:auto' },
+      el('table', {}, el('tbody', {},
+        el('tr', {}, el('th', {}, t('common.subtotal')), el('td', { class: 'num' }, fmt(po.subtotal))),
+        el('tr', {}, el('th', {}, t('quote.freight')), el('td', { class: 'num' }, fmt(po.freight))),
+        el('tr', {}, el('th', {}, `${t('common.vat')} ${pct(po.vat_bp)}%`),
+          el('td', { class: 'num' }, fmt(po.vat_amount))),
+        el('tr', {}, el('th', {}, el('b', {}, t('common.grandTotal'))),
+          el('td', { class: 'num' }, el('b', {}, fmt(po.grand_total)))),
+        po.retention_bp
+          ? el('tr', {}, el('th', {}, t('po.retentionAmount')),
+              el('td', { class: 'num' },
+                fmt(Math.round(po.subtotal * po.retention_bp / 10000))))
+          : null)))));
+
+  // ---- ภาคผนวก SOW ----
+  if (sow.length) {
+    app.append(el('div', { class: 'card' },
+      el('h2', {}, t('po.sowAnnex')),
+      el('p', { class: 'faint' }, t('po.snapshotHint')),
+      table([t('common.seq'), t('admin.code'), t('sow.requirement'),
+             { label: t('po.vendorAccepted'), align: 'center' }],
+        sow.map((s) => el('tr', {},
+          el('td', {}, String(s.seq)),
+          el('td', {}, s.code),
+          el('td', {}, el('b', {}, pick(s, 'title')),
+            el('div', { class: 'faint' }, pick(s, 'requirement') || '—')),
+          el('td', { class: 'ta-center' },
+            s.vendor_accepted
+              ? el('span', { class: 'badge green' }, t('common.yes'))
+              : el('span', { class: 'badge red' }, t('common.no'))))))));
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+rules_version = '2';
+
+// ============================================================
+// storage.rules — รูปหลักฐาน (evidence/<รหัสจุดส่งหรือเที่ยว>/…)
+//
+//   อัปโหลด  คนที่ล็อกอินแล้วเท่านั้น (คนขับด้วยบัตรผ่าน หรือพนักงาน) · รูปเท่านั้น ไม่เกิน 5 MB
+//   อ่าน     คนที่ล็อกอิน — ลิงก์รูปที่เก็บในงาน (getDownloadURL มีโทเคนติดมา) เปิดได้ทุกคนอยู่แล้ว
+//            หน้าติดตามพัสดุจึงยังเห็นรูปตอนส่งมอบได้ โดยคนนอกไล่ดูรูปทั้งหมดในโฟลเดอร์ไม่ได้
+//   ลบ      พนักงาน (ล็อกอิน Google + มีชื่อใน staff) — ของเดิมลบไม่ได้เลยเพราะเช็ค request.resource ตอนลบ
+//
+// ใช้ firestore.exists() ข้ามบริการ — ตอน deploy ครั้งแรก Firebase จะถามให้อนุญาต ตอบ Yes
+// ============================================================
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isStaff() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && request.auth.token.email is string
+        && firestore.exists(/databases/(default)/documents/staff/$(request.auth.token.email.lower()));
+    }
+
+    // สลิปที่ลูกค้าแนบจากหน้าใบวางบิล (bill.html — ไม่ได้ล็อกอิน)
+    // อัปได้เฉพาะใบที่ลิงก์ยังเปิดและยังรอชำระ · รูปหรือ PDF ไม่เกิน 5 MB · ลบได้เฉพาะพนักงาน
+    // พนักงานแก้ข้อมูลกำกับไฟล์ได้ (ตั้ง Content-Disposition ให้กดแล้วดาวน์โหลด — js/bills.js downloadSlip)
+    match /bills/{billId}/{file} {
+      function bill() { return firestore.get(/databases/(default)/documents/bills/$(billId)).data; }
+      allow read: if firestore.exists(/databases/(default)/documents/bills/$(billId));
+      allow create: if request.resource.size <= 5 * 1024 * 1024   /* ตรงกับ SLIP_MAX ใน js/bills.js (≤ 5 MB) */
+                    && (request.resource.contentType.matches('image/.*') || request.resource.contentType == 'application/pdf')
+                    && bill().get('linkActive', false) == true
+                    && bill().status == 'open';
+      allow update, delete: if isStaff();
+    }
+
+    match /evidence/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null
+                    && request.resource.size < 5 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      allow delete: if isStaff();
+    }
+  }
+}

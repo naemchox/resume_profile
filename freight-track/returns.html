@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<script src="js/theme-init.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>คืนบิล · FreightTrack</title>
+<meta name="description" content="สถานะการคืนบิลรายวัน คืนที่ไหน วันที่คืน และยอดจัดส่งรวมของวันนั้น">
+<meta name="theme-color" content="#f4f3f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1f1c1b" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/apple.css">
+<!-- office.css โหลดหลัง apple.css — โทนเดียวกับหน้าแรก (index.html) และหน้าคนขับ -->
+<link rel="stylesheet" href="css/office.css">
+</head>
+<body class="ofc ofc-returns">
+<!-- โครงหน้ารอโหลด — ขึ้นทันทีจาก HTML/CSS ก่อน JavaScript ทำงาน แล้วสลับเป็นหน้าจริงตอนวาดเสร็จ (ui.js → shell) -->
+<div class="skel" aria-hidden="true">
+  <div class="skel-bar"></div>
+  <div class="skel-page">
+    <i class="sk sk-eyebrow"></i>
+    <i class="sk sk-title"></i>
+    <i class="sk sk-line"></i>
+    <div class="skel-kpis"><i class="sk"></i><i class="sk"></i><i class="sk"></i><i class="sk"></i></div>
+    <div class="skel-card">
+      <i class="sk sk-h"></i>
+      <i class="sk sk-row"></i><i class="sk sk-row"></i><i class="sk sk-row"></i><i class="sk sk-row"></i><i class="sk sk-row"></i>
+    </div>
+  </div>
+</div>
+<main class="page">
+<div class="wrap-wide">
+
+  <div class="page-head">
+    <div>
+      <p class="eyebrow eyebrow-accent">เอกสาร · คืนบิลรายวัน</p>
+      <h1 class="page-title" style="margin-top:6px">คืนบิล</h1>
+      <p class="muted small" style="margin-top:4px">ทุกบิลที่ส่งของแล้ว ล่าสุดอยู่บน · เลือกช่วงวันที่ส่งได้ · ดูว่าบิลไหนคืนแล้ว คืนที่ไหน วันไหน · กดแถวเพื่อแก้การคืน</p>
+    </div>
+    <div class="row gap-10 no-print">
+      <a class="btn btn-ghost btn-sm" href="dashboard.html">ดู Dashboard →</a>
+    </div>
+  </div>
+
+  <div class="grid g4" id="kpis" style="margin-bottom:20px"></div>
+
+  <div class="card" style="overflow:hidden">
+    <div style="padding:14px 16px 0">
+      <div class="row between wraps gap-12" style="align-items:flex-end">
+        <div class="tabs grow" id="tabs" role="tablist"></div>
+        <div class="row gap-8 wraps">
+          <label class="bill-today"><input type="checkbox" id="onlyToday"> เฉพาะวันนี้</label>
+          <label class="bill-range">วันที่ส่ง <input class="input" type="date" id="from" aria-label="ตั้งแต่"> – <input class="input" type="date" id="to" aria-label="ถึง"></label>
+          <select class="input" id="drv" aria-label="คนขับ" style="width:auto;min-width:160px"></select>
+          <input class="input" id="q" placeholder="🔍 ค้นหา Invoice · ร้าน · เที่ยว" style="width:min(260px,60vw)" autocomplete="off">
+          <button class="btn btn-ghost btn-sm" id="exportBtn" type="button">⬇ บันทึกเป็น Excel</button>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-x">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>วันที่ส่ง</th>
+            <th>บิล · ร้าน</th>
+            <th>เที่ยว · คนขับ</th>
+            <th class="right">ยอด Invoice</th>
+            <th>สถานะคืน</th>
+            <th>คืนที่</th>
+            <th>วันที่คืน</th>
+            <th>คืนโดย</th>
+            <th>Admin ดำเนินการล่าสุด</th>
+            <th>ชำระหน้างาน</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div id="emptyState"></div>
+  </div>
+
+  <p class="of-hint">
+    นับบิลที่ส่งของแล้วในช่วงวันที่ที่เลือก (ไม่เลือก = ทุกวัน · ไม่รวมที่ยกเลิก) · วันที่คืน = วันที่ที่เลือกตอนบันทึกคืน ·
+    Admin ดำเนินการล่าสุด = ครั้งล่าสุดที่ฝั่งออฟฟิศบันทึก/แก้การคืนของบิลนั้น
+  </p>
+</div>
+</main>
+
+<script type="module" src="js/firebase.js"></script>
+<script type="module" src="js/returns.js"></script>
+</body>
+</html>

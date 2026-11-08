@@ -1,0 +1,214 @@
+/* ============================================================
+   FT · Example Transport — base layer
+   tokens · reset · typography · layout · buttons · motion
+   ============================================================ */
+
+:root{
+  /* --- brand ---------------------------------------------- */
+  --navy-900:#0a1424;
+  --navy-800:#0f1e34;
+  --navy-700:#16294494;
+  --steel-600:#33465f;
+  --steel-400:#64788f;
+  --steel-300:#94a6bb;
+  --steel-200:#c9d4e0;
+  --steel-100:#e5ebf2;
+  --steel-50:#f4f7fa;
+  --paper:#ffffff;
+
+  --amber:#f5a524;
+  --amber-dim:#c9821a;
+  --amber-wash:#fff6e6;
+  --amber-ink:#7a5a10;      /* ตัวหนังสือบนพื้น amber-wash */
+
+  --green:#12a06a;
+  --green-wash:#e6f6ef;
+  --blue:#2563d9;
+  --blue-wash:#e8effc;
+  --red:#d92d20;
+  --red-wash:#fdecea;
+  --violet:#6d4ad9;
+  --violet-wash:#efeafc;
+
+  /* --- semantic ------------------------------------------- */
+  --bg:var(--steel-50);
+  --surface:var(--paper);
+  --surface-2:#fafcfe;
+  --line:#dde5ee;
+  --line-strong:#c4d0de;
+  --text:#0d1c30;
+  --text-2:#41556e;
+  --text-3:#77889d;
+  --accent:var(--amber);
+
+  --radius:10px;
+  --radius-sm:7px;
+  --radius-lg:16px;
+
+  --shadow-1:0 1px 2px rgba(13,28,48,.06), 0 1px 3px rgba(13,28,48,.05);
+  --shadow-2:0 2px 6px rgba(13,28,48,.06), 0 8px 24px rgba(13,28,48,.07);
+  --shadow-3:0 18px 50px rgba(10,20,36,.18);
+
+  --wrap:1180px;
+  --header-h:62px;
+
+  --sans:"IBM Plex Sans Thai","IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+
+body{
+  margin:0;
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.62;
+  color:var(--text);
+  background:var(--bg);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+
+h1,h2,h3,h4{margin:0;line-height:1.24;font-weight:600;letter-spacing:-.011em}
+h1{font-size:clamp(30px,4.4vw,50px);font-weight:700;letter-spacing:-.024em}
+h2{font-size:clamp(23px,2.7vw,33px);letter-spacing:-.018em}
+h3{font-size:clamp(17px,1.5vw,20px)}
+h4{font-size:15px}
+p{margin:0}
+a{color:inherit;text-decoration:none}
+img,svg{max-width:100%;display:block}
+button,input,select,textarea{font:inherit;color:inherit}
+ul,ol{margin:0;padding:0;list-style:none}
+table{border-collapse:collapse;width:100%}
+hr{border:0;border-top:1px solid var(--line);margin:0}
+::selection{background:var(--amber);color:var(--navy-900)}
+
+/* --- layout ----------------------------------------------- */
+.wrap,.wrap-wide,.wrap-tight{margin-inline:auto}
+.wrap{width:min(100% - 40px,var(--wrap))}
+.wrap-wide{width:min(100% - 40px,1400px)}
+.wrap-tight{width:min(100% - 40px,780px)}
+@media (max-width:640px){.wrap,.wrap-wide,.wrap-tight{width:calc(100% - 28px)}}
+
+section{padding:clamp(52px,7vw,96px) 0}
+.stack{display:flex;flex-direction:column}
+.row{display:flex;align-items:center}
+.gap-4{gap:4px}.gap-6{gap:6px}.gap-8{gap:8px}.gap-10{gap:10px}
+.gap-12{gap:12px}.gap-16{gap:16px}.gap-20{gap:20px}.gap-24{gap:24px}.gap-32{gap:32px}
+.wraps{flex-wrap:wrap}
+.between{justify-content:space-between}
+.center{justify-content:center}
+.end{justify-content:flex-end}
+.start{align-items:flex-start}
+.baseline{align-items:baseline}
+.grow{flex:1;min-width:0}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:960px){.g3,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:620px){.g2,.g3,.g4{grid-template-columns:1fr}}
+/* กริดสองคอลัมน์ที่ยุบเป็นคอลัมน์เดียวบนจอแคบ */
+@media (max-width:900px){.collapse-900{grid-template-columns:1fr!important}}
+.hide-sm{display:initial}
+@media (max-width:760px){.hide-sm{display:none!important}}
+
+/* --- type utilities --------------------------------------- */
+.mono{font-family:var(--mono);font-variant-ligatures:none}
+.eyebrow{
+  font-family:var(--mono);font-size:11px;font-weight:500;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--text-3);
+}
+.eyebrow-accent{color:var(--amber-dim)}
+.lede{font-size:clamp(16px,1.35vw,18.5px);line-height:1.72;color:var(--text-2)}
+.muted{color:var(--text-2)}
+.dim{color:var(--text-3)}
+.tiny{font-size:12.5px;line-height:1.55}
+.small{font-size:13.5px;line-height:1.6}
+.big-num{font-family:var(--mono);font-size:clamp(26px,3vw,34px);font-weight:600;letter-spacing:-.02em;line-height:1.1}
+.strong{font-weight:600}
+.nowrap{white-space:nowrap}
+.tnum{font-variant-numeric:tabular-nums}
+.trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* --- buttons ---------------------------------------------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px 18px;border-radius:var(--radius);border:1px solid transparent;
+  font-size:14.5px;font-weight:600;letter-spacing:-.005em;
+  cursor:pointer;background:var(--btn-bg,var(--navy-900));color:var(--btn-fg,#fff);
+  transition:transform .16s var(--ease),box-shadow .2s var(--ease),background .2s,border-color .2s,opacity .2s;
+  white-space:nowrap;text-align:center;
+}
+.btn:hover{box-shadow:var(--shadow-2);transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.42;pointer-events:none}
+.btn-accent{background:var(--amber);color:var(--navy-900)}
+.btn-green{background:var(--green);color:#fff}
+.btn-ghost{background:transparent;color:var(--text);border-color:var(--line-strong)}
+.btn-ghost:hover{background:var(--surface);border-color:var(--steel-400)}
+.btn-quiet{background:var(--steel-100);color:var(--text-2);border-color:transparent}
+.btn-quiet:hover{background:var(--steel-200);box-shadow:none;transform:none}
+.btn-danger{background:transparent;color:var(--red);border-color:#f2c3bf}
+.btn-danger:hover{background:var(--red-wash)}
+.btn-rush{background:linear-gradient(135deg,#ff5a3c,#e0301e);color:#fff;
+  box-shadow:0 2px 10px rgba(224,48,30,.35)}
+.btn-rush:hover{box-shadow:0 4px 16px rgba(224,48,30,.5)}
+.btn-sm{padding:6px 12px;font-size:13px;border-radius:var(--radius-sm)}
+.btn-lg{padding:14px 26px;font-size:16px;border-radius:12px}
+.btn-block{width:100%}
+.btn-xl{padding:20px 24px;font-size:18px;border-radius:14px;font-weight:700}
+:where(a,button,input,select,textarea,[tabindex]):focus-visible{
+  outline:2.5px solid var(--amber);outline-offset:2px;border-radius:var(--radius-sm)
+}
+
+/* --- surfaces --------------------------------------------- */
+.card{
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--radius-lg);box-shadow:var(--shadow-1);
+}
+.card-pad{padding:clamp(18px,2.2vw,26px)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.divider{height:1px;background:var(--line);margin:0}
+
+/* --- dark band -------------------------------------------- */
+.band-dark{
+  background:
+    radial-gradient(1100px 460px at 12% -12%, #1d3557 0%, transparent 62%),
+    radial-gradient(760px 400px at 96% 8%, #1a2f4d 0%, transparent 58%),
+    var(--navy-900);
+  color:#eef3f9;
+}
+.band-dark h1,.band-dark h2,.band-dark h3{color:#fff}
+.band-dark .muted{color:#9fb2c8}
+.band-dark .dim{color:#7b8ea6}
+.band-dark .eyebrow{color:#8fa4bd}
+.band-dark .lede{color:#b8c7d8}
+
+/* --- hairline grid motif ---------------------------------- */
+.gridlines{
+  position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+  background-size:56px 56px;
+  -webkit-mask-image:radial-gradient(circle at 50% 30%,#000 0%,transparent 78%);
+  mask-image:radial-gradient(circle at 50% 30%,#000 0%,transparent 78%);
+}
+
+/* --- reveal on scroll ------------------------------------- */
+[data-reveal]{opacity:0;transform:translateY(16px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+[data-reveal].is-in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){[data-reveal]{opacity:1;transform:none}}
+
+/* --- scrollbar -------------------------------------------- */
+.scroll-x{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.scroll-x::-webkit-scrollbar{height:8px}
+.scroll-x::-webkit-scrollbar-thumb{background:var(--steel-200);border-radius:99px}
+
+/* เปลี่ยนหน้าแบบค่อย ๆ จางต่อกัน (Chrome/Edge รุ่นใหม่) — เบราว์เซอร์ที่ไม่รองรับข้ามไปเฉย ๆ */
+@view-transition{navigation:auto}
