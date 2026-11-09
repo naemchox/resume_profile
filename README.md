@@ -13,7 +13,7 @@ and the constraints that shaped it.
 | [coop-coding](./coop-coding) | **Co-op Coding** — VS Code extension for real-time collaborative editing where files stay real files on every participant's disk | TypeScript · VS Code API · Cloudflare Workers + Durable Objects |
 | [stock-line-bot](./stock-line-bot) | Multi-user LINE bot that pushes Thai and US stock prices on a schedule and splits the free push quota fairly between users | TypeScript · Cloudflare Workers + KV · LINE Messaging API |
 | [arthid](./arthid) | Team chat, projects and meetings, with a Discord bot on the same data | Firebase · Cloud Functions 2nd gen · Discord Interactions |
-| [gemini-code](https://github.com/wannuwat-s/gemini-code) | **Gemini Code** — terminal client for Gemini with a web mode and an API agent mode (separate repo) | Python · Playwright · Gemini API |
+| [gemini-code](https://github.com/naemchox/gemini-code) | **Gemini Code** — terminal client for Gemini with a web mode and an API agent mode (separate repo) | Python · Playwright · Gemini API |
 
 ## Apps
 
